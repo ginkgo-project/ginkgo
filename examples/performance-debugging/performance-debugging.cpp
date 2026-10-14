@@ -323,9 +323,6 @@ int main(int argc, char* argv[])
     const auto of_name = "log.txt";
 
 
-    // Simple shortcut
-    using vec = gko::matrix::Dense<ValueType>;
-
     // Print version information
     std::cout << gko::version_info::get() << std::endl;
 

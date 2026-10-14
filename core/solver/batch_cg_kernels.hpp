@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -121,7 +121,6 @@ storage_config compute_shared_storage(const int available_shared_mem,
                                       const int num_rows, const int num_nz,
                                       const int num_rhs)
 {
-    using real_type = remove_complex<ValueType>;
     const int vec_bytes = num_rows * num_rhs * sizeof(ValueType);
     const int num_main_vecs = 5;
     const int prec_storage = Prectype::dynamic_work_size(num_rows, num_nz);

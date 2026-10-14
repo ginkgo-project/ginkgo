@@ -39,8 +39,6 @@ template <typename ValueType, typename IndexType>
 void FixedCoarsening<ValueType, IndexType>::generate()
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
-    using sparsity_type = matrix::SparsityCsr<ValueType, IndexType>;
-    using real_type = remove_complex<ValueType>;
     auto exec = this->get_executor();
 
     // Only support csr matrix currently.

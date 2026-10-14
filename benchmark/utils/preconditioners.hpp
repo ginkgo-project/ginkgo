@@ -314,7 +314,6 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
          }},
         {"mg",
          [](std::shared_ptr<const gko::Executor> exec) {
-             using ir = gko::solver::Ir<etype>;
              auto iter_stop = gko::share(gko::stop::Iteration::build()
                                              .with_max_iters(FLAGS_mg_max_iters)
                                              .on(exec));

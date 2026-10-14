@@ -390,7 +390,6 @@ Csr<ValueType, IndexType>::Csr(Csr<ValueType, IndexType>&& other)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
@@ -514,8 +513,6 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                            const LinOp* beta, LinOp* x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using RealDense = Dense<remove_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM

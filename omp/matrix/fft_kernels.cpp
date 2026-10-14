@@ -87,7 +87,6 @@ void fft(std::shared_ptr<const DefaultExecutor> exec,
          array<char>& buffer)
 {
     using complex_type = std::complex<ValueType>;
-    using real_type = ValueType;
     const int64 sign = inverse ? 1 : -1;
     const auto size = static_cast<int64>(b.size[0]);
     GKO_ASSERT_IS_POWER_OF_TWO(size);
@@ -128,7 +127,6 @@ void fft2(std::shared_ptr<const DefaultExecutor> exec,
           size_type size2, bool inverse, array<char>& buffer)
 {
     using complex_type = std::complex<ValueType>;
-    using real_type = ValueType;
     const int64 sign = inverse ? 1 : -1;
     const auto ssize1 = static_cast<int64>(size1);
     const auto ssize2 = static_cast<int64>(size2);
@@ -198,7 +196,6 @@ void fft3(std::shared_ptr<const DefaultExecutor> exec,
           size_type size2, size_type size3, bool inverse, array<char>& buffer)
 {
     using complex_type = std::complex<ValueType>;
-    using real_type = ValueType;
     const int64 sign = inverse ? 1 : -1;
     const auto ssize1 = static_cast<int64>(size1);
     const auto ssize2 = static_cast<int64>(size2);

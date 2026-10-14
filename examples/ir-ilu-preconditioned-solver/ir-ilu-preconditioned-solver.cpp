@@ -19,7 +19,6 @@ int main(int argc, char* argv[])
     using IndexType = int;
 
     using vec = gko::matrix::Dense<ValueType>;
-    using real_vec = gko::matrix::Dense<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using gmres = gko::solver::Gmres<ValueType>;
     using ir = gko::solver::Ir<ValueType>;

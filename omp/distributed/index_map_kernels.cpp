@@ -35,8 +35,6 @@ void build_mapping(
     array<GlobalIndexType>& remote_global_idxs, array<int64>& remote_sizes)
 {
     using experimental::distributed::comm_index_type;
-    using partition_type =
-        experimental::distributed::Partition<LocalIndexType, GlobalIndexType>;
     auto part_ids = part->get_part_ids();
     auto input_size = recv_connections.get_size();
 

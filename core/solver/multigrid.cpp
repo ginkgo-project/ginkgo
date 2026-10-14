@@ -956,7 +956,6 @@ void Multigrid::generate(reuse_data_type* reuse_data)
     GKO_ASSERT_EQ(level > 0, true);
     auto last_mg_level = mg_level_list_.back();
 
-    using ws = workspace_traits<Multigrid>;
     this->setup_workspace();
     this->create_state();
     cache_.state->generate(this->get_system_matrix().get(), this, 1);
@@ -1106,8 +1105,6 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                                b->get_size()[1]);
     }
     auto lambda = [&, this](auto mg_level, auto b, auto x) {
-        using value_type =
-            typename std::decay_t<decltype(*mg_level)>::value_type;
         auto exec = this->get_executor();
         auto neg_one_op = cache_.state->neg_one_list.at(0);
         auto one_op = cache_.state->one_list.at(0);

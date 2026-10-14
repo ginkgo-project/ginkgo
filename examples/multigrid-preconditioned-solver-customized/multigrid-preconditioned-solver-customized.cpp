@@ -19,7 +19,6 @@ int main(int argc, char* argv[])
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
-    using ir = gko::solver::Ir<ValueType>;
     using mg = gko::solver::Multigrid;
     using ic = gko::preconditioner::Ic<ValueType>;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;

@@ -247,7 +247,6 @@ protected:
 
         using value_type = typename ConcreteSolver::value_type;
         using Identity = matrix::Identity<value_type>;
-        using real_type = remove_complex<value_type>;
 
         if (params.generated_preconditioner) {
             GKO_ASSERT_BATCH_EQUAL_DIMENSIONS(params.generated_preconditioner,

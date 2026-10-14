@@ -98,7 +98,6 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                       VectorType* dense_x) const
 {
     using std::swap;
-    using LocalVector = matrix::Dense<ValueType>;
 
     constexpr uint8 RelativeStoppingId{1};
 

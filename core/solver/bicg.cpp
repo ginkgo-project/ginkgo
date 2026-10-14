@@ -112,7 +112,6 @@ void Bicg<ValueType>::apply_dense_impl(const matrix::Dense<ValueType>* dense_b,
                                        matrix::Dense<ValueType>* dense_x) const
 {
     using std::swap;
-    using Vector = matrix::Dense<ValueType>;
     constexpr uint8 RelativeStoppingId{1};
 
     auto exec = this->get_executor();

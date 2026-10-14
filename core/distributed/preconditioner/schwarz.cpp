@@ -101,8 +101,6 @@ template <typename VectorType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     const VectorType* dense_b, VectorType* dense_x) const
 {
-    using Vector = matrix::Dense<ValueType>;
-    using dist_vec = experimental::distributed::Vector<ValueType>;
     auto exec = this->get_executor();
 
     // Two-level
@@ -184,8 +182,6 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
     std::shared_ptr<const LinOp> system_matrix)
 {
-    using Vector = matrix::Dense<ValueType>;
-    using dist_vec = experimental::distributed::Vector<ValueType>;
     if (parameters_.local_solver && parameters_.generated_local_solver) {
         GKO_INVALID_STATE(
             "Provided both a generated solver and a solver factory");

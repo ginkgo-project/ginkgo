@@ -37,7 +37,6 @@ void separate_diag_off_diag(
     array<GlobalIndexType>& off_diag_col_idxs,
     array<ValueType>& off_diag_values)
 {
-    using range_index_type = GlobalIndexType;
     using global_nonzero = matrix_data_entry<ValueType, GlobalIndexType>;
     using local_nonzero = matrix_data_entry<ValueType, LocalIndexType>;
     auto input_row_idxs = input.get_const_row_idxs();
