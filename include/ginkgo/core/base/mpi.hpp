@@ -262,7 +262,7 @@ private:
 };
 
 
-namespace {
+namespace detail {
 
 
 /**
@@ -281,7 +281,7 @@ public:
 };
 
 
-}  // namespace
+}  // namespace detail
 
 
 /**
@@ -445,7 +445,7 @@ public:
     {
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split(comm, color, key, &comm_out));
-        this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
+        this->comm_.reset(new MPI_Comm(comm_out), detail::comm_deleter{});
     }
 
     /**
@@ -461,7 +461,7 @@ public:
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(
             MPI_Comm_split(comm.get(), color, key, &comm_out));
-        this->comm_.reset(new MPI_Comm(comm_out), comm_deleter{});
+        this->comm_.reset(new MPI_Comm(comm_out), detail::comm_deleter{});
     }
 
     /**
@@ -477,7 +477,7 @@ public:
                                       bool force_host_buffer = false)
     {
         communicator comm_out(MPI_COMM_NULL, force_host_buffer);
-        comm_out.comm_.reset(new MPI_Comm(comm), comm_deleter{});
+        comm_out.comm_.reset(new MPI_Comm(comm), detail::comm_deleter{});
         return comm_out;
     }
 
