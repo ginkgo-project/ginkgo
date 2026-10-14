@@ -66,7 +66,7 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
     }
     if (auto& obj = config_check.get("algorithm")) {
         using gko::factorization::incomplete_algorithm;
-        auto str = obj.get_string();
+        const auto& str = obj.get_string();
         if (str == "sparselib") {
             params.with_algorithm(incomplete_algorithm::sparselib);
         } else if (str == "syncfree") {

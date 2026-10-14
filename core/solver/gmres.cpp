@@ -79,7 +79,7 @@ typename Gmres<ValueType>::parameters_type Gmres<ValueType>::parse(
         params.with_flexible(gko::config::get_value<bool>(obj));
     }
     if (auto& obj = config_check.get("ortho_method")) {
-        auto str = obj.get_string();
+        const auto& str = obj.get_string();
         gmres::ortho_method ortho;
         if (str == "mgs") {
             ortho = gmres::ortho_method::mgs;

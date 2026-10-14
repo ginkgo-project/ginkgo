@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,7 +30,7 @@ inline void common_trisolver_parse(SolverParam& params,
     }
     if (auto& obj = config_check.get("algorithm")) {
         using gko::solver::trisolve_algorithm;
-        auto str = obj.get_string();
+        const auto& str = obj.get_string();
         if (str == "sparselib") {
             params.with_algorithm(trisolve_algorithm::sparselib);
         } else if (str == "syncfree") {

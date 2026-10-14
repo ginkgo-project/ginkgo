@@ -663,7 +663,7 @@ typename Multigrid::parameters_type Multigrid::parse(
         params.with_post_uses_pre(gko::config::get_value<bool>(obj));
     }
     if (auto& obj = config_check.get("mid_case")) {
-        auto str = obj.get_string();
+        const auto& str = obj.get_string();
         if (str == "both") {
             params.with_mid_case(multigrid::mid_smooth_type::both);
         } else if (str == "post_smoother") {
@@ -688,7 +688,7 @@ typename Multigrid::parameters_type Multigrid::parse(
                 obj, context, td_for_child));
     }
     if (auto& obj = config_check.get("cycle")) {
-        auto str = obj.get_string();
+        const auto& str = obj.get_string();
         if (str == "v") {
             params.with_cycle(multigrid::cycle::v);
         } else if (str == "w") {

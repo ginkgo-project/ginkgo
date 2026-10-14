@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,8 +17,8 @@ namespace config {
 type_descriptor update_type(const pnode& config, const type_descriptor& td)
 {
     auto value_typestr = td.get_value_typestr();
-    auto index_typestr = td.get_index_typestr();
-    auto global_index_typestr = td.get_global_index_typestr();
+    const auto& index_typestr = td.get_index_typestr();
+    const auto& global_index_typestr = td.get_global_index_typestr();
 
     if (auto& obj = config.get("value_type")) {
         value_typestr = obj.get_string();
