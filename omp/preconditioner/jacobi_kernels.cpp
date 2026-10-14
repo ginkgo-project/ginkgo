@@ -158,7 +158,7 @@ inline void extract_block(
     for (int row = 0; row < block_size; ++row) {
         const auto start = row_ptrs[block_start + row];
         const auto end = row_ptrs[block_start + row + 1];
-        for (int i = start; i < end; ++i) {
+        for (auto i = start; i < end; ++i) {
             const auto col = col_idxs[i] - block_start;
             if (0 <= col && col < block_size) {
                 block[row * stride + col] = vals[i];
