@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -331,8 +331,7 @@ int main(int argc, char* argv[])
 
     // Figure out where to run the code
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
-        std::cerr << "Usage: " << argv[0] << " [executor]" << std::endl;
-        std::exit(-1);
+        print_usage(argv[0]);
     }
 
     // Figure out where to run the code
