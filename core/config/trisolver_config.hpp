@@ -20,7 +20,7 @@ template <typename SolverParam>
 inline void common_trisolver_parse(SolverParam& params,
                                    config_check_decorator& config_check,
                                    const registry& context,
-                                   type_descriptor td_for_child)
+                                   const type_descriptor& td_for_child)
 {
     if (auto& obj = config_check.get("num_rhs")) {
         params.with_num_rhs(gko::config::get_value<size_type>(obj));

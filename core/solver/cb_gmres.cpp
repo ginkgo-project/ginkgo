@@ -170,7 +170,7 @@ typename CbGmres<ValueType>::parameters_type CbGmres<ValueType>::parse(
         params.with_krylov_dim(gko::config::get_value<size_type>(obj));
     }
     if (auto& obj = config_check.get("storage_precision")) {
-        auto get_storage_precision = [](std::string str) {
+        auto get_storage_precision = [](const std::string& str) {
             using gko::solver::cb_gmres::storage_precision;
             if (str == "keep") {
                 return storage_precision::keep;
