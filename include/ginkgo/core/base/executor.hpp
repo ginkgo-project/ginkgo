@@ -978,7 +978,7 @@ protected:
          *       In DPCPP, this is the maximum number of workitems that are
          *       permitted in a workgroup.
          */
-        int max_workgroup_size;
+        int max_workgroup_size = -1;
 
         /**
          * The major version for CUDA/HIP device.

@@ -101,12 +101,12 @@ public:
      * @param file  The name of the offending source file
      * @param line  The source code line number where the error occurred
      * @param func  The name of the function that has not been compiled
-     * @param module  The name of the module which contains the function
+     * @param module_name  The name of the module which contains the function
      */
     NotCompiled(const std::string& file, int line, const std::string& func,
-                const std::string& module)
+                const std::string& module_name)
         : Error(file, line,
-                "feature " + func + " is part of the " + module +
+                "feature " + func + " is part of the " + module_name +
                     " module, which is not compiled on this system")
     {}
 };
