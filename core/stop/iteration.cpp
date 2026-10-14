@@ -36,7 +36,7 @@ deferred_factory_parameter<const CriterionFactory> min_iters(
 {
     return MinIterationWrapper::build()
         .with_min_iters(count)
-        .with_inner_criterion(criterion);
+        .with_inner_criterion(std::move(criterion));
 }
 
 

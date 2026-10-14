@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -322,7 +322,7 @@ std::shared_ptr<SolverProgress> SolverProgress::create_vector_storage(
     std::string output_file_prefix, bool binary)
 {
     return std::shared_ptr<SolverProgress>{
-        new SolverProgressStore{output_file_prefix, binary}};
+        new SolverProgressStore{std::move(output_file_prefix), binary}};
 }
 
 

@@ -63,9 +63,9 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
 type_descriptor::type_descriptor(std::string value_typestr,
                                  std::string index_typestr,
                                  std::string global_index_typestr)
-    : value_typestr_(value_typestr),
-      index_typestr_(index_typestr),
-      global_index_typestr_(global_index_typestr)
+    : value_typestr_(std::move(value_typestr)),
+      index_typestr_(std::move(index_typestr)),
+      global_index_typestr_(std::move(global_index_typestr))
 {}
 
 const std::string& type_descriptor::get_value_typestr() const
