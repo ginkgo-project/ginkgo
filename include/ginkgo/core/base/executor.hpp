@@ -256,6 +256,8 @@ class ExecutorBase;
  */
 class Operation {
 public:
+    virtual ~Operation() = default;
+
 #define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
     virtual void run(std::shared_ptr<const _type>) const
 

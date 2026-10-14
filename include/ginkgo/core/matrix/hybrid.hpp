@@ -95,6 +95,8 @@ public:
      */
     class strategy_type {
     public:
+        virtual ~strategy_type() = default;
+
         /**
          * Creates a strategy_type.
          */

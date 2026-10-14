@@ -104,6 +104,8 @@ private:
      * entry of the matrix, depending on its storage scheme:
      */
     struct entry_format {
+        virtual ~entry_format() = default;
+
         virtual ValueType read_entry(std::istream& is) const = 0;
         virtual void write_entry(std::ostream& os,
                                  const ValueType& value) const = 0;
@@ -249,6 +251,8 @@ private:
      * entire matrix from the stored parts
      */
     struct storage_modifier {
+        virtual ~storage_modifier() = default;
+
         virtual size_type get_reservation_size(
             size_type num_rows, size_type num_cols,
             size_type num_nonzeros) const = 0;
@@ -449,6 +453,8 @@ private:
      * sparse)
      */
     struct storage_layout {
+        virtual ~storage_layout() = default;
+
         /**
          * Read the matrix data
          *

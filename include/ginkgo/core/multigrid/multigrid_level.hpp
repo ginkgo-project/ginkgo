@@ -36,6 +36,8 @@ namespace multigrid {
  */
 class MultigridLevel {
 public:
+    virtual ~MultigridLevel() = default;
+
     /**
      * Returns the operator on fine level.
      *
