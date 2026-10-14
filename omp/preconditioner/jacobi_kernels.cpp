@@ -565,7 +565,6 @@ void transpose_jacobi(
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
-    const size_type matrix_size = ptrs[num_blocks];
 
 #pragma omp parallel for
     for (size_type i = 0; i < num_blocks; ++i) {
@@ -602,7 +601,6 @@ void conj_transpose_jacobi(
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
-    const size_type matrix_size = ptrs[num_blocks];
 
 #pragma omp parallel for
     for (size_type i = 0; i < num_blocks; ++i) {

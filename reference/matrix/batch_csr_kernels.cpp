@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -79,10 +79,8 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto col_scale_vals = col_scale->get_const_data();
     const auto row_scale_vals = row_scale->get_const_data();
-    auto input_vals = input->get_values();
     const auto num_rows = static_cast<int>(input->get_common_size()[0]);
     const auto num_cols = static_cast<int>(input->get_common_size()[1]);
-    const auto stride = input->get_common_size()[1];
     const auto mat_ub = host::get_batch_struct(input);
     for (size_type batch_id = 0; batch_id < input->get_num_batch_items();
          ++batch_id) {

@@ -280,7 +280,6 @@ int main(int argc, char* argv[])
 
     auto exec = get_executor(FLAGS_gpu_timer);
     print_general_information(extra_information, exec);
-    auto& engine = get_engine();
 
     auto preconditioners = split(FLAGS_preconditioners, ',');
 

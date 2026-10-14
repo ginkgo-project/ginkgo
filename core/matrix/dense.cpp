@@ -1286,7 +1286,6 @@ void Dense<ValueType>::permute_impl(
     Dense* output) const
 {
     auto exec = this->get_executor();
-    auto size = this->get_size();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
     GKO_ASSERT_EQUAL_COLS(this, col_permutation);
@@ -1374,7 +1373,6 @@ void Dense<ValueType>::scale_permute_impl(
     Dense* output) const
 {
     auto exec = this->get_executor();
-    auto size = this->get_size();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
     GKO_ASSERT_EQUAL_COLS(this, col_permutation);

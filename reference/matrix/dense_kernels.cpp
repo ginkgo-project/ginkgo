@@ -458,7 +458,6 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
-    auto num_nonzeros = result.num_stored_elements;
 
     auto row_idxs = result.row_idxs;
     auto col_idxs = result.col_idxs;
@@ -489,7 +488,6 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
-    auto num_nonzeros = result.num_stored_elements;
 
     auto row_ptrs = result.row_ptrs;
     auto col_idxs = result.col_idxs;
@@ -602,7 +600,6 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
     auto ell_lim = result.ell_part.num_stored_elements_per_row;
-    auto coo_lim = result.coo_part.num_stored_elements;
     auto coo_val = result.coo_part.values;
     auto coo_col = result.coo_part.col_idxs;
     auto coo_row = result.coo_part.row_idxs;
@@ -652,7 +649,6 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_cols = result.size[1];
     auto vals = result.values;
     auto col_idxs = result.col_idxs;
-    auto slice_lengths = result.slice_lengths;
     auto slice_sets = result.slice_sets;
     auto slice_size = result.slice_size;
     for (size_type row = 0; row < num_rows; row++) {

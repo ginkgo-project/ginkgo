@@ -43,7 +43,6 @@ std::unique_ptr<gko::matrix::Ell<ValueType, IndexType>>
 Ell<ValueType, IndexType>::create_view_for_item(size_type item_id)
 {
     auto exec = this->get_executor();
-    auto num_rows = this->get_common_size()[0];
     auto stride = this->get_common_size()[0];
     auto mat = unbatch_type::create(
         exec, this->get_common_size(),
@@ -61,7 +60,6 @@ std::unique_ptr<const gko::matrix::Ell<ValueType, IndexType>>
 Ell<ValueType, IndexType>::create_const_view_for_item(size_type item_id) const
 {
     auto exec = this->get_executor();
-    auto num_rows = this->get_common_size()[0];
     auto stride = this->get_common_size()[0];
     auto mat = unbatch_type::create_const(
         exec, this->get_common_size(),

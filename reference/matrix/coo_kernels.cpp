@@ -124,7 +124,6 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
     const auto row_idxs = orig.row_idxs;
     const auto col_idxs = orig.col_idxs;
     const auto values = orig.values;
-    const auto diag_size = diag->get_size()[0];
     const auto nnz = orig.num_stored_elements;
     auto diag_values = diag->get_values();
 

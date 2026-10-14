@@ -117,7 +117,6 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                 // sums
                 partial_sum.fill(zero<ValueType>());
                 for (; nz < end && coo_row[nz] == first; nz++) {
-                    const auto row = first;
                     const auto col = coo_col[nz];
                     for (size_type rhs = rounded_rhs; rhs < num_rhs; rhs++) {
                         partial_sum[rhs - rounded_rhs] +=

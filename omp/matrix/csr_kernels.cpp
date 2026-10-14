@@ -429,7 +429,6 @@ auto spgemm_multiway_merge(size_type row,
             sift_down(heap + a_begin, i, a_size);
         }
         auto& top = heap[a_begin];
-        auto& bot = heap[a_end - 1];
         auto col = top.col;
 
         while (top.col != sentinel) {
@@ -823,7 +822,6 @@ void spgeam_numeric(std::shared_ptr<const OmpExecutor> exec,
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
     auto c_row_ptrs = c.row_ptrs;
-    auto c_col_idxs = c.col_idxs;
     auto c_vals = c.values;
 
     abstract_spgeam(
@@ -846,7 +844,6 @@ void fill_in_dense(std::shared_ptr<const OmpExecutor> exec,
                    matrix::view::dense<ValueType> result)
 {
     auto num_rows = source.size[0];
-    auto num_cols = source.size[1];
     auto row_ptrs = source.row_ptrs;
     auto col_idxs = source.col_idxs;
     auto vals = source.values;
@@ -873,9 +870,6 @@ void convert_to_fbcsr(
 {
     using entry = matrix_data_entry<ValueType, IndexType>;
     const auto num_rows = source.size[0];
-    const auto num_cols = source.size[1];
-    const auto num_block_rows = num_rows / bs;
-    const auto num_block_cols = num_cols / bs;
     const auto in_row_ptrs = source.row_ptrs;
     const auto in_cols = source.col_idxs;
     const auto in_vals = source.values;
@@ -1119,8 +1113,6 @@ void compute_submatrix_from_index_set(
     const gko::index_set<IndexType>& col_index_set,
     matrix::view::csr<ValueType, IndexType> result)
 {
-    auto num_rows = result.size[0];
-    auto num_cols = result.size[1];
     auto num_row_subsets = row_index_set.get_num_subsets();
     auto row_subset_begin = row_index_set.get_subsets_begin();
     auto row_subset_end = row_index_set.get_subsets_end();

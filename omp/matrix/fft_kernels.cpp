@@ -89,7 +89,6 @@ void fft(std::shared_ptr<const DefaultExecutor> exec,
     using complex_type = std::complex<ValueType>;
     using real_type = ValueType;
     const int64 sign = inverse ? 1 : -1;
-    const auto nrhs = b.size[1];
     const auto size = static_cast<int64>(b.size[0]);
     GKO_ASSERT_IS_POWER_OF_TWO(size);
     auto roots = build_unit_roots<complex_type>(exec, size, sign);
@@ -131,7 +130,6 @@ void fft2(std::shared_ptr<const DefaultExecutor> exec,
     using complex_type = std::complex<ValueType>;
     using real_type = ValueType;
     const int64 sign = inverse ? 1 : -1;
-    const auto nrhs = b.size[1];
     const auto ssize1 = static_cast<int64>(size1);
     const auto ssize2 = static_cast<int64>(size2);
     GKO_ASSERT_IS_POWER_OF_TWO(ssize1);
@@ -202,7 +200,6 @@ void fft3(std::shared_ptr<const DefaultExecutor> exec,
     using complex_type = std::complex<ValueType>;
     using real_type = ValueType;
     const int64 sign = inverse ? 1 : -1;
-    const auto nrhs = b.size[1];
     const auto ssize1 = static_cast<int64>(size1);
     const auto ssize2 = static_cast<int64>(size2);
     const auto ssize3 = static_cast<int64>(size3);

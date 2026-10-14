@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -135,8 +135,6 @@ void compute_lookup_across_blocks(
     // we computed argmins for blocks of size 2, now recursively combine them.
     const auto num_levels = superblocks.num_levels();
     for (int block_level = 1; block_level < num_levels; block_level++) {
-        const auto block_size =
-            superblock_type::block_size_for_level(block_level);
         // we need block_level + 1 bits to represent values of size block_size
         // and round up to the next power of two
         const auto collation_width =

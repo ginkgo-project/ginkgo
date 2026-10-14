@@ -26,7 +26,6 @@ void build_local(
     auto col_idxs = input.get_const_col_idxs();
     auto values = input.get_const_values();
     auto range_parts = partition->get_part_ids();
-    auto num_ranges = partition->get_num_ranges();
 
     size_type range_id_hint = 0;
 #pragma omp parallel for firstprivate(range_id_hint)

@@ -154,7 +154,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::multiply(
     auto host = exec->get_master();
     auto comm = this->get_communicator();
     auto rank = comm.rank();
-    auto nprocs = comm.size();
 
     if (this->get_row_partition() == nullptr) {
         GKO_INVALID_STATE(

@@ -195,8 +195,6 @@ void step_1(std::shared_ptr<const OmpExecutor> exec, const size_type nrhs,
             matrix::view::dense<ValueType> c, matrix::view::dense<ValueType> v,
             const array<stopping_status>& stop_status)
 {
-    const auto m_size = m.size;
-
     // Compute c = M \ f
     solve_lower_triangular(nrhs, m, f, c, stop_status);
 

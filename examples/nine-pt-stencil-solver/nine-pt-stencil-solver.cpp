@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -70,7 +70,6 @@ void generate_stencil_matrix(IndexType dp, IndexType* row_ptrs,
                              ValueType* coefs)
 {
     IndexType pos = 0;
-    const size_t dp_2 = dp * dp;
     row_ptrs[0] = pos;
     for (IndexType k = 0; k < dp; ++k) {
         for (IndexType i = 0; i < dp; ++i) {
@@ -98,7 +97,6 @@ template <typename Closure, typename ClosureT, typename ValueType,
 void generate_rhs(IndexType dp, Closure f, ClosureT u, ValueType* rhs,
                   ValueType* coefs)
 {
-    const size_t dp_2 = dp * dp;
     const ValueType h = 1.0 / (dp + 1.0);
     for (IndexType i = 0; i < dp; ++i) {
         const auto yi = ValueType(i + 1) * h;
