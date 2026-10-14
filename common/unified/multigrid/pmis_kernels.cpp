@@ -265,8 +265,9 @@ void classify_seed(std::shared_ptr<const DefaultExecutor> exec, size_type num,
 }
 
 
-void count(std::shared_ptr<const DefaultExecutor> exec, size_type num,
-           const int* status, size_type* num_unassigned)
+void count_unassigned(std::shared_ptr<const DefaultExecutor> exec,
+                      size_type num, const int* status,
+                      size_type* num_unassigned)
 {
     array<size_type> d_result(exec, 1);
     run_kernel_reduction(

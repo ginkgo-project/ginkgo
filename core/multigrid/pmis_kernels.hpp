@@ -131,9 +131,10 @@ struct interpolation_workspace {
         const matrix::SparsityCsr<ValueType, IndexType>* strong_dep,       \
         int* new_status)
 
-#define GKO_DECLARE_COUNT_KERNEL                                           \
-    void count(std::shared_ptr<const DefaultExecutor> exec, size_type num, \
-               const int* status, size_type* num_unassigned)
+#define GKO_DECLARE_COUNT_UNASSIGNED_KERNEL                            \
+    void count_unassigned(std::shared_ptr<const DefaultExecutor> exec, \
+                          size_type num, const int* status,            \
+                          size_type* num_unassigned)
 
 // Opens a selection round: every unassigned node tentatively becomes coarse,
 // which select then downgrades block by block.
@@ -212,7 +213,7 @@ struct interpolation_workspace {
                                             GlobalIndexType);              \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_PMIS_CLASSIFY_MARK_FINE_KERNEL(ValueType, IndexType);      \
-    GKO_DECLARE_COUNT_KERNEL;                                              \
+    GKO_DECLARE_COUNT_UNASSIGNED_KERNEL;                                   \
     GKO_DECLARE_PMIS_CLASSIFY_SEED_KERNEL;                                 \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_DIRECT_INTERPOLATION_ROW_COUNT(ValueType, IndexType);      \
