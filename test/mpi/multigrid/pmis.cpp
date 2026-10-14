@@ -17,6 +17,8 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/log/convergence.hpp>
+#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/pmis.hpp>
@@ -47,27 +49,28 @@
 #endif
 
 
-// The same spgemm has no half-precision support on hipSPARSE: its csrgemm2
+// The same spgemm has no half or bfloat16 support on hipSPARSE: its csrgemm2
 // bindings cover float, double and the two complex types only.
 #if defined(GKO_COMPILING_HIP)
-#define GKO_DEVICE_HAS_HALF_SPGEMM 0
+#define GKO_DEVICE_HAS_16BIT_SPGEMM 0
 #else
-#define GKO_DEVICE_HAS_HALF_SPGEMM 1
+#define GKO_DEVICE_HAS_16BIT_SPGEMM 1
 #endif
 
 
-#if !GKO_DEVICE_HAS_HALF_SPGEMM
-#define SKIP_IF_DEVICE_NO_HALF_SPGEMM(value_type)                            \
-    if (std::is_same<gko::remove_complex<value_type>, gko::half>::value) {   \
-        GTEST_SKIP() << "distributed spgemm in half precision is "           \
-                        "unsupported on this backend (hipSPARSE has no "     \
-                        "half spgemm)";                                      \
-    }                                                                        \
-    static_assert(true,                                                      \
-                  "This assert is used to counter the false positive extra " \
+#if !GKO_DEVICE_HAS_16BIT_SPGEMM
+#define SKIP_IF_DEVICE_NO_16BIT_SPGEMM(value_type)                             \
+    if (std::is_same<gko::remove_complex<value_type>, gko::half>::value ||     \
+        std::is_same<gko::remove_complex<value_type>, gko::bfloat16>::value) { \
+        GTEST_SKIP() << "distributed spgemm in half or bfloat16 precision is " \
+                        "unsupported on this backend (hipSPARSE has no "       \
+                        "16-bit spgemm)";                                      \
+    }                                                                          \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 #else
-#define SKIP_IF_DEVICE_NO_HALF_SPGEMM(value_type)                            \
+#define SKIP_IF_DEVICE_NO_16BIT_SPGEMM(value_type)                           \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
@@ -324,7 +327,7 @@ TYPED_TEST_SUITE(Pmis, gko::test::ValueLocalGlobalIndexTypes,
 TYPED_TEST(Pmis, CanGenerateFromDistributedMatrix)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
-    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
     using pmis = typename TestFixture::pmis;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
 
@@ -342,10 +345,10 @@ TYPED_TEST(Pmis, CanGenerateFromDistributedMatrix)
 }
 
 
-TYPED_TEST(Pmis, EveryLocalRowOfProlongationIsNonEmpty)
+TYPED_TEST(Pmis, LaplaceProlongationHasNoEmptyRows)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
-    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
     using pmis = typename TestFixture::pmis;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
@@ -357,8 +360,8 @@ TYPED_TEST(Pmis, EveryLocalRowOfProlongationIsNonEmpty)
         gko::clone(this->ref, gko::as<local_matrix_type>(p->get_diag_matrix()));
     auto host_off = gko::clone(
         this->ref, gko::as<local_matrix_type>(p->get_off_diag_matrix()));
-    // a coarse row carries its identity entry, a fine row interpolates from at
-    // least one strong C-neighbour, possibly on another rank
+    // PMIS does not guarantee a strong C-neighbour for every F-point in
+    // general, but on the 1D Laplacian every F-point has one
     for (gko::size_type row = 0; row < host_diag->get_size()[0]; row++) {
         const auto n_diag = host_diag->get_const_row_ptrs()[row + 1] -
                             host_diag->get_const_row_ptrs()[row];
@@ -373,7 +376,7 @@ TYPED_TEST(Pmis, EveryLocalRowOfProlongationIsNonEmpty)
 TYPED_TEST(Pmis, DistributedCoarseOperatorMatchesSerial)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
-    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
     using pmis = typename TestFixture::pmis;
 
     auto dist_level = pmis::build().on(this->exec)->generate(this->dist_mat);
@@ -388,7 +391,7 @@ TYPED_TEST(Pmis, DistributedCoarseOperatorMatchesSerial)
 TYPED_TEST(Pmis, RowMaximumSpansBothBlocks)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
-    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
     using value_type = typename TestFixture::value_type;
     using global_index_type = typename TestFixture::global_index_type;
     using local_index_type = typename TestFixture::local_index_type;
@@ -418,7 +421,7 @@ TYPED_TEST(Pmis, RowMaximumSpansBothBlocks)
 TYPED_TEST(Pmis, WorksWithAnEmptyLocalRange)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
-    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
     using global_index_type = typename TestFixture::global_index_type;
     using local_index_type = typename TestFixture::local_index_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;
@@ -454,16 +457,94 @@ TYPED_TEST(Pmis, WorksWithAnEmptyLocalRange)
 }
 
 
+TYPED_TEST(Pmis, ThrowsOnDifferentRowAndColumnPartitions)
+{
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using Partition = typename TestFixture::Partition;
+    using pmis = typename TestFixture::pmis;
+    const int n = static_cast<int>(this->size[0]);
+    // rank 0 gets a 4 x 6 diagonal block
+    auto col_part = gko::share(Partition::build_from_contiguous(
+        this->exec, gko::array<global_index_type>(
+                        this->exec, I<global_index_type>{0, 6, 8, 12})));
+    auto mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    mat->read_distributed(
+        TestFixture::template laplace_data<global_index_type>(n),
+        this->row_part, col_part);
+
+    ASSERT_THROW(pmis::build().on(this->exec)->generate(mat),
+                 gko::InvalidStateError);
+}
+
+
+TYPED_TEST(Pmis, CanGenerateFromOtherPrecision)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using other_dist_mtx_type = gko::experimental::distributed::Matrix<
+        gko::next_precision<value_type>, local_index_type, global_index_type>;
+    using pmis = typename TestFixture::pmis;
+    // the stencil entries are exact in every precision
+    auto other =
+        gko::share(other_dist_mtx_type::create(this->exec, this->comm));
+    this->dist_mat->convert_to(other.get());
+
+    auto dist_level = pmis::build().on(this->exec)->generate(other);
+    auto serial_level =
+        pmis::build().on(this->exec)->generate(this->serial_mat);
+
+    ASSERT_NO_THROW(gko::as<dist_mtx_type>(dist_level->get_fine_op()));
+    this->assert_coarse_matches_serial(dist_level->get_coarse_op().get(),
+                                       serial_level->get_coarse_op().get());
+}
+
+
+TYPED_TEST(Pmis, CanGenerateFromNonCsrLocalMatrices)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using pmis = typename TestFixture::pmis;
+    const int n = static_cast<int>(this->size[0]);
+    auto coo_dist = gko::share(dist_mtx_type::create(
+        this->exec, this->comm,
+        gko::matrix::Coo<value_type, local_index_type>::create(this->exec)));
+    coo_dist->read_distributed(
+        TestFixture::template laplace_data<global_index_type>(n),
+        this->row_part);
+
+    auto dist_level = pmis::build().on(this->exec)->generate(coo_dist);
+    auto serial_level =
+        pmis::build().on(this->exec)->generate(this->serial_mat);
+
+    this->assert_coarse_matches_serial(dist_level->get_coarse_op().get(),
+                                       serial_level->get_coarse_op().get());
+}
+
+
 TYPED_TEST(Pmis, DistributedMultigridPreconditionedCgConverges)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
-    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
     using value_type = typename TestFixture::value_type;
+    // the true residual of this problem does not drop below ||b|| in half or
+    // bfloat16
+    SKIP_IF_HALF(value_type);
+    SKIP_IF_BFLOAT16(value_type);
     using real_type = typename TestFixture::real_type;
     using dense_type = typename TestFixture::dense_type;
     using pmis = typename TestFixture::pmis;
     using cg = gko::solver::Cg<value_type>;
     const auto tol = r<value_type>::value * real_type{1e3};
+    auto logger = gko::share(gko::log::Convergence<value_type>::create());
 
     auto solver =
         cg::build()
@@ -482,6 +563,7 @@ TYPED_TEST(Pmis, DistributedMultigridPreconditionedCgConverges)
         {real_type{0}}, this->exec);
     auto rhs_norm = gko::initialize<gko::matrix::Dense<real_type>>(
         {real_type{0}}, this->exec);
+    solver->add_logger(logger);
 
     solver->apply(this->b, this->x);
 
@@ -493,13 +575,15 @@ TYPED_TEST(Pmis, DistributedMultigridPreconditionedCgConverges)
         this->exec->copy_val_to_host(res_norm->get_const_values()) /
         this->exec->copy_val_to_host(rhs_norm->get_const_values());
     ASSERT_LT(rel, tol * real_type{10});
+    // unpreconditioned CG needs 48 iterations here
+    ASSERT_LT(logger->get_num_iterations(), 40u);
 }
 
 
 TYPED_TEST(Pmis, HierarchyIsIndependentOfRankCount)
 {
     SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
-    SKIP_IF_DEVICE_NO_HALF_SPGEMM(typename TestFixture::value_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
     using pmis = typename TestFixture::pmis;
     using dist_mtx_type = typename TestFixture::dist_mtx_type;
     using local_matrix_type = typename TestFixture::local_matrix_type;

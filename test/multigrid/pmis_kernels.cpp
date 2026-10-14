@@ -97,8 +97,8 @@ protected:
         auto status_ptr = status.get_data();
         auto new_status_ptr = new_status.get_data();
         gko::size_type num_not_assigned = 0;
-        gko::kernels::reference::pmis::count(ref, num, status_ptr,
-                                             &num_not_assigned);
+        gko::kernels::reference::pmis::count_unassigned(ref, num, status_ptr,
+                                                        &num_not_assigned);
         while (num_not_assigned != 0) {
             gko::multigrid::pmis::classify_round(
                 ref, num,
@@ -107,8 +107,8 @@ protected:
                 weight.get_const_data(), global_idx.get_const_data(),
                 status_ptr, new_status_ptr, [] {});
             gko::size_type new_num = 0;
-            gko::kernels::reference::pmis::count(ref, num, new_status_ptr,
-                                                 &new_num);
+            gko::kernels::reference::pmis::count_unassigned(
+                ref, num, new_status_ptr, &new_num);
             if (new_num == num_not_assigned) {
                 // no progress -> throw error (maybe unnecessary)
                 throw std::runtime_error("no progress in Pmis");
@@ -219,7 +219,7 @@ TEST_F(Pmis, ComputeStrongDepIsEquivalentToRef)
 }
 
 
-TEST_F(Pmis, CountIsEquivalentToRef)
+TEST_F(Pmis, CountUnassignedIsEquivalentToRef)
 {
     initialize_data();
     auto status = gko::test::generate_random_array<int>(
@@ -228,8 +228,9 @@ TEST_F(Pmis, CountIsEquivalentToRef)
     gko::size_type num;
     gko::size_type d_num;
 
-    gko::kernels::reference::pmis::count(ref, m, status.get_const_data(), &num);
-    gko::kernels::GKO_DEVICE_NAMESPACE::pmis::count(
+    gko::kernels::reference::pmis::count_unassigned(
+        ref, m, status.get_const_data(), &num);
+    gko::kernels::GKO_DEVICE_NAMESPACE::pmis::count_unassigned(
         exec, m, d_status.get_const_data(), &d_num);
 
     ASSERT_EQ(d_num, num);

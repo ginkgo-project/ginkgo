@@ -54,7 +54,7 @@ GKO_REGISTER_OPERATION(initialize_weight_and_status,
                        pmis::initialize_weight_and_status);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(add_at_indices, pmis::add_at_indices);
-GKO_REGISTER_OPERATION(count, pmis::count);
+GKO_REGISTER_OPERATION(count_unassigned, pmis::count_unassigned);
 GKO_REGISTER_OPERATION(direct_interpolation_row_count,
                        pmis::direct_interpolation_row_count);
 GKO_REGISTER_OPERATION(coarse_global_index, pmis::coarse_global_index);
@@ -137,23 +137,69 @@ void Pmis<ValueType, IndexType>::generate()
             experimental::distributed::Matrix<ValueType, IndexType, IndexType>;
         using snd_mtx_type =
             experimental::distributed::Matrix<ValueType, IndexType, int64>;
+        auto convert_fine_op = [&](auto matrix) {
+            using global_index_type = typename std::decay_t<
+                decltype(*matrix)>::result_type::global_index_type;
+            auto exec = as<LinOp>(matrix)->get_executor();
+            auto comm = as<experimental::distributed::DistributedBase>(matrix)
+                            ->get_communicator();
+            auto fine = share(
+                experimental::distributed::
+                    Matrix<ValueType, IndexType, global_index_type>::create(
+                        exec, comm, csr_type::create(exec),
+                        csr_type::create(exec)));
+            matrix->convert_to(fine);
+            if (!parameters_.skip_sorting) {
+                as<csr_type>(fine->diag_mtx_)->sort_by_column_index();
+                as<csr_type>(fine->off_diag_mtx_)->sort_by_column_index();
+            }
+            this->set_fine_op(fine);
+        };
+        auto setup_fine_op = [&](auto matrix) {
+            auto diag_csr = std::dynamic_pointer_cast<const csr_type>(
+                matrix->get_diag_matrix());
+            auto off_diag_csr = std::dynamic_pointer_cast<const csr_type>(
+                matrix->get_off_diag_matrix());
+            if (!parameters_.skip_sorting || !diag_csr || !off_diag_csr) {
+                using global_index_type =
+                    typename std::decay_t<decltype(*matrix)>::global_index_type;
+                convert_fine_op(
+                    as<ConvertibleTo<experimental::distributed::Matrix<
+                        ValueType, IndexType, global_index_type>>>(matrix));
+            }
+        };
+        if (auto obj =
+                std::dynamic_pointer_cast<const fst_mtx_type>(system_matrix_)) {
+            setup_fine_op(obj);
+        } else if (auto obj = std::dynamic_pointer_cast<const snd_mtx_type>(
+                       system_matrix_)) {
+            setup_fine_op(obj);
+        } else {
+            run<ConvertibleTo, fst_mtx_type, snd_mtx_type>(system_matrix_,
+                                                           convert_fine_op);
+        }
+
         auto distributed_setup = [&](auto matrix) {
             using global_index_type =
                 typename std::decay_t<decltype(*matrix)>::global_index_type;
-            auto exec = gko::as<LinOp>(matrix)->get_executor();
-            auto comm =
-                gko::as<experimental::distributed::DistributedBase>(matrix)
-                    ->get_communicator();
+            auto exec = matrix->get_executor();
+            auto comm = matrix->get_communicator();
             // the transpose below requires both partitions, and only
             // read_distributed sets the row partition
             GKO_THROW_IF_INVALID(
                 matrix->get_row_partition() != nullptr,
                 "distributed Pmis requires a matrix filled by "
                 "read_distributed, which is what sets the row partition");
+            // every rank holds the whole partition, so all ranks throw
+            const auto col_partition = matrix->imap_.get_partition();
+            GKO_THROW_IF_INVALID(
+                col_partition != nullptr &&
+                    col_partition->equals(*matrix->get_row_partition()),
+                "distributed Pmis requires identical row and column "
+                "partitions");
 
-            auto diag = gko::as<const csr_type>(matrix->get_diag_matrix());
-            auto off_diag =
-                gko::as<const csr_type>(matrix->get_off_diag_matrix());
+            auto diag = as<const csr_type>(matrix->get_diag_matrix());
+            auto off_diag = as<const csr_type>(matrix->get_off_diag_matrix());
             const auto n_loc = diag->get_size()[0];
             const auto n_halo = off_diag->get_size()[1];
 
@@ -301,7 +347,8 @@ void Pmis<ValueType, IndexType>::generate()
             };
             // termination is global: a rank can finish before its neighbours
             size_type local_unassigned = 0;
-            exec->run(pmis::make_count(n_loc, status_ptr, &local_unassigned));
+            exec->run(pmis::make_count_unassigned(n_loc, status_ptr,
+                                                  &local_unassigned));
             size_type global_unassigned = 0;
             comm.all_reduce(exec->get_master(), &local_unassigned,
                             &global_unassigned, 1, MPI_SUM);
@@ -312,16 +359,19 @@ void Pmis<ValueType, IndexType>::generate()
                     // mark_fine has to see the C-points just selected on
                     // other ranks
                     [&] { refresh_status_halo(new_status_ptr); });
-                // the select phase of the next round reads the halo
-                // statuses again
-                refresh_status_halo(new_status_ptr);
                 size_type new_local = 0;
-                exec->run(pmis::make_count(n_loc, new_status_ptr, &new_local));
+                exec->run(pmis::make_count_unassigned(n_loc, new_status_ptr,
+                                                      &new_local));
                 size_type new_global = 0;
                 comm.all_reduce(exec->get_master(), &new_local, &new_global, 1,
                                 MPI_SUM);
                 GKO_THROW_IF_INVALID(new_global != global_unassigned,
                                      "no progress in Pmis");
+                // after the last round only the halo C-points are read, and
+                // those are already final
+                if (new_global != 0) {
+                    refresh_status_halo(new_status_ptr);
+                }
                 global_unassigned = new_global;
                 std::swap(new_status_ptr, status_ptr);
             }
@@ -345,13 +395,9 @@ void Pmis<ValueType, IndexType>::generate()
                     IndexType, global_index_type>(exec, comm, local_coarse));
             GKO_THROW_IF_INVALID(coarse_partition->get_size() > 0,
                                  "Pmis produced an empty coarse level.");
-            // this rank's first coarse global index: the exclusive prefix
-            // sum of the local C-point counts
-            size_type coarse_scan = 0;
-            comm.scan(exec->get_master(), &local_coarse, &coarse_scan, 1,
-                      MPI_SUM);
-            const auto coarse_offset =
-                static_cast<global_index_type>(coarse_scan - local_coarse);
+            // range i of the coarse partition is owned by rank i
+            const auto coarse_offset = exec->copy_val_to_host(
+                coarse_partition->get_range_bounds() + comm.rank());
             array<global_index_type> coarse_global(exec, n_ext);
             exec->run(pmis::make_coarse_global_index(
                 n_loc, coarse_offset, status_ptr, coarse_map.get_const_data(),
@@ -439,8 +485,7 @@ void Pmis<ValueType, IndexType>::generate()
         array<IndexType> sparsity_rows(exec, pmis_op->get_size()[0] + 1);
         array<remove_complex<ValueType>> row_maxabs(exec,
                                                     pmis_op->get_size()[0]);
-        gko::array<remove_complex<ValueType>> weight_(exec,
-                                                      pmis_op->get_size()[0]);
+        array<remove_complex<ValueType>> weight_(exec, pmis_op->get_size()[0]);
         // compute_row_maxabs accumulates, so start from zero
         exec->run(pmis::make_fill_array(row_maxabs.get_data(),
                                         row_maxabs.get_size(),
@@ -463,8 +508,8 @@ void Pmis<ValueType, IndexType>::generate()
             pmis_op.get(), true, row_maxabs.get_const_data(),
             this->get_parameters().strength_threshold, strong_dep.get()));
         // status: -1 unassigned, 0 fine, 1 coarse
-        gko::array<int> status(exec, this->get_size()[0]);
-        gko::array<int> new_status(exec, this->get_size()[0]);
+        array<int> status(exec, this->get_size()[0]);
+        array<int> new_status(exec, this->get_size()[0]);
         auto status_ptr = status.get_data();
         auto new_status_ptr = new_status.get_data();
         // how often i occurs as a column of S, counted by scatter-add
@@ -492,16 +537,16 @@ void Pmis<ValueType, IndexType>::generate()
             matrix::SparsityCsr<ValueType, IndexType>, IndexType>>
             strength_blocks{{strong_dep.get(), false, IndexType{0}}};
 
-        exec->run(pmis::make_count(this->get_size()[0], status_ptr,
-                                   &num_not_assigned));
+        exec->run(pmis::make_count_unassigned(this->get_size()[0], status_ptr,
+                                              &num_not_assigned));
         while (num_not_assigned != 0) {
             pmis::classify_round(exec, this->get_size()[0], strength_blocks,
                                  weight_.get_const_data(),
                                  global_idx.get_const_data(), status_ptr,
                                  new_status_ptr, [] {});
             size_type new_num = 0;
-            exec->run(pmis::make_count(this->get_size()[0], new_status_ptr,
-                                       &new_num));
+            exec->run(pmis::make_count_unassigned(this->get_size()[0],
+                                                  new_status_ptr, &new_num));
             GKO_THROW_IF_INVALID(new_num != num_not_assigned,
                                  "no progress in Pmis");
             num_not_assigned = new_num;
@@ -534,8 +579,8 @@ void Pmis<ValueType, IndexType>::generate()
 
         exec->run(pmis::make_prefix_sum_nonnegative(prolong_row_ptrs.get_data(),
                                                     this->get_size()[0] + 1));
-        IndexType prolong_nnz =
-            get_element(prolong_row_ptrs, this->get_size()[0]);
+        const auto prolong_nnz = static_cast<size_type>(
+            get_element(prolong_row_ptrs, this->get_size()[0]));
         array<IndexType> prolong_col_idxs(exec, prolong_nnz);
         array<ValueType> prolong_values(exec, prolong_nnz);
 
@@ -555,9 +600,9 @@ void Pmis<ValueType, IndexType>::generate()
         // without a halo, the prefix-summed coarse_map maps node indices to
         // coarse columns directly. Input and output alias, which is safe
         // because entry i only reads entry i.
-        exec->run(pmis::make_gather(
-            static_cast<size_type>(prolong_nnz), coarse_map.get_const_data(),
-            prolong_col_idxs.get_const_data(), prolong_col_idxs.get_data()));
+        exec->run(pmis::make_gather(prolong_nnz, coarse_map.get_const_data(),
+                                    prolong_col_idxs.get_const_data(),
+                                    prolong_col_idxs.get_data()));
         auto prolongation = share(matrix::Csr<ValueType, IndexType>::create(
             exec, dim<2>{pmis_op->get_size()[0], num_coarse},
             std::move(prolong_values), std::move(prolong_col_idxs),

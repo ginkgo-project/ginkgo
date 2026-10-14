@@ -236,8 +236,9 @@ void classify_seed(std::shared_ptr<const DefaultExecutor> exec, size_type num,
 }
 
 
-void count(std::shared_ptr<const DefaultExecutor> exec, size_type num,
-           const int* status, size_type* num_unassigned)
+void count_unassigned(std::shared_ptr<const DefaultExecutor> exec,
+                      size_type num, const int* status,
+                      size_type* num_unassigned)
 {
     size_type ans = 0;
     for (size_type i = 0; i < num; i++) {

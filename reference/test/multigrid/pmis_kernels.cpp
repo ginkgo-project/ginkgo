@@ -368,7 +368,7 @@ TYPED_TEST(Pmis, ClassifyOnSameWeight)
 }
 
 
-TYPED_TEST(Pmis, Count)
+TYPED_TEST(Pmis, CountUnassigned)
 {
     gko::array<int> arr(this->exec, 5);
     auto data = arr.get_data();
@@ -379,8 +379,8 @@ TYPED_TEST(Pmis, Count)
     data[4] = u;
 
     gko::size_type num = 0;
-    gko::kernels::reference::pmis::count(this->exec, 5, arr.get_const_data(),
-                                         &num);
+    gko::kernels::reference::pmis::count_unassigned(this->exec, 5,
+                                                    arr.get_const_data(), &num);
 
     EXPECT_EQ(num, 3);
 }
