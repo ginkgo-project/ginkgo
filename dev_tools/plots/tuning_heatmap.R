@@ -9,7 +9,7 @@ library(tidyr)
 # Manage arguments
 args <- commandArgs(trailingOnly=TRUE)
 if (length(args)!=2) {
-    stop("Usage: Rscript tuning_heatmap.R input_directory output_graphics_file\n", call=FALSE)
+    stop("Usage: Rscript tuning_heatmap.R input_directory output_graphics_file\n", call.=FALSE)
 }
 input <- args[1]
 output <- args[2]
