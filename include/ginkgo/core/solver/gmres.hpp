@@ -27,7 +27,8 @@ namespace gko {
 namespace solver {
 
 
-[[deprecated]] constexpr size_type default_krylov_dim = 100u;
+[[deprecated("please use gmres_default_krylov_dim")]] constexpr size_type
+    default_krylov_dim = 100u;
 
 constexpr size_type gmres_default_krylov_dim = 100u;
 

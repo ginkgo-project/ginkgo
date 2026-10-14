@@ -157,7 +157,6 @@ int main(int argc, char* argv[])
     }
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();
-    // auto solver = solver_gen->generate(A);
     auto solver = multigrid_gen->generate(A);
     exec->synchronize();
     auto gen_toc = std::chrono::steady_clock::now();

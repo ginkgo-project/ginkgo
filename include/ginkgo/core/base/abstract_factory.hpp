@@ -263,7 +263,7 @@ public:
         auto factory = std::unique_ptr<Factory>(new Factory(exec, copy));
         for (auto& logger : loggers) {
             factory->add_logger(logger);
-        };
+        }
         return factory;
     }
 
