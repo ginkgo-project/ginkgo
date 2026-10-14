@@ -84,13 +84,12 @@ std::unique_ptr<LinOp> Bicg<ValueType>::conj_transpose() const
 template <typename CsrType>
 std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp* mtx)
 {
-    auto csr_matrix_unique_ptr = copy_and_convert_to<CsrType>(
-        mtx->get_executor(), const_cast<LinOp*>(mtx));
+    auto csr_matrix = CsrType::create(mtx->get_executor());
+    as<ConvertibleTo<CsrType>>(mtx)->convert_to(csr_matrix);
 
-    csr_matrix_unique_ptr->set_strategy(
-        gko::matrix::csr::spmv_strategy::classical);
+    csr_matrix->set_strategy(gko::matrix::csr::spmv_strategy::classical);
 
-    return csr_matrix_unique_ptr->conj_transpose();
+    return csr_matrix->conj_transpose();
 }
 
 
