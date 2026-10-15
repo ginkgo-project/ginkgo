@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,13 +44,13 @@ namespace matrix {
  * @tparam ValueType  value precision of matrix elements
  * @tparam IndexType  index precision of matrix elements
  *
- * @ingroup batch_ell
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Ell final
-    : public EnableBatchLinOp<Ell<ValueType, IndexType>>,
+    : public BatchLinOp,
+      public EnableCloneable<Ell<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Ell<next_precision<ValueType, 2>, IndexType>>,
 #endif
@@ -58,7 +58,7 @@ class Ell final
       public ConvertibleTo<Ell<next_precision<ValueType, 3>, IndexType>>,
 #endif
       public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>> {
-    friend class EnablePolymorphicObject<Ell, BatchLinOp>;
+    friend class EnableCloneable<Ell>;
     friend class Ell<to_complex<ValueType>, IndexType>;
     friend class Ell<previous_precision<ValueType>, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
@@ -66,8 +66,8 @@ class Ell final
                   "IndexType must be a 32 bit integer");
 
 public:
-    using EnableBatchLinOp<Ell>::convert_to;
-    using EnableBatchLinOp<Ell>::move_to;
+    using EnableCloneable<Ell>::convert_to;
+    using EnableCloneable<Ell>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
@@ -312,7 +312,7 @@ public:
      * array. The column indices array needs to be the same for all batch items.
      *
      * @param exec  the executor to create the matrix on
-     * @param size  the dimensions of the matrix
+     * @param sizes  the dimensions of the matrix
      * @param num_elems_per_row  the number of elements to be stored in each row
      * @param values  the value array of the matrix
      * @param col_idxs the col_idxs array of a single batch item of the matrix.
@@ -336,7 +336,7 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    Ell* apply(ptr_param<const MultiVector<value_type>> b,
+    void apply(ptr_param<const MultiVector<value_type>> b,
                ptr_param<MultiVector<value_type>> x);
 
     /**
@@ -349,7 +349,7 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    Ell* apply(ptr_param<const MultiVector<value_type>> alpha,
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
                ptr_param<const MultiVector<value_type>> b,
                ptr_param<const MultiVector<value_type>> beta,
                ptr_param<MultiVector<value_type>> x);
@@ -357,18 +357,18 @@ public:
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
-    const Ell* apply(ptr_param<const MultiVector<value_type>> b,
-                     ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> b,
+               ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, const
      * MultiVector<value_type>*, const MultiVector<value_type>*,
      * MultiVector<value_type>*)
      */
-    const Ell* apply(ptr_param<const MultiVector<value_type>> alpha,
-                     ptr_param<const MultiVector<value_type>> b,
-                     ptr_param<const MultiVector<value_type>> beta,
-                     ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
+               ptr_param<const MultiVector<value_type>> b,
+               ptr_param<const MultiVector<value_type>> beta,
+               ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * Performs in-place row and column scaling for this matrix.

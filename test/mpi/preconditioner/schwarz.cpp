@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -82,11 +82,11 @@ protected:
             exec, gko::array<global_index_type>(
                       exec, I<global_index_type>{0, 2, 4, 8}));
 
-        // the default non-local matrix uses Coo, which does not support half
+        // the default off-diag matrix uses Coo, which does not support half
         // precision on HIP and DPCPP because of atomic
         dist_mat = dist_mtx_type::create(
             exec, comm, csr::create(exec),
-            csr::create(exec, std::make_shared<typename csr::classical>()));
+            csr::create(exec, gko::matrix::csr::spmv_strategy::classical));
         dist_mat->read_distributed(mat_input, row_part);
         non_dist_mat = non_dist_matrix_type::create(exec);
         non_dist_mat->read(mat_input);
@@ -147,14 +147,14 @@ protected:
         std::shared_ptr<dist_vec_type> dist_vec,
         std::shared_ptr<local_vec_type> local_vec)
     {
-        auto host_row_part = row_part->clone(ref);
         auto l_dist_vec = dist_vec->get_local_vector();
         auto vec_view = local_vec_type::create_const(
             exec, l_dist_vec->get_size(),
             gko::array<value_type>::const_view(
                 exec, l_dist_vec->get_size()[0],
                 local_vec->get_const_values() +
-                    host_row_part->get_range_bounds()[comm.rank()]),
+                    exec->copy_val_to_host(row_part->get_range_bounds() +
+                                           comm.rank())),
             l_dist_vec->get_size()[1]);
         GKO_ASSERT_MTX_NEAR(l_dist_vec, vec_view.get(), r<value_type>::value);
     }
@@ -247,7 +247,7 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyPreconditionedSolverWithPregenSolver)
         gko::share(local_prec_type::build()
                        .with_max_block_size(1u)
                        .on(this->exec)
-                       ->generate(this->dist_mat->get_local_matrix()));
+                       ->generate(this->dist_mat->get_diag_matrix()));
     auto precond = prec::build()
                        .with_local_solver(this->local_solver_factory)
                        .on(this->exec)

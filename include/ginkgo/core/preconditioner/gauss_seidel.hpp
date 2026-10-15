@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,19 +22,17 @@ namespace preconditioner {
 /**
  * This class generates the Gauss-Seidel preconditioner.
  *
- * This is the special case of the relaxation factor $\omega = 1$ of the (S)SOR
- * preconditioner.
+ * This is the special case of the relaxation factor \f$\omega = 1\f$ of the
+ * (S)SOR preconditioner.
  *
  * @see Sor
  *
  * @ingroup precond
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class GaussSeidel
-    : public EnablePolymorphicObject<GaussSeidel<ValueType, IndexType>,
-                                     LinOpFactory>,
-      public EnablePolymorphicAssignment<GaussSeidel<ValueType, IndexType>> {
-    friend class EnablePolymorphicObject<GaussSeidel, LinOpFactory>;
+class GaussSeidel : public LinOpFactory,
+                    public EnableCloneable<GaussSeidel<ValueType, IndexType>> {
+    friend class EnableCloneable<GaussSeidel>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -77,6 +75,10 @@ public:
 
     /**
      * @copydoc LinOpFactory::generate
+     *
+     * @param system_matrix  the source matrix used to generate the
+     *                       preconditioner.
+     *
      * @note This function overrides the default LinOpFactory::generate to
      *       return a Factorization instead of a generic LinOp, which would need
      *       to be cast to Factorization again to access its factors.
@@ -96,8 +98,7 @@ public:
 protected:
     explicit GaussSeidel(std::shared_ptr<const Executor> exec,
                          const parameters_type& params = {})
-        : EnablePolymorphicObject<GaussSeidel, LinOpFactory>(exec),
-          parameters_(params)
+        : LinOpFactory(exec), parameters_(params)
     {}
 
     std::unique_ptr<LinOp> generate_impl(

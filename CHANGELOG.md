@@ -10,6 +10,7 @@ git log --first-parent
 ## Unreleased
 
 Please visit our wiki [Changelog](https://github.com/ginkgo-project/ginkgo/wiki/Changelog) for unreleased changes.
+Interface break and suggested change for 2.0 is under [Interface Change 2.0](./INTERFACE_CHANGE.2.md)
 
 ## Version 1.11.0
 

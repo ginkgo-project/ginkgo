@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,15 +8,8 @@
 
 #include <exception>
 
-
-#if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #include <hipsparse/hipsparse.h>
-#else
-#include <hipblas.h>
-#include <hipsparse.h>
-#endif
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>

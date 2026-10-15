@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,7 +27,7 @@ namespace kernels {
         const device_matrix_data<ValueType, GlobalIndexType>& input,          \
         const experimental::distributed::Partition<                           \
             LocalIndexType, GlobalIndexType>* partition,                      \
-        comm_index_type local_part, matrix::Dense<ValueType>* local_mtx)
+        comm_index_type local_part, matrix::view::dense<ValueType> local_mtx)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                      \

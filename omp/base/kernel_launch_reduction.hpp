@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 #endif
 
 
+#include <algorithm>
 #include <numeric>
 
 #include <omp.h>
@@ -20,6 +21,9 @@ namespace omp {
 
 // how many more reduction tasks we launch relative to the number of threads
 constexpr int reduction_kernel_oversubscription = 4;
+
+// `num_threads(...)` is a request, not a guarantee. Seed the partials and
+// derive each range from the team actually granted.
 
 
 namespace {
@@ -36,17 +40,20 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
     const auto ssize = static_cast<int64>(size);
     // Limit the number of threads to the number of columns
     const auto num_threads = std::min<int64>(omp_get_max_threads(), ssize);
-    const auto work_per_thread =
-        ceildiv(ssize, std::max<int64>(num_threads, 1));
     const auto required_storage = sizeof(ValueType) * num_threads;
     if (tmp.get_size() < required_storage) {
         tmp.resize_and_reset(required_storage);
     }
     const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
+    std::fill_n(partial, num_threads, identity);
 #pragma omp parallel num_threads(num_threads)
     {
         const auto thread_id = omp_get_thread_num();
-        if (thread_id < num_threads) {
+        const auto team_size = std::min<int64>(
+            std::max<int64>(omp_get_num_threads(), 1), num_threads);
+        const auto work_per_thread =
+            ceildiv(ssize, std::max<int64>(team_size, 1));
+        if (thread_id < team_size) {
             const auto begin = thread_id * work_per_thread;
             const auto end = std::min(ssize, begin + work_per_thread);
 
@@ -77,19 +84,23 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
     const auto cols = static_cast<int64>(size[1]);
     // Limit the number of threads to the number of columns
     const auto num_threads = std::min<int64>(omp_get_max_threads(), rows);
-    const auto work_per_thread = ceildiv(rows, std::max<int64>(num_threads, 1));
     const auto required_storage = sizeof(ValueType) * num_threads;
     if (tmp.get_size() < required_storage) {
         tmp.resize_and_reset(required_storage);
     }
     const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
+    std::fill_n(partial, num_threads, identity);
     static_assert(remainder_cols < block_size, "remainder too large");
     const auto rounded_cols = cols / block_size * block_size;
     GKO_ASSERT(rounded_cols + remainder_cols == cols);
 #pragma omp parallel num_threads(num_threads)
     {
         const auto thread_id = omp_get_thread_num();
-        if (thread_id < num_threads) {
+        const auto team_size = std::min<int64>(
+            std::max<int64>(omp_get_num_threads(), 1), num_threads);
+        const auto work_per_thread =
+            ceildiv(rows, std::max<int64>(team_size, 1));
+        if (thread_id < team_size) {
             const auto begin = thread_id * work_per_thread;
             const auto end = std::min(rows, begin + work_per_thread);
 
@@ -210,8 +221,6 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
     } else {
         // small number of rows and large reduction sizes: do partial sum first
         const auto num_threads = std::min<int64>(available_threads, cols);
-        const auto work_per_thread =
-            ceildiv(cols, std::max<int64>(num_threads, 1));
         const auto temp_elems_per_row = num_threads;
         const auto required_storage =
             sizeof(ValueType) * rows * temp_elems_per_row;
@@ -219,10 +228,15 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
             tmp.resize_and_reset(required_storage);
         }
         const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
+        std::fill_n(partial, rows * temp_elems_per_row, identity);
 #pragma omp parallel num_threads(num_threads)
         {
             const auto thread_id = static_cast<int64>(omp_get_thread_num());
-            if (thread_id < num_threads) {
+            const auto team_size = std::min<int64>(
+                std::max<int64>(omp_get_num_threads(), 1), num_threads);
+            const auto work_per_thread =
+                ceildiv(cols, std::max<int64>(team_size, 1));
+            if (thread_id < team_size) {
                 const auto begin = thread_id * work_per_thread;
                 const auto end = std::min(begin + work_per_thread, cols);
                 for (int64 row = 0; row < rows; row++) {

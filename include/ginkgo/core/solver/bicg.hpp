@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,12 +37,26 @@ namespace solver {
  * the capability to solve generic systems.
  *
  * BiCG is based on the bi-Lanczos tridiagonalization method and in exact
- * arithmetic should terminate in at most N iterations (2N MV's, with A and
- * A^H). It forms the basis of many of the cheaper methods such as BiCGSTAB and
- * CGS.
+ * arithmetic should terminate in at most \f$ N \f$ iterations (\f$ 2N \f$
+ * matrix-vector products — one per iteration with \f$ A \f$ and
+ * \f$ A^H \f$ each).
+ * It couples two Krylov sequences and maintains residuals \f$ r_k \f$,
+ * shadow residuals \f$ \tilde r_k \f$, and search directions
+ * \f$ p_k, \tilde p_k \f$ that satisfy the biorthogonality conditions
+ * \f$ \tilde r_i^H r_j = 0 \f$ for \f$ i \ne j \f$. Each iteration
+ * performs the coupled update
+ * \f[
+ *   \alpha_k = \frac{\tilde r_k^H r_k}{\tilde p_k^H A p_k}, \qquad
+ *   r_{k+1}       = r_k       - \alpha_k A p_k, \qquad
+ *   \tilde r_{k+1} = \tilde r_k - \alpha_k A^H \tilde p_k.
+ * \f]
+ * It forms the basis of cheaper variants such as BiCGSTAB and CGS, which
+ * avoid the explicit \f$ A^H \f$ apply.
  *
- * Reference: R.Fletcher, Conjugate gradient methods for indefinite systems,
- * doi: 10.1007/BFb0080116
+ * @par References
+ * - Fletcher, R. *Conjugate gradient methods for indefinite systems.*
+ *   Numerical Analysis (Dundee 1975), Lecture Notes in Mathematics 506,
+ *   Springer, 1976. <https://doi.org/10.1007/BFb0080116>
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -51,11 +65,9 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Bicg
-    : public EnableLinOp<Bicg<ValueType>>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Bicg<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Bicg>;
-    friend class EnablePolymorphicObject<Bicg, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -109,14 +121,13 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Bicg(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Bicg>(std::move(exec))
+    explicit Bicg(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Bicg(const Factory* factory,
                   std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Bicg>(factory->get_executor(),
-                            gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Bicg<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

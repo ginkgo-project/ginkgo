@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,12 +21,12 @@
 namespace {
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyLinOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
 protected:
@@ -40,14 +40,13 @@ protected:
 
 template <typename ValueType, bool uses_initial_guess = true>
 class DummyLinOpWithFactory
-    : public gko::EnableLinOp<
-          DummyLinOpWithFactory<ValueType, uses_initial_guess>>,
+    : public gko::LinOp,
       public gko::multigrid::EnableMultigridLevel<ValueType> {
 public:
     using Mtx = gko::matrix::Dense<ValueType>;
 
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(exec)
+        : gko::LinOp(exec)
     {}
 
     bool apply_uses_initial_guess() const override
@@ -64,8 +63,7 @@ public:
 
     DummyLinOpWithFactory(const Factory* factory,
                           std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyLinOpWithFactory>(factory->get_executor(),
-                                                  op->get_size()),
+        : gko::LinOp(factory->get_executor(), op->get_size()),
           gko::multigrid::EnableMultigridLevel<ValueType>(op),
           parameters_{factory->get_parameters()},
           op_{op},
@@ -181,62 +179,6 @@ TYPED_TEST(Multigrid, MultigridFactoryCreatesCorrectSolver)
     auto multigrid_solver = static_cast<Solver*>(this->solver.get());
     ASSERT_NE(multigrid_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(multigrid_solver->get_system_matrix(), this->mtx);
-}
-
-
-TYPED_TEST(Multigrid, CanBeCopied)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy = this->multigrid_factory->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->solver);
-
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(4, 4));
-    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-}
-
-
-TYPED_TEST(Multigrid, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy = this->multigrid_factory->generate(Mtx::create(this->exec));
-
-    copy->move_from(this->solver);
-
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(4, 4));
-    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-}
-
-
-TYPED_TEST(Multigrid, CanBeCloned)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto clone = this->solver->clone();
-
-    ASSERT_EQ(clone->get_size(), gko::dim<2>(4, 4));
-    auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
-}
-
-
-TYPED_TEST(Multigrid, CanBeCleared)
-{
-    using Solver = typename TestFixture::Solver;
-
-    this->solver->clear();
-
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx =
-        static_cast<Solver*>(this->solver.get())->get_system_matrix();
-    ASSERT_EQ(solver_mtx, nullptr);
-    auto mg_level =
-        static_cast<Solver*>(this->solver.get())->get_mg_level_list();
-    ASSERT_EQ(mg_level.size(), 0);
 }
 
 

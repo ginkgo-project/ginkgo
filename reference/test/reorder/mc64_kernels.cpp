@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -190,7 +190,8 @@ TYPED_TEST(Mc64, InitializeWeightsSum)
         std::numeric_limits<typename TestFixture::real_type>::infinity());
 
     gko::experimental::reorder::mc64::initialize_weights(
-        this->mtx.get(), this->weights, this->dual_u, this->row_maxima,
+        this->mtx->get_const_device_view(), this->weights, this->dual_u,
+        this->row_maxima,
         gko::experimental::reorder::mc64_strategy::max_diagonal_sum);
 
     this->assert_array_near(this->weights, this->initialized_weights_sum,
@@ -208,7 +209,8 @@ TYPED_TEST(Mc64, InitializeWeightsProduct)
         std::numeric_limits<typename TestFixture::real_type>::infinity());
 
     gko::experimental::reorder::mc64::initialize_weights(
-        this->mtx.get(), this->weights, this->dual_u, this->row_maxima,
+        this->mtx->get_const_device_view(), this->weights, this->dual_u,
+        this->row_maxima,
         gko::experimental::reorder::mc64_strategy::max_diagonal_product);
 
     this->assert_array_near(this->weights, this->initialized_weights_product,

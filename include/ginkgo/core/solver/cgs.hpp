@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,6 +31,45 @@ namespace solver {
  * CGS or the conjugate gradient square method is an iterative type Krylov
  * subspace method which is suitable for general systems.
  *
+ * CGS rests on the identity that BiCG produces a residual of the form
+ * \f$ r_k^{\mathrm{BiCG}} = \psi_k(A) r_0 \f$, where \f$ \psi_k \f$ is the
+ * residual polynomial. Squaring this polynomial yields the CGS residual
+ * \f[
+ *   r_k^{\mathrm{CGS}} = \psi_k(A)^2 r_0,
+ * \f]
+ * so the iteration avoids the explicit \f$ A^H \f$ apply that BiCG
+ * requires, and it contracts the residual twice as fast per step when
+ * BiCG converges.
+ *
+ * Starting from \f$ r_0 = b - A x_0 \f$, a shadow residual
+ * \f$ \tilde r_0 \f$ (Ginkgo uses \f$ \tilde r_0 = r_0 \f$),
+ * \f$ q_{-1} = p_{-1} = 0 \f$ and \f$ \rho_{-1} = 1 \f$, one iteration
+ * with the preconditioner \f$ M \approx A^{-1} \f$ reads
+ * \f[
+ *   \begin{aligned}
+ *     \rho_k     &= \langle \tilde r_0, r_k \rangle,
+ *       &\qquad \beta_k   &= \rho_k / \rho_{k-1}, \\
+ *     u_k        &= r_k + \beta_k q_{k-1},
+ *       &\qquad p_k      &= u_k + \beta_k
+ *                             (q_{k-1} + \beta_k p_{k-1}), \\
+ *     \hat v_k   &= A M p_k,
+ *       &\qquad \alpha_k  &= \rho_k /
+ *                             \langle \tilde r_0, \hat v_k \rangle, \\
+ *     q_k        &= u_k - \alpha_k \hat v_k,
+ *       &\qquad \hat u_k  &= M (u_k + q_k), \\
+ *     x_{k+1}    &= x_k + \alpha_k \hat u_k,
+ *       &\qquad r_{k+1}   &= r_k - \alpha_k A \hat u_k.
+ *   \end{aligned}
+ * \f]
+ * The pair \f$ u_k, q_k \f$ takes the place of the single BiCG search
+ * direction, which is why the update of \f$ x \f$ uses their sum. The
+ * trade-off for dropping \f$ A^H \f$ is that the squared polynomial also
+ * squares the error: the residuals lose monotonicity and can oscillate
+ * strongly on poorly conditioned systems. When this matters in practice,
+ * @ref gko::solver::Bicgstab "BiCGSTAB" replaces the second application of
+ * \f$ \psi_k \f$ by a locally minimizing polynomial for the same number of
+ * operator applies and one extra inner product.
+ *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of CGS are merged
  * into 3 separate steps.
@@ -42,11 +81,9 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Cgs
-    : public EnableLinOp<Cgs<ValueType>>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Cgs<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Cgs>;
-    friend class EnablePolymorphicObject<Cgs, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -100,14 +137,13 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Cgs(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Cgs>(std::move(exec))
+    explicit Cgs(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Cgs(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Cgs>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Cgs<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

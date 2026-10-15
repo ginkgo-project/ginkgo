@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,25 +19,21 @@ namespace gko {
 /**
  * @brief The device specific kernels namespace.
  *
- * @ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The DPCPP namespace.
  *
- * @ingroup dpcpp
  */
 namespace dpcpp {
 /**
  * @brief The ONEMKL namespace.
  *
- * @ingroup onemkl
  */
 namespace onemkl {
 /**
  * @brief The detail namespace.
  *
- * @ingroup detail
  */
 namespace detail {
 

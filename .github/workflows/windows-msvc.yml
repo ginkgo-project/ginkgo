@@ -1,0 +1,47 @@
+name: Windows-MSVC
+
+on:
+  workflow_call:
+    inputs:
+      full:
+        description: 'Run all configurations instead of the reduced pull request set'
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+      full:
+        description: 'Run all configurations instead of the reduced pull request set'
+        type: boolean
+        default: true
+
+jobs:
+  windows:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(inputs.full && '["windows-2022", "windows-latest"]' || '["windows-latest"]') }}
+    name: msvc/${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v4
+    - name: Debug over SSH (tmate)
+      uses: mxschmitt/action-tmate@v3.5
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+      with:
+        limit-access-to-actor: true
+
+    - name: configure and test
+      run: |
+        $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
+        Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+        refreshenv
+        mkdir build
+        cd build
+        cmake -DGINKGO_BUILD_OMP=OFF -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF ..
+        cmake --build . -j4 --config Release
+        ctest . -C Release

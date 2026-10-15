@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,8 +20,8 @@ namespace matrix {
  * It implements forward and inverse DFT.
  *
  * For a power-of-two size n with corresponding root of unity
- * $\omega = e^{-2\pi i / n}$ for forward DFT and $\omega = e^{2 \pi i / n}$
- * for inverse DFT it computes
+ * \f$\omega = e^{-2\pi i / n}\f$ for forward DFT and \f$\omega = e^{2 \pi i /
+ * n}\f$ for inverse DFT it computes
  *
  * \f[
  *     x_k = \sum_{j=0}^{n-1} \omega^{jk} b_j
@@ -33,26 +33,26 @@ namespace matrix {
  * sizes, as they use the Radix-2 algorithm by J. W. Cooley and J. W. Tukey,
  * "An Algorithm for the Machine Calculation of Complex Fourier Series,"
  * Mathematics of Computation, vol. 19, no. 90, pp. 297–301, 1965,
- * doi: 10.2307/2003354.
+ * <https://doi.org/10.2307/2003354>.
  * The CUDA and HIP implementations use cuSPARSE/hipSPARSE with full support for
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft : public EnableLinOp<Fft>,
+class Fft : public LinOp,
+            public EnableCloneable<Fft>,
             public WritableToMatrixData<std::complex<float>, int32>,
             public WritableToMatrixData<std::complex<float>, int64>,
             public WritableToMatrixData<std::complex<double>, int32>,
             public WritableToMatrixData<std::complex<double>, int64>,
             public Transposable {
-    friend class EnablePolymorphicObject<Fft, LinOp>;
+    friend class EnableCloneable<Fft>;
 
 public:
-    using EnableLinOp<Fft>::convert_to;
-    using EnableLinOp<Fft>::move_to;
+    using EnableCloneable<Fft>::convert_to;
+    using EnableCloneable<Fft>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
@@ -61,6 +61,11 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    using WritableToMatrixData<std::complex<float>, int32>::write;
+    using WritableToMatrixData<std::complex<float>, int64>::write;
+    using WritableToMatrixData<std::complex<double>, int32>::write;
+    using WritableToMatrixData<std::complex<double>, int64>::write;
 
     void write(matrix_data<std::complex<float>, int32>& data) const override;
 
@@ -86,6 +91,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size  size of the matrix
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
      *
@@ -116,9 +122,9 @@ private:
  *
  * It implements complex-to-complex forward and inverse FFT.
  *
- * For a power-of-two sizes $n_1, n_2$ with corresponding root of unity
- * $\omega = e^{-2\pi i / (n_1 n_2)}$ for forward DFT and
- * $\omega = e^{2 \pi i / (n_1 n_2)}$ for inverse DFT it computes
+ * For a power-of-two sizes \f$n_1, n_2\f$ with corresponding root of unity
+ * \f$\omega = e^{-2\pi i / (n_1 n_2)}\f$ for forward DFT and
+ * \f$\omega = e^{2 \pi i / (n_1 n_2)}\f$ for inverse DFT it computes
  *
  * \f[
  *     x_{k_1 n_2 + k_2} = \sum_{i_1=0}^{n_1-1} \sum_{i_2=0}^{n_2-1}
@@ -131,26 +137,26 @@ private:
  * sizes, as they use the Radix-2 algorithm by J. W. Cooley and J. W. Tukey,
  * "An Algorithm for the Machine Calculation of Complex Fourier Series,"
  * Mathematics of Computation, vol. 19, no. 90, pp. 297–301, 1965,
- * doi: 10.2307/2003354.
+ * <https://doi.org/10.2307/2003354>.
  * The CUDA and HIP implementations use cuSPARSE/hipSPARSE with full support for
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft2 : public EnableLinOp<Fft2>,
+class Fft2 : public LinOp,
+             public EnableCloneable<Fft2>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnablePolymorphicObject<Fft2, LinOp>;
+    friend class EnableCloneable<Fft2>;
 
 public:
-    using EnableLinOp<Fft2>::convert_to;
-    using EnableLinOp<Fft2>::move_to;
+    using EnableCloneable<Fft2>::convert_to;
+    using EnableCloneable<Fft2>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
@@ -159,6 +165,11 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    using WritableToMatrixData<std::complex<float>, int32>::write;
+    using WritableToMatrixData<std::complex<float>, int64>::write;
+    using WritableToMatrixData<std::complex<double>, int32>::write;
+    using WritableToMatrixData<std::complex<double>, int64>::write;
 
     void write(matrix_data<std::complex<float>, int32>& data) const override;
 
@@ -184,6 +195,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size  size of both FFT dimensions
      *
      * @return A smart pointer to the newly created matrix.
@@ -194,6 +206,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size1  size of the first FFT dimension
      * @param size2  size of the second FFT dimension
      * @param inverse  true to compute an inverse DFT instead of a normal DFT
@@ -226,9 +239,9 @@ private:
  *
  * It implements complex-to-complex forward and inverse FFT.
  *
- * For a power-of-two sizes $n_1, n_2, n_3$ with corresponding root of unity
- * $\omega = e^{-2\pi i / (n_1 n_2 n_3)}$ for forward DFT and
- * $\omega = e^{2 \pi i / (n_1 n_2 n_3)}$ for inverse DFT it computes
+ * For a power-of-two sizes \f$n_1, n_2, n_3\f$ with corresponding root of unity
+ * \f$\omega = e^{-2\pi i / (n_1 n_2 n_3)}\f$ for forward DFT and
+ * \f$\omega = e^{2 \pi i / (n_1 n_2 n_3)}\f$ for inverse DFT it computes
  *
  * \f[
  *     x_{k_1 n_2 n_3 + k_2 n_3 + k_3} = \sum_{i_1=0}^{n_1-1}
@@ -243,26 +256,26 @@ private:
  * sizes, as they use the Radix-2 algorithm by J. W. Cooley and J. W. Tukey,
  * "An Algorithm for the Machine Calculation of Complex Fourier Series,"
  * Mathematics of Computation, vol. 19, no. 90, pp. 297–301, 1965,
- * doi: 10.2307/2003354.
+ * <https://doi.org/10.2307/2003354>.
  * The CUDA and HIP implementations use cuSPARSE/hipSPARSE with full support for
  * non-power-of-two input sizes and special optimizations for products of
  * small prime powers.
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
-class Fft3 : public EnableLinOp<Fft3>,
+class Fft3 : public LinOp,
+             public EnableCloneable<Fft3>,
              public WritableToMatrixData<std::complex<float>, int32>,
              public WritableToMatrixData<std::complex<float>, int64>,
              public WritableToMatrixData<std::complex<double>, int32>,
              public WritableToMatrixData<std::complex<double>, int64>,
              public Transposable {
-    friend class EnablePolymorphicObject<Fft3, LinOp>;
+    friend class EnableCloneable<Fft3>;
 
 public:
-    using EnableLinOp<Fft3>::convert_to;
-    using EnableLinOp<Fft3>::move_to;
+    using EnableCloneable<Fft3>::convert_to;
+    using EnableCloneable<Fft3>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
@@ -271,6 +284,11 @@ public:
     std::unique_ptr<LinOp> transpose() const override;
 
     std::unique_ptr<LinOp> conj_transpose() const override;
+
+    using WritableToMatrixData<std::complex<float>, int32>::write;
+    using WritableToMatrixData<std::complex<float>, int64>::write;
+    using WritableToMatrixData<std::complex<double>, int32>::write;
+    using WritableToMatrixData<std::complex<double>, int64>::write;
 
     void write(matrix_data<std::complex<float>, int32>& data) const override;
 
@@ -296,6 +314,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size  size of all FFT dimensions
      *
      * @return A smart pointer to the newly created matrix.
@@ -306,6 +325,7 @@ public:
     /**
      * Creates an Fourier matrix with the given dimensions.
      *
+     * @param exec  the executor to create the matrix on
      * @param size1  size of the first FFT dimension
      * @param size2  size of the second FFT dimension
      * @param size3  size of the third FFT dimension

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -345,30 +345,30 @@ namespace {
 template <int subgroup_size, typename ValueType, typename IndexType>
 void add_candidates(syn::value_list<int, subgroup_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* lu,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    const matrix::Csr<ValueType, IndexType>* l,
-                    const matrix::Csr<ValueType, IndexType>* u,
-                    matrix::Csr<ValueType, IndexType>* l_new,
-                    matrix::Csr<ValueType, IndexType>* u_new)
+                    matrix::view::csr<const ValueType, const IndexType> lu,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::csr<const ValueType, const IndexType> l,
+                    matrix::view::csr<const ValueType, const IndexType> u,
+                    matrix::CsrBuilder<ValueType, IndexType>* l_new_builder,
+                    matrix::CsrBuilder<ValueType, IndexType>* u_new_builder)
 {
-    auto num_rows = static_cast<IndexType>(lu->get_size()[0]);
+    auto num_rows = static_cast<IndexType>(lu.size[0]);
     auto subwarps_per_block = default_block_size / subgroup_size;
     auto num_blocks = ceildiv(num_rows, subwarps_per_block);
-    matrix::CsrBuilder<ValueType, IndexType> l_new_builder(l_new);
-    matrix::CsrBuilder<ValueType, IndexType> u_new_builder(u_new);
-    auto lu_row_ptrs = lu->get_const_row_ptrs();
-    auto lu_col_idxs = lu->get_const_col_idxs();
-    auto lu_vals = as_device_type(lu->get_const_values());
-    auto a_row_ptrs = a->get_const_row_ptrs();
-    auto a_col_idxs = a->get_const_col_idxs();
-    auto a_vals = as_device_type(a->get_const_values());
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_col_idxs = l->get_const_col_idxs();
-    auto l_vals = as_device_type(l->get_const_values());
-    auto u_row_ptrs = u->get_const_row_ptrs();
-    auto u_col_idxs = u->get_const_col_idxs();
-    auto u_vals = as_device_type(u->get_const_values());
+    auto l_new = l_new_builder->get_matrix();
+    auto u_new = u_new_builder->get_matrix();
+    auto lu_row_ptrs = lu.row_ptrs;
+    auto lu_col_idxs = lu.col_idxs;
+    auto lu_vals = as_device_type(lu.values);
+    auto a_row_ptrs = a.row_ptrs;
+    auto a_col_idxs = a.col_idxs;
+    auto a_vals = as_device_type(a.values);
+    auto l_row_ptrs = l.row_ptrs;
+    auto l_col_idxs = l.col_idxs;
+    auto l_vals = as_device_type(l.values);
+    auto u_row_ptrs = u.row_ptrs;
+    auto u_col_idxs = u.col_idxs;
+    auto u_vals = as_device_type(u.values);
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     auto u_new_row_ptrs = u_new->get_row_ptrs();
     // count non-zeros per row
@@ -384,10 +384,10 @@ void add_candidates(syn::value_list<int, subgroup_size>,
     // resize output arrays
     auto l_new_nnz = exec->copy_val_to_host(l_new_row_ptrs + num_rows);
     auto u_new_nnz = exec->copy_val_to_host(u_new_row_ptrs + num_rows);
-    l_new_builder.get_col_idx_array().resize_and_reset(l_new_nnz);
-    l_new_builder.get_value_array().resize_and_reset(l_new_nnz);
-    u_new_builder.get_col_idx_array().resize_and_reset(u_new_nnz);
-    u_new_builder.get_value_array().resize_and_reset(u_new_nnz);
+    l_new_builder->get_col_idx_array().resize_and_reset(l_new_nnz);
+    l_new_builder->get_value_array().resize_and_reset(l_new_nnz);
+    u_new_builder->get_col_idx_array().resize_and_reset(u_new_nnz);
+    u_new_builder->get_value_array().resize_and_reset(u_new_nnz);
 
     auto l_new_col_idxs = l_new->get_col_idxs();
     auto l_new_vals = as_device_type(l_new->get_values());
@@ -412,16 +412,15 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_add_candidates, add_candidates);
 
 template <typename ValueType, typename IndexType>
 void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* lu,
-                    const matrix::Csr<ValueType, IndexType>* a,
-                    const matrix::Csr<ValueType, IndexType>* l,
-                    const matrix::Csr<ValueType, IndexType>* u,
-                    matrix::Csr<ValueType, IndexType>* l_new,
-                    matrix::Csr<ValueType, IndexType>* u_new)
+                    matrix::view::csr<const ValueType, const IndexType> lu,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::csr<const ValueType, const IndexType> l,
+                    matrix::view::csr<const ValueType, const IndexType> u,
+                    matrix::CsrBuilder<ValueType, IndexType>* l_new_builder,
+                    matrix::CsrBuilder<ValueType, IndexType>* u_new_builder)
 {
-    auto num_rows = a->get_size()[0];
-    auto total_nnz =
-        lu->get_num_stored_elements() + a->get_num_stored_elements();
+    auto num_rows = a.size[0];
+    auto total_nnz = lu.num_stored_elements + a.num_stored_elements;
     auto total_nnz_per_row = total_nnz / num_rows;
     select_add_candidates(
         compiled_kernels(),
@@ -429,8 +428,8 @@ void add_candidates(std::shared_ptr<const DefaultExecutor> exec,
             return total_nnz_per_row <= compiled_subgroup_size ||
                    compiled_subgroup_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, lu, a, l, u, l_new,
-        u_new);
+        syn::value_list<int>(), syn::type_list<>(), exec, lu, a, l, u,
+        l_new_builder, u_new_builder);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

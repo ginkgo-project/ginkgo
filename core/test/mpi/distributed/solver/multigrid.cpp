@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,12 +27,12 @@ using dist_mtx_type =
 using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyLinOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
 protected:
@@ -46,11 +46,11 @@ protected:
 
 template <typename ValueType>
 class DummyMultigridLevelWithFactory
-    : public gko::EnableLinOp<DummyMultigridLevelWithFactory<ValueType>>,
+    : public gko::LinOp,
       public gko::multigrid::EnableMultigridLevel<ValueType> {
 public:
     DummyMultigridLevelWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::EnableLinOp<DummyMultigridLevelWithFactory>(exec)
+        : gko::LinOp(exec)
     {}
 
 
@@ -62,15 +62,14 @@ public:
 protected:
     DummyMultigridLevelWithFactory(const Factory* factory,
                                    std::shared_ptr<const gko::LinOp> op)
-        : gko::EnableLinOp<DummyMultigridLevelWithFactory>(
-              factory->get_executor(), op->get_size()),
+        : gko::LinOp(factory->get_executor(), op->get_size()),
           gko::multigrid::EnableMultigridLevel<ValueType>(op),
           parameters_{factory->get_parameters()},
           op_{op}
     {
         auto exec = this->get_executor();
         auto distributed_op = dynamic_cast<const dist_mtx_type*>(op_.get());
-        auto original_n = distributed_op->get_local_matrix()->get_size()[0];
+        auto original_n = distributed_op->get_diag_matrix()->get_size()[0];
         gko::size_type n = original_n - 1;
 
         auto comm = distributed_op->get_communicator();
@@ -155,7 +154,7 @@ TEST_F(Multigrid, ConstructCorrect)
               gko::dim<2>(first_n));
     ASSERT_EQ(dynamic_cast<const dist_mtx_type*>(
                   mg_level.at(0)->get_coarse_op().get())
-                  ->get_local_matrix()
+                  ->get_diag_matrix()
                   ->get_size(),
               gko::dim<2>(n - 1));
     // next mg_level

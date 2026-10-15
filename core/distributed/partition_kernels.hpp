@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,7 +58,7 @@ namespace kernels {
     void has_ordered_parts(std::shared_ptr<const DefaultExecutor> exec,     \
                            const experimental::distributed::Partition<      \
                                LocalIndexType, GlobalIndexType>* partition, \
-                           bool* result)
+                           bool& result)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                    \

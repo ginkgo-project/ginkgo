@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -324,7 +324,7 @@ public:
                            gko::dim<2>{static_cast<size_type>(nrows),
                                        static_cast<size_type>(ncols)},
                            vals, c, r,
-                           std::make_shared<typename Csr::classical>());
+                           gko::matrix::csr::spmv_strategy::classical);
     }
 
     std::unique_ptr<Diagonal> extract_diagonal() const
@@ -476,7 +476,7 @@ public:
                            gko::dim<2>{static_cast<size_type>(nrows),
                                        static_cast<size_type>(ncols)},
                            vals, c, r,
-                           std::make_shared<typename Csr::classical>());
+                           gko::matrix::csr::spmv_strategy::classical);
     }
 };
 

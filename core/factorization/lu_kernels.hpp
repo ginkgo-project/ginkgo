@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,18 +21,18 @@ namespace kernels {
 
 #define GKO_DECLARE_LU_INITIALIZE(ValueType, IndexType)                       \
     void initialize(std::shared_ptr<const DefaultExecutor> exec,              \
-                    const matrix::Csr<ValueType, IndexType>* mtx,             \
+                    matrix::view::csr<const ValueType, const IndexType> mtx,  \
                     const IndexType* factor_lookup_offsets,                   \
                     const int64* factor_lookup_descs,                         \
                     const int32* factor_lookup_storage, IndexType* diag_idxs, \
-                    matrix::Csr<ValueType, IndexType>* factors)
+                    matrix::view::csr<ValueType, IndexType> factors)
 
 
 #define GKO_DECLARE_LU_FACTORIZE(ValueType, IndexType)                         \
     void factorize(std::shared_ptr<const DefaultExecutor> exec,                \
                    const IndexType* lookup_offsets, const int64* lookup_descs, \
                    const int32* lookup_storage, const IndexType* diag_idxs,    \
-                   matrix::Csr<ValueType, IndexType>* factors,                 \
+                   matrix::view::csr<ValueType, IndexType> factors,            \
                    bool full_fillin, array<int>& tmp_storage)
 
 
@@ -42,13 +42,14 @@ namespace kernels {
         const IndexType* row_ptrs, const IndexType* col_idxs,                 \
         const IndexType* factor_lookup_offsets,                               \
         const int64* factor_lookup_descs, const int32* factor_lookup_storage, \
-        matrix::Csr<float, IndexType>* factors, IndexType* out_row_nnz)
+        matrix::view::csr<float, IndexType> factors, IndexType* out_row_nnz)
 
 
 #define GKO_DECLARE_LU_SYMMETRIC_FACTORIZE_SIMPLE_FINALIZE(IndexType) \
     void symbolic_factorize_simple_finalize(                          \
         std::shared_ptr<const DefaultExecutor> exec,                  \
-        const matrix::Csr<float, IndexType>* factors, IndexType* col_idxs)
+        matrix::view::csr<const float, const IndexType> factors,      \
+        IndexType* col_idxs)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                      \

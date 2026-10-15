@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -32,10 +32,10 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename IndexType>
 void populate_subsets(std::shared_ptr<const DefaultExecutor> exec,
                       const IndexType index_space_size,
-                      const array<IndexType>* indices,
-                      array<IndexType>* subset_begin,
-                      array<IndexType>* subset_end,
-                      array<IndexType>* superset_indices,
+                      const array<IndexType>& indices,
+                      array<IndexType>& subset_begin,
+                      array<IndexType>& subset_end,
+                      array<IndexType>& superset_indices,
                       const bool is_sorted) GKO_NOT_IMPLEMENTED;
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET_POPULATE_KERNEL);

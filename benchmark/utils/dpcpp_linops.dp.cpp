@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -52,11 +52,8 @@ protected:
         mat_handle_ = handle_manager<oneapi::mkl::sparse::matrix_handle>(
             create_mat_handle(),
             [exec](oneapi::mkl::sparse::matrix_handle_t mat_handle) {
-                oneapi::mkl::sparse::release_matrix_handle(
-#if INTEL_MKL_VERSION >= 20240000
-                    *exec->get_queue(),
-#endif
-                    &mat_handle);
+                oneapi::mkl::sparse::release_matrix_handle(*exec->get_queue(),
+                                                           &mat_handle);
             });
     }
 
@@ -92,14 +89,11 @@ private:
 
 template <bool optimized = false, typename ValueType = gko::default_precision,
           typename IndexType = gko::int32>
-class OnemklCsr
-    : public gko::EnableLinOp<OnemklCsr<optimized, ValueType, IndexType>,
-                              OnemklBase>,
-      public gko::EnableCreateMethod<
-          OnemklCsr<optimized, ValueType, IndexType>>,
-      public gko::ReadableFromMatrixData<ValueType, IndexType> {
+class OnemklCsr : public OnemklBase,
+                  public gko::EnableCreateMethod<
+                      OnemklCsr<optimized, ValueType, IndexType>>,
+                  public gko::ReadableFromMatrixData<ValueType, IndexType> {
     friend class gko::EnableCreateMethod<OnemklCsr>;
-    friend class gko::EnablePolymorphicObject<OnemklCsr, OnemklBase>;
 
 public:
     using Csr = gko::matrix::Csr<ValueType, IndexType>;
@@ -110,11 +104,12 @@ public:
         this->set_size(csr_->get_size());
 
         oneapi::mkl::sparse::set_csr_data(
-#if INTEL_MKL_VERSION >= 20240000
-            *(this->get_device_exec()->get_queue()),
+            *(this->get_device_exec()->get_queue()), this->get_mat_handle(),
+            static_cast<IndexType>(this->get_size()[0]),
+            static_cast<IndexType>(this->get_size()[1]),
+#if INTEL_MKL_VERSION >= 20250300
+            static_cast<std::int64_t>(csr_->get_num_stored_elements()),
 #endif
-            this->get_mat_handle(), static_cast<int>(this->get_size()[0]),
-            static_cast<int>(this->get_size()[1]),
             oneapi::mkl::index_base::zero, csr_->get_row_ptrs(),
             csr_->get_col_idxs(), csr_->get_values());
         if (optimized) {
@@ -146,9 +141,9 @@ protected:
 
     OnemklCsr(std::shared_ptr<const gko::Executor> exec,
               const gko::dim<2>& size = gko::dim<2>{})
-        : gko::EnableLinOp<OnemklCsr, OnemklBase>(exec, size),
+        : OnemklBase(exec, size),
           csr_(std::move(
-              Csr::create(exec, std::make_shared<typename Csr::classical>()))),
+              Csr::create(exec, gko::matrix::csr::spmv_strategy::classical))),
           trans_(oneapi::mkl::transpose::nontrans)
     {}
 

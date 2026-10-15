@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -67,14 +67,17 @@ void Convergence<ValueType>::on_iteration_complete(
         }
         this->num_iterations_ = num_iterations;
         if (residual != nullptr) {
-            this->residual_.reset(residual->clone().release());
+            this->residual_.reset(
+                as<LinOp>(as<Cloneable>(residual)->clone()).release());
         }
         if (implicit_resnorm_sq != nullptr) {
             this->implicit_sq_resnorm_.reset(
-                implicit_resnorm_sq->clone().release());
+                as<LinOp>(as<Cloneable>(implicit_resnorm_sq)->clone())
+                    .release());
         }
         if (residual_norm != nullptr) {
-            this->residual_norm_.reset(residual_norm->clone().release());
+            this->residual_norm_.reset(
+                as<LinOp>(as<Cloneable>(residual_norm)->clone()).release());
         } else if (residual != nullptr) {
             using NormVector = matrix::Dense<remove_complex<ValueType>>;
             detail::vector_dispatch<ValueType>(
@@ -109,7 +112,7 @@ void Convergence<ValueType>::on_iteration_complete(
 }
 
 
-#define GKO_DECLARE_CONVERGENCE(_type) class Convergence<_type>
+#define GKO_DECLARE_CONVERGENCE(ValueType) class Convergence<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CONVERGENCE);
 
 

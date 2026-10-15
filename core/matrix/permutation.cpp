@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/utils_helper.hpp>
 
 #include "core/base/dispatch_helper.hpp"
+#include "core/base/validation.hpp"
 #include "core/matrix/permutation_kernels.hpp"
 
 
@@ -24,6 +25,33 @@ GKO_REGISTER_OPERATION(compose, permutation::compose);
 
 
 }  // namespace permutation
+
+
+template <typename IndexType>
+validation::ValidationResult permutation_is_bijection(
+    const gko::array<IndexType>& permutation_)
+{
+    const auto host_perm_idxs = permutation_.copy_to_host();
+    const auto size = host_perm_idxs.size();
+    std::unordered_set<IndexType> unique_idxs(host_perm_idxs.begin(),
+                                              host_perm_idxs.end());
+
+    for (IndexType i = 0; i < static_cast<IndexType>(size); ++i) {
+        if (unique_idxs.find(i) == unique_idxs.end()) {
+            return {false, "index: " + std::to_string(i)};
+        }
+    }
+
+    return {true, ""};
+}
+
+
+template <typename IndexType>
+void Permutation<IndexType>::validate_data() const
+{
+    GKO_VALIDATE(permutation_is_bijection(permutation_),
+                 "Permutation indices must be a bijection");
+}
 
 
 void validate_permute_dimensions(dim<2> size, dim<2> permutation_size,
@@ -184,14 +212,14 @@ Permutation<IndexType>::create_const(
 template <typename IndexType>
 Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
                                     size_type size)
-    : EnableLinOp<Permutation>(exec, dim<2>{size}), permutation_{exec, size}
+    : LinOp(exec, dim<2>{size}), permutation_{exec, size}
 {}
 
 
 template <typename IndexType>
 Permutation<IndexType>::Permutation(std::shared_ptr<const Executor> exec,
                                     array<index_type> permutation_indices)
-    : EnableLinOp<Permutation>(exec, dim<2>{permutation_indices.get_size()}),
+    : LinOp(exec, dim<2>{permutation_indices.get_size()}),
       permutation_{exec, std::move(permutation_indices)}
 {}
 
@@ -303,7 +331,7 @@ void Permutation<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
 }
 
 
-#define GKO_DECLARE_PERMUTATION_MATRIX(_type) class Permutation<_type>
+#define GKO_DECLARE_PERMUTATION_MATRIX(ValueType) class Permutation<ValueType>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PERMUTATION_MATRIX);
 
 

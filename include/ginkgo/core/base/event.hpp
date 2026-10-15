@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,6 +30,8 @@ public:
      * before return from this function.
      */
     virtual void synchronize() const = 0;
+
+    virtual ~Event() = default;
 };
 
 

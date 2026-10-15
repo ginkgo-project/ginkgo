@@ -1,9 +1,13 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/pmis.hpp>
+#include <ginkgo/core/multigrid/rs.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
+
 #include "core/config/parse_macro.hpp"
-#include "ginkgo/core/multigrid/pgm.hpp"
 
 
 namespace gko {
@@ -11,6 +15,10 @@ namespace config {
 
 
 GKO_PARSE_VALUE_AND_INDEX_TYPE(Pgm, gko::multigrid::Pgm);
+GKO_PARSE_VALUE_AND_INDEX_TYPE(Pmis, gko::multigrid::Pmis);
+GKO_PARSE_VALUE_AND_INDEX_TYPE(Rs, gko::multigrid::Rs);
+GKO_PARSE_VALUE_AND_INDEX_TYPE(UniformCoarsening,
+                               gko::multigrid::UniformCoarsening);
 
 
 }  // namespace config

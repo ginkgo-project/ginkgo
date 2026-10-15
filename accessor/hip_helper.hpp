@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -74,11 +74,7 @@ struct hip_type<gko::half> {
 
 template <>
 struct hip_type<gko::bfloat16> {
-#if HIP_VERSION >= 60200000
     using type = __hip_bfloat16;
-#else
-    using type = hip_bfloat16;
-#endif
 };
 
 

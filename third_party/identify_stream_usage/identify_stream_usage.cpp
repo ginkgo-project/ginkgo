@@ -119,6 +119,32 @@ DEFINE_OVERLOAD(cudaLaunchCooperativeKernel,
                     size_t sharedMem, cudaStream_t stream),
                 ARG(func, gridDim, blockDim, args, sharedMem, stream));
 
+#if CUDART_VERSION >= 12040
+
+// Newer CUDA versions (e.g. 13.1) launch kernel<<<...>>> through these
+// functions instead of cudaLaunchKernel (unless __NV_LEGACY_LAUNCH is
+// defined). They exist since CUDA 12.4. Declare them here with C linkage, in
+// case the included headers don't.
+extern "C" {
+cudaError_t __cudaLaunchKernel(cudaKernel_t kernel, dim3 gridDim,
+                               dim3 blockDim, void** args, size_t sharedMem,
+                               cudaStream_t stream);
+cudaError_t __cudaLaunchKernel_ptsz(cudaKernel_t kernel, dim3 gridDim,
+                                    dim3 blockDim, void** args,
+                                    size_t sharedMem, cudaStream_t stream);
+}
+
+DEFINE_OVERLOAD(__cudaLaunchKernel,
+                ARG(cudaKernel_t kernel, dim3 gridDim, dim3 blockDim,
+                    void** args, size_t sharedMem, cudaStream_t stream),
+                ARG(kernel, gridDim, blockDim, args, sharedMem, stream));
+DEFINE_OVERLOAD(__cudaLaunchKernel_ptsz,
+                ARG(cudaKernel_t kernel, dim3 gridDim, dim3 blockDim,
+                    void** args, size_t sharedMem, cudaStream_t stream),
+                ARG(kernel, gridDim, blockDim, args, sharedMem, stream));
+
+#endif
+
 DEFINE_OVERLOAD(cudaLaunchHostFunc,
                 ARG(cudaStream_t stream, cudaHostFn_t fn, void* userData),
                 ARG(stream, fn, userData));

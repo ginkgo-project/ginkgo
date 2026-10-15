@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
@@ -154,9 +155,10 @@ TYPED_TEST(Gmres, KernelInitialize)
     expected_sin_cos->fill(gko::zero<T>());
 
     gko::kernels::reference::common_gmres::initialize(
-        this->exec, this->small_b.get(), this->small_residual.get(),
-        this->small_givens_sin.get(), this->small_givens_cos.get(),
-        this->small_stop.get_data());
+        this->exec, this->small_b->get_const_device_view(),
+        this->small_residual->get_device_view(),
+        this->small_givens_sin->get_device_view(),
+        this->small_givens_cos->get_device_view(), this->small_stop.get_data());
 
     GKO_ASSERT_MTX_NEAR(this->small_residual, this->small_b, 0);
     GKO_ASSERT_MTX_NEAR(this->small_givens_sin, expected_sin_cos, 0);
@@ -192,9 +194,11 @@ TYPED_TEST(Gmres, KernelRestart)
     }
 
     gko::kernels::reference::gmres::restart(
-        this->exec, this->small_residual.get(), this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(),
-        this->small_krylov_bases.get(), this->small_final_iter_nums.get_data());
+        this->exec, this->small_residual->get_const_device_view(),
+        this->small_residual_norm->get_const_device_view(),
+        this->small_residual_norm_collection->get_device_view(),
+        this->small_krylov_bases->get_device_view(),
+        this->small_final_iter_nums.get_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_size(),
               this->small_residual_norm_collection->get_size()[1]);
@@ -236,10 +240,12 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter0)
                         this->small_hessenberg->get_values()),
         hessenberg_iter_cols);
     gko::kernels::reference::common_gmres::hessenberg_qr(
-        this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
-        this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(), hessenberg_reshape.get(),
-        iteration, this->small_final_iter_nums.get_data(),
+        this->exec, this->small_givens_sin->get_device_view(),
+        this->small_givens_cos->get_device_view(),
+        this->small_residual_norm->get_device_view(),
+        this->small_residual_norm_collection->get_device_view(),
+        hessenberg_reshape->get_device_view(), iteration,
+        this->small_final_iter_nums.get_data(),
         this->small_stop.get_const_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 1);
@@ -288,10 +294,12 @@ TYPED_TEST(Gmres, KernelHessenbergQrIter1)
                         this->small_hessenberg->get_values()),
         hessenberg_iter_cols);
     gko::kernels::reference::common_gmres::hessenberg_qr(
-        this->exec, this->small_givens_sin.get(), this->small_givens_cos.get(),
-        this->small_residual_norm.get(),
-        this->small_residual_norm_collection.get(), hessenberg_reshape.get(),
-        iteration, this->small_final_iter_nums.get_data(),
+        this->exec, this->small_givens_sin->get_device_view(),
+        this->small_givens_cos->get_device_view(),
+        this->small_residual_norm->get_device_view(),
+        this->small_residual_norm_collection->get_device_view(),
+        hessenberg_reshape->get_device_view(), iteration,
+        this->small_final_iter_nums.get_data(),
         this->small_stop.get_const_data());
 
     ASSERT_EQ(this->small_final_iter_nums.get_data()[0], 2);
@@ -331,8 +339,10 @@ TYPED_TEST(Gmres, KernelSolveKrylov)
         gko::initialize<Mtx>({I<T>{12, 3}, I<T>{-3, 15}}, this->exec);
 
     gko::kernels::reference::common_gmres::solve_krylov(
-        this->exec, this->small_residual_norm_collection.get(),
-        this->small_hessenberg.get(), this->small_y.get(),
+        this->exec,
+        this->small_residual_norm_collection->get_const_device_view(),
+        this->small_hessenberg->get_const_device_view(),
+        this->small_y->get_device_view(),
         this->small_final_iter_nums.get_const_data(),
         this->small_stop.get_const_data());
 
@@ -369,8 +379,10 @@ TYPED_TEST(Gmres, KernelMultiAxpy)
     expected_stop.stop(7, true);
 
     gko::kernels::reference::gmres::multi_axpy(
-        this->exec, this->small_krylov_bases.get(), this->small_y.get(),
-        this->small_x.get(), this->small_final_iter_nums.get_const_data(),
+        this->exec, this->small_krylov_bases->get_const_device_view(),
+        this->small_y->get_const_device_view(),
+        this->small_x->get_device_view(),
+        this->small_final_iter_nums.get_const_data(),
         this->small_stop.get_data());
 
     ASSERT_EQ(this->small_stop.get_const_data()[0], expected_stop);
@@ -410,8 +422,9 @@ TYPED_TEST(Gmres, KernelMultiDot)
         },
         this->exec);
     gko::kernels::reference::gmres::multi_dot(
-        this->exec, this->small_krylov_bases.get(), this->small_x.get(),
-        hessenberg_iter.get());
+        this->exec, this->small_krylov_bases->get_const_device_view(),
+        this->small_x->get_const_device_view(),
+        hessenberg_iter->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(hessenberg_iter,
                         l({{-3.8, -48.6}, {-23.6, -65.1}, {0.0, 0.0}}),
@@ -758,6 +771,116 @@ TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestart)
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
+                        half_tol * 1e2);
+}
+
+
+TYPED_TEST(Gmres, SolvesBigDenseSystem1WithRestartRatio)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using rc_value_type = typename TestFixture::rc_value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    auto half_tol = std::sqrt(r<value_type>::value);
+    auto gmres_factory_restart =
+        Solver::build()
+            .with_krylov_dim(4u)
+            .with_restart_ratio(rc_value_type{0.9})
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
+            .on(this->exec);
+    auto solver = gmres_factory_restart->generate(this->mtx_medium);
+    auto b = gko::initialize<Mtx>(
+        {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
+                        half_tol * 1e2);
+}
+
+
+// Gmres only rewrites its residual vector on a restart, so a change in the
+// logged residual is exactly one restart.
+template <typename ValueType>
+class restart_counter : public gko::log::Logger {
+public:
+    restart_counter() : gko::log::Logger(Logger::iteration_complete_mask) {}
+
+    void on_iteration_complete(const gko::LinOp*, const gko::LinOp*,
+                               const gko::LinOp*, const gko::size_type&,
+                               const gko::LinOp* residual, const gko::LinOp*,
+                               const gko::LinOp*,
+                               const gko::array<gko::stopping_status>*,
+                               bool) const override
+    {
+        auto dense_residual = gko::as<gko::matrix::Dense<ValueType>>(residual);
+        if (previous_) {
+            const auto size = dense_residual->get_num_stored_elements();
+            for (gko::size_type i = 0; i < size; ++i) {
+                if (previous_->get_const_values()[i] !=
+                    dense_residual->get_const_values()[i]) {
+                    ++num_restarts_;
+                    break;
+                }
+            }
+        }
+        previous_ = dense_residual->clone();
+    }
+
+    int get_num_restarts() const { return num_restarts_; }
+
+private:
+    mutable std::unique_ptr<gko::matrix::Dense<ValueType>> previous_;
+    mutable int num_restarts_{};
+};
+
+
+TYPED_TEST(Gmres, RestartRatioRestartsBeforeKrylovDim)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    using rc_value_type = typename TestFixture::rc_value_type;
+    // the system is already out of half precision range
+    SKIP_IF_HALF(value_type);
+    auto half_tol = std::sqrt(r<value_type>::value);
+    // krylov_dim is out of reach, so any restart comes from the tolerance.
+    auto build_factory = [this](rc_value_type restart_ratio) {
+        return Solver::build()
+            .with_krylov_dim(100u)
+            .with_restart_ratio(restart_ratio)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(r<value_type>::value))
+            .on(this->exec);
+    };
+    auto b = gko::initialize<Mtx>(
+        {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+    auto x_restarted = x->clone();
+    auto plain_counter = std::make_shared<restart_counter<value_type>>();
+    auto restarted_counter = std::make_shared<restart_counter<value_type>>();
+    auto plain_solver =
+        build_factory(rc_value_type{0})->generate(this->mtx_medium);
+    auto restarted_solver =
+        build_factory(rc_value_type{0.9})->generate(this->mtx_medium);
+    plain_solver->add_logger(plain_counter);
+    restarted_solver->add_logger(restarted_counter);
+
+    plain_solver->apply(b, x);
+    restarted_solver->apply(b, x_restarted);
+
+    ASSERT_EQ(plain_counter->get_num_restarts(), 0);
+    ASSERT_GT(restarted_counter->get_num_restarts(), 0);
+    GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
+                        half_tol * 1e2);
+    GKO_ASSERT_MTX_NEAR(x_restarted,
+                        l({-140.20, -142.20, 48.80, -17.70, -19.60}),
                         half_tol * 1e2);
 }
 

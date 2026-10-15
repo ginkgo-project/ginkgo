@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,8 +21,9 @@ namespace sor {
 template <typename ValueType, typename IndexType>
 void initialize_weighted_l(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
-    remove_complex<ValueType> weight, matrix::Csr<ValueType, IndexType>* l_mtx)
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    remove_complex<ValueType> weight,
+    matrix::view::csr<ValueType, IndexType> l_mtx)
 {
     auto inv_weight = one(weight) / weight;
     factorization::helpers::initialize_l(
@@ -39,9 +40,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void initialize_weighted_l_u(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* system_matrix,
-    remove_complex<ValueType> weight, matrix::Csr<ValueType, IndexType>* l_mtx,
-    matrix::Csr<ValueType, IndexType>* u_mtx)
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    remove_complex<ValueType> weight,
+    matrix::view::csr<ValueType, IndexType> l_mtx,
+    matrix::view::csr<ValueType, IndexType> u_mtx)
 {
     auto inv_weight = one(weight) / weight;
     auto inv_two_minus_weight =

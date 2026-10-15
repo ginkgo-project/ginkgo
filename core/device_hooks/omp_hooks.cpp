@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,6 +25,13 @@ scoped_device_id_guard::scoped_device_id_guard(const OmpExecutor* exec,
 
 
 std::string OmpExecutor::get_description() const GKO_NOT_COMPILED(omp);
+
+
+void OmpExecutor::populate_exec_info()
+{
+    this->get_exec_info().num_computing_units = 1;
+    this->get_exec_info().num_pu_per_cu = 1;
+}
 
 
 int OmpExecutor::get_num_omp_threads() { return 1; }

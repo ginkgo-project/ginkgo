@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,6 +33,14 @@ inline void common_solver_parse(SolverParam& params,
         params.with_preconditioner(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
+    }
+    if (auto& obj = config_check.get("nullspace")) {
+        params.with_nullspace(
+            gko::config::get_stored_obj<const LinOp>(obj, context));
+    }
+    if (auto& obj = config_check.get("left_nullspace")) {
+        params.with_left_nullspace(
+            gko::config::get_stored_obj<const LinOp>(obj, context));
     }
 }
 

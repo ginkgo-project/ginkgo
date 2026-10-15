@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,25 +19,26 @@ using namespace ::gko::factorization;
 
 template <typename ValueType, typename IndexType, typename LClosure,
           typename UClosure>
-void initialize_l_u(const matrix::Csr<ValueType, IndexType>* system_matrix,
-                    matrix::Csr<ValueType, IndexType>* csr_l,
-                    matrix::Csr<ValueType, IndexType>* csr_u,
-                    LClosure&& l_closure, UClosure&& u_closure)
+void initialize_l_u(
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    matrix::view::csr<ValueType, IndexType> csr_l,
+    matrix::view::csr<ValueType, IndexType> csr_u, LClosure&& l_closure,
+    UClosure&& u_closure)
 {
-    const auto row_ptrs = system_matrix->get_const_row_ptrs();
-    const auto col_idxs = system_matrix->get_const_col_idxs();
-    const auto vals = system_matrix->get_const_values();
+    const auto row_ptrs = system_matrix.row_ptrs;
+    const auto col_idxs = system_matrix.col_idxs;
+    const auto vals = system_matrix.values;
 
-    const auto row_ptrs_l = csr_l->get_const_row_ptrs();
-    auto col_idxs_l = csr_l->get_col_idxs();
-    auto vals_l = csr_l->get_values();
+    const auto row_ptrs_l = csr_l.row_ptrs;
+    auto col_idxs_l = csr_l.col_idxs;
+    auto vals_l = csr_l.values;
 
-    const auto row_ptrs_u = csr_u->get_const_row_ptrs();
-    auto col_idxs_u = csr_u->get_col_idxs();
-    auto vals_u = csr_u->get_values();
+    const auto row_ptrs_u = csr_u.row_ptrs;
+    auto col_idxs_u = csr_u.col_idxs;
+    auto vals_u = csr_u.values;
 
 #pragma omp parallel for
-    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+    for (size_type row = 0; row < system_matrix.size[0]; ++row) {
         size_type current_index_l = row_ptrs_l[row];
         size_type current_index_u =
             row_ptrs_u[row] + 1;  // we treat the diagonal separately
@@ -71,19 +72,20 @@ void initialize_l_u(const matrix::Csr<ValueType, IndexType>* system_matrix,
 
 
 template <typename ValueType, typename IndexType, typename Closure>
-void initialize_l(const matrix::Csr<ValueType, IndexType>* system_matrix,
-                  matrix::Csr<ValueType, IndexType>* csr_l, Closure&& closure)
+void initialize_l(
+    matrix::view::csr<const ValueType, const IndexType> system_matrix,
+    matrix::view::csr<ValueType, IndexType> csr_l, Closure&& closure)
 {
-    const auto row_ptrs = system_matrix->get_const_row_ptrs();
-    const auto col_idxs = system_matrix->get_const_col_idxs();
-    const auto vals = system_matrix->get_const_values();
+    const auto row_ptrs = system_matrix.row_ptrs;
+    const auto col_idxs = system_matrix.col_idxs;
+    const auto vals = system_matrix.values;
 
-    const auto row_ptrs_l = csr_l->get_const_row_ptrs();
-    auto col_idxs_l = csr_l->get_col_idxs();
-    auto vals_l = csr_l->get_values();
+    const auto row_ptrs_l = csr_l.row_ptrs;
+    auto col_idxs_l = csr_l.col_idxs;
+    auto vals_l = csr_l.values;
 
 #pragma omp parallel for
-    for (size_type row = 0; row < system_matrix->get_size()[0]; ++row) {
+    for (size_type row = 0; row < system_matrix.size[0]; ++row) {
         size_type current_index_l = row_ptrs_l[row];
         // if there is no diagonal value, set it to 1 by default
         auto diag_val = one<ValueType>();

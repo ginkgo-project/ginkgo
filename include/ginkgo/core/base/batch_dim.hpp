@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,7 +21,6 @@ namespace gko {
  * @tparam Dimensionality  number of dimensions of the object
  * @tparam DimensionType  datatype used to represent each dimension
  *
- * @ingroup batch_dim
  */
 template <size_type Dimensionality = 2, typename DimensionType = size_type>
 struct batch_dim {
@@ -111,7 +110,7 @@ private:
  *
  * @tparam DimensionType  datatype used to represent each dimension
  *
- * @param dimensions original object
+ * @param input original object
  *
  * @return a batch_dim object with dimensions swapped
  */

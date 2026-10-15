@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,7 +22,7 @@ namespace acc {
  *
  * Only the innermost two dimensions are regarded as defining
  * a column-major matrix, and the rest of the dimensions are treated
- * identically to \ref row_major.
+ * identically to @ref row_major.
  *
  * You should not try to explicitly create an instance of this accessor.
  * Instead, supply it as a template parameter to a range, and pass the

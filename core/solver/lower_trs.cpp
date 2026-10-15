@@ -1,7 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <optional>
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>
@@ -51,7 +52,7 @@ LowerTrs<ValueType, IndexType>::parse(
 
 template <typename ValueType, typename IndexType>
 LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
-    : EnableLinOp<LowerTrs>(other.get_executor())
+    : LinOp(other.get_executor())
 {
     *this = other;
 }
@@ -59,7 +60,7 @@ LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
 
 template <typename ValueType, typename IndexType>
 LowerTrs<ValueType, IndexType>::LowerTrs(LowerTrs&& other)
-    : EnableLinOp<LowerTrs>(other.get_executor())
+    : LinOp(other.get_executor())
 {
     *this = std::move(other);
 }
@@ -70,7 +71,7 @@ LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
     const LowerTrs& other)
 {
     if (this != &other) {
-        EnableLinOp<LowerTrs>::operator=(other);
+        LinOp::operator=(other);
         EnableSolverBase<LowerTrs, CsrMatrix>::operator=(other);
         this->parameters_ = other.parameters_;
         this->generate();
@@ -84,7 +85,7 @@ LowerTrs<ValueType, IndexType>& LowerTrs<ValueType, IndexType>::operator=(
     LowerTrs&& other)
 {
     if (this != &other) {
-        EnableLinOp<LowerTrs>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         EnableSolverBase<LowerTrs, CsrMatrix>::operator=(std::move(other));
         this->parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (this->get_executor() == other.get_executor()) {
@@ -124,9 +125,9 @@ void LowerTrs<ValueType, IndexType>::generate()
 {
     if (this->get_system_matrix()) {
         this->get_executor()->run(lower_trs::make_generate(
-            this->get_system_matrix().get(), this->solve_struct_,
-            this->get_parameters().unit_diagonal, parameters_.algorithm,
-            parameters_.num_rhs));
+            this->get_system_matrix()->get_const_device_view(),
+            this->solve_struct_, this->get_parameters().unit_diagonal,
+            parameters_.algorithm, parameters_.num_rhs));
     }
 }
 
@@ -155,11 +156,12 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             // This kernel checks if a transpose is needed for the multiple rhs
             // case. Currently only the algorithm for HIP needs this
             // transposition due to the limitation in the hipsparse algorithm.
-            // The other executors (omp and reference, CUDA) do not use the
-            // transpose (trans_x and trans_b) and hence are passed in empty
+            // The other executors (omp and reference, CUDA, dpcpp) do not use
+            // the transpose (trans_x and trans_b) and hence are passed in empty
             // pointers.
             Vector* trans_b{};
             Vector* trans_x{};
+            using optional_view = std::optional<matrix::view::dense<ValueType>>;
             if (needs_transpose(exec)) {
                 trans_b = this->template create_workspace_op<Vector>(
                     ws::transposed_b, gko::transpose(dense_b->get_size()));
@@ -167,9 +169,14 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                     ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
             exec->run(lower_trs::make_solve(
-                this->get_system_matrix().get(), this->solve_struct_.get(),
-                this->get_parameters().unit_diagonal, parameters_.algorithm,
-                trans_b, trans_x, dense_b, dense_x));
+                this->get_system_matrix()->get_const_device_view(),
+                this->solve_struct_.get(), this->get_parameters().unit_diagonal,
+                parameters_.algorithm,
+                trans_b ? optional_view{trans_b->get_device_view()}
+                        : optional_view{},
+                trans_x ? optional_view{trans_x->get_device_view()}
+                        : optional_view{},
+                dense_b->get_const_device_view(), dense_x->get_device_view()));
         },
         b, x);
 }
@@ -248,9 +255,10 @@ std::vector<int> workspace_traits<LowerTrs<ValueType, IndexType>>::vectors(
 }
 
 
-#define GKO_DECLARE_LOWER_TRS(_vtype, _itype) class LowerTrs<_vtype, _itype>
-#define GKO_DECLARE_LOWER_TRS_TRAITS(_vtype, _itype) \
-    struct workspace_traits<LowerTrs<_vtype, _itype>>
+#define GKO_DECLARE_LOWER_TRS(ValueType, IndexType) \
+    class LowerTrs<ValueType, IndexType>
+#define GKO_DECLARE_LOWER_TRS_TRAITS(ValueType, IndexType) \
+    struct workspace_traits<LowerTrs<ValueType, IndexType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_LOWER_TRS_TRAITS);
 

@@ -13,12 +13,12 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/distributed/assembly.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 
 #include "core/test/utils.hpp"
-#include "ginkgo/core/base/exception.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
 
 

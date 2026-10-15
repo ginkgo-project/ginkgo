@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -60,7 +60,7 @@ Fbcsr<ValueType, IndexType>& Fbcsr<ValueType, IndexType>::operator=(
     const Fbcsr& other)
 {
     if (&other != this) {
-        EnableLinOp<Fbcsr>::operator=(other);
+        LinOp::operator=(other);
         // block size is immutable except for assignment
         bs_ = other.bs_;
         values_ = other.values_;
@@ -76,7 +76,7 @@ Fbcsr<ValueType, IndexType>& Fbcsr<ValueType, IndexType>::operator=(
     Fbcsr&& other)
 {
     if (&other != this) {
-        EnableLinOp<Fbcsr>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         // block size is immutable except for assignment
         bs_ = other.bs_;
         values_ = std::move(other.values_);
@@ -113,7 +113,8 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
                 this->get_executor()->run(
-                    fbcsr::make_spmv(this, dense_b, dense_x));
+                    fbcsr::make_spmv(this, dense_b->get_const_device_view(),
+                                     dense_x->get_device_view()));
             },
             b, x);
     }
@@ -136,7 +137,10 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             [this](auto dense_alpha, auto dense_b, auto dense_beta,
                    auto dense_x) {
                 this->get_executor()->run(fbcsr::make_advanced_spmv(
-                    dense_alpha, this, dense_b, dense_beta, dense_x));
+                    dense_alpha->get_const_device_view(), this,
+                    dense_b->get_const_device_view(),
+                    dense_beta->get_const_device_view(),
+                    dense_x->get_device_view()));
             },
             alpha, b, beta, x);
     }
@@ -217,7 +221,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(fbcsr::make_fill_in_dense(this, tmp_result.get()));
+    exec->run(fbcsr::make_fill_in_dense(this, tmp_result->get_device_view()));
 }
 
 
@@ -239,7 +243,7 @@ void Fbcsr<ValueType, IndexType>::convert_to(
         tmp->col_idxs_.resize_and_reset(this->get_num_stored_elements());
         tmp->values_.resize_and_reset(this->get_num_stored_elements());
         tmp->set_size(this->get_size());
-        exec->run(fbcsr::make_convert_to_csr(this, tmp.get()));
+        exec->run(fbcsr::make_convert_to_csr(this, tmp->get_device_view()));
     }
     result->make_srow();
 }
@@ -377,7 +381,7 @@ bool Fbcsr<ValueType, IndexType>::is_sorted_by_column_index() const
 {
     auto exec = this->get_executor();
     bool is_sorted;
-    exec->run(fbcsr::make_is_sorted_by_column_index(this, &is_sorted));
+    exec->run(fbcsr::make_is_sorted_by_column_index(this, is_sorted));
     return is_sorted;
 }
 
@@ -489,7 +493,7 @@ template <typename ValueType, typename IndexType>
 Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
                                    const dim<2>& size, size_type num_nonzeros,
                                    int block_size)
-    : EnableLinOp<Fbcsr>(exec, size),
+    : LinOp(exec, size),
       bs_{block_size},
       values_(exec, num_nonzeros),
       col_idxs_(exec,
@@ -507,7 +511,7 @@ Fbcsr<ValueType, IndexType>::Fbcsr(std::shared_ptr<const Executor> exec,
                                    array<value_type> values,
                                    array<index_type> col_idxs,
                                    array<index_type> row_ptrs)
-    : EnableLinOp<Fbcsr>(exec, size),
+    : LinOp(exec, size),
       bs_{block_size},
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)},

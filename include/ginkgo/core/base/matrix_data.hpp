@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -216,8 +216,8 @@ struct matrix_data {
     /**
      * Initializes a matrix out of a matrix block via duplication.
      *
-     * @param size  size of the block-matrix (in blocks)
-     * @param diag_block  matrix block used to fill the complete matrix
+     * @param size_  size of the block-matrix (in blocks)
+     * @param block  matrix block used to fill the complete matrix
      */
     matrix_data(dim<2> size_, const matrix_data& block)
         : size{size_ * block.size}
@@ -301,7 +301,7 @@ struct matrix_data {
      * Initializes a block-diagonal matrix.
      *
      * @param size_  the size of the matrix
-     * @param diag_block  matrix used to fill diagonal blocks
+     * @param block  matrix used to fill diagonal blocks
      *
      * @return the block-diagonal matrix
      */

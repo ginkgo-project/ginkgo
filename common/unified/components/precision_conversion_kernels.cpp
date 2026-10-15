@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,8 +20,7 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto idx, auto in, auto out) {
-#if defined(GKO_COMPILING_DPCPP) ||                            \
-    (defined(GKO_COMPILING_HIP) && HIP_VERSION >= 60200000) || \
+#if defined(GKO_COMPILING_DPCPP) || defined(GKO_COMPILING_HIP) || \
     (defined(CUDA_VERSION) && CUDA_VERSION < 12020)
             using bridge_type =
                 device_type<highest_precision<SourceType, TargetType>>;
@@ -39,6 +38,9 @@ void convert_precision(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_CONVERT_PRECISION_KERNEL);
+template GKO_DECLARE_CONVERT_PRECISION_KERNEL(int64, int32);
 
 
 }  // namespace components

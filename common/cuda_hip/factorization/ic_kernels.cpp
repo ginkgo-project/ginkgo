@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,7 +18,7 @@ namespace ic_factorization {
 
 template <typename ValueType, typename IndexType>
 void sparselib_ic(std::shared_ptr<const DefaultExecutor> exec,
-                  matrix::Csr<ValueType, IndexType>* m)
+                  matrix::view::csr<ValueType, IndexType> m)
 {
     const auto id = exec->get_device_id();
     auto handle = exec->get_sparselib_handle();
@@ -26,24 +26,22 @@ void sparselib_ic(std::shared_ptr<const DefaultExecutor> exec,
     auto info = sparselib::create_ic0_info();
 
     // get buffer size for IC
-    IndexType num_rows = m->get_size()[0];
-    IndexType nnz = m->get_num_stored_elements();
+    IndexType num_rows = m.size[0];
+    IndexType nnz = m.num_stored_elements;
     size_type buffer_size{};
-    sparselib::ic0_buffer_size(handle, num_rows, nnz, desc,
-                               m->get_const_values(), m->get_const_row_ptrs(),
-                               m->get_const_col_idxs(), info, buffer_size);
+    sparselib::ic0_buffer_size(handle, num_rows, nnz, desc, m.values,
+                               m.row_ptrs, m.col_idxs, info, buffer_size);
 
     array<char> buffer{exec, buffer_size};
 
     // set up IC(0)
-    sparselib::ic0_analysis(handle, num_rows, nnz, desc, m->get_const_values(),
-                            m->get_const_row_ptrs(), m->get_const_col_idxs(),
-                            info, SPARSELIB_SOLVE_POLICY_USE_LEVEL,
+    sparselib::ic0_analysis(handle, num_rows, nnz, desc, m.values, m.row_ptrs,
+                            m.col_idxs, info, SPARSELIB_SOLVE_POLICY_USE_LEVEL,
                             buffer.get_data());
 
-    sparselib::ic0(handle, num_rows, nnz, desc, m->get_values(),
-                   m->get_const_row_ptrs(), m->get_const_col_idxs(), info,
-                   SPARSELIB_SOLVE_POLICY_USE_LEVEL, buffer.get_data());
+    sparselib::ic0(handle, num_rows, nnz, desc, m.values, m.row_ptrs,
+                   m.col_idxs, info, SPARSELIB_SOLVE_POLICY_USE_LEVEL,
+                   buffer.get_data());
 
     // CUDA 11.4 has a use-after-free bug on Turing
 #if defined(GKO_COMPILING_CUDA) && (CUDA_VERSION >= 11040)

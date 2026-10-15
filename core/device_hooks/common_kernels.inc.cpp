@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -16,6 +16,7 @@
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
+#include "core/components/gather_kernels.hpp"
 #include "core/components/precision_conversion_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/components/range_minimum_query_kernels.hpp"
@@ -52,6 +53,9 @@
 #include "core/matrix/sellp_kernels.hpp"
 #include "core/matrix/sparsity_csr_kernels.hpp"
 #include "core/multigrid/pgm_kernels.hpp"
+#include "core/multigrid/pmis_kernels.hpp"
+#include "core/multigrid/rs_kernels.hpp"
+#include "core/multigrid/uniform_coarsening_kernels.hpp"
 #include "core/preconditioner/batch_jacobi_kernels.hpp"
 #include "core/preconditioner/isai_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
@@ -74,6 +78,7 @@
 #include "core/solver/lower_trs_kernels.hpp"
 #include "core/solver/minres_kernels.hpp"
 #include "core/solver/multigrid_kernels.hpp"
+#include "core/solver/nullspace_kernels.hpp"
 #include "core/solver/pipe_cg_kernels.hpp"
 #include "core/solver/upper_trs_kernels.hpp"
 #include "core/stop/criterion_kernels.hpp"
@@ -198,6 +203,11 @@
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
     GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE_BASE(_macro)
 
+#define GKO_STUB_TEMPLATE_AND_INDEX_TYPE(_macro)                    \
+    template <typename ValueType, typename IndexType>               \
+    _macro(ValueType, IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
+    GKO_INSTANTIATE_FOR_EACH_TEMPLATE_AND_INDEX_TYPE(_macro)
+
 #define GKO_STUB_TEMPLATE_TYPE(_macro)                   \
     template <typename IndexType>                        \
     _macro(IndexType) GKO_NOT_COMPILED(GKO_HOOK_MODULE); \
@@ -247,6 +257,9 @@ namespace components {
 
 
 GKO_STUB_VALUE_CONVERSION(GKO_DECLARE_CONVERT_PRECISION_KERNEL);
+GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
+    GKO_DECLARE_CONVERT_PRECISION_KERNEL);
+template GKO_DECLARE_CONVERT_PRECISION_KERNEL(int64, int32);
 GKO_STUB_INDEX_TYPE(GKO_DECLARE_PREFIX_SUM_NONNEGATIVE_KERNEL);
 // explicitly instantiate for size_type, as this is
 // used in the SellP format
@@ -262,6 +275,7 @@ template GKO_DECLARE_FILL_ARRAY_KERNEL(uint64);
 #endif
 
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_FILL_SEQ_ARRAY_KERNEL);
+GKO_STUB_TEMPLATE_AND_INDEX_TYPE(GKO_DECLARE_GATHER_KERNEL);
 GKO_STUB_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_INPLACE_ABSOLUTE_ARRAY_KERNEL);
 GKO_STUB_VALUE_TYPE(GKO_DECLARE_OUTPLACE_ABSOLUTE_ARRAY_KERNEL);
@@ -322,9 +336,10 @@ namespace event {
 
 
 GKO_STUB(GKO_DECLARE_EVENT_RECORD_EVENT);
+GKO_STUB(GKO_DECLARE_EVENT_WAIT_EVENT);
 
 
-}
+}  // namespace event
 
 
 namespace partition {
@@ -389,7 +404,8 @@ namespace distributed_matrix {
 
 
 GKO_STUB_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE_BASE(
-    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS);
 
 
 }  // namespace distributed_matrix
@@ -563,6 +579,16 @@ GKO_STUB_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);
 
 
 }  // namespace cg
+
+
+namespace nullspace {
+
+
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_NULLSPACE_COMPUTE_COEFFICIENTS_KERNEL);
+GKO_STUB_VALUE_TYPE(GKO_DECLARE_NULLSPACE_SUBTRACT_PROJECTION_KERNEL);
+
+
+}  // namespace nullspace
 
 
 namespace bicg {
@@ -1135,11 +1161,53 @@ GKO_STUB_INDEX_TYPE(GKO_DECLARE_PGM_COUNT_UNREPEATED_NNZ_KERNEL);
 GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR);
 GKO_STUB_NON_COMPLEX_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_SORT_ROW_MAJOR_WITH_MAPPING);
 GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
-GKO_STUB_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
 
 
 }  // namespace pgm
+
+
+namespace pmis {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_COMPUTE_ROW_MAXABS_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL);
+GKO_STUB_NON_COMPLEX_VALUE_TYPE_BASE(
+    GKO_DECLARE_PMIS_INITIALIZE_RANDOM_WEIGHT_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_PMIS_CLASSIFY_KERNEL);
+GKO_STUB(GKO_DECLARE_COUNT_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIRECT_INTERPOLATION_ROW_COUNT);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_DIRECT_INTERPOLATION_FILL);
+
+
+}  // namespace pmis
+
+
+namespace rs {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_CHECK_M_MATRIX_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_COMPUTE_SOC_AND_RUN_RS_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_RS_FILL_COARSE_AND_COMPUTE_PROLONG_ROW_PTRS_KERNEL);
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_RS_COMPUTE_INTERPOLATION_KERNEL);
+
+
+}  // namespace rs
+
+
+namespace uniform_coarsening {
+
+
+GKO_STUB_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UNIFORM_COARSENING_FILL_RESTRICT_OP);
+GKO_STUB_INDEX_TYPE(GKO_DECLARE_UNIFORM_COARSENING_FILL_INCREMENTAL_INDICES);
+
+
+}  // namespace uniform_coarsening
 
 
 namespace set_all_statuses {

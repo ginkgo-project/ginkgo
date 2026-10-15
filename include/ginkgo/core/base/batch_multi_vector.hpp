@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,31 +27,38 @@ namespace batch {
 
 /**
  * MultiVector stores multiple vectors in a batched fashion and is useful
- * for batched operations. For example, if you want to store two batch items
- * with multi-vectors of size (3 x 2) given below:
+ * for batched operations. For example, two batch items, each a 3 x 2
+ * multi-vector, would be laid out as:
  *
- * [1 2 ; 3 4
- *  1 2 ; 3 4
- *  1 2 ; 3 4]
+ * ```
+ * batch item 0      batch item 1
+ *   1 2               3 4
+ *   1 2               3 4
+ *   1 2               3 4
+ * ```
  *
- * In memory, they would be stored as a single array:
- * [1 2 1 2 1 2 3 4 3 4 3 4].
+ * In memory, both items are stored consecutively as a single
+ * row-major array:
  *
- * Access functions @at can help access individual
- * item if necessary.
+ * ```
+ * [ 1 2  1 2  1 2 | 3 4  3 4  3 4 ]
+ *   item 0          item 1
+ * ```
+ *
+ * The accessor `at()` can be used to reach an individual entry of a
+ * specific batch item.
  *
  * The values of the different batch items are stored consecutively and in each
  * batch item, the multi-vectors are stored in a row-major fashion.
  *
  * @tparam ValueType  precision of multi-vector elements
  *
- * @ingroup batch_multi_vector
- * @ingroup batched
+ * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
 class MultiVector
-    : public EnablePolymorphicObject<MultiVector<ValueType>>,
-      public EnablePolymorphicAssignment<MultiVector<ValueType>>,
+    : public PolymorphicObject,
+      public EnableCloneable<MultiVector<ValueType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<MultiVector<next_precision<ValueType, 2>>>,
 #endif
@@ -59,14 +66,14 @@ class MultiVector
       public ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>,
 #endif
       public ConvertibleTo<MultiVector<next_precision<ValueType>>> {
-    friend class EnablePolymorphicObject<MultiVector>;
+    friend class EnableCloneable<MultiVector>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class MultiVector<previous_precision<ValueType>>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnablePolymorphicAssignment<MultiVector>::convert_to;
-    using EnablePolymorphicAssignment<MultiVector>::move_to;
+    using EnableCloneable<MultiVector>::convert_to;
+    using EnableCloneable<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
 
@@ -272,7 +279,7 @@ public:
     }
 
     /**
-     * @copydoc MultiVector::at(size_type, size_type, size_type)
+     * @copydoc MultiVector::at(size_type, size_type)
      */
     ValueType at(size_type batch_id, size_type idx) const noexcept
     {
@@ -393,7 +400,7 @@ public:
      * array.
      *
      * @param exec  the executor to create the vector on
-     * @param size  the dimensions of the vector
+     * @param sizes  the dimensions of the vector
      * @param values  the value array of the vector
      * @param stride  the row-stride of the vector
      *

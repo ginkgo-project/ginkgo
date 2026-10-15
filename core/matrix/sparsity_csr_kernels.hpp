@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,23 +21,23 @@ namespace kernels {
                                              OutputValueType, IndexType)      \
     void spmv(std::shared_ptr<const DefaultExecutor> exec,                    \
               const matrix::SparsityCsr<MatrixValueType, IndexType>* a,       \
-              const matrix::Dense<InputValueType>* b,                         \
-              matrix::Dense<OutputValueType>* c)
+              matrix::view::dense<const InputValueType> b,                    \
+              matrix::view::dense<OutputValueType> c)
 
 #define GKO_DECLARE_SPARSITY_CSR_ADVANCED_SPMV_KERNEL(            \
     MatrixValueType, InputValueType, OutputValueType, IndexType)  \
     void advanced_spmv(                                           \
         std::shared_ptr<const DefaultExecutor> exec,              \
-        const matrix::Dense<MatrixValueType>* alpha,              \
+        matrix::view::dense<const MatrixValueType> alpha,         \
         const matrix::SparsityCsr<MatrixValueType, IndexType>* a, \
-        const matrix::Dense<InputValueType>* b,                   \
-        const matrix::Dense<OutputValueType>* beta,               \
-        matrix::Dense<OutputValueType>* c)
+        matrix::view::dense<const InputValueType> b,              \
+        matrix::view::dense<const OutputValueType> beta,          \
+        matrix::view::dense<OutputValueType> c)
 
 #define GKO_DECLARE_SPARSITY_CSR_FILL_IN_DENSE_KERNEL(ValueType, IndexType)    \
     void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,            \
                        const matrix::SparsityCsr<ValueType, IndexType>* input, \
-                       matrix::Dense<ValueType>* output)
+                       matrix::view::dense<ValueType> output)
 
 #define GKO_DECLARE_SPARSITY_CSR_REMOVE_DIAGONAL_ELEMENTS_KERNEL(ValueType, \
                                                                  IndexType) \
@@ -69,7 +69,7 @@ namespace kernels {
     void is_sorted_by_column_index(                                   \
         std::shared_ptr<const DefaultExecutor> exec,                  \
         const matrix::SparsityCsr<ValueType, IndexType>* to_check,    \
-        bool* is_sorted)
+        bool& is_sorted)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     template <typename MatrixValueType, typename InputValueType,            \

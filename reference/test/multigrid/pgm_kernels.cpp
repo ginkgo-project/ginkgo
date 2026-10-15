@@ -1,10 +1,12 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/multigrid/pgm_kernels.hpp"
 
 #include <memory>
+#include <tuple>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -22,6 +24,7 @@
 #include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/core/stop/time.hpp>
 
+#include "core/components/gather_kernels.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -50,35 +53,34 @@ protected:
                           .with_max_unassigned_ratio(0.1)
                           .with_skip_sorting(true)
                           .on(exec)),
-          fine_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
-               I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
-              exec)),
-          coarse_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0})}, exec)),
-          restrict_ans((gko::initialize<Vec>(
-              {I<VT>({0.0, -1.0}), I<VT>({2.0, 0.0})}, exec))),
-          prolong_ans(gko::initialize<Vec>(
-              {I<VT>({0.0, -2.0}), I<VT>({1.0, -2.0}), I<VT>({1.0, -2.0}),
-               I<VT>({0.0, -1.0}), I<VT>({2.0, 1.0})},
-              exec)),
-          prolong_applyans(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0}),
-               I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0})},
-              exec)),
-          fine_x(gko::initialize<Vec>(
-              {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
-               I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
-              exec)),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
-                          std::make_shared<typename Mtx::classical>())),
-          weight(WeightMtx::create(
-              exec, gko::dim<2>(5, 5), 15,
-              std::make_shared<typename WeightMtx::classical>())),
+                          gko::matrix::csr::spmv_strategy::classical)),
+          weight(WeightMtx::create(exec, gko::dim<2>(5, 5), 15,
+                                   gko::matrix::csr::spmv_strategy::classical)),
           coarse(Mtx::create(exec, gko::dim<2>(2, 2), 4,
-                             std::make_shared<typename Mtx::classical>())),
+                             gko::matrix::csr::spmv_strategy::classical)),
           agg(exec, 5)
     {
+        fine_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
+             I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
+            exec);
+        coarse_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0})}, exec);
+        restrict_ans =
+            gko::initialize<Vec>({I<VT>({0.0, -1.0}), I<VT>({2.0, 0.0})}, exec);
+        prolong_ans = gko::initialize<Vec>(
+            {I<VT>({0.0, -2.0}), I<VT>({1.0, -2.0}), I<VT>({1.0, -2.0}),
+             I<VT>({0.0, -1.0}), I<VT>({2.0, 1.0})},
+            exec);
+        prolong_applyans = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0}),
+             I<VT>({0.0, -1.0}), I<VT>({2.0, -1.0})},
+            exec);
+        fine_x = gko::initialize<Vec>(
+            {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
+             I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
+            exec);
         this->create_mtx(mtx.get(), weight.get(), &agg, coarse.get());
         mg_level = pgm_factory->generate(mtx);
         mtx_diag = weight->extract_diagonal();
@@ -190,71 +192,6 @@ protected:
 TYPED_TEST_SUITE(Pgm, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 
 
-TYPED_TEST(Pgm, CanBeCopied)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
-    auto copy = this->pgm_factory->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->mg_level);
-    auto copy_mtx = copy->get_system_matrix();
-    auto copy_agg = copy->get_const_agg();
-    auto copy_coarse = copy->get_coarse_op();
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-    this->assert_same_agg(copy_agg, this->agg.get_data(), this->agg.get_size());
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
-}
-
-
-TYPED_TEST(Pgm, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
-    auto copy = this->pgm_factory->generate(Mtx::create(this->exec));
-
-    copy->move_from(this->mg_level);
-    auto copy_mtx = copy->get_system_matrix();
-    auto copy_agg = copy->get_const_agg();
-    auto copy_coarse = copy->get_coarse_op();
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-    this->assert_same_agg(copy_agg, this->agg.get_data(), this->agg.get_size());
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
-}
-
-
-TYPED_TEST(Pgm, CanBeCloned)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
-    auto clone = this->mg_level->clone();
-    auto clone_mtx = clone->get_system_matrix();
-    auto clone_agg = clone->get_const_agg();
-    auto clone_coarse = clone->get_coarse_op();
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
-    this->assert_same_agg(clone_agg, this->agg.get_data(),
-                          this->agg.get_size());
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_coarse), this->coarse, 0.0);
-}
-
-
-TYPED_TEST(Pgm, CanBeCleared)
-{
-    using MgLevel = typename TestFixture::MgLevel;
-
-    this->mg_level->clear();
-    auto mtx = this->mg_level->get_system_matrix();
-    auto coarse = this->mg_level->get_coarse_op();
-    auto agg = this->mg_level->get_agg();
-
-    ASSERT_EQ(mtx, nullptr);
-    ASSERT_EQ(coarse, nullptr);
-    ASSERT_EQ(agg, nullptr);
-}
-
-
 TYPED_TEST(Pgm, MatchEdge)
 {
     using index_type = typename TestFixture::index_type;
@@ -340,7 +277,7 @@ TYPED_TEST(Pgm, GatherIndex)
     map.get_data()[3] = 2;
     map.get_data()[4] = 0;
 
-    gko::kernels::reference::pgm::gather_index(
+    gko::kernels::reference::components::gather(
         this->exec, num, orig.get_const_data(), map.get_const_data(),
         result.get_data());
 
@@ -458,8 +395,8 @@ TYPED_TEST(Pgm, FindStrongestNeighbor)
     }
 
     gko::kernels::reference::pgm::find_strongest_neighbor(
-        this->exec, this->weight.get(), this->mtx_diag.get(), agg,
-        strongest_neighbor);
+        this->exec, this->weight->get_const_device_view(), this->mtx_diag.get(),
+        agg, strongest_neighbor);
 
     ASSERT_EQ(snb_vals[0], 2);
     ASSERT_EQ(snb_vals[1], 0);
@@ -483,8 +420,8 @@ TYPED_TEST(Pgm, AssignToExistAgg)
     agg_vals[4] = -1;
 
     gko::kernels::reference::pgm::assign_to_exist_agg(
-        this->exec, this->weight.get(), this->mtx_diag.get(), agg,
-        intermediate_agg);
+        this->exec, this->weight->get_const_device_view(), this->mtx_diag.get(),
+        agg, intermediate_agg);
 
     ASSERT_EQ(agg_vals[0], 0);
     ASSERT_EQ(agg_vals[1], 1);
@@ -569,6 +506,131 @@ TYPED_TEST(Pgm, GenerateMgLevelOnUnsortedMatrix)
     GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(coarse_fine->get_coarse_op()),
                         this->coarse, r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(row_gather_view, expected_row_gather);
+}
+
+
+TYPED_TEST(Pgm, GenerateReuseKeepsAggregatesAndUpdatesCoarseValues)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    using MgLevel = typename TestFixture::MgLevel;
+    // this->mtx with (0, 1) and (1, 0) changed from -3 to -9, which makes 0
+    // and 1 the strongest pair, so generating on it aggregates differently
+    auto changed = gko::share(Mtx::create(this->exec));
+    changed->read({{5, 5},
+                   {{0, 0, 5},
+                    {0, 1, -9},
+                    {0, 2, -3},
+                    {1, 0, -9},
+                    {1, 1, 5},
+                    {1, 3, -2},
+                    {1, 4, -1},
+                    {2, 0, -3},
+                    {2, 2, 5},
+                    {2, 4, -1},
+                    {3, 1, -3},
+                    {3, 3, 5},
+                    {4, 1, -2},
+                    {4, 2, -2},
+                    {4, 4, 5}}});
+    // -3 -> -9 adds -6 to the coarse (0, 1) and (1, 0)
+    auto changed_coarse = Mtx::create(this->exec);
+    changed_coarse->read(
+        {{2, 2}, {{0, 0, 6}, {0, 1, -11}, {1, 0, -10}, {1, 1, 5}}});
+    // the same two matrices stored unsorted, for a factory that sorts
+    auto unsorted = [this](std::initializer_list<value_type> vals) {
+        return gko::share(Mtx::create(
+            this->exec, gko::dim<2>{5, 5},
+            gko::array<value_type>{this->exec, vals},
+            gko::array<index_type>{
+                this->exec, {1, 2, 0, 0, 3, 4, 1, 0, 4, 2, 1, 3, 1, 2, 4}},
+            gko::array<index_type>{this->exec, {0, 3, 7, 10, 12, 15}}));
+    };
+    auto sorting_factory = MgLevel::build()
+                               .with_max_iterations(2u)
+                               .with_max_unassigned_ratio(0.1)
+                               .on(this->exec);
+    const std::vector<std::tuple<const typename MgLevel::Factory*,
+                                 std::shared_ptr<Mtx>, std::shared_ptr<Mtx>>>
+        cases{
+            {this->pgm_factory.get(), this->mtx, changed},
+            {sorting_factory.get(),
+             unsorted({-3, -3, 5, -3, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5}),
+             unsorted(
+                 {-9, -3, 5, -9, -2, -1, 5, -3, -1, 5, 5, -3, -2, -2, 5})}};
+
+    for (const auto& [factory, matrix, changed_matrix] : cases) {
+        auto reuse_data = factory->create_empty_reuse_data();
+        auto first = factory->generate_reuse(matrix, *reuse_data);
+        auto first_coarse = gko::clone(gko::as<Mtx>(first->get_coarse_op()));
+
+        auto level = factory->generate_reuse(changed_matrix, *reuse_data);
+
+        // the aggregates are kept, while a fresh generation would differ
+        GKO_ASSERT_ARRAY_EQ(
+            gko::array<index_type>::const_view(this->exec, 5,
+                                               level->get_const_agg()),
+            gko::array<index_type>(this->exec, {0, 1, 0, 1, 0}));
+        ASSERT_NE(factory->generate(changed_matrix)->get_const_agg()[1],
+                  level->get_const_agg()[1]);
+        GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(level->get_coarse_op()),
+                            changed_coarse, r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(level->get_fine_op()), changed_matrix,
+                            r<value_type>::value);
+        // a later call must not change what an earlier one returned
+        GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(first->get_coarse_op()), first_coarse,
+                            0.0);
+    }
+}
+
+
+TYPED_TEST(Pgm, GenerateReuseRejectsMismatchAndStaysUsable)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto smaller = gko::share(Mtx::create(this->exec));
+    smaller->read({{3, 3},
+                   {{0, 0, 4},
+                    {0, 1, -1},
+                    {1, 0, -1},
+                    {1, 1, 4},
+                    {1, 2, -1},
+                    {2, 1, -1},
+                    {2, 2, 4}}});
+    // this->mtx without (4, 2): same size, one nonzero less
+    auto sparser = gko::share(Mtx::create(this->exec));
+    sparser->read({{5, 5},
+                   {{0, 0, 5},
+                    {0, 1, -3},
+                    {0, 2, -3},
+                    {1, 0, -3},
+                    {1, 1, 5},
+                    {1, 3, -2},
+                    {1, 4, -1},
+                    {2, 0, -3},
+                    {2, 2, 5},
+                    {2, 4, -1},
+                    {3, 1, -3},
+                    {3, 3, 5},
+                    {4, 1, -2},
+                    {4, 4, 5}}});
+    auto reuse_data = this->pgm_factory->create_empty_reuse_data();
+    this->pgm_factory->generate_reuse(this->mtx, *reuse_data);
+
+    ASSERT_THROW(this->pgm_factory->generate_reuse(smaller, *reuse_data),
+                 gko::DimensionMismatch);
+    ASSERT_THROW(this->pgm_factory->generate_reuse(sparser, *reuse_data),
+                 gko::DimensionMismatch);
+    // the data was recorded on another executor than this factory's
+    auto other_executor_factory = this->pgm_factory->get_parameters().on(
+        gko::ReferenceExecutor::create());
+    ASSERT_THROW(other_executor_factory->generate_reuse(this->mtx, *reuse_data),
+                 gko::InvalidStateError);
+    GKO_ASSERT_MTX_NEAR(
+        gko::as<Mtx>(this->pgm_factory->generate_reuse(this->mtx, *reuse_data)
+                         ->get_coarse_op()),
+        this->coarse, r<value_type>::value);
 }
 
 

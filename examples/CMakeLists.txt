@@ -68,6 +68,7 @@ if(GINKGO_BUILD_MPI)
         distributed-poisson-assembled-matrix
         distributed-poisson-matrix-free-monolithic
         distributed-poisson-matrix-free-split
+        distributed-multigrid-reuse
     )
 endif()
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -96,7 +96,7 @@ __dpct_inline__ int choose_pivot(const int block_size,
     if (sg_tid >= block_size) {
         my_abs_ele = static_cast<real_type>(-1);
     }
-    sg.barrier();
+    sycl::group_barrier(sg);
     int my_piv_idx = sg_tid;
     for (int a = sg_size / 2; a > 0; a /= 2) {
         const real_type abs_ele_other =
@@ -107,7 +107,7 @@ __dpct_inline__ int choose_pivot(const int block_size,
             my_piv_idx = piv_idx_other;
         }
     }
-    sg.barrier();
+    sycl::group_barrier(sg);
     const int ipiv = sycl::select_from_group(sg, my_piv_idx, 0);
     return ipiv;
 }
@@ -218,7 +218,7 @@ __dpct_inline__ void compute_block_jacobi_kernel(
     // not mean anything. Also, values in the block_row for
     // index >= block_size are meaningless
     invert_dense_block(block_size, block_row, perm, item_ct1);
-    sg.barrier();
+    sycl::group_barrier(sg);
 
     // write back the transpose of the transposed inverse matrix to block
     // array

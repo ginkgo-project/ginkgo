@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,7 +22,7 @@ namespace kernels {
 
 #define GKO_DECLARE_ILU_SPARSELIB_ILU_KERNEL(ValueType, IndexType)  \
     void sparselib_ilu(std::shared_ptr<const DefaultExecutor> exec, \
-                       matrix::Csr<ValueType, IndexType>* system_matrix)
+                       matrix::view::csr<ValueType, IndexType> system_matrix)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                  \

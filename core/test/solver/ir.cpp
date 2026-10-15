@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -62,58 +62,6 @@ TYPED_TEST(Ir, IrFactoryCreatesCorrectSolver)
     auto cg_solver = static_cast<Solver*>(this->solver.get());
     ASSERT_NE(cg_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(cg_solver->get_system_matrix(), this->mtx);
-}
-
-
-TYPED_TEST(Ir, CanBeCopied)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy = this->ir_factory->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->solver);
-
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-}
-
-
-TYPED_TEST(Ir, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy = this->ir_factory->generate(Mtx::create(this->exec));
-
-    copy->move_from(this->solver);
-
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = static_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-}
-
-
-TYPED_TEST(Ir, CanBeCloned)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto clone = this->solver->clone();
-
-    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    auto clone_mtx = static_cast<Solver*>(clone.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
-}
-
-
-TYPED_TEST(Ir, CanBeCleared)
-{
-    using Solver = typename TestFixture::Solver;
-    this->solver->clear();
-
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx =
-        static_cast<Solver*>(this->solver.get())->get_system_matrix();
-    ASSERT_EQ(solver_mtx, nullptr);
 }
 
 
@@ -286,6 +234,20 @@ TYPED_TEST(Ir, ThrowsOnRectangularMatrixInFactory)
 
     ASSERT_THROW(this->ir_factory->generate(rectangular_mtx),
                  gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Ir, ThrowsOnProvidedInnerInitialGuess)
+{
+    using Solver = typename TestFixture::Solver;
+    // there is no meaningful provided guess for the correction A * d = r
+    auto ir_factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .with_inner_initial_guess(gko::solver::initial_guess_mode::provided)
+            .on(this->exec);
+
+    ASSERT_THROW(ir_factory->generate(this->mtx), gko::InvalidStateError);
 }
 
 

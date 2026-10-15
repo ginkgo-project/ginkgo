@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,6 +24,8 @@ namespace gko {
 
 
 class Executor;
+
+class Cloneable;
 
 
 /**
@@ -95,32 +97,32 @@ using pointee =
 
 
 template <typename T, typename = void>
-struct is_cloneable_impl : std::false_type {};
+struct has_clone_impl : std::false_type {};
 
 template <typename T>
-struct is_cloneable_impl<T, std::void_t<decltype(std::declval<T>().clone())>>
+struct has_clone_impl<T, std::void_t<decltype(std::declval<T>().clone())>>
     : std::true_type {};
 
 template <typename T>
 constexpr bool is_cloneable()
 {
-    return is_cloneable_impl<std::decay_t<T>>::value;
+    return has_clone_impl<std::decay_t<T>>::value;
 }
 
 
 template <typename T, typename = void>
-struct is_cloneable_to_impl : std::false_type {};
+struct has_clone_to_impl : std::false_type {};
 
 template <typename T>
-struct is_cloneable_to_impl<
-    T, std::void_t<decltype(std::declval<T>().clone(
-           std::declval<std::shared_ptr<const Executor>>()))>>
+struct has_clone_to_impl<T,
+                         std::void_t<decltype(std::declval<T>().clone(
+                             std::declval<std::shared_ptr<const Executor>>()))>>
     : std::true_type {};
 
 template <typename T>
-constexpr bool is_cloneable_to()
+constexpr bool has_clone_to()
 {
-    return is_cloneable_to_impl<std::decay_t<T>>::value;
+    return has_clone_to_impl<std::decay_t<T>>::value;
 }
 
 
@@ -153,58 +155,6 @@ using shared_type = std::shared_ptr<pointee<Pointer>>;
 
 
 }  // namespace detail
-
-
-/**
- * Creates a unique clone of the object pointed to by `p`.
- *
- * The pointee (i.e. `*p`) needs to have a clone method that returns a
- * std::unique_ptr in order for this method to work.
- *
- * @tparam Pointer  type of pointer to the object (plain or smart pointer)
- *
- * @param p  a pointer to the object
- *
- * @note The difference between this function and directly calling
- *       LinOp::clone() is that this one preserves the static type of the
- *       object.
- */
-template <typename Pointer>
-inline detail::cloned_type<Pointer> clone(const Pointer& p)
-{
-    static_assert(detail::is_cloneable<detail::pointee<Pointer>>(),
-                  "Object is not cloneable");
-    return detail::cloned_type<Pointer>(
-        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
-            p->clone().release()));
-}
-
-
-/**
- * Creates a unique clone of the object pointed to by `p` on Executor `exec`.
- *
- * The pointee (i.e. `*p`) needs to have a clone method that takes an
- * executor and returns a std::unique_ptr in order for this method to work.
- *
- * @tparam Pointer  type of pointer to the object (plain or smart pointer)
- *
- * @param exec  the executor where the cloned object should be stored
- * @param p  a pointer to the object
- *
- * @note The difference between this function and directly calling
- *       LinOp::clone() is that this one preserves the static type of the
- *       object.
- */
-template <typename Pointer>
-inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
-                                          const Pointer& p)
-{
-    static_assert(detail::is_cloneable_to<detail::pointee<Pointer>>(),
-                  "Object is not cloneable");
-    return detail::cloned_type<Pointer>(
-        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
-            p->clone(std::move(exec)).release()));
-}
 
 
 /**
@@ -454,6 +404,88 @@ inline std::shared_ptr<const std::decay_t<T>> as(std::shared_ptr<const U> obj)
     }
 }
 
+
+/**
+ * Creates a unique clone of the object pointed to by `p`.
+ *
+ * The pointee (i.e. `*p`) needs to have a clone method that returns a
+ * std::unique_ptr in order for this method to work.
+ *
+ * @tparam Pointer  type of pointer to the object (plain or smart pointer)
+ *
+ * @param p  a pointer to the object
+ *
+ * @note The difference between this function and directly calling
+ *       Cloneable::clone() is that this one preserves the static type of the
+ *       object.
+ */
+template <typename Pointer,
+          std::enable_if_t<detail::is_cloneable<detail::pointee<Pointer>>()>* =
+              nullptr>
+inline detail::cloned_type<Pointer> clone(const Pointer& p)
+{
+    return detail::cloned_type<Pointer>(
+        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
+            p->clone().release()));
+}
+
+/**
+ * when the class does not have clone, try Cloneable
+ */
+template <typename Pointer,
+          std::enable_if_t<!detail::is_cloneable<detail::pointee<Pointer>>()>* =
+              nullptr>
+inline detail::cloned_type<Pointer> clone(const Pointer& p)
+{
+    using type = typename std::remove_cv<detail::pointee<Pointer>>::type;
+    // wrap it into ptr_param to accept different type of pointer
+    return detail::cloned_type<Pointer>(dynamic_cast<type*>(
+        as<Cloneable>(ptr_param<const type>(p).get())->clone().release()));
+}
+
+
+/**
+ * Creates a unique clone of the object pointed to by `p` on Executor `exec`.
+ *
+ * The pointee (i.e. `*p`) needs to have a clone method that takes an
+ * executor and returns a std::unique_ptr in order for this method to work.
+ *
+ * @tparam Pointer  type of pointer to the object (plain or smart pointer)
+ *
+ * @param exec  the executor where the cloned object should be stored
+ * @param p  a pointer to the object
+ *
+ * @note The difference between this function and directly calling
+ *       LinOp::clone() is that this one preserves the static type of the
+ *       object.
+ */
+template <typename Pointer,
+          std::enable_if_t<detail::has_clone_to<detail::pointee<Pointer>>()>* =
+              nullptr>
+inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
+                                          const Pointer& p)
+{
+    return detail::cloned_type<Pointer>(
+        static_cast<typename std::remove_cv<detail::pointee<Pointer>>::type*>(
+            p->clone(std::move(exec)).release()));
+}
+
+/**
+ * when the class does not have clone, try Cloneable
+ */
+template <typename Pointer,
+          std::enable_if_t<!detail::has_clone_to<detail::pointee<Pointer>>()>* =
+              nullptr>
+inline detail::cloned_type<Pointer> clone(std::shared_ptr<const Executor> exec,
+                                          const Pointer& p)
+{
+    using type = typename std::remove_cv<detail::pointee<Pointer>>::type;
+    // wrap it into ptr_param to accept different type of pointer
+    return detail::cloned_type<Pointer>(
+        dynamic_cast<type*>(as<Cloneable>(ptr_param<const type>(p).get())
+                                ->clone(std::move(exec))
+                                .release()));
+}
 
 /**
  * This is a deleter that does not delete the object.

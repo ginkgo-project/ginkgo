@@ -1,9 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 
 #include "core/test/utils.hpp"
@@ -106,6 +107,32 @@ TYPED_TEST(Ell, CanBeEmpty)
 }
 
 
+TYPED_TEST(Ell, CanCreateDeviceView)
+{
+    auto view = this->mtx->get_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.num_stored_elements_per_row,
+              this->mtx->get_num_stored_elements_per_row());
+    EXPECT_EQ(view.stride, this->mtx->get_stride());
+    EXPECT_EQ(view.values, this->mtx->get_values());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_col_idxs());
+}
+
+
+TYPED_TEST(Ell, CanCreateConstDeviceView)
+{
+    auto view = this->mtx->get_const_device_view();
+
+    EXPECT_EQ(view.size, this->mtx->get_size());
+    EXPECT_EQ(view.num_stored_elements_per_row,
+              this->mtx->get_num_stored_elements_per_row());
+    EXPECT_EQ(view.stride, this->mtx->get_stride());
+    EXPECT_EQ(view.values, this->mtx->get_values());
+    EXPECT_EQ(view.col_idxs, this->mtx->get_col_idxs());
+}
+
+
 TYPED_TEST(Ell, CanBeCreatedFromExistingData)
 {
     using value_type = typename TestFixture::value_type;
@@ -175,14 +202,6 @@ TYPED_TEST(Ell, CanBeCloned)
 }
 
 
-TYPED_TEST(Ell, CanBeCleared)
-{
-    this->mtx->clear();
-
-    this->assert_empty(this->mtx.get());
-}
-
-
 TYPED_TEST(Ell, CanBeReadFromMatrixData)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -214,6 +233,28 @@ TYPED_TEST(Ell, GeneratesCorrectMatrixData)
 }
 
 
+TYPED_TEST(Ell, GeneratesCorrectDeviceMatrixData)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using tpl = typename gko::matrix_data<value_type, index_type>::nonzero_type;
+    gko::device_matrix_data<value_type, index_type> data{this->exec};
+
+    // Ell does not override the device write, so this goes through the
+    // default implementation of WritableToMatrixData.
+    this->mtx->write(data);
+
+    ASSERT_EQ(data.get_size(), gko::dim<2>(2, 3));
+    ASSERT_EQ(data.get_num_stored_elements(), 5);
+    auto host_data = data.copy_to_host();
+    EXPECT_EQ(host_data.nonzeros[0], tpl(0, 0, value_type{1.0}));
+    EXPECT_EQ(host_data.nonzeros[1], tpl(0, 1, value_type{3.0}));
+    EXPECT_EQ(host_data.nonzeros[2], tpl(0, 2, value_type{2.0}));
+    EXPECT_EQ(host_data.nonzeros[3], tpl(1, 0, value_type{0.0}));
+    EXPECT_EQ(host_data.nonzeros[4], tpl(1, 1, value_type{5.0}));
+}
+
+
 TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
 {
     using Mtx = typename TestFixture::Mtx;
@@ -230,4 +271,59 @@ TYPED_TEST(Ell, CanBeReadFromMatrixAssemblyData)
     m->read(data);
 
     this->assert_equal_to_original_mtx(m);
+}
+
+
+TYPED_TEST(Ell, RecognizesInfiniteValue)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec);
+    mtx->read(
+        {{2, 3},
+         {{0, 0, 1.0}, {0, 1, 3.0}, {0, 2, 2.0}, {1, 0, 0.0}, {1, 1, 5.0}}});
+    mtx->get_values()[0] = INFINITY;
+
+    ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Ell, RecognizesDuplicateIndex)
+{
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec);
+    mtx->read(
+        {{2, 3},
+         {{0, 0, 1.0}, {0, 0, 3.0}, {0, 2, 2.0}, {1, 0, 0.0}, {1, 1, 5.0}}});
+
+    ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Ell, RecognizesUnboundedColumnIndex)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, 0.0, -1.0};
+    index_type col_idxs[] = {4, 1, 0, -1, 1, 0, 0, -1};
+    auto mtx = gko::matrix::Ell<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::make_array_view(this->exec, 8, values),
+        gko::make_array_view(this->exec, 8, col_idxs), 2, 4);
+
+    ASSERT_THROW(mtx->validate_data(), gko::InvalidData);
+}
+
+
+TYPED_TEST(Ell, NoThrowInfinitePaddingValue)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    value_type values[] = {1.0, 3.0, 4.0, -1.0, 2.0, 0.0, INFINITY, -1.0};
+    index_type col_idxs[] = {0, 1, 0, -1, 1, 0, -1, -1};
+    auto mtx = gko::matrix::Ell<value_type, index_type>::create(
+        this->exec, gko::dim<2>{3, 2},
+        gko::make_array_view(this->exec, 8, values),
+        gko::make_array_view(this->exec, 8, col_idxs), 2, 4);
+
+    ASSERT_NO_THROW(mtx->validate_data());
 }

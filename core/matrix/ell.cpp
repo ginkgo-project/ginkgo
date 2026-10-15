@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,10 +14,12 @@
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 #include "core/base/allocator.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -54,13 +56,85 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 }  // namespace ell
 
 
+template <typename IndexType>
+validation::ValidationResult ell_has_unique_valid_idxs(
+    const array<IndexType>& col_idxs, const dim<2>& size,
+    const size_type num_stored_elements_per_row, const size_type stride)
+{
+    const auto host_col_idxs = col_idxs.copy_to_host();
+    const auto num_rows = size[0];
+    for (size_type row = 0; row < num_rows; ++row) {
+        std::unordered_set<IndexType> unique_idxs;
+        for (size_type j = 0; j < num_stored_elements_per_row; ++j) {
+            const auto col = host_col_idxs[row + stride * j];
+            if (col >= static_cast<IndexType>(size[1])) {
+                return {false, "column index " + std::to_string(col) + " at " +
+                                   std::to_string(j) + " in row " +
+                                   std::to_string(row) + " with stride " +
+                                   std::to_string(stride) +
+                                   " exceeds the number of columns"};
+            }
+            if (col != invalid_index<IndexType>()) {
+                if (!unique_idxs.insert(col).second) {
+                    return {false, "duplicate column index " +
+                                       std::to_string(col) + " at " +
+                                       std::to_string(j) + " in row " +
+                                       std::to_string(row) + " with stride " +
+                                       std::to_string(stride)};
+                }
+            }
+        }
+    }
+    return {true, ""};
+}
+
+
+template <typename ValueType, typename IndexType>
+validation::ValidationResult ell_matrix_values_are_finite(
+    const array<ValueType>& values, const array<IndexType>& col_idxs,
+    const dim<2>& size, const size_type num_stored_elements_per_row,
+    const size_type stride)
+{
+    const auto host_values = values.copy_to_host();
+    const auto host_col_idxs = col_idxs.copy_to_host();
+
+    for (size_type row = 0; row < size[0]; ++row) {
+        for (size_type slot = 0; slot < num_stored_elements_per_row; ++slot) {
+            const auto storage_idx = row + stride * slot;
+            const auto col = host_col_idxs[storage_idx];
+            const auto valid_col = col != invalid_index<IndexType>();
+            if (valid_col && !is_finite(host_values[storage_idx])) {
+                return {false, "index " + std::to_string(slot) + " in row " +
+                                   std::to_string(row) + " with stride " +
+                                   std::to_string(stride)};
+            }
+        }
+    }
+    return {true, ""};
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(
+        ell_has_unique_valid_idxs(col_idxs_, this->get_size(),
+                                  num_stored_elements_per_row_, stride_),
+        "col_idxs must contain unique indices");
+    GKO_VALIDATE(
+        ell_matrix_values_are_finite(values_, col_idxs_, this->get_size(),
+                                     num_stored_elements_per_row_, stride_),
+        "matrix must contain only finite values");
+}
+
+
 template <typename ValueType, typename IndexType>
 Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(
     const Ell& other)
 {
     if (&other != this) {
         const auto old_size = this->get_size();
-        EnableLinOp<Ell>::operator=(other);
+        LinOp::operator=(other);
         // NOTE: keep this consistent with resize(...)
         if (old_size != other.get_size() ||
             this->get_num_stored_elements_per_row() !=
@@ -90,7 +164,8 @@ Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(
                                 exec_cols_array->get_data()),
                 this->get_num_stored_elements_per_row(),
                 this->get_stride()};
-        exec->run(ell::make_copy(&other, &exec_this_view));
+        exec->run(ell::make_copy(other.get_const_device_view(),
+                                 exec_this_view.get_device_view()));
     }
     return *this;
 }
@@ -100,7 +175,7 @@ template <typename ValueType, typename IndexType>
 Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(Ell&& other)
 {
     if (&other != this) {
-        EnableLinOp<Ell>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         values_ = std::move(other.values_);
         col_idxs_ = std::move(other.col_idxs_);
         num_stored_elements_per_row_ =
@@ -130,7 +205,9 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(ell::make_spmv(this, dense_b, dense_x));
+            this->get_executor()->run(ell::make_spmv(
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -146,7 +223,10 @@ void Ell<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
             auto dense_beta = make_temporary_conversion<
                 typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
             this->get_executor()->run(ell::make_advanced_spmv(
-                dense_alpha.get(), this, dense_b, dense_beta.get(), dense_x));
+                dense_alpha->get_const_device_view(),
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_beta->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -223,7 +303,8 @@ void Ell<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(ell::make_fill_in_dense(this, tmp_result.get()));
+    exec->run(ell::make_fill_in_dense(this->get_const_device_view(),
+                                      tmp_result->get_device_view()));
 }
 
 
@@ -243,8 +324,8 @@ void Ell<ValueType, IndexType>::convert_to(
     {
         auto tmp = make_temporary_clone(exec, result);
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
-        exec->run(
-            ell::make_count_nonzeros_per_row(this, tmp->row_ptrs_.get_data()));
+        exec->run(ell::make_count_nonzeros_per_row(
+            this->get_const_device_view(), tmp->row_ptrs_.get_data()));
         exec->run(ell::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
                                                    num_rows + 1));
         const auto nnz =
@@ -252,7 +333,8 @@ void Ell<ValueType, IndexType>::convert_to(
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
-        exec->run(ell::make_convert_to_csr(this, tmp.get()));
+        exec->run(ell::make_convert_to_csr(this->get_const_device_view(),
+                                           tmp->get_device_view()));
     }
     result->make_srow();
 }
@@ -291,8 +373,8 @@ void Ell<ValueType, IndexType>::read(const device_mat_data& data)
     size_type max_nnz{};
     exec->run(ell::make_compute_max_row_nnz(row_ptrs, max_nnz));
     this->resize(data.get_size(), max_nnz);
-    exec->run(ell::make_fill_in_matrix_data(*local_data,
-                                            row_ptrs.get_const_data(), this));
+    exec->run(ell::make_fill_in_matrix_data(
+        *local_data, row_ptrs.get_const_data(), this->get_device_view()));
 }
 
 
@@ -340,7 +422,8 @@ Ell<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(ell::make_fill_array(diag->get_values(), diag->get_size()[0],
                                    zero<ValueType>()));
-    exec->run(ell::make_extract_diagonal(this, diag.get()));
+    exec->run(
+        ell::make_extract_diagonal(this->get_const_device_view(), diag.get()));
     return diag;
 }
 
@@ -371,6 +454,26 @@ Ell<ValueType, IndexType>::compute_absolute() const
                                                 abs_ell->get_values()));
 
     return abs_ell;
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Ell<ValueType, IndexType>::get_device_view() -> device_view
+{
+    return device_view{
+        this->get_size(), this->get_num_stored_elements_per_row(),
+        this->get_stride(), this->get_values(), this->get_col_idxs()};
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Ell<ValueType, IndexType>::get_const_device_view() const
+    -> const_device_view
+{
+    return const_device_view{this->get_size(),
+                             this->get_num_stored_elements_per_row(),
+                             this->get_stride(), this->get_const_values(),
+                             this->get_const_col_idxs()};
 }
 
 
@@ -418,7 +521,7 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                const dim<2>& size,
                                size_type num_stored_elements_per_row,
                                size_type stride)
-    : EnableLinOp<Ell>(exec, size),
+    : LinOp(exec, size),
       num_stored_elements_per_row_(num_stored_elements_per_row),
       stride_(stride == 0 ? size[0] : stride),
       values_(exec, stride_ * num_stored_elements_per_row),
@@ -432,7 +535,7 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                array<index_type> col_idxs,
                                size_type num_stored_elements_per_row,
                                size_type stride)
-    : EnableLinOp<Ell>(exec, size),
+    : LinOp(exec, size),
       num_stored_elements_per_row_{num_stored_elements_per_row},
       stride_{stride},
       values_{exec, std::move(values)},

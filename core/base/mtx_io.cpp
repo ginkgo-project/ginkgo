@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -48,7 +48,6 @@ constexpr auto max_streamsize = std::numeric_limits<std::streamsize>::max();
  * The mtx_io class provides the functionality of reading and writing matrix
  * market format files.
  *
- * @ingroup mtx_io
  */
 template <typename ValueType, typename IndexType>
 class mtx_io {
@@ -893,11 +892,12 @@ matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is)
     std::memcpy(&num_rows, &header[8], 8);
     std::memcpy(&num_cols, &header[16], 8);
     std::memcpy(&num_entries, &header[24], 8);
-#define DECLARE_OVERLOAD(_vtype, _itype)                                  \
-    else if (magic == binary_format_magic<_vtype, _itype>())              \
-    {                                                                     \
-        return read_binary_convert<_vtype, _itype, ValueType, IndexType>( \
-            is, num_rows, num_cols, num_entries);                         \
+#define DECLARE_OVERLOAD(FileValueType, FileIndexType)                      \
+    else if (magic == binary_format_magic<FileValueType, FileIndexType>())  \
+    {                                                                       \
+        return read_binary_convert<FileValueType, FileIndexType, ValueType, \
+                                   IndexType>(is, num_rows, num_cols,       \
+                                              num_entries);                 \
     }
     if (false) {
     }

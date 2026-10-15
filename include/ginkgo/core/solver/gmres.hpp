@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,6 +59,22 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho);
  * GMRES or the generalized minimal residual method is an iterative type Krylov
  * subspace method which is suitable for nonsymmetric linear systems.
  *
+ * The Arnoldi process builds an orthonormal basis \f$ V_m \f$ of the Krylov
+ * subspace
+ * \f[
+ *   \mathcal{K}_m(A, r_0) = \mathrm{span}\{r_0, A r_0, A^2 r_0, \ldots,
+ *                                          A^{m-1} r_0\},
+ * \f]
+ * and produces an upper Hessenberg matrix \f$ \bar H_m \f$ satisfying the
+ * Arnoldi relation \f$ A V_m = V_{m+1} \bar H_m \f$. GMRES then chooses the
+ * approximate solution
+ * \f$ x_m = x_0 + V_m y_m \f$ with \f$ y_m \f$ minimizing the residual norm
+ * over the subspace,
+ * \f[
+ *   y_m = \arg\min_{y \in \mathbb{R}^m} \| \beta e_1 - \bar H_m y \|_2,
+ *   \qquad \beta = \| r_0 \|_2.
+ * \f]
+ *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of GMRES are
  * merged into 2 separate steps. Modified Gram-Schmidt is used.
@@ -70,11 +86,9 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho);
  */
 template <typename ValueType = default_precision>
 class Gmres
-    : public EnableLinOp<Gmres<ValueType>>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Gmres>;
-    friend class EnablePolymorphicObject<Gmres, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -106,14 +120,69 @@ public:
      */
     void set_krylov_dim(size_type other) { parameters_.krylov_dim = other; }
 
+    /**
+     * Returns the restart ratio.
+     *
+     * @return the restart ratio
+     */
+    remove_complex<ValueType> get_restart_ratio() const
+    {
+        return parameters_.restart_ratio;
+    }
+
+    /**
+     * Sets the restart ratio.
+     *
+     * @param other  the new restart ratio
+     */
+    void set_restart_ratio(remove_complex<ValueType> other)
+    {
+        parameters_.restart_ratio = other;
+    }
+
 
     class Factory;
 
     struct parameters_type
         : enable_preconditioned_iterative_solver_factory_parameters<
               parameters_type, Factory> {
-        /** Krylov subspace dimension/restart value. */
+        /**
+         * Krylov subspace dimension/restart value.
+         *
+         * With restart_ratio positive this caps the basis size rather than
+         * setting the restart length, and a cycle ends at whichever criterion
+         * is met first. It remains the memory bound.
+         */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
+
+        /**
+         * Restart ratio.
+         *
+         * A cycle ends once the residual has fallen to this fraction of its
+         * value at the start of the cycle, that is, once
+         * \f$ \|r_i - A d_i\| \leq \text{restart\_ratio} \cdot \|r_i\| \f$
+         * holds for every right-hand side still running, with \f$r_i\f$ the
+         * residual at the start of the cycle and \f$d_i\f$ the correction
+         * built so far. This bounds the normwise backward error of the
+         * correction, which is what makes the restarted method analyzable as
+         * iterative refinement. A cycle cut short by krylov_dim carries no
+         * such bound.
+         *
+         * It is a per-cycle reduction, not a convergence tolerance, so useful
+         * values are far larger than a stopping criterion's. It must lie in
+         * [0, 1) and must exceed the reduction a krylov_dim-step cycle
+         * achieves, or it never fires: use 1e-3 to 1e-1 when a cycle gains
+         * orders of magnitude, and around 0.9 when it gains only a few
+         * percent.
+         *
+         * Zero, the default, disables the criterion.
+         *
+         * For the criterion and its analysis, see sec. 4.2 of
+         * <a href="https://doi.org/10.1093/imanum/draf049">A Modular Framework
+         * for the Backward Error Analysis of GMRES</a>.
+         */
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(restart_ratio,
+                                                               0.0);
 
         /** Flexible GMRES */
         bool GKO_FACTORY_PARAMETER_SCALAR(flexible, false);
@@ -153,13 +222,13 @@ protected:
                     LinOp* x) const override;
 
     explicit Gmres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Gmres>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     explicit Gmres(const Factory* factory,
                    std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Gmres>(factory->get_executor(),
-                             gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
@@ -167,7 +236,19 @@ protected:
         if (!parameters_.krylov_dim) {
             parameters_.krylov_dim = gmres_default_krylov_dim;
         }
+        GKO_THROW_IF_INVALID(
+            parameters_.restart_ratio >= zero<remove_complex<ValueType>>() &&
+                parameters_.restart_ratio < one<remove_complex<ValueType>>(),
+            "restart_ratio must lie in [0, 1); zero disables the criterion");
     }
+};
+
+
+template <typename ValueType>
+struct nullspace_traits<Gmres<ValueType>> {
+    static constexpr bool is_supported = true;
+    static constexpr bool requires_hermitian = false;
+    static constexpr bool two_sided_projection = false;
 };
 
 
@@ -219,6 +300,8 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int next_krylov_norm_tmp = 14;
     // preconditioned krylov basis multivector
     constexpr static int preconditioned_krylov_bases = 15;
+    // right-hand side projected onto the range of the system matrix
+    constexpr static int proj_rhs = 16;
 
     // stopping status array
     constexpr static int stop = 0;

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -50,7 +50,8 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* b,
     mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             this->get_executor()->run(
-                sparsity_csr::make_spmv(this, dense_b, dense_x));
+                sparsity_csr::make_spmv(this, dense_b->get_const_device_view(),
+                                        dense_x->get_device_view()));
         },
         b, x);
 }
@@ -68,7 +69,10 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* alpha,
             auto dense_beta = make_temporary_conversion<
                 typename std::decay_t<decltype(*dense_x)>::value_type>(beta);
             this->get_executor()->run(sparsity_csr::make_advanced_spmv(
-                dense_alpha.get(), this, dense_b, dense_beta.get(), dense_x));
+                dense_alpha->get_const_device_view(), this,
+                dense_b->get_const_device_view(),
+                dense_beta->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -79,7 +83,7 @@ SparsityCsr<ValueType, IndexType>& SparsityCsr<ValueType, IndexType>::operator=(
     const SparsityCsr<ValueType, IndexType>& other)
 {
     if (&other != this) {
-        EnableLinOp<SparsityCsr>::operator=(other);
+        LinOp::operator=(other);
         value_ = other.value_;
         col_idxs_ = other.col_idxs_;
         row_ptrs_ = other.row_ptrs_;
@@ -93,7 +97,7 @@ SparsityCsr<ValueType, IndexType>& SparsityCsr<ValueType, IndexType>::operator=(
     SparsityCsr<ValueType, IndexType>&& other)
 {
     if (&other != this) {
-        EnableLinOp<SparsityCsr>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         value_ = other.value_;
         col_idxs_ = std::move(other.col_idxs_);
         row_ptrs_ = std::move(other.row_ptrs_);
@@ -128,7 +132,7 @@ template <typename ValueType, typename IndexType>
 SparsityCsr<ValueType, IndexType>::SparsityCsr(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     size_type num_nonzeros)
-    : EnableLinOp<SparsityCsr>(exec, size),
+    : LinOp(exec, size),
       col_idxs_(exec, num_nonzeros),
       row_ptrs_(exec, size[0] + 1),
       value_(exec, {one<ValueType>()})
@@ -141,7 +145,7 @@ template <typename ValueType, typename IndexType>
 SparsityCsr<ValueType, IndexType>::SparsityCsr(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     array<index_type> col_idxs, array<index_type> row_ptrs, value_type value)
-    : EnableLinOp<SparsityCsr>(exec, size),
+    : LinOp(exec, size),
       col_idxs_{exec, std::move(col_idxs)},
       row_ptrs_{exec, std::move(row_ptrs)},
       value_{exec, {value}}
@@ -153,7 +157,7 @@ SparsityCsr<ValueType, IndexType>::SparsityCsr(
 template <typename ValueType, typename IndexType>
 SparsityCsr<ValueType, IndexType>::SparsityCsr(
     std::shared_ptr<const Executor> exec, std::shared_ptr<const LinOp> matrix)
-    : EnableLinOp<SparsityCsr>(exec, matrix->get_size())
+    : LinOp(exec, matrix->get_size())
 {
     auto tmp_ = copy_and_convert_to<SparsityCsr>(exec, matrix);
     this->copy_from(tmp_);
@@ -222,7 +226,8 @@ void SparsityCsr<ValueType, IndexType>::convert_to(
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(sparsity_csr::make_fill_in_dense(this, tmp_result.get()));
+    exec->run(
+        sparsity_csr::make_fill_in_dense(this, tmp_result->get_device_view()));
 }
 
 
@@ -339,7 +344,7 @@ bool SparsityCsr<ValueType, IndexType>::is_sorted_by_column_index() const
 {
     auto exec = this->get_executor();
     bool is_sorted;
-    exec->run(sparsity_csr::make_is_sorted_by_column_index(this, &is_sorted));
+    exec->run(sparsity_csr::make_is_sorted_by_column_index(this, is_sorted));
     return is_sorted;
 }
 

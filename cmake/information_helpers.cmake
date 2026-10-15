@@ -16,14 +16,6 @@ function(filter_generator_expressions INPUT OUTPUT)
     string(REGEX REPLACE "\$<COMMA>" "," TMP "${TMP}")
     # Remove the left : or > 
     string(REGEX REPLACE ":|>" "" TMP "${TMP}")
-    # Ignore hwloc include if it is the internal one
-    string(
-        REGEX REPLACE
-        "${PROJECT_BINARY_DIR}.*hwloc/src/include.*"
-        ""
-        TMP
-        "${TMP}"
-    )
     set(${OUTPUT} "${TMP}" PARENT_SCOPE)
 endfunction()
 

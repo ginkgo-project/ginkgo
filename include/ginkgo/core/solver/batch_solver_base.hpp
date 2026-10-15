@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -201,26 +201,23 @@ struct enable_preconditioned_iterative_solver_factory_parameters
  */
 template <typename ConcreteSolver, typename ValueType,
           typename PolymorphicBase = BatchLinOp>
-class EnableBatchSolver
-    : public BatchSolver,
-      public EnableBatchLinOp<ConcreteSolver, PolymorphicBase> {
+class EnableBatchSolver : public BatchSolver, public BatchLinOp {
 public:
     using real_type = remove_complex<ValueType>;
 
-    const ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
-                                ptr_param<MultiVector<ValueType>> x) const
+    void apply(ptr_param<const MultiVector<ValueType>> b,
+               ptr_param<MultiVector<ValueType>> x) const
     {
         this->validate_application_parameters(b.get(), x.get());
         auto exec = this->get_executor();
         this->apply_impl(make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, x).get());
-        return self();
     }
 
-    const ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> alpha,
-                                ptr_param<const MultiVector<ValueType>> b,
-                                ptr_param<const MultiVector<ValueType>> beta,
-                                ptr_param<MultiVector<ValueType>> x) const
+    void apply(ptr_param<const MultiVector<ValueType>> alpha,
+               ptr_param<const MultiVector<ValueType>> b,
+               ptr_param<const MultiVector<ValueType>> beta,
+               ptr_param<MultiVector<ValueType>> x) const
     {
         this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
                                               x.get());
@@ -229,39 +226,13 @@ public:
                          make_temporary_clone(exec, b).get(),
                          make_temporary_clone(exec, beta).get(),
                          make_temporary_clone(exec, x).get());
-        return self();
-    }
-
-    ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> b,
-                          ptr_param<MultiVector<ValueType>> x)
-    {
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        return self();
-    }
-
-    ConcreteSolver* apply(ptr_param<const MultiVector<ValueType>> alpha,
-                          ptr_param<const MultiVector<ValueType>> b,
-                          ptr_param<const MultiVector<ValueType>> beta,
-                          ptr_param<MultiVector<ValueType>> x)
-    {
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        return self();
     }
 
 protected:
     GKO_ENABLE_SELF(ConcreteSolver);
 
     explicit EnableBatchSolver(std::shared_ptr<const Executor> exec)
-        : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(std::move(exec))
+        : BatchLinOp(std::move(exec))
     {}
 
     template <typename FactoryParameters>
@@ -270,8 +241,7 @@ protected:
                                const FactoryParameters& params)
         : BatchSolver(system_matrix, nullptr, params.tolerance,
                       params.max_iterations, params.tolerance_type),
-          EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
-              exec, gko::transpose(system_matrix->get_size()))
+          BatchLinOp(exec, gko::transpose(system_matrix->get_size()))
     {
         GKO_ASSERT_BATCH_HAS_SQUARE_DIMENSIONS(system_matrix_);
 
@@ -354,15 +324,13 @@ protected:
     }
 
     EnableBatchSolver(const EnableBatchSolver& other)
-        : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
-              other.self()->get_executor(), other.self()->get_size())
+        : BatchLinOp(other.self()->get_executor(), other.self()->get_size())
     {
         *this = other;
     }
 
     EnableBatchSolver(EnableBatchSolver&& other)
-        : EnableBatchLinOp<ConcreteSolver, PolymorphicBase>(
-              other.self()->get_executor(), other.self()->get_size())
+        : BatchLinOp(other.self()->get_executor(), other.self()->get_size())
     {
         *this = std::move(other);
     }

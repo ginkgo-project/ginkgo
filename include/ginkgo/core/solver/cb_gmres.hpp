@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -86,6 +86,25 @@ enum class storage_precision {
  * are performed in the same arithmetic precision ValueType. By default, the
  * Krylov basis are stored in one precision lower than ValueType.
  *
+ * Mathematically CB-GMRES is the same algorithm as standard
+ * @ref gko::solver::Gmres "GMRES" — the Arnoldi process produces an
+ * orthonormal basis \f$ V_m \f$ and an upper Hessenberg
+ * \f$ \bar H_m \f$ with
+ * \f$ A V_m = V_{m+1} \bar H_m \f$, and the iterate is chosen as
+ * \f[
+ *   x_m = x_0 + V_m y_m,
+ *   \qquad
+ *   y_m = \arg\min_{y} \| \beta e_1 - \bar H_m y \|_2.
+ * \f]
+ * The "compressed basis" variant stores the columns of \f$ V_m \f$ in a
+ * precision lower than ValueType: each basis vector is cast down to the
+ * storage type when written and cast back up when read. The Hessenberg
+ * matrix, the Givens rotations, and the working residual all stay in
+ * full ValueType precision, so the final approximation has the same
+ * accuracy as standard GMRES while the basis storage and the bandwidth
+ * needed to apply it are reduced. See the `storage_precision` enum for
+ * the supported compression options.
+ *
  * @tparam ValueType  the arithmetic precision and the precision of matrix
  *                    elements
  *
@@ -93,11 +112,9 @@ enum class storage_precision {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class CbGmres : public EnableLinOp<CbGmres<ValueType>>,
+class CbGmres : public LinOp,
                 public EnablePreconditionedIterativeSolver<ValueType,
                                                            CbGmres<ValueType>> {
-    friend class EnableLinOp<CbGmres>;
-    friend class EnablePolymorphicObject<CbGmres, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -175,13 +192,12 @@ protected:
                     LinOp* x) const override;
 
     explicit CbGmres(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<CbGmres>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     explicit CbGmres(const Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<CbGmres>(factory->get_executor(),
-                               transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(), transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,10 +18,16 @@ namespace gko {
 hip_stream::hip_stream() : stream_{}, device_id_{} {}
 
 
-hip_stream::hip_stream(int device_id) : stream_{}, device_id_(device_id)
+hip_stream::hip_stream(int device_id, bool non_blocking)
+    : stream_{}, device_id_(device_id)
 {
     detail::hip_scoped_device_id_guard g(device_id_);
-    GKO_ASSERT_NO_HIP_ERRORS(hipStreamCreate(&stream_));
+    if (non_blocking) {
+        GKO_ASSERT_NO_HIP_ERRORS(
+            hipStreamCreateWithFlags(&stream_, hipStreamNonBlocking));
+    } else {
+        GKO_ASSERT_NO_HIP_ERRORS(hipStreamCreate(&stream_));
+    }
 }
 
 

@@ -1,15 +1,17 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/matrix/ell_kernels.hpp"
 
 #include <array>
+#include <optional>
 
 #include <sycl/sycl.hpp>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/std_extensions.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -39,7 +41,6 @@ namespace dpcpp {
 /**
  * @brief The ELL matrix format namespace.
  *
- * @ingroup ell
  */
 namespace ell {
 
@@ -91,8 +92,7 @@ void spmv_kernel(
     const size_type stride, const size_type num_stored_elements_per_row,
     acc::range<b_accessor> b, OutputValueType* __restrict__ c,
     const size_type c_stride, Closure op, sycl::nd_item<3> item_ct1,
-    uninitialized_array<typename a_accessor::arithmetic_type,
-                        default_block_size / num_thread_per_worker>& storage)
+    sycl::local_accessor<typename a_accessor::arithmetic_type, 1> storage)
 {
     using arithmetic_type = typename a_accessor::arithmetic_type;
     const auto tidx = thread::get_thread_id_flat(item_ct1);
@@ -159,14 +159,12 @@ void spmv_kernel(
 
 template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(
-    const size_type num_rows, const int num_worker_per_row,
-    acc::range<a_accessor> val, const IndexType* __restrict__ col,
-    const size_type stride, const size_type num_stored_elements_per_row,
-    acc::range<b_accessor> b, OutputValueType* __restrict__ c,
-    const size_type c_stride, sycl::nd_item<3> item_ct1,
-    uninitialized_array<typename a_accessor::arithmetic_type,
-                        default_block_size / num_thread_per_worker>& storage)
+void spmv(const size_type num_rows, const int num_worker_per_row,
+          acc::range<a_accessor> val, const IndexType* __restrict__ col,
+          const size_type stride, const size_type num_stored_elements_per_row,
+          acc::range<b_accessor> b, OutputValueType* __restrict__ c,
+          const size_type c_stride, sycl::nd_item<3> item_ct1,
+          sycl::local_accessor<typename a_accessor::arithmetic_type> storage)
 {
     spmv_kernel<num_thread_per_worker, atomic>(
         num_rows, num_worker_per_row, val, col, stride,
@@ -187,18 +185,15 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           OutputValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<typename a_accessor::arithmetic_type,
-                                default_block_size / num_thread_per_worker>,
-            0>
-            storage_acc_ct1(cgh);
+        sycl::local_accessor<typename a_accessor::arithmetic_type, 1> storage(
+            default_block_size / num_thread_per_worker, cgh);
 
         cgh.parallel_for(sycl_nd_range(grid, block),
                          [=](sycl::nd_item<3> item_ct1) {
                              spmv<num_thread_per_worker, atomic>(
                                  num_rows, num_worker_per_row, val, col, stride,
                                  num_stored_elements_per_row, b, c, c_stride,
-                                 item_ct1, *storage_acc_ct1.get_pointer());
+                                 item_ct1, storage);
                          });
     });
 }
@@ -206,15 +201,14 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
 
 template <int num_thread_per_worker, bool atomic = false, typename b_accessor,
           typename a_accessor, typename OutputValueType, typename IndexType>
-void spmv(
-    const size_type num_rows, const int num_worker_per_row,
-    acc::range<a_accessor> alpha, acc::range<a_accessor> val,
-    const IndexType* __restrict__ col, const size_type stride,
-    const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
-    const OutputValueType* __restrict__ beta, OutputValueType* __restrict__ c,
-    const size_type c_stride, sycl::nd_item<3> item_ct1,
-    uninitialized_array<typename a_accessor::arithmetic_type,
-                        default_block_size / num_thread_per_worker>& storage)
+void spmv(const size_type num_rows, const int num_worker_per_row,
+          acc::range<a_accessor> alpha, acc::range<a_accessor> val,
+          const IndexType* __restrict__ col, const size_type stride,
+          const size_type num_stored_elements_per_row, acc::range<b_accessor> b,
+          const OutputValueType* __restrict__ beta,
+          OutputValueType* __restrict__ c, const size_type c_stride,
+          sycl::nd_item<3> item_ct1,
+          sycl::local_accessor<typename a_accessor::arithmetic_type, 1> storage)
 {
     using arithmetic_type = typename a_accessor::arithmetic_type;
     const auto alpha_val = alpha(0);
@@ -267,19 +261,16 @@ void spmv(dim3 grid, dim3 block, size_type dynamic_shared_memory,
           OutputValueType* c, const size_type c_stride)
 {
     queue->submit([&](sycl::handler& cgh) {
-        sycl::local_accessor<
-            uninitialized_array<typename a_accessor::arithmetic_type,
-                                default_block_size / num_thread_per_worker>,
-            0>
-            storage_acc_ct1(cgh);
+        sycl::local_accessor<typename a_accessor::arithmetic_type, 1> storage(
+            default_block_size / num_thread_per_worker, cgh);
 
-        cgh.parallel_for(
-            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
-                spmv<num_thread_per_worker, atomic>(
-                    num_rows, num_worker_per_row, alpha, val, col, stride,
-                    num_stored_elements_per_row, b, beta, c, c_stride, item_ct1,
-                    *storage_acc_ct1.get_pointer());
-            });
+        cgh.parallel_for(sycl_nd_range(grid, block),
+                         [=](sycl::nd_item<3> item_ct1) {
+                             spmv<num_thread_per_worker, atomic>(
+                                 num_rows, num_worker_per_row, alpha, val, col,
+                                 stride, num_stored_elements_per_row, b, beta,
+                                 c, c_stride, item_ct1, storage);
+                         });
     });
 }
 
@@ -294,14 +285,18 @@ namespace {
 template <int info, typename DeviceConfig, typename InputValueType,
           typename MatrixValueType, typename OutputValueType,
           typename IndexType>
-void abstract_spmv(syn::value_list<int, info>,
-                   std::shared_ptr<const DpcppExecutor> exec,
-                   int num_worker_per_row,
-                   const matrix::Ell<MatrixValueType, IndexType>* a,
-                   const matrix::Dense<InputValueType>* b,
-                   matrix::Dense<OutputValueType>* c,
-                   const matrix::Dense<MatrixValueType>* alpha = nullptr,
-                   const matrix::Dense<OutputValueType>* beta = nullptr)
+void abstract_spmv(
+    syn::value_list<int, info>, std::shared_ptr<const DpcppExecutor> exec,
+    int num_worker_per_row,
+    matrix::view::ell<const MatrixValueType, const IndexType> a,
+    matrix::view::dense<const InputValueType> b,
+    matrix::view::dense<OutputValueType> c,
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const MatrixValueType>>>
+        alpha = {},
+    xstd::type_identity_t<
+        std::optional<matrix::view::dense<const OutputValueType>>>
+        beta = {})
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
@@ -310,10 +305,9 @@ void abstract_spmv(syn::value_list<int, info>,
     using b_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
-    const auto nrows = a->get_size()[0];
-    const auto stride = a->get_stride();
-    const auto num_stored_elements_per_row =
-        a->get_num_stored_elements_per_row();
+    const auto nrows = a.size[0];
+    const auto stride = a.stride;
+    const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
 
     constexpr int num_thread_per_worker =
         (info == 0) ? max_thread_per_worker : info;
@@ -321,7 +315,7 @@ void abstract_spmv(syn::value_list<int, info>,
     const dim3 block_size(default_block_size / num_thread_per_worker,
                           num_thread_per_worker, 1);
     const dim3 grid_size(ceildiv(nrows * num_worker_per_row, block_size.x),
-                         b->get_size()[1], 1);
+                         b.size[1], 1);
 
     // not support 16 bit atomic
     // We do atomic on shared memory when num_thread_per_worker is not 1.
@@ -337,32 +331,32 @@ void abstract_spmv(syn::value_list<int, info>,
         const auto a_vals = gko::acc::range<a_accessor>(
             std::array<acc::size_type, 1>{{static_cast<acc::size_type>(
                 num_stored_elements_per_row * stride)}},
-            a->get_const_values());
+            a.values);
         const auto b_vals = gko::acc::range<b_accessor>(
             std::array<acc::size_type, 2>{
-                {static_cast<acc::size_type>(b->get_size()[0]),
-                 static_cast<acc::size_type>(b->get_size()[1])}},
-            b->get_const_values(),
+                {static_cast<acc::size_type>(b.size[0]),
+                 static_cast<acc::size_type>(b.size[1])}},
+            b.values,
             std::array<acc::size_type, 1>{
-                {static_cast<acc::size_type>(b->get_stride())}});
+                {static_cast<acc::size_type>(b.stride)}});
 
-        if (alpha == nullptr && beta == nullptr) {
+        if (!alpha && !beta) {
             kernel::spmv<num_thread_per_worker, atomic>(
                 grid_size, block_size, 0, exec->get_queue(), nrows,
-                num_worker_per_row, acc::as_device_range(a_vals),
-                a->get_const_col_idxs(), stride, num_stored_elements_per_row,
-                acc::as_device_range(b_vals), as_device_type(c->get_values()),
-                c->get_stride());
-        } else if (alpha != nullptr && beta != nullptr) {
+                num_worker_per_row, acc::as_device_range(a_vals), a.col_idxs,
+                stride, num_stored_elements_per_row,
+                acc::as_device_range(b_vals), as_device_type(c.values),
+                c.stride);
+        } else if (alpha && beta) {
             const auto alpha_val = gko::acc::range<a_accessor>(
-                std::array<acc::size_type, 1>{1}, alpha->get_const_values());
+                std::array<acc::size_type, 1>{1}, alpha->values);
             kernel::spmv<num_thread_per_worker, atomic>(
                 grid_size, block_size, 0, exec->get_queue(), nrows,
                 num_worker_per_row, acc::as_device_range(alpha_val),
-                acc::as_device_range(a_vals), a->get_const_col_idxs(), stride,
+                acc::as_device_range(a_vals), a.col_idxs, stride,
                 num_stored_elements_per_row, acc::as_device_range(b_vals),
-                as_device_type(beta->get_const_values()),
-                as_device_type(c->get_values()), c->get_stride());
+                as_device_type(beta->values), as_device_type(c.values),
+                c.stride);
         } else {
             GKO_KERNEL_NOT_FOUND;
         }
@@ -375,14 +369,14 @@ GKO_ENABLE_IMPLEMENTATION_TWO_SELECTION(select_abstract_spmv, abstract_spmv);
 template <typename ValueType, typename IndexType>
 std::array<int, 3> compute_thread_worker_and_atomicity(
     std::shared_ptr<const DpcppExecutor> exec,
-    const matrix::Ell<ValueType, IndexType>* a)
+    matrix::view::ell<ValueType, IndexType> a)
 {
     int num_thread_per_worker = 16;
     int atomic = 0;
     int num_worker_per_row = 1;
 
-    const auto nrows = a->get_size()[0];
-    const auto ell_ncols = a->get_num_stored_elements_per_row();
+    const auto nrows = a.size[0];
+    const auto ell_ncols = a.num_stored_elements_per_row;
     // TODO: num_threads_per_core should be tuned for Dpcpp
     const auto nwarps = 16 * num_threads_per_core;
 
@@ -418,9 +412,9 @@ std::array<int, 3> compute_thread_worker_and_atomicity(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const DpcppExecutor> exec,
-          const matrix::Ell<MatrixValueType, IndexType>* a,
-          const matrix::Dense<InputValueType>* b,
-          matrix::Dense<OutputValueType>* c)
+          matrix::view::ell<const MatrixValueType, const IndexType> a,
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);
@@ -452,11 +446,11 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const DpcppExecutor> exec,
-                   const matrix::Dense<MatrixValueType>* alpha,
-                   const matrix::Ell<MatrixValueType, IndexType>* a,
-                   const matrix::Dense<InputValueType>* b,
-                   const matrix::Dense<OutputValueType>* beta,
-                   matrix::Dense<OutputValueType>* c)
+                   matrix::view::dense<const MatrixValueType> alpha,
+                   matrix::view::ell<const MatrixValueType, const IndexType> a,
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
 {
     const auto data = compute_thread_worker_and_atomicity(exec, a);
     const int num_thread_per_worker = std::get<0>(data);

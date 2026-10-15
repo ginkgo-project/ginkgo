@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'master'
+      - 'develop'
+      - 'release/**'
+    tags:
+      - '**'
+  pull_request:
+    types: [opened,synchronize]
+    paths-ignore:
+      - 'doc/**'
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+concurrency:
+  # runs for labels that don't start the full test get their own group,
+  # so that they don't cancel running builds
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  arm:
+    if: &run >-
+      ${{ !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI') }}
+    uses: ./.github/workflows/arm.yml
+    with: &with
+      full: false
+
+  osx:
+    if: *run
+    uses: ./.github/workflows/osx.yml
+    with: *with
+
+  windows-msvc:
+    if: *run
+    uses: ./.github/workflows/windows-msvc.yml
+    with: *with
+
+  linux-gcc:
+    if: *run
+    uses: ./.github/workflows/linux-gcc.yml
+
+  linux-gcc-cuda:
+    if: *run
+    uses: ./.github/workflows/linux-gcc-cuda.yml
+
+  linux-gcc-hip:
+    if: *run
+    uses: ./.github/workflows/linux-gcc-hip.yml

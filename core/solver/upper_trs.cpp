@@ -1,7 +1,8 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <optional>
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>
@@ -52,7 +53,7 @@ UpperTrs<ValueType, IndexType>::parse(
 
 template <typename ValueType, typename IndexType>
 UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
-    : EnableLinOp<UpperTrs>(other.get_executor())
+    : LinOp(other.get_executor())
 {
     *this = other;
 }
@@ -60,7 +61,7 @@ UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
 
 template <typename ValueType, typename IndexType>
 UpperTrs<ValueType, IndexType>::UpperTrs(UpperTrs&& other)
-    : EnableLinOp<UpperTrs>(other.get_executor())
+    : LinOp(other.get_executor())
 {
     *this = std::move(other);
 }
@@ -71,7 +72,7 @@ UpperTrs<ValueType, IndexType>& UpperTrs<ValueType, IndexType>::operator=(
     const UpperTrs& other)
 {
     if (this != &other) {
-        EnableLinOp<UpperTrs>::operator=(other);
+        LinOp::operator=(other);
         EnableSolverBase<UpperTrs, CsrMatrix>::operator=(other);
         this->parameters_ = other.parameters_;
         this->generate();
@@ -85,7 +86,7 @@ UpperTrs<ValueType, IndexType>& UpperTrs<ValueType, IndexType>::operator=(
     UpperTrs&& other)
 {
     if (this != &other) {
-        EnableLinOp<UpperTrs>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         EnableSolverBase<UpperTrs, CsrMatrix>::operator=(std::move(other));
         this->parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (this->get_executor() == other.get_executor()) {
@@ -125,9 +126,9 @@ void UpperTrs<ValueType, IndexType>::generate()
 {
     if (this->get_system_matrix()) {
         this->get_executor()->run(upper_trs::make_generate(
-            this->get_system_matrix().get(), this->solve_struct_,
-            this->get_parameters().unit_diagonal, parameters_.algorithm,
-            parameters_.num_rhs));
+            this->get_system_matrix()->get_const_device_view(),
+            this->solve_struct_, this->get_parameters().unit_diagonal,
+            parameters_.algorithm, parameters_.num_rhs));
     }
 }
 
@@ -161,6 +162,7 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             // pointers.
             Vector* trans_b{};
             Vector* trans_x{};
+            using optional_view = std::optional<matrix::view::dense<ValueType>>;
             if (needs_transpose(exec)) {
                 trans_b = this->template create_workspace_op<Vector>(
                     ws::transposed_b, gko::transpose(dense_b->get_size()));
@@ -168,9 +170,14 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                     ws::transposed_x, gko::transpose(dense_x->get_size()));
             }
             exec->run(upper_trs::make_solve(
-                this->get_system_matrix().get(), this->solve_struct_.get(),
-                this->get_parameters().unit_diagonal, parameters_.algorithm,
-                trans_b, trans_x, dense_b, dense_x));
+                this->get_system_matrix()->get_const_device_view(),
+                this->solve_struct_.get(), this->get_parameters().unit_diagonal,
+                parameters_.algorithm,
+                trans_b ? optional_view{trans_b->get_device_view()}
+                        : optional_view{},
+                trans_x ? optional_view{trans_x->get_device_view()}
+                        : optional_view{},
+                dense_b->get_const_device_view(), dense_x->get_device_view()));
         },
         b, x);
 }
@@ -249,9 +256,10 @@ std::vector<int> workspace_traits<UpperTrs<ValueType, IndexType>>::vectors(
 }
 
 
-#define GKO_DECLARE_UPPER_TRS(_vtype, _itype) class UpperTrs<_vtype, _itype>
-#define GKO_DECLARE_UPPER_TRS_TRAITS(_vtype, _itype) \
-    struct workspace_traits<UpperTrs<_vtype, _itype>>
+#define GKO_DECLARE_UPPER_TRS(ValueType, IndexType) \
+    class UpperTrs<ValueType, IndexType>
+#define GKO_DECLARE_UPPER_TRS_TRAITS(ValueType, IndexType) \
+    struct workspace_traits<UpperTrs<ValueType, IndexType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_TRS);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_UPPER_TRS_TRAITS);
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -69,22 +69,22 @@ class Diagonal;
  * and preconditioners is that the most common operation performed on all of
  * them can be expressed as an application of a linear operator to a vector:
  *
- * +   the sparse matrix-vector product with a matrix $A$ is a linear
- *     operator application $y = Ax$;
+ * +   the sparse matrix-vector product with a matrix \f$A\f$ is a linear
+ *     operator application \f$y = Ax\f$;
  * +   the application of a preconditioner is a linear operator application
- *     $y = M^{-1}x$, where $M$ is an approximation of the original
- *     system matrix $A$ (thus a preconditioner represents an "approximate
- *     inverse" operator $M^{-1}$).
- * +   the system solve $Ax = b$ can be viewed as linear operator
+ *     \f$y = M^{-1}x\f$, where \f$M\f$ is an approximation of the original
+ *     system matrix \f$A\f$ (thus a preconditioner represents an "approximate
+ *     inverse" operator \f$M^{-1}\f$).
+ * +   the system solve \f$Ax = b\f$ can be viewed as linear operator
  *     application
- *     $x = A^{-1}b$ (it goes without saying that the implementation of
+ *     \f$x = A^{-1}b\f$ (it goes without saying that the implementation of
  *     linear system solves does not follow this conceptual idea), so a linear
  *     system solver can be viewed as a representation of the operator
- *     $A^{-1}$.
+ *     \f$A^{-1}\f$.
  *
  * Finally, direct manipulation of LinOp objects is rarely required in
  * simple scenarios. As an illustrative example, one could construct a
- * fixed-point iteration routine $x_{k+1} = Lx_k + b$ as follows:
+ * fixed-point iteration routine \f$x_{k+1} = Lx_k + b\f$ as follows:
  *
  * ```cpp
  * std::unique_ptr<matrix::Dense<>> calculate_fixed_point(
@@ -103,18 +103,18 @@ class Diagonal;
  * }
  * ```
  *
- * Here, if $L$ is a matrix, LinOp::apply() refers to the matrix vector
- * product, and `L->apply(a, b)` computes $b = L \cdot a$.
- * `x->add_scaled(one, b)` is the `axpy` vector update $x:=x+b$.
+ * Here, if \f$L\f$ is a matrix, LinOp::apply() refers to the matrix vector
+ * product, and `L->apply(a, b)` computes \f$b = L \cdot a\f$.
+ * `x->add_scaled(one, b)` is the `axpy` vector update \f$x:=x+b\f$.
  *
- * The interesting part of this example is the apply() routine at line 4 of the
+ * The interesting part of this example is the apply() routine at line 5 of the
  * function body. Since this routine is part of the LinOp base class, the
  * fixed-point iteration routine can calculate a fixed point not only for
  * matrices, but for any type of linear operator.
  *
  * @ref LinOp
  */
-class LinOp : public EnableAbstractPolymorphicObject<LinOp> {
+class LinOp : public PolymorphicObject {
 public:
     /**
      * Applies a linear operator to a vector (or a sequence of vectors).
@@ -123,10 +123,8 @@ public:
      *
      * @param b  the input vector(s) on which the operator is applied
      * @param x  the output vector(s) where the result is stored
-     *
-     * @return this
      */
-    LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
+    void apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
     {
         this->template log<log::Logger::linop_apply_started>(this, b.get(),
                                                              x.get());
@@ -136,24 +134,8 @@ public:
                          make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_apply_completed>(this, b.get(),
                                                                x.get());
-        return this;
     }
 
-    /**
-     * @copydoc apply(const LinOp *, LinOp *)
-     */
-    const LinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x) const
-    {
-        this->template log<log::Logger::linop_apply_started>(this, b.get(),
-                                                             x.get());
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b.get(),
-                                                               x.get());
-        return this;
-    }
 
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
@@ -162,11 +144,9 @@ public:
      * @param b  vector(s) on which the operator is applied
      * @param beta  scaling of the input x
      * @param x  output vector(s)
-     *
-     * @return this
      */
-    LinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                 ptr_param<const LinOp> beta, ptr_param<LinOp> x)
+    void apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+               ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
     {
         this->template log<log::Logger::linop_advanced_apply_started>(
             this, alpha.get(), b.get(), beta.get(), x.get());
@@ -179,27 +159,6 @@ public:
                          make_temporary_clone(exec, x).get());
         this->template log<log::Logger::linop_advanced_apply_completed>(
             this, alpha.get(), b.get(), beta.get(), x.get());
-        return this;
-    }
-
-    /**
-     * @copydoc apply(const LinOp *, const LinOp *, const LinOp *, LinOp *)
-     */
-    const LinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                       ptr_param<const LinOp> beta, ptr_param<LinOp> x) const
-    {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        return this;
     }
 
     /**
@@ -229,7 +188,7 @@ public:
     LinOp& operator=(LinOp&& other)
     {
         if (this != &other) {
-            EnableAbstractPolymorphicObject<LinOp>::operator=(std::move(other));
+            PolymorphicObject::operator=(std::move(other));
             this->set_size(other.get_size());
             other.set_size({});
         }
@@ -244,7 +203,7 @@ public:
      * which will have size 0x0 and unchanged executor afterwards.
      */
     LinOp(LinOp&& other)
-        : EnableAbstractPolymorphicObject<LinOp>(std::move(other)),
+        : PolymorphicObject(std::move(other)),
           size_{std::exchange(other.size_, dim<2>{})}
     {}
 
@@ -257,7 +216,7 @@ protected:
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
                    const dim<2>& size = dim<2>{})
-        : EnableAbstractPolymorphicObject<LinOp>(exec), size_{size}
+        : PolymorphicObject(exec), size_{size}
     {}
 
     /**
@@ -332,34 +291,34 @@ private:
  * linear operator into another.
  *
  * In Ginkgo, every linear solver is viewed as a mapping. For example,
- * given an s.p.d linear system $Ax = b$, the solution $x = A^{-1}b$
+ * given an s.p.d linear system \f$Ax = b\f$, the solution \f$x = A^{-1}b\f$
  * can be computed using the CG method. This algorithm can be represented in
  * terms of linear operators and mappings between them as follows:
  *
  * -   A Cg::Factory is a higher order mapping which, given an input operator
- *     $A$, returns a new linear operator $A^{-1}$ stored in "CG
+ *     \f$A\f$, returns a new linear operator \f$A^{-1}\f$ stored in "CG
  *     format"
- * -   Storing the operator $A^{-1}$ in "CG format" means that the data
+ * -   Storing the operator \f$A^{-1}\f$ in "CG format" means that the data
  *     structure used to store the operator is just a simple pointer to the
- *     original matrix $A$. The application $x = A^{-1}b$ of such an
+ *     original matrix \f$A\f$. The application \f$x = A^{-1}b\f$ of such an
  *     operator can then be implemented by solving the linear system
- *     $Ax = b$ using the CG method. This is achieved in code by having a
+ *     \f$Ax = b\f$ using the CG method. This is achieved in code by having a
  *     special class for each of those "formats" (e.g. the "Cg" class defines
  *     such a format for the CG solver).
  *
  * Another example of a LinOpFactory is a preconditioner. A preconditioner for
- * a linear operator $A$ is a linear operator $M^{-1}$, which
- * approximates $A^{-1}$. In addition, it is stored in a way such that
- * both the data of $M^{-1}$ is cheap to compute from $A$, and the
- * operation $x = M^{-1}b$ can be computed quickly. These operators are
+ * a linear operator \f$A\f$ is a linear operator \f$M^{-1}\f$, which
+ * approximates \f$A^{-1}\f$. In addition, it is stored in a way such that
+ * both the data of \f$M^{-1}\f$ is cheap to compute from \f$A\f$, and the
+ * operation \f$x = M^{-1}b\f$ can be computed quickly. These operators are
  * useful to accelerate the convergence of  Krylov solvers.
  * Thus, a preconditioner also fits into the LinOpFactory framework:
  *
- * -   The factory maps a linear operator $A$ into a preconditioner
- *     $M^{-1}$ which is stored in suitable format (e.g. as a product of
+ * -   The factory maps a linear operator \f$A\f$ into a preconditioner
+ *     \f$M^{-1}\f$ which is stored in suitable format (e.g. as a product of
  *     two factors in case of ILU preconditioners).
  * -   The resulting linear operator implements the application operation
- *     $x = M^{-1}b$ depending on the format the preconditioner is stored
+ *     \f$x = M^{-1}b\f$ depending on the format the preconditioner is stored
  *     in (e.g. as two triangular solves in case of ILU)
  *
  * Example: using CG in Ginkgo
@@ -384,7 +343,7 @@ private:
 class LinOpFactory
     : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
 public:
-    using AbstractFactory<LinOp, std::shared_ptr<const LinOp>>::AbstractFactory;
+    using AbstractFactory::AbstractFactory;
 
     std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
     {
@@ -402,6 +361,106 @@ public:
             this, input.get(), generated.get());
         return generated;
     }
+
+    /**
+     * Opaque base for the data a factory records in generate_reuse() to speed
+     * up later generations. Factories supporting reuse derive from it.
+     *
+     * @note This interface is experimental.
+     */
+    class ReuseData {
+    public:
+        ReuseData();
+
+        virtual ~ReuseData();
+
+        ReuseData(const ReuseData&) = delete;
+
+        ReuseData(ReuseData&&) = delete;
+
+        ReuseData& operator=(const ReuseData&) = delete;
+
+        ReuseData& operator=(ReuseData&&) = delete;
+    };
+
+    /**
+     * Creates an empty ReuseData. The default implementation returns a plain
+     * ReuseData.
+     */
+    virtual std::unique_ptr<ReuseData> create_empty_reuse_data() const;
+
+    /**
+     * Generates a LinOp like generate(), reusing what earlier calls recorded
+     * in `reuse_data`.
+     *
+     * A ReuseData is empty when it comes from create_empty_reuse_data() and
+     * initialized after the first successful generate_reuse(). With an empty
+     * `reuse_data`, this is a full generation that also fills it. Once
+     * initialized, the input must have the same size and sparsity pattern.
+     * What is reused is up to the factory and may depend on values, so the
+     * result can differ from generate(). Factories without reuse support just
+     * call generate().
+     *
+     * As with generate(), the result is independent of `reuse_data` and of
+     * earlier results: it may outlive `reuse_data`, and later calls leave it
+     * unchanged. One ReuseData serves a whole sequence of generations:
+     *
+     * ```c++
+     * auto reuse_data = factory->create_empty_reuse_data();
+     * auto solver = factory->generate_reuse(matrix, *reuse_data);
+     * // change the values of matrix, keeping its sparsity pattern
+     * solver = factory->generate_reuse(matrix, *reuse_data);
+     * ```
+     *
+     * If this throws, an empty `reuse_data` stays empty and an initialized one
+     * stays usable.
+     *
+     * @param input  the input, copied to this factory's executor if needed
+     * @param reuse_data  created by this factory, or by one with the same type,
+     *                    parameters and executor
+     *
+     * @return the generated LinOp, with this factory's loggers
+     *
+     * @throw NotSupported  if `reuse_data` has the wrong type for this factory
+     * @throw DimensionMismatch  if a dimension of `input`, like its size or
+     *                           its number of stored elements, differs from
+     *                           the input `reuse_data` was initialized with
+     * @throw InvalidStateError  if `input` does not fit `reuse_data` otherwise
+     *
+     * @note This interface is experimental.
+     */
+    std::unique_ptr<LinOp> generate_reuse(std::shared_ptr<const LinOp> input,
+                                          ReuseData& reuse_data) const;
+
+    /**
+     * Throws if `input` can't be used with `reuse_data`. generate_reuse()
+     * calls this first, also while `reuse_data` is still empty, so overrides
+     * have to accept any input then. Checks that need a converted input may
+     * run during the generation instead. The default implementation, used by
+     * factories without reuse support, accepts any input, since they generate
+     * from scratch.
+     *
+     * @throw DimensionMismatch  if a dimension of `input` differs from the
+     *                           input `reuse_data` was initialized with
+     * @throw InvalidStateError  if `input` does not fit `reuse_data` otherwise
+     */
+    virtual void check_reuse_consistent(const LinOp* input,
+                                        const ReuseData& reuse_data) const;
+
+protected:
+    /**
+     * Implements generate_reuse(); `input` is on this factory's executor and
+     * has passed check_reuse_consistent(). The default implementation ignores
+     * `reuse_data` and calls generate_impl().
+     *
+     * Overrides have to keep the guarantees of generate_reuse(): on throwing,
+     * leave an empty `reuse_data` empty and an initialized one usable (e.g.
+     * store new data only after success), and return results that neither
+     * need `reuse_data` to stay alive nor change with later calls (e.g. share
+     * data with it only through shared ownership).
+     */
+    virtual std::unique_ptr<LinOp> generate_reuse_impl(
+        std::shared_ptr<const LinOp> input, ReuseData& reuse_data) const;
 };
 
 
@@ -413,11 +472,11 @@ public:
  * conjugate transpose.
  *
  * The normal transpose returns the transpose of the linear operator without
- * changing any of its elements representing the operation, $B = A^{T}$.
+ * changing any of its elements representing the operation, \f$B = A^{T}\f$.
  *
  * The conjugate transpose returns the conjugate of each of the elements and
- * additionally transposes the linear operator representing the operation, $B
- * = A^{H}$.
+ * additionally transposes the linear operator representing the operation, \f$B
+ * = A^{H}\f$.
  *
  * Example: Transposing a Csr matrix:
  * ------------------------------------
@@ -491,8 +550,8 @@ public:
      * In the resulting LinOp, the entry at location `(i,j)` contains the input
      * value `(perm[i],perm[j])`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $P A P^T$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P A P^T\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -512,8 +571,8 @@ public:
      * In the resulting LinOp, the entry at location `(perm[i],perm[j])`
      * contains the input value `(i,j)`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $P^{-1} A P^{-T}$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P^{-1} A P^{-T}\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -532,8 +591,8 @@ public:
      * object.
      * In the resulting LinOp, the row `i` contains the input row `perm[i]`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $P A$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P A\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order.
@@ -549,8 +608,8 @@ public:
      * In the resulting LinOp, the column `i` contains the input column
      * `perm[i]`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $A P^T$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$A P^T\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.
@@ -565,8 +624,8 @@ public:
      * object.
      * In the resulting LinOp, the row `perm[i]` contains the input row `i`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $P^{-1} A$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$P^{-1} A\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.
@@ -582,8 +641,8 @@ public:
      * In the resulting LinOp, the column `perm[i]` contains the input column
      * `i`.
      *
-     * From the linear algebra perspective, with $P_{ij} = \delta_{i
-     * \pi(i)}$, this represents the operation $A P^{-T}$.
+     * From the linear algebra perspective, with \f$P_{ij} = \delta_{i
+     * \pi(i)}\f$, this represents the operation \f$A P^{-T}\f$.
      *
      * @param permutation_indices  the array of indices containing the
      *                             permutation order `perm`.
@@ -670,6 +729,23 @@ public:
      * @param data  the matrix_data structure
      */
     virtual void write(matrix_data<ValueType, IndexType>& data) const = 0;
+
+    /**
+     * Writes a matrix to a device_matrix_data structure.
+     *
+     * The entries are written on the executor of the output data. The default
+     * implementation goes through the host; formats that can produce the
+     * entries on the executor should override this.
+     *
+     * @param data  the device_matrix_data structure
+     */
+    virtual void write(device_matrix_data<ValueType, IndexType>& data) const
+    {
+        matrix_data<ValueType, IndexType> host_data;
+        this->write(host_data);
+        data = device_matrix_data<ValueType, IndexType>::create_from_host(
+            data.get_executor(), host_data);
+    }
 };
 
 
@@ -716,7 +792,6 @@ private:
  * and row index are the same and stores the result in a min(nrows, ncols) x 1
  * dense matrix.
  *
- * @ingroup diagonal
  * @ingroup LinOp
  */
 class DiagonalLinOpExtractable {
@@ -840,82 +915,6 @@ private:
 
 
 /**
- * The EnableLinOp mixin can be used to provide sensible default implementations
- * of the majority of the LinOp and PolymorphicObject interface.
- *
- * The goal of the mixin is to facilitate the development of new LinOp, by
- * enabling the implementers to focus on the important parts of their operator,
- * while the library takes care of generating the trivial utility functions.
- * The mixin will provide default implementations for the entire
- * PolymorphicObject interface, including a default implementation of
- * `copy_from` between objects of the new LinOp type. It will also hide the
- * default LinOp::apply() methods with versions that preserve the static type of
- * the object.
- *
- * Implementers of new LinOps are required to specify only the following
- * aspects:
- *
- * 1.  Creation of the LinOp: This can be facilitated via either
- *     EnableCreateMethod mixin (used mostly for matrix formats),
- *     or GKO_ENABLE_LIN_OP_FACTORY macro (used for operators created from other
- *     operators, like preconditioners and solvers).
- * 2.  Application of the LinOp: Implementers have to override the two
- *     overloads of the LinOp::apply_impl() virtual methods.
- *
- * @note  This mixin can't be used with concrete types that derive from
- *        experimental::distributed::DistributedBase. In that case use
- *        experimental::EnableDistributedLinOp instead.
- *
- * @tparam ConcreteLinOp  the concrete LinOp which is being implemented
- *                        [CRTP parameter]
- * @tparam PolymorphicBase  parent of ConcreteLinOp in the polymorphic
- *                          hierarchy, has to be a subclass of LinOp
- *
- * @ingroup LinOp
- */
-template <typename ConcreteLinOp, typename PolymorphicBase = LinOp>
-class EnableLinOp
-    : public EnablePolymorphicObject<ConcreteLinOp, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteLinOp> {
-public:
-    using EnablePolymorphicObject<ConcreteLinOp,
-                                  PolymorphicBase>::EnablePolymorphicObject;
-
-    const ConcreteLinOp* apply(ptr_param<const LinOp> b,
-                               ptr_param<LinOp> x) const
-    {
-        PolymorphicBase::apply(b, x);
-        return self();
-    }
-
-    ConcreteLinOp* apply(ptr_param<const LinOp> b, ptr_param<LinOp> x)
-    {
-        PolymorphicBase::apply(b, x);
-        return self();
-    }
-
-    const ConcreteLinOp* apply(ptr_param<const LinOp> alpha,
-                               ptr_param<const LinOp> b,
-                               ptr_param<const LinOp> beta,
-                               ptr_param<LinOp> x) const
-    {
-        PolymorphicBase::apply(alpha, b, beta, x);
-        return self();
-    }
-
-    ConcreteLinOp* apply(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                         ptr_param<const LinOp> beta, ptr_param<LinOp> x)
-    {
-        PolymorphicBase::apply(alpha, b, beta, x);
-        return self();
-    }
-
-protected:
-    GKO_ENABLE_SELF(ConcreteLinOp);
-};
-
-
-/**
  * This is an alias for the EnableDefaultFactory mixin, which correctly sets the
  * template parameters to enable a subclass of LinOpFactory.
  *
@@ -940,6 +939,80 @@ using EnableDefaultLinOpFactory =
 
 
 /**
+ * EnableDefaultLinOpFactory with LinOpFactory::generate_reuse() support,
+ * usually used through #GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE. ReuseDataType
+ * has to be default-constructible and derived from LinOpFactory::ReuseData,
+ * and ConcreteLinOp has to provide
+ * - a constructor `(const ConcreteFactory*, std::shared_ptr<const LinOp>,
+ *   ReuseDataType&)` keeping the guarantees of
+ *   LinOpFactory::generate_reuse_impl();
+ * - `static void check_reuse_consistent(const ConcreteFactory*,
+ *   const LinOp*, const ReuseDataType&)`, accepting any input while the
+ *   data is empty.
+ *
+ * ReuseDataType only has to be complete where the factory's member functions
+ * are used. The other template parameters are the same as for
+ * EnableDefaultLinOpFactory.
+ *
+ * @note This interface is experimental.
+ *
+ * @ingroup LinOp
+ */
+template <typename ConcreteFactory, typename ConcreteLinOp,
+          typename ParametersType, typename ReuseDataType,
+          typename PolymorphicBase = LinOpFactory>
+class EnableDefaultReusableLinOpFactory
+    : public EnableDefaultLinOpFactory<ConcreteFactory, ConcreteLinOp,
+                                       ParametersType, PolymorphicBase> {
+    using base_type =
+        EnableDefaultLinOpFactory<ConcreteFactory, ConcreteLinOp,
+                                  ParametersType, PolymorphicBase>;
+
+public:
+    /** LinOpFactory::generate_reuse(), returning the concrete LinOp type. */
+    std::unique_ptr<ConcreteLinOp> generate_reuse(
+        std::shared_ptr<const LinOp> input,
+        LinOpFactory::ReuseData& reuse_data) const
+    {
+        return std::unique_ptr<ConcreteLinOp>(static_cast<ConcreteLinOp*>(
+            this->LinOpFactory::generate_reuse(std::move(input), reuse_data)
+                .release()));
+    }
+
+    std::unique_ptr<LinOpFactory::ReuseData> create_empty_reuse_data()
+        const override
+    {
+        return std::make_unique<ReuseDataType>();
+    }
+
+    void check_reuse_consistent(
+        const LinOp* input,
+        const LinOpFactory::ReuseData& reuse_data) const override
+    {
+        ConcreteLinOp::check_reuse_consistent(
+            static_cast<const ConcreteFactory*>(this), input,
+            *as<ReuseDataType>(&reuse_data));
+    }
+
+protected:
+    explicit EnableDefaultReusableLinOpFactory(
+        std::shared_ptr<const Executor> exec,
+        const ParametersType& parameters = {})
+        : base_type(std::move(exec), parameters)
+    {}
+
+    std::unique_ptr<LinOp> generate_reuse_impl(
+        std::shared_ptr<const LinOp> input,
+        LinOpFactory::ReuseData& reuse_data) const override
+    {
+        return std::unique_ptr<LinOp>(new ConcreteLinOp(
+            static_cast<const ConcreteFactory*>(this), std::move(input),
+            *as<ReuseDataType>(&reuse_data)));
+    }
+};
+
+
+/**
  * This macro will generate a default implementation of a LinOpFactory for the
  * LinOp subclass it is defined in.
  *
@@ -956,7 +1029,7 @@ using EnableDefaultLinOpFactory =
  * A minimal example of a linear operator is the following:
  *
  * ```c++
- * struct MyLinOp : public EnableLinOp<MyLinOp> {
+ * struct MyLinOp : public LinOp {
  *     GKO_ENABLE_LIN_OP_FACTORY(MyLinOp, my_parameters, Factory) {
  *         // a factory parameter named "my_value", of type int and default
  *         // value of 5
@@ -965,13 +1038,13 @@ using EnableDefaultLinOpFactory =
  *         // and default value {5, 5}
  *         std::pair<int, int> GKO_FACTORY_PARAMETER_VECTOR(my_pair, 5, 5);
  *     };
- *     // constructor needed by EnableLinOp
+ *     // constructor needed by LinOp
  *     explicit MyLinOp(std::shared_ptr<const Executor> exec) {
- *         : EnableLinOp<MyLinOp>(exec) {}
+ *         : LinOp(exec) {}
  *     // constructor needed by the factory
  *     explicit MyLinOp(const Factory *factory,
  *                      std::shared_ptr<const LinOp> matrix)
- *         : EnableLinOp<MyLinOp>(factory->get_executor()), matrix->get_size()),
+ *         : LinOp(factory->get_executor()), matrix->get_size()),
  *           // store factory's parameters locally
  *           my_parameters_{factory->get_parameters()},
  *     {
@@ -1024,8 +1097,6 @@ public:                                                                      \
     class _factory_name                                                      \
         : public ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,    \
                                                   _parameters_name##_type> { \
-        friend class ::gko::EnablePolymorphicObject<_factory_name,           \
-                                                    ::gko::LinOpFactory>;    \
         friend class ::gko::enable_parameters_type<_parameters_name##_type,  \
                                                    _factory_name>;           \
         explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)  \
@@ -1050,6 +1121,82 @@ private:                                                                     \
 public:                                                                      \
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+
+/**
+ * Like #GKO_ENABLE_LIN_OP_FACTORY, but the factory also supports
+ * LinOpFactory::generate_reuse(), with `_reuse_data_type` as its ReuseData.
+ * The LinOp additionally provides what EnableDefaultReusableLinOpFactory
+ * requires, which may be private. The reuse data type can be defined after
+ * the macro, but has to be declared before it:
+ *
+ * ```c++
+ * class MyLinOp : public LinOp {
+ * public:
+ *     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory) { ... };
+ *     class reuse_data_type;
+ *     GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(MyLinOp, parameters, Factory,
+ *                                          reuse_data_type);
+ *     GKO_ENABLE_BUILD_METHOD(Factory);
+ *
+ *     class reuse_data_type : public LinOpFactory::ReuseData { ... };
+ *
+ * private:
+ *     // used by generate() and generate_reuse()
+ *     MyLinOp(const Factory*, std::shared_ptr<const LinOp>);
+ *     MyLinOp(const Factory*, std::shared_ptr<const LinOp>, reuse_data_type&);
+ *     static void check_reuse_consistent(const Factory*, const LinOp*,
+ *                                        const reuse_data_type&);
+ * };
+ * ```
+ *
+ * @param _lin_op  concrete operator for which the factory is to be created
+ * @param _parameters_name  name of the parameters member in the class
+ * @param _factory_name  name of the generated factory type
+ * @param _reuse_data_type  the ReuseData type of the factory
+ *
+ * @note This interface is experimental.
+ *
+ * @ingroup LinOp
+ */
+#define GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(_lin_op, _parameters_name,        \
+                                             _factory_name, _reuse_data_type)  \
+public:                                                                        \
+    const _parameters_name##_type& get_##_parameters_name() const              \
+    {                                                                          \
+        return _parameters_name##_;                                            \
+    }                                                                          \
+                                                                               \
+    class _factory_name : public ::gko::EnableDefaultReusableLinOpFactory<     \
+                              _factory_name, _lin_op, _parameters_name##_type, \
+                              _reuse_data_type> {                              \
+        friend class ::gko::enable_parameters_type<_parameters_name##_type,    \
+                                                   _factory_name>;             \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec)    \
+            : ::gko::EnableDefaultReusableLinOpFactory<                        \
+                  _factory_name, _lin_op, _parameters_name##_type,             \
+                  _reuse_data_type>(std::move(exec))                           \
+        {}                                                                     \
+        explicit _factory_name(std::shared_ptr<const ::gko::Executor> exec,    \
+                               const _parameters_name##_type& parameters)      \
+            : ::gko::EnableDefaultReusableLinOpFactory<                        \
+                  _factory_name, _lin_op, _parameters_name##_type,             \
+                  _reuse_data_type>(std::move(exec), parameters)               \
+        {}                                                                     \
+    };                                                                         \
+    friend ::gko::EnableDefaultLinOpFactory<_factory_name, _lin_op,            \
+                                            _parameters_name##_type>;          \
+    friend ::gko::EnableDefaultReusableLinOpFactory<                           \
+        _factory_name, _lin_op, _parameters_name##_type, _reuse_data_type>;    \
+                                                                               \
+                                                                               \
+private:                                                                       \
+    _parameters_name##_type _parameters_name##_;                               \
+                                                                               \
+public:                                                                        \
+    static_assert(true,                                                        \
+                  "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
 

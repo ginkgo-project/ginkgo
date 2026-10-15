@@ -4,7 +4,6 @@ set(config_source
     config/factorization_config.cpp
     config/multigrid_config.cpp
     config/preconditioner_config.cpp
-    config/preconditioner_ic_config.cpp
     config/preconditioner_ilu_config.cpp
     config/preconditioner_isai_config.cpp
     config/registry.cpp
@@ -38,6 +37,7 @@ target_sources(
         base/device_matrix_data.cpp
         base/executor.cpp
         base/index_set.cpp
+        base/lin_op.cpp
         base/memory.cpp
         base/mpi.cpp
         base/mtx_io.cpp
@@ -97,12 +97,16 @@ target_sources(
         matrix/sparsity_csr.cpp
         multigrid/fixed_coarsening.cpp
         multigrid/pgm.cpp
+        multigrid/pmis.cpp
+        multigrid/rs.cpp
+        multigrid/uniform_coarsening.cpp
         preconditioner/batch_jacobi.cpp
         preconditioner/gauss_seidel.cpp
         preconditioner/ic.cpp
         preconditioner/ilu.cpp
         preconditioner/isai.cpp
         preconditioner/jacobi.cpp
+        preconditioner/nullspace_projection.cpp
         preconditioner/sor.cpp
         reorder/amd.cpp
         reorder/mc64.cpp
@@ -125,6 +129,7 @@ target_sources(
         solver/lower_trs.cpp
         solver/minres.cpp
         solver/multigrid.cpp
+        solver/nullspace.cpp
         solver/pipe_cg.cpp
         solver/upper_trs.cpp
         stop/combined.cpp
@@ -154,9 +159,20 @@ if(GINKGO_BUILD_MPI)
             distributed/partition_helpers.cpp
             distributed/preconditioner/schwarz.cpp
             distributed/row_gatherer.cpp
+            distributed/spgemm.cpp
+            distributed/transpose.cpp
             distributed/vector.cpp
             distributed/vector_cache.cpp
             mpi/exception.cpp
+    )
+endif()
+
+# The distributed spgemm runs its local csr::spgemm in LocalIndexType, and
+# cuSPARSE only supports 64-bit indices in spgemm from CUDA 13 on.
+if(GINKGO_BUILD_MPI AND GINKGO_BUILD_CUDA)
+    target_compile_definitions(
+        ${ginkgo_core}
+        PRIVATE GKO_CUDA_TOOLKIT_VERSION_MAJOR=${CUDAToolkit_VERSION_MAJOR}
     )
 endif()
 

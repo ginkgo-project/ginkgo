@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,18 +27,19 @@ namespace matrix {
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @ingroup identity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Identity : public EnableLinOp<Identity<ValueType>>, public Transposable {
-    friend class EnablePolymorphicObject<Identity, LinOp>;
+class Identity : public LinOp,
+                 public EnableCloneable<Identity<ValueType>>,
+                 public Transposable {
+    friend class EnableCloneable<Identity>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableLinOp<Identity>::convert_to;
-    using EnableLinOp<Identity>::move_to;
+    using EnableCloneable<Identity>::convert_to;
+    using EnableCloneable<Identity>::move_to;
 
     using value_type = ValueType;
     using transposed_type = Identity<ValueType>;
@@ -50,6 +51,7 @@ public:
     /**
      * Creates an Identity matrix of the specified size.
      *
+     * @param exec  the executor where the Identity operator will be stored
      * @param size  size of the matrix (must be square)
      */
     GKO_DEPRECATED("use the version taking a size_type instead of dim<2>")
@@ -59,6 +61,7 @@ public:
     /**
      * Creates an Identity matrix of the specified size.
      *
+     * @param exec  the executor where the Identity operator will be stored
      * @param size  size of the matrix
      */
     static std::unique_ptr<Identity> create(
@@ -87,10 +90,7 @@ protected:
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class IdentityFactory
-    : public EnablePolymorphicObject<IdentityFactory<ValueType>, LinOpFactory> {
-    friend class EnablePolymorphicObject<IdentityFactory, LinOpFactory>;
-
+class IdentityFactory : public LinOpFactory {
 public:
     using value_type = ValueType;
 
@@ -112,8 +112,7 @@ protected:
     std::unique_ptr<LinOp> generate_impl(
         std::shared_ptr<const LinOp> base) const override;
 
-    IdentityFactory(std::shared_ptr<const Executor> exec)
-        : EnablePolymorphicObject<IdentityFactory, LinOpFactory>(exec)
+    IdentityFactory(std::shared_ptr<const Executor> exec) : LinOpFactory(exec)
     {}
 };
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,7 +33,6 @@ namespace reference {
 /**
  * @brief The fixed-block compressed sparse row matrix format namespace.
  *
- * @ingroup fbcsr
  */
 namespace fbcsr {
 
@@ -41,10 +40,11 @@ namespace fbcsr {
 template <typename ValueType, typename IndexType>
 void spmv(const std::shared_ptr<const ReferenceExecutor>,
           const matrix::Fbcsr<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
 {
     const int bs = a->get_block_size();
-    const auto nvecs = static_cast<IndexType>(b->get_size()[1]);
+    const auto nvecs = static_cast<IndexType>(b.size[1]);
     const IndexType nbrows = a->get_num_block_rows();
     const size_type nbnz = a->get_num_stored_blocks();
     auto row_ptrs = a->get_const_row_ptrs();
@@ -55,7 +55,7 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
     for (IndexType ibrow = 0; ibrow < nbrows; ++ibrow) {
         for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
             for (IndexType rhs = 0; rhs < nvecs; rhs++) {
-                c->at(row, rhs) = zero<ValueType>();
+                c(row, rhs) = zero<ValueType>();
             }
         }
         for (IndexType inz = row_ptrs[ibrow]; inz < row_ptrs[ibrow + 1];
@@ -66,7 +66,7 @@ void spmv(const std::shared_ptr<const ReferenceExecutor>,
                     const auto val = avalues(inz, ib, jb);
                     const auto col = col_idxs[inz] * bs + jb;
                     for (size_type j = 0; j < nvecs; ++j) {
-                        c->at(row, j) += val * b->at(col, j);
+                        c(row, j) += val * b(col, j);
                     }
                 }
             }
@@ -79,20 +79,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FBCSR_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
-                   const matrix::Dense<ValueType>* alpha,
+                   matrix::view::dense<const ValueType> alpha,
                    const matrix::Fbcsr<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
 {
     const int bs = a->get_block_size();
-    const auto nvecs = static_cast<IndexType>(b->get_size()[1]);
+    const auto nvecs = static_cast<IndexType>(b.size[1]);
     const IndexType nbrows = a->get_num_block_rows();
     const size_type nbnz = a->get_num_stored_blocks();
     auto row_ptrs = a->get_const_row_ptrs();
     auto col_idxs = a->get_const_col_idxs();
-    auto valpha = alpha->at(0, 0);
-    auto vbeta = beta->at(0, 0);
+    auto valpha = alpha(0, 0);
+    auto vbeta = beta(0, 0);
     const acc::range<acc::block_col_major<const ValueType, 3>> avalues{
         to_std_array<acc::size_type>(nbnz, bs, bs), a->get_const_values()};
 
@@ -100,9 +100,9 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
         for (IndexType row = ibrow * bs; row < (ibrow + 1) * bs; ++row) {
             for (IndexType rhs = 0; rhs < nvecs; rhs++) {
                 if (is_zero(vbeta)) {
-                    c->at(row, rhs) = zero(vbeta);
+                    c(row, rhs) = zero(vbeta);
                 } else {
-                    c->at(row, rhs) *= vbeta;
+                    c(row, rhs) *= vbeta;
                 }
             }
         }
@@ -115,7 +115,7 @@ void advanced_spmv(const std::shared_ptr<const ReferenceExecutor>,
                     const auto val = avalues(inz, ib, jb);
                     const auto col = col_idxs[inz] * bs + jb;
                     for (size_type j = 0; j < nvecs; ++j)
-                        c->at(row, j) += valpha * val * b->at(col, j);
+                        c(row, j) += valpha * val * b(col, j);
                 }
             }
         }
@@ -187,7 +187,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void fill_in_dense(const std::shared_ptr<const ReferenceExecutor>,
                    const matrix::Fbcsr<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
+                   matrix::view::dense<ValueType> result)
 {
     const int bs = source->get_block_size();
     const IndexType nbrows = source->get_num_block_rows();
@@ -208,7 +208,7 @@ void fill_in_dense(const std::shared_ptr<const ReferenceExecutor>,
             for (int ib = 0; ib < bs; ib++) {
                 const IndexType row = brow * bs + ib;
                 for (int jb = 0; jb < bs; jb++) {
-                    result->at(row, col_idxs[ibnz] * bs + jb) =
+                    result(row, col_idxs[ibnz] * bs + jb) =
                         values(ibnz, ib, jb);
                 }
             }
@@ -223,7 +223,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
                     const matrix::Fbcsr<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
     const int bs = source->get_block_size();
     const IndexType nbrows = source->get_num_block_rows();
@@ -232,14 +232,13 @@ void convert_to_csr(const std::shared_ptr<const ReferenceExecutor>,
     const IndexType* const bcolinds = source->get_const_col_idxs();
     const ValueType* const bvals = source->get_const_values();
 
-    assert(nbrows * bs == result->get_size()[0]);
-    assert(nbcols * bs == result->get_size()[1]);
-    assert(source->get_num_stored_elements() ==
-           result->get_num_stored_elements());
+    assert(nbrows * bs == result.size[0]);
+    assert(nbcols * bs == result.size[1]);
+    assert(source->get_num_stored_elements() == result.num_stored_elements);
 
-    IndexType* const row_ptrs = result->get_row_ptrs();
-    IndexType* const col_idxs = result->get_col_idxs();
-    ValueType* const vals = result->get_values();
+    IndexType* const row_ptrs = result.row_ptrs;
+    IndexType* const col_idxs = result.col_idxs;
+    ValueType* const vals = result.values;
 
     const acc::range<acc::block_col_major<const ValueType, 3>> bvalues{
         std::array<acc::size_type, 3>{
@@ -377,22 +376,21 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void is_sorted_by_column_index(
     std::shared_ptr<const ReferenceExecutor>,
-    const matrix::Fbcsr<ValueType, IndexType>* to_check, bool* is_sorted)
+    const matrix::Fbcsr<ValueType, IndexType>* to_check, bool& is_sorted)
 {
     const auto row_ptrs = to_check->get_const_row_ptrs();
     const auto col_idxs = to_check->get_const_col_idxs();
     const size_type nbrows = to_check->get_num_block_rows();
 
+    is_sorted = true;
     for (size_type i = 0; i < nbrows; ++i) {
         for (auto idx = row_ptrs[i] + 1; idx < row_ptrs[i + 1]; ++idx) {
             if (col_idxs[idx - 1] > col_idxs[idx]) {
-                *is_sorted = false;
+                is_sorted = false;
                 return;
             }
         }
     }
-    *is_sorted = true;
-    return;
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

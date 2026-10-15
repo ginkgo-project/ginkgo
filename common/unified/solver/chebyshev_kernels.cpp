@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -43,9 +43,9 @@ using if_single_only_type = xstd::type_identity_t<coeff_type>;
 template <typename ValueType>
 void init_update(std::shared_ptr<const DefaultExecutor> exec,
                  const solver::detail::coeff_type<ValueType> alpha,
-                 const matrix::Dense<ValueType>* inner_sol,
-                 matrix::Dense<ValueType>* update_sol,
-                 matrix::Dense<ValueType>* output)
+                 matrix::view::dense<const ValueType> inner_sol,
+                 matrix::view::dense<ValueType> update_sol,
+                 matrix::view::dense<ValueType> output)
 {
     using coeff_type =
         if_single_only_type<solver::detail::coeff_type<ValueType>>;
@@ -67,7 +67,7 @@ void init_update(std::shared_ptr<const DefaultExecutor> exec,
                 static_cast<arithmetic_type>(output(row, col)) +
                 alpha * inner_val);
         },
-        output->get_size(), alpha_val, inner_sol, update_sol, output);
+        output.size, alpha_val, inner_sol, update_sol, output);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL);
@@ -77,9 +77,9 @@ template <typename ValueType>
 void update(std::shared_ptr<const DefaultExecutor> exec,
             const solver::detail::coeff_type<ValueType> alpha,
             const solver::detail::coeff_type<ValueType> beta,
-            matrix::Dense<ValueType>* inner_sol,
-            matrix::Dense<ValueType>* update_sol,
-            matrix::Dense<ValueType>* output)
+            matrix::view::dense<ValueType> inner_sol,
+            matrix::view::dense<ValueType> update_sol,
+            matrix::view::dense<ValueType> output)
 {
     using coeff_type =
         if_single_only_type<solver::detail::coeff_type<ValueType>>;
@@ -102,7 +102,7 @@ void update(std::shared_ptr<const DefaultExecutor> exec,
             output(row, col) = static_cast<device_type<ValueType>>(
                 static_cast<arithmetic_type>(output(row, col)) + alpha * val);
         },
-        output->get_size(), alpha_val, beta_val, inner_sol, update_sol, output);
+        output.size, alpha_val, beta_val, inner_sol, update_sol, output);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL);

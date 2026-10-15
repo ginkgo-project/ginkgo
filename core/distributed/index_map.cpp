@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -70,6 +70,15 @@ index_map<LocalIndexType, GlobalIndexType>::get_executor() const
 
 
 template <typename LocalIndexType, typename GlobalIndexType>
+std::shared_ptr<
+    const typename index_map<LocalIndexType, GlobalIndexType>::partition_type>
+index_map<LocalIndexType, GlobalIndexType>::get_partition() const
+{
+    return partition_;
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
 size_type index_map<LocalIndexType, GlobalIndexType>::get_global_size() const
 {
     return partition_ ? partition_->get_size() : 0;
@@ -121,7 +130,7 @@ index_map<LocalIndexType, GlobalIndexType>::index_map(
     array<GlobalIndexType> flat_remote_global_idxs(exec_);
     array<int64> remote_sizes(exec_);
     exec_->run(index_map_kernels::make_build_mapping(
-        partition_.get(), recv_connections, remote_target_ids_,
+        partition_.get(), rank, recv_connections, remote_target_ids_,
         flat_remote_local_idxs, flat_remote_global_idxs, remote_sizes));
     remote_local_idxs_ = segmented_array<LocalIndexType>::create_from_sizes(
         std::move(flat_remote_local_idxs), remote_sizes);

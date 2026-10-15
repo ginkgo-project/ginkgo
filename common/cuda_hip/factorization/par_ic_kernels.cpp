@@ -1,11 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/factorization/par_ic_kernels.hpp"
 
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "common/cuda_hip/base/math.hpp"
@@ -97,12 +96,12 @@ __global__ __launch_bounds__(default_block_size) void ic_sweep(
 
 template <typename ValueType, typename IndexType>
 void init_factor(std::shared_ptr<const DefaultExecutor> exec,
-                 matrix::Csr<ValueType, IndexType>* l)
+                 matrix::view::csr<ValueType, IndexType> l)
 {
-    auto num_rows = l->get_size()[0];
+    auto num_rows = l.size[0];
     auto num_blocks = ceildiv(num_rows, default_block_size);
-    auto l_row_ptrs = l->get_const_row_ptrs();
-    auto l_vals = l->get_values();
+    auto l_row_ptrs = l.row_ptrs;
+    auto l_vals = l.values;
     if (num_blocks > 0) {
         kernel::
             ic_init<<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -117,10 +116,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     size_type iterations,
-                    const matrix::Coo<ValueType, IndexType>* a_lower,
-                    matrix::Csr<ValueType, IndexType>* l)
+                    matrix::view::coo<const ValueType, const IndexType> a_lower,
+                    matrix::view::csr<ValueType, IndexType> l)
 {
-    auto nnz = l->get_num_stored_elements();
+    auto nnz = l.num_stored_elements;
     auto num_blocks = ceildiv(nnz, default_block_size);
     if (num_blocks > 0) {
 #ifdef GKO_COMPILING_HIP
@@ -133,12 +132,10 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
             for (size_type i = 0; i < iterations; ++i) {
                 kernel::ic_sweep<<<num_blocks, default_block_size, 0,
                                    exec->get_stream()>>>(
-                    a_lower->get_const_row_idxs(),
-                    a_lower->get_const_col_idxs(),
-                    as_device_type(a_lower->get_const_values()),
-                    l->get_const_row_ptrs(), l->get_const_col_idxs(),
-                    as_device_type(l->get_values()),
-                    static_cast<IndexType>(l->get_num_stored_elements()));
+                    a_lower.row_idxs, a_lower.col_idxs,
+                    as_device_type(a_lower.values), l.row_ptrs, l.col_idxs,
+                    as_device_type(l.values),
+                    static_cast<IndexType>(l.num_stored_elements));
             }
         }
     }

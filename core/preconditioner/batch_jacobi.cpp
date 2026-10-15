@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -43,7 +43,7 @@ size_type Jacobi<ValueType, IndexType>::compute_storage_space(
 
 template <typename ValueType, typename IndexType>
 Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
-    : EnableBatchLinOp<Jacobi>(exec),
+    : BatchLinOp(exec),
       block_pointers_(exec),
       num_blocks_{0},
       blocks_(exec),
@@ -55,8 +55,8 @@ Jacobi<ValueType, IndexType>::Jacobi(std::shared_ptr<const Executor> exec)
 template <typename ValueType, typename IndexType>
 Jacobi<ValueType, IndexType>::Jacobi(
     const Factory* factory, std::shared_ptr<const BatchLinOp> system_matrix)
-    : EnableBatchLinOp<Jacobi>(factory->get_executor(),
-                               gko::transpose(system_matrix->get_size())),
+    : BatchLinOp(factory->get_executor(),
+                 gko::transpose(system_matrix->get_size())),
       parameters_{factory->get_parameters()},
       block_pointers_(std::move(parameters_.block_pointers)),
       num_blocks_{
@@ -76,9 +76,9 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
     const gko::matrix::Csr<ValueType, IndexType>* first_system)
 {
     this->block_pointers_.resize_and_reset(first_system->get_size()[0] + 1);
-    this->get_executor()->run(
-        jacobi::make_find_blocks(first_system, parameters_.max_block_size,
-                                 num_blocks_, this->block_pointers_));
+    this->get_executor()->run(jacobi::make_find_blocks(
+        first_system->get_const_device_view(), parameters_.max_block_size,
+        num_blocks_, this->block_pointers_));
 }
 
 
@@ -161,7 +161,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
     // corresponding to different batch entries are obtained by just filling in
     // values based on the common pattern.
     exec->run(jacobi::make_extract_common_blocks_pattern(
-        first_sys_csr.get(), num_blocks_,
+        first_sys_csr->get_const_device_view(), num_blocks_,
         blocks_cumulative_offsets_.get_const_data(),
         block_pointers_.get_const_data(), map_block_to_row_.get_const_data(),
         block_nnz_idxs.get_data()));
@@ -174,7 +174,7 @@ void Jacobi<ValueType, IndexType>::generate_precond(
 }
 
 
-#define GKO_DECLARE_BATCH_JACOBI(_type) class Jacobi<_type, int32>
+#define GKO_DECLARE_BATCH_JACOBI(ValueType) class Jacobi<ValueType, int32>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_JACOBI);
 
 

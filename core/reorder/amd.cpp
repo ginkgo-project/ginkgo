@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -67,8 +67,7 @@ GKO_REGISTER_HOST_OPERATION(amd_reorder, amd_reorder);
 template <typename IndexType>
 Amd<IndexType>::Amd(std::shared_ptr<const Executor> exec,
                     const parameters_type& params)
-    : EnablePolymorphicObject<Amd, LinOpFactory>(std::move(exec)),
-      parameters_{params}
+    : LinOpFactory(std::move(exec)), parameters_{params}
 {}
 
 

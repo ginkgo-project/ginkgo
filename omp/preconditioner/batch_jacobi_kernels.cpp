@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -61,7 +61,7 @@ GKO_INSTANTIATE_FOR_INT32_TYPE(
 template <typename ValueType, typename IndexType>
 void extract_common_blocks_pattern(
     std::shared_ptr<const DefaultExecutor> exec,
-    const gko::matrix::Csr<ValueType, IndexType>* first_sys_csr,
+    matrix::view::csr<const ValueType, const IndexType> first_sys_csr,
     const size_type num_blocks, const IndexType* cumulative_block_storage,
     const IndexType* block_pointers, const IndexType*,
     IndexType* blocks_pattern)

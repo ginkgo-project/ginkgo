@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -278,7 +278,7 @@ void Papi<ValueType>::on_iteration_complete(
 }
 
 
-#define GKO_DECLARE_PAPI(_type) class Papi<_type>
+#define GKO_DECLARE_PAPI(ValueType) class Papi<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PAPI);
 
 

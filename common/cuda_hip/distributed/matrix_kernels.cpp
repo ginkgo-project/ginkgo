@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,11 +9,13 @@
 #include <thrust/distance.h>
 #include <thrust/execution_policy.h>
 #include <thrust/for_each.h>
+#include <thrust/iterator/permutation_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/sequence.h>
 #include <thrust/sort.h>
 #include <thrust/transform_reduce.h>
+#include <thrust/tuple.h>
 #include <thrust/unique.h>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -50,7 +52,7 @@ struct input_type {
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-void separate_local_nonlocal(
+void separate_diag_off_diag(
     std::shared_ptr<const DefaultExecutor> exec,
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
@@ -58,11 +60,10 @@ void separate_local_nonlocal(
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         col_partition,
     experimental::distributed::comm_index_type local_part,
-    array<LocalIndexType>& local_row_idxs,
-    array<LocalIndexType>& local_col_idxs, array<ValueType>& local_values,
-    array<LocalIndexType>& non_local_row_idxs,
-    array<GlobalIndexType>& non_local_col_idxs,
-    array<ValueType>& non_local_values)
+    array<LocalIndexType>& diag_row_idxs, array<LocalIndexType>& diag_col_idxs,
+    array<ValueType>& diag_values, array<LocalIndexType>& off_diag_row_idxs,
+    array<GlobalIndexType>& off_diag_col_idxs,
+    array<ValueType>& off_diag_values)
 {
     auto input_vals = input.get_const_values();
     auto row_part_ids = row_partition->get_part_ids();
@@ -93,9 +94,9 @@ void separate_local_nonlocal(
                         input_col_idxs + num_input_elements,
                         col_range_ids.get_data());
 
-    // count number of local<0> and non-local<1> elements. Since the input
-    // may contain non-local rows, we don't have
-    // num_local + num_non_local = num_elements and can't just count one of them
+    // count number of diag<0> and off-diag<1> elements. Since the input
+    // may contain rows not owned by this rank, we don't have
+    // num_diag + num_off_diag = num_elements and can't just count one of them
     auto range_ids_it = thrust::make_zip_iterator(thrust::make_tuple(
         row_range_ids.get_const_data(), col_range_ids.get_const_data()));
     auto num_elements_pair = thrust::transform_reduce(
@@ -104,13 +105,13 @@ void separate_local_nonlocal(
             const thrust::tuple<size_type, size_type>& tuple) {
             auto row_part = row_part_ids[thrust::get<0>(tuple)];
             auto col_part = col_part_ids[thrust::get<1>(tuple)];
-            bool is_inner_entry =
+            bool is_diag_entry =
                 row_part == local_part && col_part == local_part;
-            bool is_ghost_entry =
+            bool is_off_diag_entry =
                 row_part == local_part && col_part != local_part;
             return thrust::make_tuple(
-                is_inner_entry ? size_type{1} : size_type{0},
-                is_ghost_entry ? size_type{1} : size_type{0});
+                is_diag_entry ? size_type{1} : size_type{0},
+                is_off_diag_entry ? size_type{1} : size_type{0});
         },
         thrust::make_tuple(size_type{}, size_type{}),
         [] __host__ __device__(const thrust::tuple<size_type, size_type>& a,
@@ -118,8 +119,8 @@ void separate_local_nonlocal(
             return thrust::make_tuple(thrust::get<0>(a) + thrust::get<0>(b),
                                       thrust::get<1>(a) + thrust::get<1>(b));
         });
-    auto num_local_elements = thrust::get<0>(num_elements_pair);
-    auto num_non_local_elements = thrust::get<1>(num_elements_pair);
+    auto num_diag_elements = thrust::get<0>(num_elements_pair);
+    auto num_off_diag_elements = thrust::get<1>(num_elements_pair);
 
     // define global-to-local maps for row and column indices
     auto map_to_local_row =
@@ -143,11 +144,11 @@ void separate_local_nonlocal(
         as_device_type(input.get_const_values()),
         row_range_ids.get_const_data(), col_range_ids.get_const_data()));
 
-    // copy and transform local entries into arrays
-    local_row_idxs.resize_and_reset(num_local_elements);
-    local_col_idxs.resize_and_reset(num_local_elements);
-    local_values.resize_and_reset(num_local_elements);
-    auto local_it = thrust::make_transform_iterator(
+    // copy and transform diag entries into arrays
+    diag_row_idxs.resize_and_reset(num_diag_elements);
+    diag_col_idxs.resize_and_reset(num_diag_elements);
+    diag_values.resize_and_reset(num_diag_elements);
+    auto diag_it = thrust::make_transform_iterator(
         input_it, [map_to_local_row, map_to_local_col] __host__ __device__(
                       const input_type input) {
             auto local_row = map_to_local_row(input.row, input.row_range);
@@ -155,11 +156,11 @@ void separate_local_nonlocal(
             return thrust::make_tuple(local_row, local_col, input.val);
         });
     thrust::copy_if(
-        policy, local_it, local_it + input.get_num_stored_elements(),
+        policy, diag_it, diag_it + input.get_num_stored_elements(),
         range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(
-            local_row_idxs.get_data(), local_col_idxs.get_data(),
-            as_device_type(local_values.get_data()))),
+            diag_row_idxs.get_data(), diag_col_idxs.get_data(),
+            as_device_type(diag_values.get_data()))),
         [local_part, row_part_ids, col_part_ids] __host__ __device__(
             const thrust::tuple<size_type, size_type>& tuple) {
             auto row_part = row_part_ids[thrust::get<0>(tuple)];
@@ -168,24 +169,24 @@ void separate_local_nonlocal(
         });
 
 
-    // copy and transform non-local entries into arrays. this keeps global
-    // column indices, and also stores the column part id for each non-local
+    // copy and transform off-diag entries into arrays. this keeps global
+    // column indices, and also stores the column part id for each off-diag
     // entry in an array
-    non_local_row_idxs.resize_and_reset(num_non_local_elements);
-    non_local_col_idxs.resize_and_reset(num_non_local_elements);
-    non_local_values.resize_and_reset(num_non_local_elements);
-    auto non_local_it = thrust::make_transform_iterator(
+    off_diag_row_idxs.resize_and_reset(num_off_diag_elements);
+    off_diag_col_idxs.resize_and_reset(num_off_diag_elements);
+    off_diag_values.resize_and_reset(num_off_diag_elements);
+    auto off_diag_it = thrust::make_transform_iterator(
         input_it, [map_to_local_row,
                    col_part_ids] __host__ __device__(const input_type input) {
             auto local_row = map_to_local_row(input.row, input.row_range);
             return thrust::make_tuple(local_row, input.col, input.val);
         });
     thrust::copy_if(
-        policy, non_local_it, non_local_it + input.get_num_stored_elements(),
+        policy, off_diag_it, off_diag_it + input.get_num_stored_elements(),
         range_ids_it,
         thrust::make_zip_iterator(thrust::make_tuple(
-            non_local_row_idxs.get_data(), non_local_col_idxs.get_data(),
-            as_device_type(non_local_values.get_data()))),
+            off_diag_row_idxs.get_data(), off_diag_col_idxs.get_data(),
+            as_device_type(off_diag_values.get_data()))),
         [local_part, row_part_ids, col_part_ids] __host__ __device__(
             const thrust::tuple<size_type, size_type>& tuple) {
             auto row_part = row_part_ids[thrust::get<0>(tuple)];
@@ -195,7 +196,72 @@ void separate_local_nonlocal(
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_LOCAL_GLOBAL_INDEX_TYPE(
-    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL);
+    GKO_DECLARE_SEPARATE_DIAG_OFF_DIAG);
+
+
+template <typename ValueType, typename LocalIndexType>
+void separate_local_nonlocal_columns(
+    std::shared_ptr<const DefaultExecutor> exec,
+    const array<LocalIndexType>& row_idxs,
+    const array<LocalIndexType>& col_idxs, const array<ValueType>& values,
+    LocalIndexType num_local_cols, array<LocalIndexType>& diag_row_idxs,
+    array<LocalIndexType>& diag_col_idxs, array<ValueType>& diag_values,
+    array<LocalIndexType>& off_diag_row_idxs,
+    array<LocalIndexType>& off_diag_col_idxs, array<ValueType>& off_diag_values)
+{
+    auto policy = thrust_policy(exec);
+    const auto nnz = col_idxs.get_size();
+    const auto* cols = col_idxs.get_const_data();
+
+    auto is_diag =
+        [num_local_cols] __host__ __device__(const LocalIndexType col) {
+            return col < num_local_cols;
+        };
+    auto is_off_diag =
+        [num_local_cols] __host__ __device__(const LocalIndexType col) {
+            return col >= num_local_cols;
+        };
+
+    const auto num_diag = static_cast<size_type>(
+        thrust::count_if(policy, cols, cols + nnz, is_diag));
+    const auto num_off = nnz - num_diag;
+
+    diag_row_idxs.resize_and_reset(num_diag);
+    diag_col_idxs.resize_and_reset(num_diag);
+    diag_values.resize_and_reset(num_diag);
+    off_diag_row_idxs.resize_and_reset(num_off);
+    off_diag_col_idxs.resize_and_reset(num_off);
+    off_diag_values.resize_and_reset(num_off);
+
+    auto input_it = thrust::make_zip_iterator(
+        thrust::make_tuple(row_idxs.get_const_data(), cols,
+                           as_device_type(values.get_const_data())));
+
+    // the diagonal columns are already local indices and pass through unchanged
+    thrust::copy_if(policy, input_it, input_it + nnz, cols,
+                    thrust::make_zip_iterator(thrust::make_tuple(
+                        diag_row_idxs.get_data(), diag_col_idxs.get_data(),
+                        as_device_type(diag_values.get_data()))),
+                    is_diag);
+
+    thrust::copy_if(
+        policy, input_it, input_it + nnz, cols,
+        thrust::make_zip_iterator(thrust::make_tuple(
+            off_diag_row_idxs.get_data(), off_diag_col_idxs.get_data(),
+            as_device_type(off_diag_values.get_data()))),
+        is_off_diag);
+    // shift the copied columns down into the non-local index space
+    thrust::transform(
+        policy, off_diag_col_idxs.get_const_data(),
+        off_diag_col_idxs.get_const_data() + num_off,
+        off_diag_col_idxs.get_data(),
+        [num_local_cols] __host__ __device__(const LocalIndexType col) {
+            return col - num_local_cols;
+        });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_SEPARATE_LOCAL_NONLOCAL_COLUMNS);
 
 
 }  // namespace distributed_matrix

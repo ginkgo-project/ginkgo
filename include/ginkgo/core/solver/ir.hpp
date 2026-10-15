@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,17 +31,25 @@ namespace solver {
  * residual. Moreover, it can be also considered as preconditioned Richardson
  * iteration with relaxation factor = 1.
  *
- * For any approximation of the solution `solution` to the system `Ax = b`, the
- * residual is defined as: `residual = b - A solution`. The error in
- * `solution`,  `e = x - solution` (with `x` being the exact solution) can be
- * obtained as the solution to the residual equation `Ae = residual`, since `A e
- * = Ax - A solution = b - A solution = residual`. Then, the real solution is
- * computed as `x = relaxation_factor * solution + e`. Instead of accurately
- * solving the residual equation `Ae = residual`, the solution of the system `e`
- * can be approximated to obtain the approximation `error` using a coarse method
- * `solver`, which is used to update `solution`, and the entire process is
- * repeated with the updated `solution`.  This yields the iterative refinement
- * method:
+ * Let \f$ x_k \f$ be the approximation of the solution of \f$ A x = b \f$
+ * after \f$ k \f$ iterations and let \f$ x \f$ denote the exact solution.
+ * The residual and the error of \f$ x_k \f$ are
+ * \f[
+ *   r_k = b - A x_k, \qquad e_k = x - x_k,
+ * \f]
+ * and they are linked by the residual equation
+ * \f$ A e_k = A x - A x_k = b - A x_k = r_k \f$. Knowing \f$ e_k \f$
+ * exactly would give the exact solution in a single update
+ * \f$ x = x_k + e_k \f$. Instead of solving \f$ A e_k = r_k \f$ exactly,
+ * IR approximates \f$ e_k \f$ by \f$ \tilde e_k \f$ using a cheap inner
+ * `solver`, applies that correction with a relaxation factor
+ * \f$ \alpha \f$,
+ * \f[
+ *   x_{k+1} = x_k + \alpha \tilde e_k,
+ * \f]
+ * and repeats the process with the updated iterate. Written with the names
+ * used below, \f$ x_k \f$ is `solution`, \f$ r_k \f$ is `residual` and
+ * \f$ \tilde e_k \f$ is `error`:
  *
  * ```
  * solution = initial_guess
@@ -56,21 +64,24 @@ namespace solver {
  * solver is a Richardson iteration, with possibility for additional
  * preconditioning.
  *
- * Assuming that `solver` has accuracy `c`, i.e., `| e - error | <= c | e |`,
- * iterative refinement will converge with a convergence rate of `c`. Indeed,
- * from `e - error = x - solution - error = x - solution*` (where `solution*`
- * denotes the value stored in `solution` after the update) and `e = inv(A)
- * residual = inv(A)b - inv(A) A solution = x - solution` it follows that | x -
- * solution* | <= c | x - solution |.
+ * Assume \f$ \alpha = 1 \f$ and that `solver` has accuracy \f$ c \f$,
+ * i.e. \f$ \| e_k - \tilde e_k \| \le c \| e_k \| \f$. Then iterative
+ * refinement converges with a convergence rate of \f$ c \f$: from
+ * \f$ e_k - \tilde e_k = (x - x_k) - \tilde e_k = x - x_{k+1} \f$ it
+ * follows that \f$ \| x - x_{k+1} \| \le c \| x - x_k \| \f$.
  *
  * Unless otherwise specified via the `solver` factory parameter, this
  * implementation uses the identity operator (i.e. the solver that approximates
- * the solution of a system Ax = b by setting x := b) as the default inner
- * solver. Such a setting results in a relaxation method known as the Richardson
- * iteration with parameter 1, which is guaranteed to converge for matrices
- * whose spectrum is strictly contained within the unit disc around 1 (i.e., all
- * its eigenvalues `lambda` have to satisfy the equation `|relaxation_factor *
- * lambda - 1| < 1).
+ * the solution of a system \f$ A x = b \f$ by setting \f$ x := b \f$) as the
+ * default inner solver. It leaves the residual unchanged,
+ * \f$ \tilde e_k = r_k \f$, so the iteration reduces to the Richardson
+ * iteration \f$ x_{k+1} = x_k + \alpha r_k \f$, which converges for every
+ * initial guess if and only if \f$ | 1 - \alpha \lambda | < 1 \f$ holds for
+ * every eigenvalue \f$ \lambda \f$ of \f$ A \f$.
+ *
+ * @par References
+ * - Saad, Y. *Iterative Methods for Sparse Linear Systems.* 2nd ed.
+ *   SIAM, 2003. <https://doi.org/10.1137/1.9780898718003>
  *
  * @tparam ValueType  precision of matrix elements
  *
@@ -78,13 +89,11 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Ir : public EnableLinOp<Ir<ValueType>>,
+class Ir : public LinOp,
            public EnableSolverBase<Ir<ValueType>>,
            public EnableIterativeBase<Ir<ValueType>>,
            public EnableApplyWithInitialGuess<Ir<ValueType>>,
            public Transposable {
-    friend class EnableLinOp<Ir>;
-    friend class EnablePolymorphicObject<Ir, LinOp>;
     friend class EnableApplyWithInitialGuess<Ir>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -180,6 +189,18 @@ public:
          */
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::provided);
+
+        /**
+         * Initial guess of the inner solver for each correction
+         * A * d = residual, if the inner solver uses an initial guess:
+         * initial_guess_mode::zero (scale-invariant) or initial_guess_mode::rhs
+         * (the residual). Starting from the residual can save inner
+         * iterations when the eigenvalues of A are close to 1, but makes IR
+         * diverge when they are far from 1. initial_guess_mode::provided is
+         * not supported.
+         */
+        initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
+            inner_initial_guess, initial_guess_mode::zero);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Ir, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -222,19 +243,23 @@ protected:
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
 
-    explicit Ir(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Ir>(std::move(exec))
+    explicit Ir(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Ir(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Ir>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnableSolverBase<Ir>{std::move(system_matrix)},
           EnableIterativeBase<Ir>{
               stop::combine(factory->get_parameters().criteria)},
           parameters_{factory->get_parameters()}
     {
+        if (parameters_.inner_initial_guess == initial_guess_mode::provided) {
+            GKO_INVALID_STATE(
+                "inner_initial_guess must be initial_guess_mode::zero or "
+                "initial_guess_mode::rhs");
+        }
         if (parameters_.generated_solver) {
             this->set_solver(parameters_.generated_solver);
         } else if (parameters_.solver) {

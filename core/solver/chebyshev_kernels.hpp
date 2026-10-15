@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,17 +24,17 @@ namespace chebyshev {
 #define GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL(ValueType)             \
     void init_update(std::shared_ptr<const DefaultExecutor> exec,       \
                      const solver::detail::coeff_type<ValueType> alpha, \
-                     const matrix::Dense<ValueType>* inner_sol,         \
-                     matrix::Dense<ValueType>* update_sol,              \
-                     matrix::Dense<ValueType>* output)
+                     matrix::view::dense<const ValueType> inner_sol,    \
+                     matrix::view::dense<ValueType> update_sol,         \
+                     matrix::view::dense<ValueType> output)
 
 #define GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL(ValueType)             \
     void update(std::shared_ptr<const DefaultExecutor> exec,       \
                 const solver::detail::coeff_type<ValueType> alpha, \
                 const solver::detail::coeff_type<ValueType> beta,  \
-                matrix::Dense<ValueType>* inner_sol,               \
-                matrix::Dense<ValueType>* update_sol,              \
-                matrix::Dense<ValueType>* output)
+                matrix::view::dense<ValueType> inner_sol,          \
+                matrix::view::dense<ValueType> update_sol,         \
+                matrix::view::dense<ValueType> output)
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                     \
     template <typename ValueType>                        \

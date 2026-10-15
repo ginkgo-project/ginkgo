@@ -16,12 +16,14 @@ PDF_HYPERLINKS         = YES
 USE_PDFLATEX           = YES
 LATEX_BATCHMODE        = YES
 LATEX_HIDE_INDICES     = NO
-LATEX_SOURCE_CODE      = NO
 LATEX_BIB_STYLE        = plain
-LATEX_TIMESTAMP        = NO
 
 # this is used to hide protected members
 PREDEFINED = @default_predefined_macros@ protected=private
+
+# pdflatex cannot include the svg the base Doxyfile asks for,
+# and pdf is not a valid value
+DOT_IMAGE_FORMAT       = png
 
 # hide all unnecessary graphs
 CLASS_GRAPH            = NO

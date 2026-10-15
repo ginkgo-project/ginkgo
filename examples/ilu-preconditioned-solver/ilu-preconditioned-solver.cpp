@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -69,10 +69,7 @@ int main(int argc, char* argv[])
     // Generate an ILU preconditioner factory by setting lower and upper
     // triangular solver - in this case the exact triangular solves
     auto ilu_pre_factory =
-        gko::preconditioner::Ilu<gko::solver::LowerTrs<ValueType, IndexType>,
-                                 gko::solver::UpperTrs<ValueType, IndexType>,
-                                 false>::build()
-            .on(exec);
+        gko::preconditioner::Ilu<ValueType, false, IndexType>::build().on(exec);
 
     // Use incomplete factors to generate ILU preconditioner
     auto ilu_preconditioner = gko::share(ilu_pre_factory->generate(par_ilu));

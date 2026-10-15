@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,13 +39,13 @@ namespace matrix {
  * @tparam ValueType  value precision of matrix elements
  * @tparam IndexType  index precision of matrix elements
  *
- * @ingroup batch_csr
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Csr final
-    : public EnableBatchLinOp<Csr<ValueType, IndexType>>,
+    : public BatchLinOp,
+      public EnableCloneable<Csr<ValueType, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Csr<next_precision<ValueType, 2>, IndexType>>,
 #endif
@@ -53,7 +53,7 @@ class Csr final
       public ConvertibleTo<Csr<next_precision<ValueType, 3>, IndexType>>,
 #endif
       public ConvertibleTo<Csr<next_precision<ValueType>, IndexType>> {
-    friend class EnablePolymorphicObject<Csr, BatchLinOp>;
+    friend class EnableCloneable<Csr>;
     friend class Csr<to_complex<ValueType>, IndexType>;
     friend class Csr<previous_precision<ValueType>, IndexType>;
     static_assert(std::is_same<IndexType, int32>::value,
@@ -61,8 +61,8 @@ class Csr final
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableBatchLinOp<Csr>::convert_to;
-    using EnableBatchLinOp<Csr>::move_to;
+    using EnableCloneable<Csr>::convert_to;
+    using EnableCloneable<Csr>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
@@ -300,7 +300,7 @@ public:
      * same sparsity pattern.
      *
      * @param exec  the executor to create the matrix on
-     * @param size  the dimensions of the matrix
+     * @param sizes  the dimensions of the matrix
      * @param values  the value array of the matrix
      * @param col_idxs the col_idxs array of a single batch item of the matrix.
      * @param row_ptrs  the row_ptrs array of a single batch item of the matrix.
@@ -324,7 +324,7 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    Csr* apply(ptr_param<const MultiVector<value_type>> b,
+    void apply(ptr_param<const MultiVector<value_type>> b,
                ptr_param<MultiVector<value_type>> x);
 
     /**
@@ -337,7 +337,7 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    Csr* apply(ptr_param<const MultiVector<value_type>> alpha,
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
                ptr_param<const MultiVector<value_type>> b,
                ptr_param<const MultiVector<value_type>> beta,
                ptr_param<MultiVector<value_type>> x);
@@ -345,18 +345,18 @@ public:
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
-    const Csr* apply(ptr_param<const MultiVector<value_type>> b,
-                     ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> b,
+               ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, const
      * MultiVector<value_type>*, const MultiVector<value_type>*,
      * MultiVector<value_type>*)
      */
-    const Csr* apply(ptr_param<const MultiVector<value_type>> alpha,
-                     ptr_param<const MultiVector<value_type>> b,
-                     ptr_param<const MultiVector<value_type>> beta,
-                     ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
+               ptr_param<const MultiVector<value_type>> b,
+               ptr_param<const MultiVector<value_type>> beta,
+               ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * Performs in-place row and column scaling for this matrix.
@@ -388,7 +388,7 @@ private:
     Csr(std::shared_ptr<const Executor> exec, const batch_dim<2>& size,
         array<value_type> values, array<index_type> col_idxs,
         array<index_type> row_ptrs)
-        : EnableBatchLinOp<Csr>(exec, size),
+        : BatchLinOp(exec, size),
           values_{exec, std::move(values)},
           col_idxs_{exec, std::move(col_idxs)},
           row_ptrs_{exec, std::move(row_ptrs)}

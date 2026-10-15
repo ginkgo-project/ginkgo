@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,14 +39,25 @@ Factorization<ValueType, IndexType>::unpack() const
     case storage_type::empty:
         GKO_NOT_SUPPORTED(nullptr);
     case storage_type::composition:
-    case storage_type::symm_composition:
-        return this->clone();
+    case storage_type::symm_composition: {
+        // bring the original clone function here
+        auto clone = std::unique_ptr<Factorization>{
+            new Factorization{this->get_executor()}};
+        clone->LinOp::operator=(*this);
+        clone->storage_type_ = storage_type_;
+        // composition clone only copy the pointer when they are on the same
+        // executor
+        clone->factors_ = Composition<ValueType>::create(
+            factors_->get_operators().begin(), factors_->get_operators().end());
+        return clone;
+    }
     case storage_type::combined_lu: {
         // count nonzeros
         array<index_type> l_row_ptrs{exec, size[0] + 1};
         array<index_type> u_row_ptrs{exec, size[0] + 1};
         const auto mtx = this->get_combined();
-        exec->run(make_initialize_row_ptrs_l_u(mtx.get(), l_row_ptrs.get_data(),
+        exec->run(make_initialize_row_ptrs_l_u(mtx->get_const_device_view(),
+                                               l_row_ptrs.get_data(),
                                                u_row_ptrs.get_data()));
         const auto l_nnz =
             static_cast<size_type>(get_element(l_row_ptrs, size[0]));
@@ -60,7 +71,9 @@ Factorization<ValueType, IndexType>::unpack() const
             exec, size, array<value_type>{exec, u_nnz},
             array<index_type>{exec, u_nnz}, std::move(u_row_ptrs));
         // fill matrices
-        exec->run(make_initialize_l_u(mtx.get(), l_mtx.get(), u_mtx.get()));
+        exec->run(make_initialize_l_u(mtx->get_const_device_view(),
+                                      l_mtx->get_device_view(),
+                                      u_mtx->get_device_view()));
         return create_from_composition(
             composition_type::create(std::move(l_mtx), std::move(u_mtx)));
     }
@@ -68,7 +81,8 @@ Factorization<ValueType, IndexType>::unpack() const
         // count nonzeros
         array<index_type> l_row_ptrs{exec, size[0] + 1};
         const auto mtx = this->get_combined();
-        exec->run(make_initialize_row_ptrs_l(mtx.get(), l_row_ptrs.get_data()));
+        exec->run(make_initialize_row_ptrs_l(mtx->get_const_device_view(),
+                                             l_row_ptrs.get_data()));
         const auto l_nnz =
             static_cast<size_type>(get_element(l_row_ptrs, size[0]));
         // create matrices
@@ -76,7 +90,8 @@ Factorization<ValueType, IndexType>::unpack() const
             exec, size, array<value_type>{exec, l_nnz},
             array<index_type>{exec, l_nnz}, std::move(l_row_ptrs));
         // fill matrices
-        exec->run(make_initialize_l(mtx.get(), l_mtx.get(), false));
+        exec->run(make_initialize_l(mtx->get_const_device_view(),
+                                    l_mtx->get_device_view(), false));
         auto u_mtx = l_mtx->conj_transpose();
         return create_from_symm_composition(
             composition_type::create(std::move(l_mtx), std::move(u_mtx)));
@@ -202,7 +217,7 @@ Factorization<ValueType, IndexType>&
 Factorization<ValueType, IndexType>::operator=(const Factorization& fact)
 {
     if (this != &fact) {
-        EnableLinOp<Factorization<ValueType, IndexType>>::operator=(fact);
+        LinOp::operator=(fact);
         storage_type_ = fact.storage_type_;
         *factors_ = *fact.factors_;
     }
@@ -215,13 +230,15 @@ Factorization<ValueType, IndexType>&
 Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
 {
     if (this != &fact) {
-        EnableLinOp<Factorization<ValueType, IndexType>>::operator=(
-            std::move(fact));
+        LinOp::operator=(std::move(fact));
         storage_type_ = std::exchange(fact.storage_type_, storage_type::empty);
-        factors_ =
-            std::exchange(fact.factors_, fact.factors_->create_default());
+        factors_ = std::exchange(
+            fact.factors_,
+            Composition<ValueType>::create(fact.factors_->get_executor()));
         if (factors_->get_executor() != this->get_executor()) {
-            factors_ = factors_->clone(this->get_executor());
+            // It should be failed as Composition is not cloneable currently but
+            // factorization is not clonenable, either.
+            factors_ = clone(this->get_executor(), factors_);
         }
     }
     return *this;
@@ -231,7 +248,7 @@ Factorization<ValueType, IndexType>::operator=(Factorization&& fact)
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{exec},
+    : LinOp{exec},
       storage_type_{storage_type::empty},
       factors_{Composition<ValueType>::create(exec)}
 {}
@@ -240,8 +257,7 @@ Factorization<ValueType, IndexType>::Factorization(
 template <typename ValueType, typename IndexType>
 Factorization<ValueType, IndexType>::Factorization(
     std::unique_ptr<Composition<ValueType>> factors, storage_type type)
-    : EnableLinOp<Factorization<ValueType, IndexType>>{factors->get_executor(),
-                                                       factors->get_size()},
+    : LinOp{factors->get_executor(), factors->get_size()},
       storage_type_{type},
       factors_{std::move(factors)}
 {}

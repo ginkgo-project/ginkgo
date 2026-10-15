@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -106,7 +106,8 @@ ScalarCacheAccessor::get_scalars(const ScalarCache& cache)
 
 ScalarCache::ScalarCache(std::shared_ptr<const Executor> executor,
                          double scalar_value)
-    : exec(std::move(executor)), value(scalar_value){};
+    : exec(std::move(executor)), value(scalar_value)
+{}
 
 ScalarCache::ScalarCache(const ScalarCache& other) { *this = other; }
 
@@ -153,16 +154,18 @@ std::shared_ptr<const matrix::Dense<ValueType>> ScalarCache::get() const
 }
 
 
-#define GKO_DECLARE_DENSE_CACHE(_type) struct DenseCache<_type>
+#define GKO_DECLARE_DENSE_CACHE(ValueType) struct DenseCache<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_CACHE);
 
-#define GKO_DECLARE_GENERIC_DENSE_CACHE_GET(_type)                       \
-    std::shared_ptr<matrix::Dense<_type>> GenericDenseCache::get<_type>( \
-        std::shared_ptr<const Executor>, dim<2>) const
+#define GKO_DECLARE_GENERIC_DENSE_CACHE_GET(ValueType)                         \
+    std::shared_ptr<matrix::Dense<ValueType>>                                  \
+    GenericDenseCache::get<ValueType>(std::shared_ptr<const Executor>, dim<2>) \
+        const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GENERIC_DENSE_CACHE_GET);
 
-#define GKO_DECLARE_SCALAR_CACHE_GET(_type) \
-    std::shared_ptr<const matrix::Dense<_type>> ScalarCache::get<_type>() const
+#define GKO_DECLARE_SCALAR_CACHE_GET(ValueType)     \
+    std::shared_ptr<const matrix::Dense<ValueType>> \
+    ScalarCache::get<ValueType>() const
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_SCALAR_CACHE_GET);
 
 

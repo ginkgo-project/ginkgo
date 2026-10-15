@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -66,6 +66,15 @@ public:
 
     [[nodiscard]] std::unique_ptr<CollectiveCommunicator> create_with_same_type(
         communicator base, index_map_ptr imap) const override;
+
+    /**
+     * @copydoc CollectiveCommunicator::resize
+     */
+    [[nodiscard]] std::pair<std::unique_ptr<CollectiveCommunicator>,
+                            std::vector<comm_index_type>>
+    resize(std::shared_ptr<const Executor> exec,
+           const std::vector<comm_index_type>& send_factors) const override;
+
 
     /**
      * Creates the inverse DenseCommunicator by switching sources

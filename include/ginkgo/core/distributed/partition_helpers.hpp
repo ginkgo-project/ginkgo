@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -51,7 +51,7 @@ build_partition_from_local_range(std::shared_ptr<const Executor> exec,
  *
  * @param exec  the Executor on which the partition should be built.
  * @param comm  the communicator used to determine the global partition.
- * @param local_range the number of the locally owned indices
+ * @param local_size the number of the locally owned indices
  *
  * @return a Partition where each range has the specified local size. More
  *         specifically, if this is called on process i with local_size `s_i`,

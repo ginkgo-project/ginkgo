@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,12 +23,12 @@ public:
     template <typename ValueType, typename IndexType>
     class Configurator {
     public:
-        static typename preconditioner::Ilu<ValueType, ValueType, ReverseApply,
+        static typename preconditioner::Ilu<ValueType, ReverseApply,
                                             IndexType>::parameters_type
         parse(const pnode& config, const registry& context,
               const type_descriptor& td_for_child)
         {
-            return preconditioner::Ilu<ValueType, ValueType, ReverseApply,
+            return preconditioner::Ilu<ValueType, ReverseApply,
                                        IndexType>::parse(config, context,
                                                          td_for_child);
         }
@@ -41,15 +41,6 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Ilu>(
     const pnode& config, const registry& context, const type_descriptor& td)
 {
     auto updated = update_type(config, td);
-    if (config.get("l_solver_type_or_value_type") ||
-        config.get("u_solver_type_or_value_type")) {
-        GKO_INVALID_STATE(
-            "preconditioner::Ilu only allows value_type from "
-            "l_solver_type_or_value_type/u_solver_type_or_value_type. Please "
-            "use value_type key to set the value type used by the "
-            "preconditioner and the l_lover or u_solver key to set the solvers "
-            "used for the lower and upper triangular systems.");
-    }
     bool reverse_apply = false;
     if (auto& obj = config.get("reverse_apply")) {
         reverse_apply = obj.get_boolean();

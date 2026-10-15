@@ -131,3 +131,24 @@ keywords = {irregular matrices, GPUs, Sparse Matrix Vector Product (SpMV)}
     primaryClass={cs.MS}
 }
 ```
+
+### On the Python bindings
+
+The [pyGinkgo](https://github.com/Helmholtz-AI-Energy/pyGinkgo) Python bindings
+are described in the following reference:
+
+``` bibtex
+@inproceedings{pyginkgo-icpp-2025,
+author = {Tuteja, Keshvi and Olenik, Gregor and Mishchuk, Roman and Tsai, Yu-Hsiang and G\"{o}tz, Markus and Streit, Achim and Anzt, Hartwig and Debus, Charlotte},
+title = {{pyGinkgo: A Sparse Linear Algebra Operator Framework for Python}},
+year = {2025},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/3754598.3754648},
+doi = {10.1145/3754598.3754648},
+booktitle = {Proceedings of the 54th International Conference on Parallel Processing},
+pages = {753--763},
+location = {San Diego, CA, USA},
+series = {ICPP '25}
+}
+```

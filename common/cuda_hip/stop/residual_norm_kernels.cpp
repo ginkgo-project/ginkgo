@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,7 +21,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Residual norm stopping criterion namespace.
  * @ref resnorm
- * @ingroup resnorm
  */
 namespace residual_norm {
 
@@ -62,33 +61,32 @@ __global__ __launch_bounds__(1) void init_kernel(
 
 template <typename ValueType>
 void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Dense<ValueType>* tau,
-                   const matrix::Dense<ValueType>* orig_tau,
+                   matrix::view::dense<const ValueType> tau,
+                   matrix::view::dense<const ValueType> orig_tau,
                    ValueType rel_residual_goal, uint8 stoppingId,
-                   bool setFinalized, array<stopping_status>* stop_status,
-                   array<bool>* device_storage, bool* all_converged,
+                   bool setFinalized, array<stopping_status>& stop_status,
+                   array<bool>& device_storage, bool* all_converged,
                    bool* one_changed)
 {
     static_assert(is_complex_s<ValueType>::value == false,
                   "ValueType must not be complex in this function!");
     init_kernel<<<1, 1, 0, exec->get_stream()>>>(
-        as_device_type(device_storage->get_data()));
+        as_device_type(device_storage.get_data()));
 
     const auto block_size = default_block_size;
-    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
+    const auto grid_size = ceildiv(tau.size[1], block_size);
 
     if (grid_size > 0) {
         residual_norm_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
-            tau->get_size()[1], as_device_type(rel_residual_goal),
-            as_device_type(tau->get_const_values()),
-            as_device_type(orig_tau->get_const_values()), stoppingId,
-            setFinalized, as_device_type(stop_status->get_data()),
-            as_device_type(device_storage->get_data()));
+            tau.size[1], as_device_type(rel_residual_goal),
+            as_device_type(tau.values), as_device_type(orig_tau.values),
+            stoppingId, setFinalized, as_device_type(stop_status.get_data()),
+            as_device_type(device_storage.get_data()));
     }
 
     /* Represents all_converged, one_changed */
-    *all_converged = get_element(*device_storage, 0);
-    *one_changed = get_element(*device_storage, 1);
+    *all_converged = get_element(device_storage, 0);
+    *one_changed = get_element(device_storage, 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
@@ -101,7 +99,6 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
 /**
  * @brief The Implicit Residual norm stopping criterion.
  * @ref implicit_resnorm
- * @ingroup resnorm
  */
 namespace implicit_residual_norm {
 
@@ -144,31 +141,30 @@ __global__ __launch_bounds__(1) void init_kernel(
 template <typename ValueType>
 void implicit_residual_norm(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Dense<ValueType>* tau,
-    const matrix::Dense<remove_complex<ValueType>>* orig_tau,
+    matrix::view::dense<const ValueType> tau,
+    matrix::view::dense<const remove_complex<ValueType>> orig_tau,
     remove_complex<ValueType> rel_residual_goal, uint8 stoppingId,
-    bool setFinalized, array<stopping_status>* stop_status,
-    array<bool>* device_storage, bool* all_converged, bool* one_changed)
+    bool setFinalized, array<stopping_status>& stop_status,
+    array<bool>& device_storage, bool* all_converged, bool* one_changed)
 {
     init_kernel<<<1, 1, 0, exec->get_stream()>>>(
-        as_device_type(device_storage->get_data()));
+        as_device_type(device_storage.get_data()));
 
     const auto block_size = default_block_size;
-    const auto grid_size = ceildiv(tau->get_size()[1], block_size);
+    const auto grid_size = ceildiv(tau.size[1], block_size);
 
     if (grid_size > 0) {
         implicit_residual_norm_kernel<<<grid_size, block_size, 0,
                                         exec->get_stream()>>>(
-            tau->get_size()[1], as_device_type(rel_residual_goal),
-            as_device_type(tau->get_const_values()),
-            as_device_type(orig_tau->get_const_values()), stoppingId,
-            setFinalized, as_device_type(stop_status->get_data()),
-            as_device_type(device_storage->get_data()));
+            tau.size[1], as_device_type(rel_residual_goal),
+            as_device_type(tau.values), as_device_type(orig_tau.values),
+            stoppingId, setFinalized, as_device_type(stop_status.get_data()),
+            as_device_type(device_storage.get_data()));
     }
 
     /* Represents all_converged, one_changed */
-    *all_converged = get_element(*device_storage, 0);
-    *one_changed = get_element(*device_storage, 1);
+    *all_converged = get_element(device_storage, 0);
+    *one_changed = get_element(device_storage, 1);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IMPLICIT_RESIDUAL_NORM_KERNEL);

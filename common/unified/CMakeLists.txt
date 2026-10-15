@@ -4,6 +4,7 @@ set(UNIFIED_SOURCES
     components/absolute_array_kernels.cpp
     components/fill_array_kernels.cpp
     components/format_conversion_kernels.cpp
+    components/gather_kernels.cpp
     components/precision_conversion_kernels.cpp
     components/range_minimum_query_kernels.cpp
     components/reduce_array_kernels.cpp
@@ -20,6 +21,9 @@ set(UNIFIED_SOURCES
     matrix/sparsity_csr_kernels.cpp
     matrix/diagonal_kernels.cpp
     multigrid/pgm_kernels.cpp
+    multigrid/pmis_kernels.cpp
+    multigrid/rs_kernels.cpp
+    multigrid/uniform_coarsening_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp
@@ -33,6 +37,7 @@ set(UNIFIED_SOURCES
     solver/gmres_kernels.cpp
     solver/ir_kernels.cpp
     solver/minres_kernels.cpp
+    solver/nullspace_kernels.cpp
 )
 list(TRANSFORM UNIFIED_SOURCES PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 set(GKO_UNIFIED_COMMON_SOURCES ${UNIFIED_SOURCES} PARENT_SCOPE)

@@ -1,21 +1,15 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <hip/hip_runtime.h>
-
-#include <ginkgo/core/matrix/fft.hpp>
-#if HIP_VERSION >= 50200000
 #include <hipfft/hipfft.h>
-#else
-#include <hipfft.h>
-#endif
-
 
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/matrix/fft.hpp>
 
 
 // since hipFFT is optional, we test the exception behavior here

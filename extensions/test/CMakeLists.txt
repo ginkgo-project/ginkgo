@@ -6,3 +6,7 @@ if(Kokkos_FOUND)
 endif()
 
 add_subdirectory(config)
+
+if(GINKGO_BUILD_CUDA)
+    add_subdirectory(cuda)
+endif()

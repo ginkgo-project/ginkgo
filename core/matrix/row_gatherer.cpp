@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,7 +17,7 @@ namespace matrix {
 template <typename IndexType>
 RowGatherer<IndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size)
-    : EnableLinOp<RowGatherer>(exec, size), row_idxs_(exec, size[0])
+    : LinOp(exec, size), row_idxs_(exec, size[0])
 {}
 
 
@@ -25,7 +25,7 @@ template <typename IndexType>
 RowGatherer<IndexType>::RowGatherer(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size,
                                     array<index_type> row_idxs)
-    : EnableLinOp<RowGatherer>(exec, size), row_idxs_{exec, std::move(row_idxs)}
+    : LinOp(exec, size), row_idxs_{exec, std::move(row_idxs)}
 {
     GKO_ASSERT_EQ(size[0], row_idxs_.get_size());
 }
@@ -93,7 +93,7 @@ void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
 }
 
 
-#define GKO_DECLARE_ROWGATHERER_MATRIX(_type) class RowGatherer<_type>
+#define GKO_DECLARE_ROWGATHERER_MATRIX(ValueType) class RowGatherer<ValueType>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ROWGATHERER_MATRIX);
 
 

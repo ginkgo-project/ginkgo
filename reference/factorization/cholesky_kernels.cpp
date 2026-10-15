@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,13 +31,13 @@ namespace cholesky {
 
 template <typename ValueType, typename IndexType>
 void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* mtx,
+                    matrix::view::csr<const ValueType, const IndexType> mtx,
                     const factorization::elimination_forest<IndexType>& forest,
                     IndexType* row_nnz, array<IndexType>&)
 {
-    const auto num_rows = mtx->get_size()[0];
-    const auto row_ptrs = mtx->get_const_row_ptrs();
-    const auto cols = mtx->get_const_col_idxs();
+    const auto num_rows = mtx.size[0];
+    const auto row_ptrs = mtx.row_ptrs;
+    const auto cols = mtx.col_idxs;
     const auto parent = forest.parents.get_const_data();
     vector<bool> visited(num_rows, {exec});
     for (IndexType row = 0; row < num_rows; row++) {
@@ -68,15 +68,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void symbolic_factorize(
     std::shared_ptr<const DefaultExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* mtx,
+    matrix::view::csr<const ValueType, const IndexType> mtx,
     const factorization::elimination_forest<IndexType>& forest,
-    matrix::Csr<ValueType, IndexType>* l_factor, const array<IndexType>&)
+    matrix::view::csr<ValueType, IndexType> l_factor, const array<IndexType>&)
 {
-    const auto num_rows = mtx->get_size()[0];
-    const auto row_ptrs = mtx->get_const_row_ptrs();
-    const auto cols = mtx->get_const_col_idxs();
-    const auto out_row_ptrs = l_factor->get_const_row_ptrs();
-    const auto out_cols = l_factor->get_col_idxs();
+    const auto num_rows = mtx.size[0];
+    const auto row_ptrs = mtx.row_ptrs;
+    const auto cols = mtx.col_idxs;
+    const auto out_row_ptrs = l_factor.row_ptrs;
+    const auto out_cols = l_factor.col_idxs;
     const auto parent = forest.parents.get_const_data();
     vector<bool> visited(num_rows, {exec});
     for (IndexType row = 0; row < num_rows; row++) {
@@ -106,23 +106,23 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void initialize(std::shared_ptr<const DefaultExecutor> exec,
-                const matrix::Csr<ValueType, IndexType>* mtx,
+                matrix::view::csr<const ValueType, const IndexType> mtx,
                 const IndexType* factor_lookup_offsets,
                 const int64* factor_lookup_descs,
                 const int32* factor_lookup_storage, IndexType* diag_idxs,
                 IndexType* transpose_idxs,
-                matrix::Csr<ValueType, IndexType>* factors)
+                matrix::view::csr<ValueType, IndexType> factors)
 {
     lu_factorization::initialize(exec, mtx, factor_lookup_offsets,
                                  factor_lookup_descs, factor_lookup_storage,
                                  diag_idxs, factors);
     // convert to COO
-    const auto nnz = factors->get_num_stored_elements();
+    const auto nnz = factors.num_stored_elements;
     array<IndexType> row_idx_array{exec, nnz};
     const auto row_idxs = row_idx_array.get_data();
-    const auto col_idxs = factors->get_const_col_idxs();
-    components::convert_ptrs_to_idxs(exec, factors->get_const_row_ptrs(),
-                                     factors->get_size()[0], row_idxs);
+    const auto col_idxs = factors.col_idxs;
+    components::convert_ptrs_to_idxs(exec, factors.row_ptrs, factors.size[0],
+                                     row_idxs);
     components::fill_seq_array(exec, transpose_idxs, nnz);
     // compute nonzero permutation for sparse transpose
     std::sort(transpose_idxs, transpose_idxs + nnz,
@@ -144,13 +144,13 @@ void factorize_impl(std::shared_ptr<const DefaultExecutor> exec,
                     const int32* lookup_storage, const IndexType* diag_idxs,
                     const IndexType* transpose_idxs,
                     const factorization::elimination_forest<IndexType>& forest,
-                    matrix::Csr<ValueType, IndexType>* factors,
+                    matrix::view::csr<ValueType, IndexType> factors,
                     array<int>& tmp_storage)
 {
-    const auto num_rows = factors->get_size()[0];
-    const auto row_ptrs = factors->get_const_row_ptrs();
-    const auto cols = factors->get_const_col_idxs();
-    const auto vals = factors->get_values();
+    const auto num_rows = factors.size[0];
+    const auto row_ptrs = factors.row_ptrs;
+    const auto cols = factors.col_idxs;
+    const auto vals = factors.values;
     for (size_type row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
         const auto row_diag = diag_idxs[row];
@@ -200,8 +200,8 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                const int32* lookup_storage, const IndexType* diag_idxs,
                const IndexType* transpose_idxs,
                const factorization::elimination_forest<IndexType>& forest,
-               matrix::Csr<ValueType, IndexType>* factors, bool full_fillin,
-               array<int>& tmp_storage)
+               matrix::view::csr<ValueType, IndexType> factors,
+               bool full_fillin, array<int>& tmp_storage)
 {
     if (full_fillin) {
         factorize_impl<true>(exec, lookup_offsets, lookup_descs, lookup_storage,

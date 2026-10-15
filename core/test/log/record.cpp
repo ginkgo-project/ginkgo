@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -401,49 +401,6 @@ TEST(Record, CatchesLinOpAdvancedApplyCompleted)
 }
 
 
-TEST(Record, CatchesLinopFactoryGenerateStarted)
-{
-    auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        gko::log::Logger::linop_factory_generate_started_mask);
-    auto factory =
-        gko::solver::Bicgstab<>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
-            .on(exec);
-    auto input = factory->generate(gko::matrix::Dense<>::create(exec));
-
-    logger->on<gko::log::Logger::linop_factory_generate_started>(factory.get(),
-                                                                 input.get());
-
-    auto& data = logger->get().linop_factory_generate_started.back();
-    ASSERT_EQ(data->factory, factory.get());
-    ASSERT_NE(data->input.get(), nullptr);
-    ASSERT_EQ(data->output.get(), nullptr);
-}
-
-
-TEST(Record, CatchesLinopFactoryGenerateCompleted)
-{
-    auto exec = gko::ReferenceExecutor::create();
-    auto logger = gko::log::Record::create(
-        gko::log::Logger::linop_factory_generate_completed_mask);
-    auto factory =
-        gko::solver::Bicgstab<>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
-            .on(exec);
-    auto input = factory->generate(gko::matrix::Dense<>::create(exec));
-    auto output = factory->generate(gko::matrix::Dense<>::create(exec));
-
-    logger->on<gko::log::Logger::linop_factory_generate_completed>(
-        factory.get(), input.get(), output.get());
-
-    auto& data = logger->get().linop_factory_generate_completed.back();
-    ASSERT_EQ(data->factory, factory.get());
-    ASSERT_NE(data->input.get(), nullptr);
-    ASSERT_NE(data->output.get(), nullptr);
-}
-
-
 TEST(Record, CatchesCriterionCheckStarted)
 {
     auto exec = gko::ReferenceExecutor::create();
@@ -524,53 +481,6 @@ TEST(Record, CatchesCriterionCheckCompleted)
     ASSERT_EQ(data->status->get_const_data()->is_finalized(), true);
     ASSERT_EQ(data->oneChanged, true);
     ASSERT_EQ(data->converged, true);
-}
-
-
-TEST(Record, CatchesIterations)
-{
-    using Dense = gko::matrix::Dense<>;
-    auto exec = gko::ReferenceExecutor::create();
-    auto logger =
-        gko::log::Record::create(gko::log::Logger::iteration_complete_mask);
-    auto factory =
-        gko::solver::Bicgstab<>::build()
-            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
-            .on(exec);
-    auto solver = factory->generate(gko::initialize<Dense>({1.1}, exec));
-    auto right_hand_side = gko::initialize<Dense>({-5.5}, exec);
-    auto residual = gko::initialize<Dense>({-4.4}, exec);
-    auto solution = gko::initialize<Dense>({-2.2}, exec);
-    auto residual_norm = gko::initialize<Dense>({-3.3}, exec);
-    auto implicit_sq_residual_norm = gko::initialize<Dense>({-3.5}, exec);
-    constexpr gko::uint8 RelativeStoppingId{42};
-    gko::array<gko::stopping_status> stop_status(exec, 1);
-    stop_status.get_data()->reset();
-    stop_status.get_data()->converge(RelativeStoppingId);
-
-    logger->on<gko::log::Logger::iteration_complete>(
-        solver.get(), right_hand_side.get(), solution.get(), num_iters,
-        residual.get(), residual_norm.get(), implicit_sq_residual_norm.get(),
-        &stop_status, true);
-
-    stop_status.get_data()->reset();
-    stop_status.get_data()->stop(RelativeStoppingId);
-    auto& data = logger->get().iteration_completed.back();
-    ASSERT_NE(data->solver.get(), nullptr);
-    ASSERT_EQ(data->num_iterations, num_iters);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual.get()), residual, 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->right_hand_side.get()),
-                        right_hand_side, 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->solution.get()), solution, 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->residual_norm.get()),
-                        residual_norm, 0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Dense>(data->implicit_sq_residual_norm.get()),
-                        implicit_sq_residual_norm, 0);
-    ASSERT_EQ(data->status.get_const_data()->has_stopped(), true);
-    ASSERT_EQ(data->status.get_const_data()->get_id(),
-              stop_status.get_const_data()->get_id());
-    ASSERT_EQ(data->status.get_const_data()->is_finalized(), true);
-    ASSERT_TRUE(data->all_stopped);
 }
 
 

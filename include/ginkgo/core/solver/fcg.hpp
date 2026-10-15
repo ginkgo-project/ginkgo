@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -34,10 +34,29 @@ namespace solver {
  * Though this method performs very well for symmetric positive definite
  * matrices, it is in general not suitable for general matrices.
  *
- * In contrast to the standard CG based on the Polack-Ribiere formula, the
- * flexible CG uses the Fletcher-Reeves formula for creating the orthonormal
- * vectors spanning the Krylov subspace. This increases the computational cost
- * of every Krylov solver iteration but allows for non-constant preconditioners.
+ * In contrast to the standard CG, which uses the Fletcher-Reeves formula
+ * \f[
+ *   \beta_k = \frac{\langle r_k, z_k \rangle}
+ *                  {\langle r_{k-1}, z_{k-1} \rangle},
+ * \f]
+ * the flexible CG uses the Polak-Ribière formula
+ * \f[
+ *   \beta_k = \frac{\langle r_k - r_{k-1}, z_k \rangle}
+ *                  {\langle r_{k-1}, z_{k-1} \rangle}
+ * \f]
+ * for the next search direction. In CG the denominator
+ * \f$ \langle r_{k-1}, z_{k-1} \rangle \f$ is exactly the numerator that
+ * the previous iteration already computed, so a single dot product per
+ * iteration is enough. FCG still needs \f$ \langle r_k, z_k \rangle \f$
+ * as the denominator of the next iteration, and has to compute
+ * \f$ \langle r_k - r_{k-1}, z_k \rangle \f$ on top of it — one extra dot
+ * product, and therefore one extra global reduction, per iteration.
+ *
+ * In exchange, \f$ \beta_k \f$ no longer relies on the search directions
+ * staying \f$ A \f$-conjugate, so the preconditioner \f$ M \f$ (and
+ * therefore \f$ z = M r \f$) may change between iterations — useful when
+ * the preconditioner is itself an inner iterative solve, a randomized
+ * smoother, or otherwise not a fixed linear operator.
  *
  * The implementation in Ginkgo makes use of the merged kernel to make the best
  * use of data locality. The inner operations in one iteration of FCG are
@@ -50,11 +69,9 @@ namespace solver {
  */
 template <typename ValueType = default_precision>
 class Fcg
-    : public EnableLinOp<Fcg<ValueType>>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType, Fcg<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Fcg>;
-    friend class EnablePolymorphicObject<Fcg, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -108,18 +125,25 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Fcg(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Fcg>(std::move(exec))
+    explicit Fcg(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Fcg(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Fcg>(factory->get_executor(),
-                           gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Fcg<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
+};
+
+
+template <typename ValueType>
+struct nullspace_traits<Fcg<ValueType>> {
+    static constexpr bool is_supported = true;
+    static constexpr bool requires_hermitian = true;
+    static constexpr bool two_sided_projection = false;
 };
 
 
@@ -161,6 +185,8 @@ struct workspace_traits<Fcg<ValueType>> {
     constexpr static int one = 9;
     // constant -1.0 scalar
     constexpr static int minus_one = 10;
+    // right-hand side projected onto the range of the system matrix
+    constexpr static int proj_rhs = 11;
 
     // stopping status array
     constexpr static int stop = 0;

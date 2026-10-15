@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -40,12 +40,12 @@ namespace matrix {
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @ingroup batch_dense
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
+class Dense final : public BatchLinOp,
+                    public EnableCloneable<Dense<ValueType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
                     public ConvertibleTo<Dense<next_precision<ValueType, 2>>>,
 #endif
@@ -53,14 +53,14 @@ class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
                     public ConvertibleTo<Dense<next_precision<ValueType, 3>>>,
 #endif
                     public ConvertibleTo<Dense<next_precision<ValueType>>> {
-    friend class EnablePolymorphicObject<Dense, BatchLinOp>;
+    friend class EnableCloneable<Dense>;
     friend class Dense<to_complex<ValueType>>;
     friend class Dense<previous_precision<ValueType>>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableBatchLinOp<Dense>::convert_to;
-    using EnableBatchLinOp<Dense>::move_to;
+    using EnableCloneable<Dense>::convert_to;
+    using EnableCloneable<Dense>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
@@ -191,7 +191,7 @@ public:
     }
 
     /**
-     * @copydoc Dense::at(size_type, size_type, size_type)
+     * @copydoc Dense::at(size_type, size_type)
      */
     ValueType at(size_type batch_id, size_type idx) const noexcept
     {
@@ -299,7 +299,7 @@ public:
      * array.
      *
      * @param exec  the executor to create the matrix on
-     * @param size  the dimensions of the matrix
+     * @param sizes  the dimensions of the matrix
      * @param values  the value array of the matrix
      *
      * @return A smart pointer to the constant matrix wrapping the input
@@ -319,8 +319,8 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    Dense* apply(ptr_param<const MultiVector<value_type>> b,
-                 ptr_param<MultiVector<value_type>> x);
+    void apply(ptr_param<const MultiVector<value_type>> b,
+               ptr_param<MultiVector<value_type>> x);
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
@@ -332,26 +332,26 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    Dense* apply(ptr_param<const MultiVector<value_type>> alpha,
-                 ptr_param<const MultiVector<value_type>> b,
-                 ptr_param<const MultiVector<value_type>> beta,
-                 ptr_param<MultiVector<value_type>> x);
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
+               ptr_param<const MultiVector<value_type>> b,
+               ptr_param<const MultiVector<value_type>> beta,
+               ptr_param<MultiVector<value_type>> x);
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
-    const Dense* apply(ptr_param<const MultiVector<value_type>> b,
-                       ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> b,
+               ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, const
      * MultiVector<value_type>*, const MultiVector<value_type>*,
      * MultiVector<value_type>*)
      */
-    const Dense* apply(ptr_param<const MultiVector<value_type>> alpha,
-                       ptr_param<const MultiVector<value_type>> b,
-                       ptr_param<const MultiVector<value_type>> beta,
-                       ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
+               ptr_param<const MultiVector<value_type>> b,
+               ptr_param<const MultiVector<value_type>> beta,
+               ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * Performs in-place row and column scaling for this matrix.

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -127,12 +127,17 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // prev_rho = alpha = beta = gamma = 1.0
     // p = q = u = u_hat = v_hat = t = 0
     exec->run(cgs::make_initialize(
-        gko::detail::get_local(dense_b), gko::detail::get_local(r),
-        gko::detail::get_local(r_tld), gko::detail::get_local(p),
-        gko::detail::get_local(q), gko::detail::get_local(u),
-        gko::detail::get_local(u_hat), gko::detail::get_local(v_hat),
-        gko::detail::get_local(t), alpha, beta, gamma, prev_rho, rho,
-        &stop_status));
+        gko::detail::get_local(dense_b)->get_const_device_view(),
+        gko::detail::get_local(r)->get_device_view(),
+        gko::detail::get_local(r_tld)->get_device_view(),
+        gko::detail::get_local(p)->get_device_view(),
+        gko::detail::get_local(q)->get_device_view(),
+        gko::detail::get_local(u)->get_device_view(),
+        gko::detail::get_local(u_hat)->get_device_view(),
+        gko::detail::get_local(v_hat)->get_device_view(),
+        gko::detail::get_local(t)->get_device_view(), alpha->get_device_view(),
+        beta->get_device_view(), gamma->get_device_view(),
+        prev_rho->get_device_view(), rho->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
@@ -173,9 +178,12 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // u = r + beta * q
         // p = u + beta * ( q + beta * p )
         exec->run(cgs::make_step_1(
-            gko::detail::get_local(r), gko::detail::get_local(u),
-            gko::detail::get_local(p), gko::detail::get_local(q), beta, rho,
-            prev_rho, &stop_status));
+            gko::detail::get_local(r)->get_const_device_view(),
+            gko::detail::get_local(u)->get_device_view(),
+            gko::detail::get_local(p)->get_device_view(),
+            gko::detail::get_local(q)->get_const_device_view(),
+            beta->get_device_view(), rho->get_const_device_view(),
+            prev_rho->get_const_device_view(), stop_status));
         this->get_preconditioner()->apply(p, t);
         this->get_system_matrix()->apply(t, v_hat);
         r_tld->compute_conj_dot(v_hat, gamma, reduction_tmp);
@@ -183,18 +191,23 @@ void Cgs<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // q = u - alpha * v_hat
         // t = u + q
         exec->run(cgs::make_step_2(
-            gko::detail::get_local(u), gko::detail::get_local(v_hat),
-            gko::detail::get_local(q), gko::detail::get_local(t), alpha, rho,
-            gamma, &stop_status));
+            gko::detail::get_local(u)->get_const_device_view(),
+            gko::detail::get_local(v_hat)->get_const_device_view(),
+            gko::detail::get_local(q)->get_device_view(),
+            gko::detail::get_local(t)->get_device_view(),
+            alpha->get_device_view(), rho->get_const_device_view(),
+            gamma->get_const_device_view(), stop_status));
 
         this->get_preconditioner()->apply(t, u_hat);
         this->get_system_matrix()->apply(u_hat, t);
         // r = r - alpha * t
         // x = x + alpha * u_hat
         exec->run(cgs::make_step_3(
-            gko::detail::get_local(t), gko::detail::get_local(u_hat),
-            gko::detail::get_local(r), gko::detail::get_local(dense_x), alpha,
-            &stop_status));
+            gko::detail::get_local(t)->get_const_device_view(),
+            gko::detail::get_local(u_hat)->get_const_device_view(),
+            gko::detail::get_local(r)->get_device_view(),
+            gko::detail::get_local(dense_x)->get_device_view(),
+            alpha->get_const_device_view(), stop_status));
 
         swap(prev_rho, rho);
     }
@@ -266,8 +279,9 @@ std::vector<int> workspace_traits<Cgs<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_CGS(_type) class Cgs<_type>
-#define GKO_DECLARE_CGS_TRAITS(_type) struct workspace_traits<Cgs<_type>>
+#define GKO_DECLARE_CGS(ValueType) class Cgs<ValueType>
+#define GKO_DECLARE_CGS_TRAITS(ValueType) \
+    struct workspace_traits<Cgs<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_TRAITS);
 

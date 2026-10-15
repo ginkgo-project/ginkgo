@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,7 +37,7 @@ namespace solver {
 /**
  * @brief The solver multigrid namespace.
  *
- * @ingroup solver
+ * @ingroup solvers
  */
 namespace multigrid {
 
@@ -45,11 +45,13 @@ namespace multigrid {
 /**
  * cycle defines which kind of multigrid cycle can be used.
  * It contains V, W, and F cycle.
- * - V, W cycle uses the algorithm according to Briggs, Henson, and McCormick: A
- *   multigrid tutorial 2nd Edition.
- * - F cycle uses the algorithm according to Trottenberg, Oosterlee, and
- *   Schuller: Multigrid 1st Edition. F cycle first uses the recursive call but
- *   second uses the V-cycle call such that F-cycle is between V and W cycle.
+ * - V, W cycles use the algorithm from Briggs–Henson–McCormick
+ *   (*A Multigrid Tutorial*, 2nd ed., SIAM 2000).
+ * - F cycle uses the algorithm from Trottenberg–Oosterlee–Schüller
+ *   (*Multigrid*, 1st ed., Academic Press 2001); F-cycle first does the
+ *   recursive call then a V-cycle call, sitting between V and W in cost.
+ *
+ * See the @ref Multigrid class for the full reference list with DOIs.
  */
 enum class cycle { v, f, w };
 
@@ -82,34 +84,74 @@ class MultigridState;
 
 
 /**
- * Multigrid methods have a hierarchy of many levels, whose corase level is a
- * subset of the fine level, of the problem. The coarse level solves the system
- * on the residual of fine level and fine level will use the coarse solution to
- * correct its own result. Multigrid solves the problem by relatively cheap step
- * in each level and refining the result when prolongating back.
+ * Multigrid solves a linear system by combining cheap iterative sweeps
+ * (smoothers) on a hierarchy of progressively coarser representations of
+ * the operator with corrections transferred between adjacent levels. A
+ * smoother on the fine level removes the high-frequency components of the
+ * error quickly; the remaining low-frequency error is well-resolved on a
+ * coarser space, where it is computed by a cheaper solve — or, recursively,
+ * by another multigrid call. The correction is prolongated back to the
+ * fine level and a second smoothing sweep removes any high-frequency error
+ * introduced by the transfer. Because each coarser level holds only a
+ * fraction of the unknowns of the next, the total work per cycle stays
+ * close to that of a single fine-level matrix-vector apply.
  *
- * The main step of each level
- * - Presmooth (solve on the fine level)
- * - Calculate residual
- * - Restrict (reduce the problem dimension)
- * - Solve residual in next level
- * - Prolongate (return to the fine level size)
- * - Postsmooth (correct the answer in fine level)
+ * Each level \f$ \ell \f$ holds a system matrix \f$ A_\ell \f$, a smoother
+ * \f$ S_\ell \f$, a restriction operator
+ * \f$ R_\ell : \mathbb{R}^{n_\ell} \to \mathbb{R}^{n_{\ell+1}} \f$ and a
+ * prolongation operator
+ * \f$ P_\ell : \mathbb{R}^{n_{\ell+1}} \to \mathbb{R}^{n_\ell} \f$. The
+ * Galerkin coarse operator is
+ * \f$ A_{\ell+1} = R_\ell A_\ell P_\ell \f$. One V-cycle step at
+ * level \f$ \ell \f$ on a fine-level system \f$ A_\ell x = b \f$ is:
+ *
+ * \f[
+ *   \begin{aligned}
+ *     x &\leftarrow x + S_\ell^{\mathrm{pre}}(b - A_\ell x)
+ *       && \text{(pre-smooth)}, \\
+ *     r_{\ell+1} &= R_\ell (b - A_\ell x)
+ *       && \text{(restrict)}, \\
+ *     e_{\ell+1} &\approx A_{\ell+1}^{-1} r_{\ell+1}
+ *       && \text{(recursive coarse solve)}, \\
+ *     x &\leftarrow x + P_\ell e_{\ell+1}
+ *       && \text{(prolongate and correct)}, \\
+ *     x &\leftarrow x + S_\ell^{\mathrm{post}}(b - A_\ell x)
+ *       && \text{(post-smooth)}.
+ *   \end{aligned}
+ * \f]
+ *
+ * At the coarsest level the recursive call is replaced by a direct or
+ * iterative coarse solver. W- and F-cycles differ from V only in how
+ * many recursive coarse-solves are performed per level (see the
+ * `cycle` enum above).
  *
  * Ginkgo uses the index from 0 for finest level (original problem size) ~ N for
  * the coarsest level (the coarsest solver), and its level counts is N (N
  * multigrid level generation).
  *
+ * @par References
+ * - Briggs, W. L., Henson, V. E., McCormick, S. F.
+ *   *A %Multigrid Tutorial.* 2nd ed. SIAM, 2000.
+ *   <https://doi.org/10.1137/1.9780898719505>
+ * - Trottenberg, U., Oosterlee, C. W., Schüller, A.
+ *   *%Multigrid.* 1st ed. Academic Press, 2001. ISBN 978-0-12-701070-0.
+ *
+ * The factory supports LinOpFactory::generate_reuse(): the recorded
+ * hierarchy is reused as long as its levels reproduce their coarse sizes,
+ * and levels, smoothers and the coarsest solver are generated through their
+ * own generate_reuse(). Below the first level that comes out different,
+ * everything is generated anew. Levels such as Pgm keep choices made from the
+ * values of the first matrix, so it should be representative of the later
+ * ones.
+ *
  * @ingroup Multigrid
  * @ingroup solvers
  * @ingroup LinOp
  */
-class Multigrid : public EnableLinOp<Multigrid>,
+class Multigrid : public LinOp,
                   public EnableSolverBase<Multigrid>,
                   public EnableIterativeBase<Multigrid>,
                   public EnableApplyWithInitialGuess<Multigrid> {
-    friend class EnableLinOp<Multigrid>;
-    friend class EnablePolymorphicObject<Multigrid, LinOp>;
     friend class EnableApplyWithInitialGuess<Multigrid>;
 
 public:
@@ -378,8 +420,33 @@ public:
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::zero);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Multigrid, parameters, Factory);
+    class reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Multigrid, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Records the hierarchy of generate_reuse() and the reuse data of its
+     * levels, smoothers and coarsest solver.
+     */
+    class reuse_data_type : public LinOpFactory::ReuseData {
+        friend class Multigrid;
+
+        struct level_data {
+            size_type index{};
+            dim<2> coarse_size{};
+            std::unique_ptr<LinOpFactory::ReuseData> level;
+            std::unique_ptr<LinOpFactory::ReuseData> pre_smoother;
+            std::unique_ptr<LinOpFactory::ReuseData> mid_smoother;
+            std::unique_ptr<LinOpFactory::ReuseData> post_smoother;
+        };
+
+        bool initialized_ = false;
+        dim<2> size_{};
+        std::vector<level_data> levels_;
+        size_type coarsest_index_{};
+        std::unique_ptr<LinOpFactory::ReuseData> coarsest_solver_;
+    };
 
     /**
      * Create the parameters from the property_tree.
@@ -418,15 +485,75 @@ protected:
                           initial_guess_mode guess) const;
 
     /**
-     * Generates the analysis structure from the system matrix and the right
-     * hand side needed for the level solver.
+     * Generates the hierarchy, its smoothers and the coarsest solver. With
+     * reuse_data, every component goes through generate_reuse(), recorded
+     * levels are reused while they reproduce their coarse sizes, and
+     * reuse_data is updated once everything succeeded.
+     *
+     * @param reuse_data  the reuse data, or nullptr for a plain generation
      */
-    void generate();
+    void generate(reuse_data_type* reuse_data);
+
+    /**
+     * Generates the smoothers of one level and appends them to the given
+     * lists.
+     *
+     * @param mg_level  the level to generate the smoothers for
+     * @param index  the index into the smoother lists of the parameters, as
+     *               returned by the level selector
+     * @param pre_smoother_list  the list the pre smoother is appended to
+     * @param mid_smoother_list  the list the mid smoother is appended to, if
+     *                           the mid smoother is standalone
+     * @param post_smoother_list  the list the post smoother is appended to,
+     *                            unless the post smoother reuses the pre one
+     * @param level_reuse  the reuse data of the level, or nullptr
+     */
+    void generate_smoothers(
+        std::shared_ptr<const gko::multigrid::MultigridLevel> mg_level,
+        size_type index,
+        std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
+        std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
+        std::vector<std::shared_ptr<const LinOp>>& post_smoother_list,
+        reuse_data_type::level_data* level_reuse);
+
+    /**
+     * Generates the solver for the coarsest level.
+     *
+     * @param last_mg_level  the coarsest level, which gives the value type to
+     *                       dispatch on
+     * @param level  the number of levels, passed to the solver selector
+     * @param matrix  the coarsest operator
+     * @param reuse_data  the reuse data slot of the coarsest solver, or
+     *                    nullptr
+     * @param recorded_index  if given, the coarsest solver index to use
+     *                        instead of asking the solver selector
+     * @param selected_index  receives the coarsest solver index used
+     *
+     * @return the coarsest solver
+     */
+    std::unique_ptr<LinOp> generate_coarsest_solver(
+        std::shared_ptr<const gko::multigrid::MultigridLevel> last_mg_level,
+        size_type level, std::shared_ptr<const LinOp> matrix,
+        std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
+        const size_type* recorded_index, size_type* selected_index);
 
     explicit Multigrid(std::shared_ptr<const Executor> exec);
 
     explicit Multigrid(const Factory* factory,
                        std::shared_ptr<const LinOp> system_matrix);
+
+    Multigrid(const Factory* factory,
+              std::shared_ptr<const LinOp> system_matrix,
+              reuse_data_type& reuse_data);
+
+    Multigrid(const Factory* factory,
+              std::shared_ptr<const LinOp> system_matrix,
+              reuse_data_type* reuse_data);
+
+    /** Throws if `input` can't be used with `reuse_data`. */
+    static void check_reuse_consistent(const Factory* factory,
+                                       const LinOp* input,
+                                       const reuse_data_type& reuse_data);
 
     /**
      * validate checks the given parameters are valid or not.

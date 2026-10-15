@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -115,7 +115,7 @@ template <typename ValueType, typename IndexType>
 Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                const batch_dim<2>& size,
                                IndexType num_elems_per_row)
-    : EnableBatchLinOp<Ell<ValueType, IndexType>>(exec, size),
+    : BatchLinOp(exec, size),
       num_elems_per_row_(num_elems_per_row == 0 ? size.get_common_size()[1]
                                                 : num_elems_per_row),
       values_(exec, compute_num_elems(size, num_elems_per_row_)),
@@ -129,7 +129,7 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
                                const IndexType num_elems_per_row,
                                array<value_type> values,
                                array<index_type> col_idxs)
-    : EnableBatchLinOp<Ell>(exec, size),
+    : BatchLinOp(exec, size),
       num_elems_per_row_{num_elems_per_row},
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)}
@@ -143,33 +143,29 @@ Ell<ValueType, IndexType>::Ell(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-Ell<ValueType, IndexType>* Ell<ValueType, IndexType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x)
+void Ell<ValueType, IndexType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                                      ptr_param<MultiVector<ValueType>> x)
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply_impl(make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const Ell<ValueType, IndexType>* Ell<ValueType, IndexType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x) const
+void Ell<ValueType, IndexType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                                      ptr_param<MultiVector<ValueType>> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply_impl(make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-Ell<ValueType, IndexType>* Ell<ValueType, IndexType>::apply(
+void Ell<ValueType, IndexType>::apply(
     ptr_param<const MultiVector<ValueType>> alpha,
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<const MultiVector<ValueType>> beta,
@@ -182,12 +178,11 @@ Ell<ValueType, IndexType>* Ell<ValueType, IndexType>::apply(
                      make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, beta).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const Ell<ValueType, IndexType>* Ell<ValueType, IndexType>::apply(
+void Ell<ValueType, IndexType>::apply(
     ptr_param<const MultiVector<ValueType>> alpha,
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<const MultiVector<ValueType>> beta,
@@ -200,7 +195,6 @@ const Ell<ValueType, IndexType>* Ell<ValueType, IndexType>::apply(
                      make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, beta).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
@@ -253,7 +247,8 @@ void Ell<ValueType, IndexType>::add_scaled_identity(
     this->create_const_view_for_item(0)->convert_to(csr_mat);
 
     bool has_all_diags{false};
-    exec->run(ell::make_check_diagonal_entries(csr_mat.get(), has_all_diags));
+    exec->run(ell::make_check_diagonal_entries(csr_mat->get_const_device_view(),
+                                               has_all_diags));
     if (!has_all_diags) {
         GKO_UNSUPPORTED_MATRIX_PROPERTY(
             "The matrix is missing one or more diagonal entries!");

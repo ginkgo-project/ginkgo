@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -77,18 +77,17 @@ namespace distributed {
  * @ingroup distributed
  */
 template <typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Partition : public EnablePolymorphicObject<
-                      Partition<LocalIndexType, GlobalIndexType>>,
-                  public EnablePolymorphicAssignment<
-                      Partition<LocalIndexType, GlobalIndexType>> {
-    friend class EnablePolymorphicObject<Partition>;
+class Partition
+    : public PolymorphicObject,
+      public EnableCloneable<Partition<LocalIndexType, GlobalIndexType>> {
+    friend class EnableCloneable<Partition>;
     static_assert(sizeof(GlobalIndexType) >= sizeof(LocalIndexType),
                   "GlobalIndexType must be at least as large as "
                   "LocalIndexType");
 
 public:
-    using EnablePolymorphicAssignment<Partition>::convert_to;
-    using EnablePolymorphicAssignment<Partition>::move_to;
+    using EnableCloneable<Partition>::convert_to;
+    using EnableCloneable<Partition>::move_to;
 
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
@@ -117,6 +116,21 @@ public:
      * @return number of parts.
      */
     comm_index_type get_num_parts() const noexcept { return num_parts_; }
+
+    /**
+     * Checks whether this partition describes the same distribution as
+     * another one, i.e. both span the same global size and assign the same
+     * ranges to the same parts.
+     *
+     * Comparing two distinct partitions that live on a device executor
+     * requires copying their range data to the host, so this is not a cheap
+     * operation. Comparing a partition with itself is free.
+     *
+     * @param other  the partition to compare against.
+     *
+     * @return  true if both partitions describe the same distribution.
+     */
+    bool equals(const Partition& other) const;
 
     /**
      * Returns the number of empty parts within this partition.

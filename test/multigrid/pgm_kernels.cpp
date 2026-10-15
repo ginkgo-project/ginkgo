@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,6 +21,7 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
+#include "core/components/gather_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
@@ -204,9 +205,10 @@ TEST_F(Pgm, FindStrongestNeighborIsEquivalentToRef)
     auto d_snb = d_strongest_neighbor;
 
     gko::kernels::reference::pgm::find_strongest_neighbor(
-        ref, weight_csr.get(), weight_diag.get(), agg, snb);
+        ref, weight_csr->get_const_device_view(), weight_diag.get(), agg, snb);
     gko::kernels::GKO_DEVICE_NAMESPACE::pgm::find_strongest_neighbor(
-        exec, d_weight_csr.get(), d_weight_diag.get(), d_agg, d_snb);
+        exec, d_weight_csr->get_const_device_view(), d_weight_diag.get(), d_agg,
+        d_snb);
 
     GKO_ASSERT_ARRAY_EQ(d_snb, snb);
 }
@@ -221,9 +223,11 @@ TEST_F(Pgm, AssignToExistAggIsEquivalentToRef)
     auto d_intermediate_agg = d_x;
 
     gko::kernels::reference::pgm::assign_to_exist_agg(
-        ref, weight_csr.get(), weight_diag.get(), x, intermediate_agg);
+        ref, weight_csr->get_const_device_view(), weight_diag.get(), x,
+        intermediate_agg);
     gko::kernels::GKO_DEVICE_NAMESPACE::pgm::assign_to_exist_agg(
-        exec, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
+        exec, d_weight_csr->get_const_device_view(), d_weight_diag.get(), d_x,
+        d_intermediate_agg);
 
     GKO_ASSERT_ARRAY_EQ(d_x, x);
 }
@@ -237,7 +241,8 @@ TEST_F(Pgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
     index_type d_num_unagg;
 
     gko::kernels::GKO_DEVICE_NAMESPACE::pgm::assign_to_exist_agg(
-        exec, d_weight_csr.get(), d_weight_diag.get(), d_x, d_intermediate_agg);
+        exec, d_weight_csr->get_const_device_view(), d_weight_diag.get(), d_x,
+        d_intermediate_agg);
     gko::kernels::GKO_DEVICE_NAMESPACE::pgm::count_unagg(exec, d_agg,
                                                          &d_num_unagg);
 
@@ -246,7 +251,7 @@ TEST_F(Pgm, AssignToExistAggUnderteminsticIsEquivalentToRef)
 }
 
 
-TEST_F(Pgm, GatherIndexIsEquivalentToRef)
+TEST_F(Pgm, GatherIsEquivalentToRef)
 {
     gko::size_type num = 267;
     gko::size_type orig_num = 123;
@@ -257,10 +262,10 @@ TEST_F(Pgm, GatherIndexIsEquivalentToRef)
     gko::array<index_type> d_map(exec, map);
     gko::array<index_type> d_result(exec, result);
 
-    gko::kernels::reference::pgm::gather_index(ref, num, orig.get_const_data(),
-                                               map.get_const_data(),
-                                               result.get_data());
-    gko::kernels::GKO_DEVICE_NAMESPACE::pgm::gather_index(
+    gko::kernels::reference::components::gather(ref, num, orig.get_const_data(),
+                                                map.get_const_data(),
+                                                result.get_data());
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::gather(
         exec, num, d_orig.get_const_data(), d_map.get_const_data(),
         d_result.get_data());
 
@@ -331,4 +336,40 @@ TEST_F(Pgm, GenerateMgLevelIsEquivalentToRefOnUnsortedMatrix)
                         gko::as<Csr>(mg_level->get_coarse_op()),
                         r<value_type>::value);
     GKO_ASSERT_ARRAY_EQ(d_row_gather_view, row_gather_view);
+}
+
+
+TEST_F(Pgm, GenerateReuseIsEquivalentToRef)
+{
+    initialize_data();
+    gko::test::unsort_matrix(system_mtx, rand_engine);
+    d_system_mtx = gko::clone(exec, system_mtx);
+    auto factory = gko::multigrid::Pgm<value_type, int>::build()
+                       .with_deterministic(true)
+                       .on(ref);
+    auto d_factory = gko::multigrid::Pgm<value_type, int>::build()
+                         .with_deterministic(true)
+                         .on(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto d_reuse_data = d_factory->create_empty_reuse_data();
+    factory->generate_reuse(system_mtx, *reuse_data);
+    d_factory->generate_reuse(d_system_mtx, *d_reuse_data);
+    // scaled values, then new random values with the same pattern
+    auto scaled = gko::share(gko::clone(system_mtx));
+    scaled->scale(gko::initialize<Mtx>({gko::one<value_type>() * 2}, ref));
+    auto random = gko::share(gko::clone(system_mtx));
+    for (gko::size_type i = 0; i < random->get_num_stored_elements(); i++) {
+        random->get_values()[i] = gko::detail::get_rand_value<value_type>(
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+    }
+
+    for (auto matrix : {scaled, random}) {
+        auto level = factory->generate_reuse(matrix, *reuse_data);
+        auto d_level =
+            d_factory->generate_reuse(gko::clone(exec, matrix), *d_reuse_data);
+
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_level->get_coarse_op()),
+                            gko::as<Csr>(level->get_coarse_op()),
+                            r<value_type>::value);
+    }
 }

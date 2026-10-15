@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,10 +17,16 @@ namespace gko {
 cuda_stream::cuda_stream() : stream_{nullptr}, device_id_{} {}
 
 
-cuda_stream::cuda_stream(int device_id) : stream_{}, device_id_(device_id)
+cuda_stream::cuda_stream(int device_id, bool non_blocking)
+    : stream_{}, device_id_(device_id)
 {
     detail::cuda_scoped_device_id_guard g(device_id_);
-    GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamCreate(&stream_));
+    if (non_blocking) {
+        GKO_ASSERT_NO_CUDA_ERRORS(
+            cudaStreamCreateWithFlags(&stream_, cudaStreamNonBlocking));
+    } else {
+        GKO_ASSERT_NO_CUDA_ERRORS(cudaStreamCreate(&stream_));
+    }
 }
 
 

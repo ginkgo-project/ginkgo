@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -40,9 +40,9 @@ class Partition;
  * Vector is a format which explicitly stores (multiple) distributed column
  * vectors in a dense storage format.
  *
- * The (multi-)vector is distributed by row, which is described by a @see
- * Partition. The local vectors are stored using the @see Dense format. The
- * vector should be filled using the read_distributed method, e.g.
+ * The (multi-)vector is distributed by row, which is described by a
+ * Partition. The local vectors are stored using the matrix::Dense format.
+ * The vector should be filled using the read_distributed method, e.g.
  * ```
  * auto part = Partition<...>::build_from_mapping(...);
  * auto vector = Vector<...>::create(exec, comm);
@@ -58,14 +58,14 @@ class Partition;
  *
  * @tparam ValueType  The precision of vector elements.
  *
- * @ingroup dist_vector
  * @ingroup distributed
  * @ingroup mat_formats
  * @ingroup LinOp
  */
 template <typename ValueType = double>
 class Vector
-    : public EnableLinOp<Vector<ValueType>>,
+    : public LinOp,
+      public EnableCloneable<Vector<ValueType>>,
       public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
@@ -75,7 +75,7 @@ class Vector
 #endif
       public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
       public DistributedBase {
-    friend class EnablePolymorphicObject<Vector, LinOp>;
+    friend class EnableCloneable<Vector>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;
@@ -83,8 +83,8 @@ class Vector
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableLinOp<Vector>::convert_to;
-    using EnableLinOp<Vector>::move_to;
+    using EnableCloneable<Vector>::convert_to;
+    using EnableCloneable<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
@@ -161,7 +161,7 @@ public:
      * Reads a vector from the matrix_data structure and a global row
      * partition.
      *
-     * See @read_distributed
+     * See read_distributed().
      *
      * @note For efficiency it is advised to use the device_matrix_data
      * overload.
@@ -345,7 +345,7 @@ public:
                           array<char>& tmp) const;
 
     /**
-     * Computes the square of the column-wise Euclidean ($L^2$) norm of this
+     * Computes the square of the column-wise Euclidean (\f$L^2\f$) norm of this
      * (multi-)vector using a global reduction.
      *
      * @param result  a Dense row vector, used to store the norm
@@ -355,7 +355,7 @@ public:
     void compute_squared_norm2(ptr_param<LinOp> result) const;
 
     /**
-     * Computes the square of the column-wise Euclidean ($L^2$) norm of this
+     * Computes the square of the column-wise Euclidean (\f$L^2\f$) norm of this
      * (multi-)vector using a global reduction.
      *
      * @param result  a Dense row vector, used to store the norm

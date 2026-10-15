@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,7 +18,6 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Ell matrix format namespace.
  *
- * @ingroup ell
  */
 namespace ell {
 
@@ -45,7 +44,7 @@ template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          const device_matrix_data<ValueType, IndexType>& data,
                          const int64* row_ptrs,
-                         matrix::Ell<ValueType, IndexType>* output)
+                         matrix::view::ell<ValueType, IndexType> output)
 {
     run_kernel(
         exec,
@@ -61,10 +60,9 @@ void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                 out_idx += stride;
             }
         },
-        output->get_size()[0], data.get_const_col_idxs(),
-        data.get_const_values(), row_ptrs, output->get_stride(),
-        output->get_num_stored_elements_per_row(), output->get_col_idxs(),
-        output->get_values());
+        output.size[0], data.get_const_col_idxs(), data.get_const_values(),
+        row_ptrs, output.stride, output.num_stored_elements_per_row,
+        output.col_idxs, output.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -73,8 +71,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Ell<ValueType, IndexType>* source,
-                   matrix::Dense<ValueType>* result)
+                   matrix::view::ell<const ValueType, const IndexType> source,
+                   matrix::view::dense<ValueType> result)
 {
     // ELL is stored in column-major, so we swap row and column parameters
     run_kernel(
@@ -88,10 +86,9 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
                 out(row, col) = val;
             }
         },
-        dim<2>{source->get_num_stored_elements_per_row(),
-               source->get_size()[0]},
-        static_cast<int64>(source->get_stride()), source->get_const_col_idxs(),
-        source->get_const_values(), result);
+        dim<2>{source.num_stored_elements_per_row, source.size[0]},
+        static_cast<int64>(source.stride), source.col_idxs, source.values,
+        result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -100,8 +97,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void copy(std::shared_ptr<const DefaultExecutor> exec,
-          const matrix::Ell<ValueType, IndexType>* source,
-          matrix::Ell<ValueType, IndexType>* result)
+          matrix::view::ell<const ValueType, const IndexType> source,
+          matrix::view::ell<ValueType, IndexType> result)
 {
     // ELL is stored in column-major, so we swap row and column parameters
     run_kernel(
@@ -114,11 +111,9 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
             out_cols[out] = in_cols[in];
             out_vals[out] = in_vals[in];
         },
-        dim<2>{source->get_num_stored_elements_per_row(),
-               source->get_size()[0]},
-        static_cast<int64>(source->get_stride()), source->get_const_col_idxs(),
-        source->get_const_values(), static_cast<int64>(result->get_stride()),
-        result->get_col_idxs(), result->get_values());
+        dim<2>{source.num_stored_elements_per_row, source.size[0]},
+        static_cast<int64>(source.stride), source.col_idxs, source.values,
+        static_cast<int64>(result.stride), result.col_idxs, result.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_COPY_KERNEL);
@@ -126,8 +121,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_ELL_COPY_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
-                    const matrix::Ell<ValueType, IndexType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::ell<const ValueType, const IndexType> source,
+                    matrix::view::csr<ValueType, IndexType> result)
 {
     // ELL is stored in column-major, so we swap row and column parameters
     run_kernel(
@@ -143,11 +138,9 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                 out_vals[row_begin + ell_col] = in_vals[ell_idx];
             }
         },
-        dim<2>{source->get_num_stored_elements_per_row(),
-               source->get_size()[0]},
-        static_cast<int64>(source->get_stride()), source->get_const_col_idxs(),
-        source->get_const_values(), result->get_row_ptrs(),
-        result->get_col_idxs(), result->get_values());
+        dim<2>{source.num_stored_elements_per_row, source.size[0]},
+        static_cast<int64>(source.stride), source.col_idxs, source.values,
+        result.row_ptrs, result.col_idxs, result.values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -155,9 +148,10 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
-                            const matrix::Ell<ValueType, IndexType>* source,
-                            IndexType* result)
+void count_nonzeros_per_row(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::ell<const ValueType, const IndexType> source,
+    IndexType* result)
 {
     // ELL is stored in column-major, so we swap row and column parameters
     run_kernel_col_reduction(
@@ -167,9 +161,8 @@ void count_nonzeros_per_row(std::shared_ptr<const DefaultExecutor> exec,
             return in_cols[ell_idx] != invalid_index<IndexType>() ? 1 : 0;
         },
         GKO_KERNEL_REDUCE_SUM(IndexType), result,
-        dim<2>{source->get_num_stored_elements_per_row(),
-               source->get_size()[0]},
-        static_cast<int64>(source->get_stride()), source->get_const_col_idxs());
+        dim<2>{source.num_stored_elements_per_row, source.size[0]},
+        static_cast<int64>(source.stride), source.col_idxs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -178,7 +171,7 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Ell<ValueType, IndexType>* orig,
+                      matrix::view::ell<const ValueType, const IndexType> orig,
                       matrix::Diagonal<ValueType>* diag)
 {
     // ELL is stored in column-major, so we swap row and column parameters
@@ -193,9 +186,9 @@ void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
                 out_vals[row] = val;
             }
         },
-        dim<2>{orig->get_num_stored_elements_per_row(), orig->get_size()[0]},
-        static_cast<int64>(orig->get_stride()), orig->get_const_col_idxs(),
-        orig->get_const_values(), diag->get_values());
+        dim<2>{orig.num_stored_elements_per_row, orig.size[0]},
+        static_cast<int64>(orig.stride), orig.col_idxs, orig.values,
+        diag->get_values());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

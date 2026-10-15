@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,12 +6,7 @@
 #define GKO_HIP_BASE_HIPSPARSE_BINDINGS_HIP_HPP_
 
 
-#if HIP_VERSION >= 50200000
 #include <hipsparse/hipsparse.h>
-#else
-#include <hipsparse.h>
-#endif
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -26,13 +21,11 @@ namespace hip {
 /**
  * @brief The HIPSPARSE namespace.
  *
- * @ingroup hipsparse
  */
 namespace hipsparse {
 /**
  * @brief The detail namespace.
  *
- * @ingroup detail
  */
 namespace detail {
 

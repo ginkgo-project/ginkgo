@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -57,8 +57,8 @@ public:
      * This logger can handle multiple right-hand sides, in contrast to
      * create_scalar_table_writer or create_scalar_csv_writer.
      *
-     * @param output  the path and file name prefix used to generate the output
-     *                file names.
+     * @param output_file_prefix  the path and file name prefix used to generate
+     *                            the output file names.
      * @param precision  the number of digits of precision to print when
      *                   outputting matrices in text format
      * @param binary  if true, write data in Ginkgo's own binary format

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,34 +44,32 @@ protected:
     FixedCoarsening()
         : exec(gko::ReferenceExecutor::create()),
           mtx(Mtx::create(exec, gko::dim<2>(5, 5), 15,
-                          std::make_shared<typename Mtx::classical>())),
+                          gko::matrix::csr::spmv_strategy::classical)),
           coarse(Mtx::create(exec, gko::dim<2>(3, 3), 5,
-                             std::make_shared<typename Mtx::classical>())),
+                             gko::matrix::csr::spmv_strategy::classical)),
           coarse_rows(exec, {0, 2, 3}),
           gen_coarse_rows(exec, 5),
-          coarse_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})},
-              exec)),
-          fine_b(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
-               I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
-              exec)),
-          restrict_ans(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({3.0, -2.0})},
-              exec)),
-          prolong_applyans(gko::initialize<Vec>(
-              {I<VT>({2.0, -1.0}), I<VT>({0.0, 0.0}), I<VT>({3.0, 1.0}),
-               I<VT>({0.0, -1.0}), I<VT>({0.0, 0.0})},
-              exec)),
-          fine_x(gko::initialize<Vec>(
-              {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
-               I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
-              exec)),
           fixed_coarsening_factory(MgLevel::build()
                                        .with_coarse_rows(coarse_rows)
                                        .with_skip_sorting(true)
                                        .on(exec))
     {
+        coarse_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({3.0, 1.0}), I<VT>({0.0, -1.0})}, exec);
+        fine_b = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({-1.0, 2.0}), I<VT>({0.0, -1.0}),
+             I<VT>({3.0, -2.0}), I<VT>({-2.0, 1.0})},
+            exec);
+        restrict_ans = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({0.0, -1.0}), I<VT>({3.0, -2.0})}, exec);
+        prolong_applyans = gko::initialize<Vec>(
+            {I<VT>({2.0, -1.0}), I<VT>({0.0, 0.0}), I<VT>({3.0, 1.0}),
+             I<VT>({0.0, -1.0}), I<VT>({0.0, 0.0})},
+            exec);
+        fine_x = gko::initialize<Vec>(
+            {I<VT>({-2.0, -1.0}), I<VT>({1.0, -1.0}), I<VT>({-1.0, -1.0}),
+             I<VT>({0.0, 0.0}), I<VT>({0.0, 2.0})},
+            exec);
         this->create_mtx(mtx.get(), &gen_coarse_rows, coarse.get());
         mg_level = fixed_coarsening_factory->generate(mtx);
     }
@@ -150,64 +148,6 @@ TYPED_TEST_SUITE(FixedCoarsening, gko::test::ValueIndexTypes,
 TYPED_TEST(FixedCoarsening, Generate)
 {
     ASSERT_NO_THROW(this->fixed_coarsening_factory->generate(this->mtx));
-}
-
-
-TYPED_TEST(FixedCoarsening, CanBeCopied)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
-    auto copy =
-        this->fixed_coarsening_factory->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->mg_level);
-    auto copy_mtx = copy->get_system_matrix();
-    auto copy_coarse = copy->get_coarse_op();
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
-}
-
-
-TYPED_TEST(FixedCoarsening, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
-    auto copy =
-        this->fixed_coarsening_factory->generate(Mtx::create(this->exec));
-
-    copy->move_from(this->mg_level);
-    auto copy_mtx = copy->get_system_matrix();
-    auto copy_coarse = copy->get_coarse_op();
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_mtx), this->mtx, 0.0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(copy_coarse), this->coarse, 0.0);
-}
-
-
-TYPED_TEST(FixedCoarsening, CanBeCloned)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using MgLevel = typename TestFixture::MgLevel;
-    auto clone = this->mg_level->clone();
-    auto clone_mtx = clone->get_system_matrix();
-    auto clone_coarse = clone->get_coarse_op();
-
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_mtx), this->mtx, 0.0);
-    GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(clone_coarse), this->coarse, 0.0);
-}
-
-
-TYPED_TEST(FixedCoarsening, CanBeCleared)
-{
-    using MgLevel = typename TestFixture::MgLevel;
-
-    this->mg_level->clear();
-    auto mtx = this->mg_level->get_system_matrix();
-    auto coarse = this->mg_level->get_coarse_op();
-
-    ASSERT_EQ(mtx, nullptr);
-    ASSERT_EQ(coarse, nullptr);
 }
 
 

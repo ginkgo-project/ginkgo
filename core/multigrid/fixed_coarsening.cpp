@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -88,8 +88,8 @@ void FixedCoarsening<ValueType, IndexType>::generate()
 }
 
 
-#define GKO_DECLARE_FIXED_COARSENING(_vtype, _itype) \
-    class FixedCoarsening<_vtype, _itype>
+#define GKO_DECLARE_FIXED_COARSENING(ValueType, IndexType) \
+    class FixedCoarsening<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_FIXED_COARSENING);
 
 

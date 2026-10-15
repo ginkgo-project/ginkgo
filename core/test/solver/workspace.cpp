@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,12 +13,12 @@
 #include "core/test/utils.hpp"
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec, gko::dim<2> size = {},
                gko::size_type stride = 0)
-        : EnableLinOp<DummyLinOp>(exec, size), stride_{stride}
+        : LinOp(exec, size), stride_{stride}
     {}
 
     gko::size_type get_stride() { return stride_; }
@@ -34,12 +34,12 @@ protected:
 };
 
 
-class DummyLinOp2 : public gko::EnableLinOp<DummyLinOp2>,
+class DummyLinOp2 : public gko::LinOp,
                     public gko::EnableCreateMethod<DummyLinOp2> {
 public:
     DummyLinOp2(std::shared_ptr<const gko::Executor> exec,
                 gko::dim<2> size = {}, gko::size_type stride = 0)
-        : EnableLinOp<DummyLinOp2>(exec, size), stride_{stride}
+        : LinOp(exec, size), stride_{stride}
     {}
 
     gko::size_type get_stride() { return stride_; }
@@ -175,26 +175,13 @@ TEST_F(Workspace, CanResizeArrays)
 #ifndef NDEBUG
 
 
-bool check_assertion_exit_code(int exit_code)
-{
-#ifdef _MSC_VER
-    // MSVC picks up the exit code incorrectly,
-    // so we can only check that it exits
-    return true;
-#else
-    return exit_code != 0;
-#endif
-}
-
-
 TEST_F(Workspace, AbortsOnDifferentArrayTypes)
 {
     gko::solver::detail::workspace ws{exec};
     ws.set_size(0, 1);
     ws.create_or_get_array<double>(0, 3);
 
-    EXPECT_EXIT(ws.create_or_get_array<int>(0, 4), check_assertion_exit_code,
-                "");
+    GKO_EXPECT_ASSERTION_FAILURE(ws.create_or_get_array<int>(0, 4));
 }
 
 

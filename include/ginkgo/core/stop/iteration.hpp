@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,8 @@
 #define GKO_PUBLIC_CORE_STOP_ITERATION_HPP_
 
 
+#include <ginkgo/core/base/abstract_factory.hpp>
+#include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 
@@ -21,9 +23,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Iteration : public EnablePolymorphicObject<Iteration, Criterion> {
-    friend class EnablePolymorphicObject<Iteration, Criterion>;
-
+class Iteration : public Criterion {
 public:
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -47,15 +47,84 @@ protected:
                     const Updater& updater) override;
 
     explicit Iteration(std::shared_ptr<const gko::Executor> exec)
-        : EnablePolymorphicObject<Iteration, Criterion>(std::move(exec))
+        : Criterion(std::move(exec))
     {}
 
     explicit Iteration(const Factory* factory, const CriterionArgs& args)
-        : EnablePolymorphicObject<Iteration, Criterion>(
-              factory->get_executor()),
+        : Criterion(factory->get_executor()),
           parameters_{factory->get_parameters()}
     {}
 };
+
+
+/**
+ * Creates the precursor to an Iteration stopping criterion factory, to be used
+ * in conjunction with `.with_criteria(...)` function calls when building a
+ * solver factory. This stopping criterion will stop the iteration after `count`
+ * iterations of the solver have finished.
+ *
+ * Full usage example: Stop after 100 iterations or when the relative residual
+ * norm is below \f$10^{-10}\f$, whichever happens first.
+ * ```cpp
+ * auto factory = gko::solver::Cg<double>::build()
+ *                    .with_criteria(
+ *                        gko::stop::max_iters(100),
+ *                        gko::stop::relative_residual_norm(1e-10))
+ *                    .on(exec);
+ * ```
+ *
+ * @param count  the number of iterations after which to stop
+ * @return a deferred_factory_parameter that can be passed to the
+ *         `with_criteria` function when building a solver.
+ */
+deferred_factory_parameter<const Iteration::Factory> max_iters(size_type count);
+
+
+/**
+ * Creates the precursor to an MinimumIteration stopping criterion factory, to
+ * be used in conjunction with `.with_criteria(...)` function calls when
+ * building a solver factory. This stopping criterion wraps another stopping
+ * criterion inside, which only starts getting checked after the first `count`
+ * iterations finished.
+ *
+ * Full usage example: Stop when the relative residual
+ * norm is below \f$10^{-10}\f$, but with at least 100 iterations.
+ * ```cpp
+ * auto factory = gko::solver::Cg<double>::build()
+ *                    .with_criteria(gko::stop::min_iters(100,
+ *                        gko::stop::relative_residual_norm(1e-10)))
+ *                    .on(exec);
+ * ```
+ *
+ * @param count  the number of iterations after which to start checking the
+ *               inner criterion
+ * @param criterion  the inner criterion, which will not be checked until
+ *                   `count` iterations finished, afterwards the min_iters
+ *                   stopping criterion behaves like the inner criterion.
+ *
+ * @return a deferred_factory_parameter that can be passed to the
+ *         `with_criteria` function when building a solver.
+ */
+deferred_factory_parameter<const CriterionFactory> min_iters(
+    size_type count,
+    deferred_factory_parameter<const CriterionFactory> criterion);
+
+
+/**
+ * @copydoc min_iters(size_type, deferred_factory_parameter<const
+ * CriterionFactory>) This version supports supplying multiple stopping criteria
+ * independently, all of which will only be checked after the minimum iteration
+ * count has been exceeded.
+ */
+template <typename... Args>
+std::enable_if_t<sizeof...(Args) >= 2,
+                 deferred_factory_parameter<const CriterionFactory>>
+min_iters(size_type count, Args&&... criteria)
+{
+    std::vector<deferred_factory_parameter<const CriterionFactory>>
+        criterion_vec{std::forward<Args>(criteria)...};
+    return min_iters(count, Combined::build().with_criteria(criterion_vec));
+}
 
 
 }  // namespace stop

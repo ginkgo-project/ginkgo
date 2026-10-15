@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,19 +22,21 @@ class Memory : public CudaTestFixture {
 protected:
     Memory()
         : host_exec_with_pinned{gko::OmpExecutor::create(
-              std::make_shared<gko::CudaHostAllocator>(0))},
+              std::make_shared<gko::CudaHostAllocator>(exec->get_device_id()))},
           host_exec_with_unified{gko::OmpExecutor::create(
-              std::make_shared<gko::CudaUnifiedAllocator>(0))},
+              std::make_shared<gko::CudaUnifiedAllocator>(
+                  exec->get_device_id()))},
           exec_with_normal{gko::CudaExecutor::create(
-              0, ref, std::make_shared<gko::CudaAllocator>(),
-              exec->get_stream())},
+              exec->get_device_id(), ref,
+              std::make_shared<gko::CudaAllocator>(), exec->get_stream())},
           exec_with_async{gko::CudaExecutor::create(
-              0, host_exec_with_pinned,
+              exec->get_device_id(), host_exec_with_pinned,
               std::make_shared<gko::CudaAsyncAllocator>(exec->get_stream()),
               exec->get_stream())},
           exec_with_unified{gko::CudaExecutor::create(
-              0, host_exec_with_unified,
-              std::make_shared<gko::CudaUnifiedAllocator>(0),
+              exec->get_device_id(), host_exec_with_unified,
+              std::make_shared<gko::CudaUnifiedAllocator>(
+                  exec->get_device_id()),
               exec->get_stream())}
     {}
 

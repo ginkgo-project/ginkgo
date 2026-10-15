@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,18 +26,27 @@ namespace reorder {
 
 
 /**
- * Computes a Approximate Minimum Degree (AMD) reordering of an input
- * matrix.
+ * Computes an Approximate Minimum Degree (AMD) reordering of an input
+ * matrix. The implementation reuses the AMD routine from the
+ * [SuiteSparse](https://github.com/DrTimothyAldenDavis/SuiteSparse) suite
+ * (Tim Davis et al.) — Ginkgo wraps it in a `LinOpFactory` that produces
+ * a `gko::matrix::Permutation`. The system matrix must therefore be a
+ * structurally-symmetric CSR matrix.
+ *
+ * @par References
+ * - Amestoy, P. R., Davis, T. A., Duff, I. S.
+ *   *Algorithm 837: AMD, an Approximate Minimum Degree Ordering
+ *   Algorithm.*
+ *   ACM Transactions on Mathematical Software, 30 (3), 381–388, 2004.
+ *   <https://doi.org/10.1145/1024074.1024081>
  *
  * @tparam IndexType  the type used to store sparsity pattern indices of the
  *                    system matrix
  */
 template <typename IndexType = int32>
-class Amd : public EnablePolymorphicObject<Amd<IndexType>, LinOpFactory>,
-            public EnablePolymorphicAssignment<Amd<IndexType>> {
+class Amd : public LinOpFactory {
 public:
     struct parameters_type;
-    friend class EnablePolymorphicObject<Amd<IndexType>, LinOpFactory>;
     friend class enable_parameters_type<parameters_type, Amd<IndexType>>;
 
     using index_type = IndexType;
@@ -68,6 +77,9 @@ public:
 
     /**
      * @copydoc LinOpFactory::generate
+     *
+     * @param system_matrix  the source matrix to compute the reordering for.
+     *
      * @note This function overrides the default LinOpFactory::generate to
      *       return a Permutation instead of a generic LinOp, which would
      *       need to be cast to Permutation again to access its indices.

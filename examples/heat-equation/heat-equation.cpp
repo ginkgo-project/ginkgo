@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,23 +13,24 @@ constant-in-time source function f.
 
 The partial differential equation (PDE) is solved with a finite difference
 spatial discretization on an equidistant grid: For `n` grid points,
-and grid distance $h = 1/n$ we write
+and grid distance \f$h = 1/n\f$ we write
 
     u_{i,j}' = \alpha (u_{i-1,j} + u_{i+1,j} + u_{i,j-1} + u_{i,j+1}
                    - 4 u_{i,j}) / h^2
                + f_{i,j}
 
-We then build an implicit Euler integrator by discretizing with time step $\tau$
+We then build an implicit Euler integrator by discretizing with time step
+\f$\tau\f$
 
     (u_{i,j}^{k+1} - u_{i,j}^k) / \tau =
     \alpha (u_{i-1,j}^{k+1} - u_{i+1,j}^{k+1}
           + u_{i,j-1}^{k+1} - u_{i,j+1}^{k+1} - 4 u_{i,j}^{k+1}) / h^2
     + f_{i,j}
 
-and solve the resulting linear system for $ u_{\cdot}^{k+1}$ using Ginkgo's CG
-solver preconditioned with an incomplete Cholesky factorization for each time
-step, occasionally writing the resulting grid values into a video file using
-OpenCV and a custom color mapping.
+and solve the resulting linear system for \f$ u_{\cdot}^{k+1}\f$ using
+Ginkgo's CG solver preconditioned with an incomplete Cholesky factorization
+for each time step, occasionally writing the resulting grid values into a
+video file using OpenCV and a custom color mapping.
 
 The intention of this example is to provide a mini-app showing matrix assembly,
 vector initialization, solver setup and the use of Ginkgo in a more complex

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,8 +39,11 @@ namespace multigrid {
 template <typename ValueType, typename IndexType>
 class Pgm;
 
+template <typename ValueType, typename IndexType>
+class UniformCoarsening;
 
-}
+
+}  // namespace multigrid
 
 
 namespace detail {
@@ -171,14 +174,14 @@ class Vector;
  * 0        | 13 .. .. .. 14 .. |                  | .. .. .. 8  ..  9 |
  * ```
  * The local rows are further split into two matrices on each process.
- * One matrix, called `local`, contains only entries from columns that are
- * also owned by the process, while the other one, called `non_local`,
+ * One matrix, called `diag`, contains only entries from columns that are
+ * also owned by the process, while the other one, called `off_diag`,
  * contains entries from columns that are not owned by the process. The
- * non-local matrix is stored in a compressed format, where empty columns are
- * discarded and the remaining columns are renumbered. This splitting is
+ * off-diagonal matrix is stored in a compressed format, where empty columns
+ * are discarded and the remaining columns are renumbered. This splitting is
  * depicted in the following:
  * ```
- * Part-Id  Global                            Local      Non-Local
+ * Part-Id  Global                            Diag       Off-Diag
  * 0        | .. 1  ! 2  .. ! .. .. |         | .. 1  |  | 2  |
  * 0        | 3  4  ! .. .. ! .. .. |         | 3  4  |  | .. |
  *          |-----------------------|
@@ -194,7 +197,7 @@ class Vector;
  * be used for the columns. Using a column partition also allows to create
  * non-square matrices, like the one below:
  * ```
- * Part-Id  Global                  Local      Non-Local
+ * Part-Id  Global                  Diag       Off-Diag
  * P_R/P_C    2  2  0  1
  * 0        | .. 1  2  .. |         | 2  |     | 1  .. |
  * 0        | 3  4  .. .. |         | .. |     | 3  4  |
@@ -260,7 +263,9 @@ class Vector;
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
 class Matrix
-    : public EnableLinOp<Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
+    : public LinOp,
+      public EnableCloneable<
+          Matrix<ValueType, LocalIndexType, GlobalIndexType>>,
       public ConvertibleTo<
           Matrix<next_precision<ValueType>, LocalIndexType, GlobalIndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
@@ -271,11 +276,14 @@ class Matrix
       public ConvertibleTo<Matrix<next_precision<ValueType, 3>, LocalIndexType,
                                   GlobalIndexType>>,
 #endif
+      public WritableToMatrixData<ValueType, GlobalIndexType>,
       public DistributedBase {
-    friend class EnablePolymorphicObject<Matrix, LinOp>;
+    friend class EnableCloneable<Matrix>;
     friend class Matrix<previous_precision<ValueType>, LocalIndexType,
                         GlobalIndexType>;
+
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
+    friend class multigrid::UniformCoarsening<ValueType, LocalIndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:
@@ -287,8 +295,8 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableLinOp<Matrix>::convert_to;
-    using EnableLinOp<Matrix>::move_to;
+    using EnableCloneable<Matrix>::convert_to;
+    using EnableCloneable<Matrix>::move_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
@@ -342,7 +350,7 @@ public:
      *
      * @param data  The device_matrix_data structure.
      * @param partition  The global row and column partition.
-     * @param x  The mode of assembly.
+     * @param assembly_type  The mode of assembly.
      *
      * @return the index_map induced by the partitions and the matrix structure
      */
@@ -411,21 +419,115 @@ public:
         assembly_mode assembly_type = assembly_mode::local_only);
 
     /**
-     * Get read access to the stored local matrix.
+     * Writes the locally stored matrix data into a matrix_data structure using
+     * global row and column indices.
      *
-     * @return  Shared pointer to the stored local matrix
+     * @param data  the output matrix_data
+     *
+     * @note this currently assume the row index mapping is equal to the column
+     *       index mapping
      */
-    std::shared_ptr<const LinOp> get_local_matrix() const { return local_mtx_; }
+    using WritableToMatrixData<ValueType, GlobalIndexType>::write;
+
+    void write(matrix_data<value_type, global_index_type>& data) const override;
 
     /**
-     * Get read access to the stored non-local matrix.
+     * Get read access to the stored diagonal matrix block.
      *
-     * @return  Shared pointer to the stored non-local matrix
+     * The diagonal block contains entries from columns that are owned by this
+     * process.
+     *
+     * @return  Shared pointer to the stored diagonal matrix block
      */
+    std::shared_ptr<const LinOp> get_diag_matrix() const { return diag_mtx_; }
+
+    /**
+     * Get read access to the stored off-diagonal matrix block.
+     *
+     * The off-diagonal block contains entries from columns that are not owned
+     * by this process.
+     *
+     * @return  Shared pointer to the stored off-diagonal matrix block
+     */
+    std::shared_ptr<const LinOp> get_off_diag_matrix() const
+    {
+        return off_diag_mtx_;
+    }
+
+    /**
+     * Get read access to the row gatherer used to fetch the non-local rows
+     * during an apply.
+     *
+     * Its collective communicator determines how this matrix exchanges data,
+     * and is carried over to every matrix created from it -- in particular to
+     * the one read_distributed rebuilds -- so this is how to check which
+     * exchange a matrix actually uses.
+     *
+     * @return  Shared pointer to the stored row gatherer
+     */
+    std::shared_ptr<const RowGatherer<LocalIndexType>> get_row_gatherer() const
+    {
+        return row_gatherer_;
+    }
+
+    /**
+     * @deprecated Use get_diag_matrix() instead.
+     */
+    GKO_DEPRECATED("use get_diag_matrix() instead")
+    std::shared_ptr<const LinOp> get_local_matrix() const
+    {
+        return get_diag_matrix();
+    }
+
+    /**
+     * @deprecated Use get_off_diag_matrix() instead.
+     */
+    GKO_DEPRECATED("use get_off_diag_matrix() instead")
     std::shared_ptr<const LinOp> get_non_local_matrix() const
     {
-        return non_local_mtx_;
+        return get_off_diag_matrix();
     }
+
+    /**
+     * Get the row partition this matrix was constructed with via
+     * read_distributed. May be null if the matrix was not read.
+     */
+    std::shared_ptr<const Partition<local_index_type, global_index_type>>
+    get_row_partition() const;
+
+    /**
+     * Computes the distributed sparse matrix-matrix product C = A * B,
+     * where A is this matrix. The output c is filled in place; any prior
+     * contents are overwritten.
+     *
+     * Matmul compatibility requires this matrix's column partition to equal
+     * b's row partition. The result c has this matrix's row partition and
+     * b's column partition, and shares this matrix's communicator.
+     *
+     * @note This is only supported when the local and non-local blocks of
+     *       both operands are of type Csr.
+     *
+     * @param b  the right-hand operand of the product.
+     * @param c  a pre-created distributed Matrix (may be empty) to fill.
+     */
+    void multiply(ptr_param<const Matrix> b, ptr_param<Matrix> c) const;
+
+    /**
+     * Computes the transpose of this matrix into result. The output is filled
+     * in place; any prior contents are overwritten.
+     *
+     * The result takes this matrix's column partition as its row partition and
+     * this matrix's row partition as its column partition, so it is a valid
+     * operand of multiply. Entries whose transposed row is owned by another
+     * rank are communicated to that rank, so this is a collective call.
+     *
+     * @note This requires that this matrix was filled by read_distributed,
+     *       which is what sets both partitions, and that result uses the same
+     *       executor and communicator as this matrix.
+     *
+     * @param result  a pre-created distributed Matrix (may be empty) to fill.
+     */
+    void transpose(ptr_param<Matrix> result) const;
 
     /**
      * Copy constructs a Matrix.
@@ -495,9 +597,9 @@ public:
      * Creates an empty distributed matrix with specified type
      * for local matrices.
      *
-     * @note This is mainly a convenience wrapper for
-     *       Matrix(std::shared_ptr<const Executor>, mpi::communicator, const
-     *       LinOp*)
+     * @note This is a convenience wrapper around the `create` overload
+     *       that takes an already-constructed `LinOp` template; the
+     *       `matrix_template` argument here is materialized internally.
      *
      * @tparam MatrixType  A type that has a `create<ValueType,
      *                     IndexType>(exec)` function to create a smart pointer
@@ -524,50 +626,51 @@ public:
     }
 
     /**
-     * Creates an empty distributed matrix with specified types for the local
-     * matrix and the non-local matrix.
+     * Creates an empty distributed matrix with specified types for the
+     * diagonal matrix and the off-diagonal matrix.
      *
-     * @note This is mainly a convenience wrapper for
-     *       Matrix(std::shared_ptr<const Executor>, mpi::communicator,
-     *       const LinOp*, const LinOp*)
+     * @note This is a convenience wrapper around the `create` overload
+     *       that takes already-constructed `LinOp` templates for the
+     *       diagonal and off-diagonal blocks; the two template
+     *       arguments here are materialized internally.
      *
-     * @tparam LocalMatrixType  A type that has a `create<ValueType,
-     *                          IndexType>(exec)` function to create a smart
-     *                          pointer of a type derived from LinOp and
-     *                          ReadableFromMatrixData. @see with_matrix_type
-     * @tparam NonLocalMatrixType  A (possible different) type with the same
-     *                             constraints as LocalMatrixType.
+     * @tparam DiagMatrixType  A type that has a `create<ValueType,
+     *                         IndexType>(exec)` function to create a smart
+     *                         pointer of a type derived from LinOp and
+     *                         ReadableFromMatrixData. @see with_matrix_type
+     * @tparam OffDiagMatrixType  A (possible different) type with the same
+     *                            constraints as DiagMatrixType.
      *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
-     * @param local_matrix_template  the local matrix will be constructed
-     *                               with the same type as `create` returns. It
-     *                               should be the return value of
-     *                               make_matrix_template.
-     * @param non_local_matrix_template  the non-local matrix will be
-     *                                   constructed with the same type as
-     *                                   `create` returns. It should be the
-     *                                   return value of make_matrix_template.
+     * @param diag_matrix_template  the diagonal matrix will be constructed
+     *                              with the same type as `create` returns. It
+     *                              should be the return value of
+     *                              make_matrix_template.
+     * @param off_diag_matrix_template  the off-diagonal matrix will be
+     *                                  constructed with the same type as
+     *                                  `create` returns. It should be the
+     *                                  return value of make_matrix_template.
      *
      * @return A smart pointer to the newly created matrix.
      */
-    template <typename LocalMatrixType, typename NonLocalMatrixType,
+    template <typename DiagMatrixType, typename OffDiagMatrixType,
               typename = std::enable_if_t<
+                  gko::detail::is_matrix_type_builder<DiagMatrixType, ValueType,
+                                                      LocalIndexType>::value &&
                   gko::detail::is_matrix_type_builder<
-                      LocalMatrixType, ValueType, LocalIndexType>::value &&
-                  gko::detail::is_matrix_type_builder<
-                      NonLocalMatrixType, ValueType, LocalIndexType>::value>>
+                      OffDiagMatrixType, ValueType, LocalIndexType>::value>>
     static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
-        LocalMatrixType local_matrix_template,
-        NonLocalMatrixType non_local_matrix_template)
+        DiagMatrixType diag_matrix_template,
+        OffDiagMatrixType off_diag_matrix_template)
     {
         return create(
             exec, comm,
-            local_matrix_template.template create<ValueType, LocalIndexType>(
+            diag_matrix_template.template create<ValueType, LocalIndexType>(
                 exec),
-            non_local_matrix_template
-                .template create<ValueType, LocalIndexType>(exec));
+            off_diag_matrix_template.template create<ValueType, LocalIndexType>(
+                exec));
     }
 
     /**
@@ -589,57 +692,57 @@ public:
         ptr_param<const LinOp> matrix_template);
 
     /**
-     * Creates an empty distributed matrix with specified types for the local
-     * matrix and the non-local matrix.
+     * Creates an empty distributed matrix with specified types for the
+     * diagonal matrix and the off-diagonal matrix.
      *
-     * @note It internally clones the passed in local_matrix_template and
-     *       non_local_matrix_template. Therefore, those LinOps should be empty.
+     * @note It internally clones the passed in diag_matrix_template and
+     *       off_diag_matrix_template. Therefore, those LinOps should be empty.
      *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
-     * @param local_matrix_template  the local matrix will be constructed
-     *                               with the same runtime type.
-     * @param non_local_matrix_template  the non-local matrix will be
-     *                                   constructed with the same runtime type.
+     * @param diag_matrix_template  the diagonal matrix will be constructed
+     *                              with the same runtime type.
+     * @param off_diag_matrix_template  the off-diagonal matrix will be
+     *                                  constructed with the same runtime type.
      *
      * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
-        ptr_param<const LinOp> local_matrix_template,
-        ptr_param<const LinOp> non_local_matrix_template);
+        ptr_param<const LinOp> diag_matrix_template,
+        ptr_param<const LinOp> off_diag_matrix_template);
 
     /**
-     * Creates a local-only distributed matrix with existent LinOp
+     * Creates a diag-only distributed matrix with existent LinOp
      *
      * @note It use the input to build up the distributed matrix
      *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      * @param size  the global size
-     * @param local_linop  the local linop
+     * @param diag_linop  the diagonal block linop
      *
      * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Matrix> create(std::shared_ptr<const Executor> exec,
                                           mpi::communicator comm, dim<2> size,
-                                          std::shared_ptr<LinOp> local_linop);
+                                          std::shared_ptr<LinOp> diag_linop);
 
     /**
-     * Creates distributed matrix with existent local and non-local LinOp and
-     * the corresponding mapping to collect the non-local data from the other
-     * ranks.
+     * Creates distributed matrix with existent diagonal and off-diagonal LinOp
+     * and the corresponding mapping to collect the off-diagonal data from the
+     * other ranks.
      *
      * @note It use the input to build up the distributed matrix
      *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      * @param size  the global size
-     * @param local_linop  the local linop
-     * @param non_local_linop  the non-local linop
-     * @param recv_sizes  the size of non-local receiver
-     * @param recv_offsets  the offset of non-local receiver
-     * @param recv_gather_idxs  the gathering index of non-local receiver
+     * @param diag_linop  the diagonal block linop
+     * @param off_diag_linop  the off-diagonal block linop
+     * @param recv_sizes  the size of off-diagonal receiver
+     * @param recv_offsets  the offset of off-diagonal receiver
+     * @param recv_gather_idxs  the gathering index of off-diagonal receiver
      *
      * @return A smart pointer to the newly created matrix.
      */
@@ -647,30 +750,30 @@ public:
         "Please use the overload with an index_map instead.")]] static std::
         unique_ptr<Matrix>
         create(std::shared_ptr<const Executor> exec, mpi::communicator comm,
-               dim<2> size, std::shared_ptr<LinOp> local_linop,
-               std::shared_ptr<LinOp> non_local_linop,
+               dim<2> size, std::shared_ptr<LinOp> diag_linop,
+               std::shared_ptr<LinOp> off_diag_linop,
                std::vector<comm_index_type> recv_sizes,
                std::vector<comm_index_type> recv_offsets,
                array<local_index_type> recv_gather_idxs);
 
     /**
-     * Creates distributed matrix with existent local and non-local LinOp and
-     * the corresponding mapping to collect the non-local data from the other
-     * ranks.
+     * Creates distributed matrix with existent diagonal and off-diagonal LinOp
+     * and the corresponding mapping to collect the off-diagonal data from the
+     * other ranks.
      *
      * @param exec  Executor associated with this matrix.
      * @param comm  Communicator associated with this matrix.
      * @param imap  The index map to define the communication pattern
-     * @param local_linop  the local linop
-     * @param non_local_linop  the non-local linop
+     * @param diag_linop  the diagonal block linop
+     * @param off_diag_linop  the off-diagonal block linop
      *
      * @return A smart pointer to the newly created matrix.
      */
     static std::unique_ptr<Matrix> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm,
         index_map<local_index_type, global_index_type> imap,
-        std::shared_ptr<LinOp> local_linop,
-        std::shared_ptr<LinOp> non_local_linop);
+        std::shared_ptr<LinOp> diag_linop,
+        std::shared_ptr<LinOp> off_diag_linop);
 
     /**
      * Scales the columns of the matrix by the respective entries of the vector.
@@ -697,18 +800,18 @@ protected:
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     std::shared_ptr<const RowGatherer<LocalIndexType>>
                         row_gatherer_template,
-                    ptr_param<const LinOp> local_matrix_template,
-                    ptr_param<const LinOp> non_local_matrix_template);
+                    ptr_param<const LinOp> diag_matrix_template,
+                    ptr_param<const LinOp> off_diag_matrix_template);
 
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm, dim<2> size,
-                    std::shared_ptr<LinOp> local_linop);
+                    std::shared_ptr<LinOp> diag_linop);
 
     explicit Matrix(std::shared_ptr<const Executor> exec,
                     mpi::communicator comm,
                     index_map<local_index_type, global_index_type> imap,
-                    std::shared_ptr<LinOp> local_linop,
-                    std::shared_ptr<LinOp> non_local_linop);
+                    std::shared_ptr<LinOp> diag_linop,
+                    std::shared_ptr<LinOp> off_diag_linop);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -718,11 +821,13 @@ protected:
 private:
     std::shared_ptr<RowGatherer<LocalIndexType>> row_gatherer_;
     index_map<local_index_type, global_index_type> imap_;
+    std::shared_ptr<const Partition<local_index_type, global_index_type>>
+        row_partition_;
     gko::detail::ScalarCache one_scalar_;
     detail::GenericVectorCache recv_buffer_;
     detail::GenericVectorCache host_recv_buffer_;
-    std::shared_ptr<LinOp> local_mtx_;
-    std::shared_ptr<LinOp> non_local_mtx_;
+    std::shared_ptr<LinOp> diag_mtx_;
+    std::shared_ptr<LinOp> off_diag_mtx_;
 };
 
 

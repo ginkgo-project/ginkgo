@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,7 +20,6 @@ namespace gko {
  *
  * Version structures can be compared using the usual relational operators.
  *
- * @ingroup ginkgo_version
  */
 struct version {
     constexpr version(const uint64 major, const uint64 minor,

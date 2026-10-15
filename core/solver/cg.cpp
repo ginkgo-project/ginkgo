@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -53,8 +53,11 @@ std::unique_ptr<LinOp> Cg<ValueType>::transpose() const
 {
     return build()
         .with_generated_preconditioner(
-            share(as<Transposable>(this->get_preconditioner())->transpose()))
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(false))
+        .with_left_nullspace(this->get_transposed_left_nullspace(false))
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -65,9 +68,12 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 {
     return build()
-        .with_generated_preconditioner(share(
-            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(true))
+        .with_left_nullspace(this->get_transposed_left_nullspace(true))
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -100,6 +106,8 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b = this->get_consistent_rhs(dense_b, workspace_traits<Cg>::proj_rhs);
 
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);
@@ -120,11 +128,16 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // prev_rho = 1.0
     // z = p = q = 0
     exec->run(cg::make_initialize(
-        gko::detail::get_local(dense_b), gko::detail::get_local(r),
-        gko::detail::get_local(z), gko::detail::get_local(p),
-        gko::detail::get_local(q), prev_rho, rho, &stop_status));
+        gko::detail::get_local(dense_b)->get_const_device_view(),
+        gko::detail::get_local(r)->get_device_view(),
+        gko::detail::get_local(z)->get_device_view(),
+        gko::detail::get_local(p)->get_device_view(),
+        gko::detail::get_local(q)->get_device_view(),
+        prev_rho->get_device_view(), rho->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // A annihilates N(A), so removing it from x keeps r unchanged
+    this->project_nullspace(dense_x);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -162,9 +175,11 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
         // tmp = rho / prev_rho
         // p = z + tmp * p
-        exec->run(cg::make_step_1(gko::detail::get_local(p),
-                                  gko::detail::get_local(z), rho, prev_rho,
-                                  &stop_status));
+        exec->run(
+            cg::make_step_1(gko::detail::get_local(p)->get_device_view(),
+                            gko::detail::get_local(z)->get_const_device_view(),
+                            rho->get_const_device_view(),
+                            prev_rho->get_const_device_view(), stop_status));
         // q = A * p
         this->get_system_matrix()->apply(p, q);
         // beta = dot(p, q)
@@ -172,10 +187,13 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // tmp = rho / beta
         // x = x + tmp * p
         // r = r - tmp * q
-        exec->run(cg::make_step_2(
-            gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(p), gko::detail::get_local(q), beta, rho,
-            &stop_status));
+        exec->run(
+            cg::make_step_2(gko::detail::get_local(dense_x)->get_device_view(),
+                            gko::detail::get_local(r)->get_device_view(),
+                            gko::detail::get_local(p)->get_const_device_view(),
+                            gko::detail::get_local(q)->get_const_device_view(),
+                            beta->get_const_device_view(),
+                            rho->get_const_device_view(), stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -209,7 +227,7 @@ int workspace_traits<Cg<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Cg<ValueType>>::num_vectors(const Solver&)
 {
-    return 9;
+    return 10;
 }
 
 
@@ -218,7 +236,8 @@ std::vector<std::string> workspace_traits<Cg<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "r", "z", "p", "q", "beta", "prev_rho", "rho", "one", "minus_one",
+        "r",        "z",   "p",   "q",         "beta",
+        "prev_rho", "rho", "one", "minus_one", "proj_rhs",
     };
 }
 
@@ -241,12 +260,12 @@ std::vector<int> workspace_traits<Cg<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Cg<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, p, q};
+    return {r, z, p, q, proj_rhs};
 }
 
 
-#define GKO_DECLARE_CG(_type) class Cg<_type>
-#define GKO_DECLARE_CG_TRAITS(_type) struct workspace_traits<Cg<_type>>
+#define GKO_DECLARE_CG(ValueType) class Cg<ValueType>
+#define GKO_DECLARE_CG_TRAITS(ValueType) struct workspace_traits<Cg<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_TRAITS);
 

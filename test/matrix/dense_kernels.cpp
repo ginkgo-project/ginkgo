@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -598,9 +598,9 @@ TEST_F(Dense, CalculateNNZPerRowIsEquivalentToRef)
     dnnz_per_row.resize_and_reset(dx->get_size()[0]);
 
     gko::kernels::reference::dense::count_nonzeros_per_row(
-        ref, x.get(), nnz_per_row.get_data());
+        ref, x->get_const_device_view(), nnz_per_row.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::dense::count_nonzeros_per_row(
-        exec, dx.get(), dnnz_per_row.get_data());
+        exec, dx->get_const_device_view(), dnnz_per_row.get_data());
 
     auto tmp = gko::array<gko::size_type>(ref, dnnz_per_row);
     for (gko::size_type i = 0; i < nnz_per_row.get_size(); i++) {
@@ -615,10 +615,10 @@ TEST_F(Dense, ComputeMaxNNZPerRowIsEquivalentToRef)
     gko::size_type max_nnz;
     gko::size_type dmax_nnz;
 
-    gko::kernels::reference::dense::compute_max_nnz_per_row(ref, x.get(),
-                                                            max_nnz);
+    gko::kernels::reference::dense::compute_max_nnz_per_row(
+        ref, x->get_const_device_view(), max_nnz);
     gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_max_nnz_per_row(
-        exec, dx.get(), dmax_nnz);
+        exec, dx->get_const_device_view(), dmax_nnz);
 
     ASSERT_EQ(max_nnz, dmax_nnz);
 }
@@ -2005,9 +2005,9 @@ TEST_F(Dense, ComputeNorm2SquaredIsEquivalentToRef)
     gko::array<char> dtmp{exec};
 
     gko::kernels::reference::dense::compute_squared_norm2(
-        ref, x.get(), norm_expected.get(), tmp);
+        ref, x->get_const_device_view(), norm_expected->get_device_view(), tmp);
     gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_squared_norm2(
-        exec, dx.get(), dnorm.get(), dtmp);
+        exec, dx->get_const_device_view(), dnorm->get_device_view(), dtmp);
 
     GKO_ASSERT_MTX_NEAR(dnorm, norm_expected, r<value_type>::value);
 }
@@ -2021,8 +2021,9 @@ TEST_F(Dense, ComputesSqrt)
         rand_engine, ref);
     auto dmtx = gko::clone(exec, mtx);
 
-    gko::kernels::reference::dense::compute_sqrt(ref, mtx.get());
-    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_sqrt(exec, dmtx.get());
+    gko::kernels::reference::dense::compute_sqrt(ref, mtx->get_device_view());
+    gko::kernels::GKO_DEVICE_NAMESPACE::dense::compute_sqrt(
+        exec, dmtx->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, r<value_type>::value);
 }

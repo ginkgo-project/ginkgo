@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -141,17 +141,18 @@ namespace {
 
 
 template <int subwarp_size, typename ValueType, typename IndexType>
-void compute_l_u_factors(syn::value_list<int, subwarp_size>,
-                         std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType>* a,
-                         matrix::Csr<ValueType, IndexType>* l,
-                         const matrix::Coo<ValueType, IndexType>* l_coo,
-                         matrix::Csr<ValueType, IndexType>* u,
-                         const matrix::Coo<ValueType, IndexType>* u_coo,
-                         matrix::Csr<ValueType, IndexType>* u_csc)
+void compute_l_u_factors(
+    syn::value_list<int, subwarp_size>,
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> a,
+    matrix::view::csr<ValueType, IndexType> l,
+    matrix::view::coo<const ValueType, const IndexType> l_coo,
+    matrix::view::csr<ValueType, IndexType> u,
+    matrix::view::coo<const ValueType, const IndexType> u_coo,
+    matrix::view::csr<ValueType, IndexType> u_csc)
 {
-    auto total_nnz = static_cast<IndexType>(l->get_num_stored_elements() +
-                                            u->get_num_stored_elements());
+    auto total_nnz =
+        static_cast<IndexType>(l.num_stored_elements + u.num_stored_elements);
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
     if (num_blocks > 0) {
@@ -164,16 +165,14 @@ void compute_l_u_factors(syn::value_list<int, subwarp_size>,
         {
             kernel::sweep<subwarp_size>
                 <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                    a->get_const_row_ptrs(), a->get_const_col_idxs(),
-                    as_device_type(a->get_const_values()),
-                    l->get_const_row_ptrs(), l_coo->get_const_row_idxs(),
-                    l->get_const_col_idxs(), as_device_type(l->get_values()),
-                    static_cast<IndexType>(l->get_num_stored_elements()),
-                    u_coo->get_const_row_idxs(), u_coo->get_const_col_idxs(),
-                    as_device_type(u->get_values()),
-                    u_csc->get_const_row_ptrs(), u_csc->get_const_col_idxs(),
-                    as_device_type(u_csc->get_values()),
-                    static_cast<IndexType>(u->get_num_stored_elements()));
+                    a.row_ptrs, a.col_idxs, as_device_type(a.values),
+                    l.row_ptrs, l_coo.row_idxs, l.col_idxs,
+                    as_device_type(l.values),
+                    static_cast<IndexType>(l.num_stored_elements),
+                    u_coo.row_idxs, u_coo.col_idxs, as_device_type(u.values),
+                    u_csc.row_ptrs, u_csc.col_idxs,
+                    as_device_type(u_csc.values),
+                    static_cast<IndexType>(u.num_stored_elements));
         }
     }
 }
@@ -186,17 +185,17 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_compute_l_u_factors,
 
 
 template <typename ValueType, typename IndexType>
-void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType>* a,
-                         matrix::Csr<ValueType, IndexType>* l,
-                         const matrix::Coo<ValueType, IndexType>* l_coo,
-                         matrix::Csr<ValueType, IndexType>* u,
-                         const matrix::Coo<ValueType, IndexType>* u_coo,
-                         matrix::Csr<ValueType, IndexType>* u_csc)
+void compute_l_u_factors(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> a,
+    matrix::view::csr<ValueType, IndexType> l,
+    matrix::view::coo<const ValueType, const IndexType> l_coo,
+    matrix::view::csr<ValueType, IndexType> u,
+    matrix::view::coo<const ValueType, const IndexType> u_coo,
+    matrix::view::csr<ValueType, IndexType> u_csc)
 {
-    auto num_rows = a->get_size()[0];
-    auto total_nnz =
-        l->get_num_stored_elements() + u->get_num_stored_elements();
+    auto num_rows = a.size[0];
+    auto total_nnz = l.num_stored_elements + u.num_stored_elements;
     auto total_nnz_per_row = total_nnz / num_rows;
     select_compute_l_u_factors(
         compiled_kernels(),

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -62,7 +62,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     array<char> work;
 
     CudaSolveStruct(std::shared_ptr<const gko::CudaExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* matrix,
+                    matrix::view::csr<const ValueType, const IndexType> matrix,
                     size_type num_rhs, bool is_upper, bool unit_diag)
         : handle{exec->get_sparselib_handle()},
           spsm_descr{},
@@ -75,12 +75,11 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         }
         sparselib::pointer_mode_guard pm_guard(handle);
         spsm_descr = sparselib::create_spsm_descr();
-        descr_a = sparselib::create_csr(
-            matrix->get_size()[0], matrix->get_size()[1],
-            matrix->get_num_stored_elements(),
-            const_cast<IndexType*>(matrix->get_const_row_ptrs()),
-            const_cast<IndexType*>(matrix->get_const_col_idxs()),
-            const_cast<ValueType*>(matrix->get_const_values()));
+        descr_a = sparselib::create_csr(matrix.size[0], matrix.size[1],
+                                        matrix.num_stored_elements,
+                                        const_cast<IndexType*>(matrix.row_ptrs),
+                                        const_cast<IndexType*>(matrix.col_idxs),
+                                        const_cast<ValueType*>(matrix.values));
         sparselib::set_attribute<cusparseFillMode_t>(
             descr_a, CUSPARSE_SPMAT_FILL_MODE,
             is_upper ? CUSPARSE_FILL_MODE_UPPER : CUSPARSE_FILL_MODE_LOWER);
@@ -88,15 +87,15 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
             descr_a, CUSPARSE_SPMAT_DIAG_TYPE,
             unit_diag ? CUSPARSE_DIAG_TYPE_UNIT : CUSPARSE_DIAG_TYPE_NON_UNIT);
 
-        const auto rows = matrix->get_size()[0];
+        const auto rows = matrix.size[0];
         // workaround suggested by NVIDIA engineers: for some reason
         // cusparse needs non-nullptr input vectors even for analysis
         // also make sure they are aligned by 16 bytes
         auto descr_b = sparselib::create_dnmat(
-            dim<2>{matrix->get_size()[0], num_rhs}, matrix->get_size()[1],
+            dim<2>{matrix.size[0], num_rhs}, matrix.size[1],
             reinterpret_cast<ValueType*>(0xDEAD0));
         auto descr_c = sparselib::create_dnmat(
-            dim<2>{matrix->get_size()[0], num_rhs}, matrix->get_size()[1],
+            dim<2>{matrix.size[0], num_rhs}, matrix.size[1],
             reinterpret_cast<ValueType*>(0xDEAF0));
 
         auto work_size = sparselib::spsm_buffer_size(
@@ -116,17 +115,16 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         sparselib::destroy(descr_c);
     }
 
-    void solve(const matrix::Csr<ValueType, IndexType>*,
-               const matrix::Dense<ValueType>* input,
-               matrix::Dense<ValueType>* output, matrix::Dense<ValueType>*,
-               matrix::Dense<ValueType>*) const
+    void solve(matrix::view::csr<const ValueType, const IndexType>,
+               matrix::view::dense<const ValueType> input,
+               matrix::view::dense<ValueType> output) const
     {
-        if (input->get_size()[1] != num_rhs) {
+        if (input.size[1] != num_rhs) {
             throw gko::ValueMismatch{
                 __FILE__,
                 __LINE__,
                 __FUNCTION__,
-                input->get_size()[1],
+                input.size[1],
                 num_rhs,
                 "the dimensions of the multivector do not match the value "
                 "provided at generation time. Check the value specified in "
@@ -134,10 +132,9 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         }
         sparselib::pointer_mode_guard pm_guard(handle);
         auto descr_b = sparselib::create_dnmat(
-            input->get_size(), input->get_stride(),
-            const_cast<ValueType*>(input->get_const_values()));
-        auto descr_c = sparselib::create_dnmat(
-            output->get_size(), output->get_stride(), output->get_values());
+            input.size, input.stride, const_cast<ValueType*>(input.values));
+        auto descr_c =
+            sparselib::create_dnmat(output.size, output.stride, output.values);
 
         sparselib::spsm_solve(handle, SPARSELIB_OPERATION_NON_TRANSPOSE,
                               SPARSELIB_OPERATION_NON_TRANSPOSE,
@@ -184,7 +181,7 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
     mutable array<char> work;
 
     CudaSolveStruct(std::shared_ptr<const gko::CudaExecutor> exec,
-                    const matrix::Csr<ValueType, IndexType>* matrix,
+                    matrix::view::csr<const ValueType, const IndexType> matrix,
                     size_type num_rhs, bool is_upper, bool unit_diag)
         : exec{exec},
           handle{exec->get_sparselib_handle()},
@@ -217,10 +214,9 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         // prevent compiler issues with gnu/llvm 9
         sparselib::buffer_size_ext(
             handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
-            SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
-            matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
-            matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(),
+            SPARSELIB_OPERATION_TRANSPOSE, matrix.size[0], num_rhs,
+            matrix.num_stored_elements, one<ValueType>(), factor_descr,
+            matrix.values, matrix.row_ptrs, matrix.col_idxs,
             static_cast<const ValueType*>(nullptr), num_rhs, solve_info, policy,
             &work_size);
 
@@ -229,25 +225,23 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
 
         sparselib::csrsm2_analysis(
             handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
-            SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0], num_rhs,
-            matrix->get_num_stored_elements(), one<ValueType>(), factor_descr,
-            matrix->get_const_values(), matrix->get_const_row_ptrs(),
-            matrix->get_const_col_idxs(),
+            SPARSELIB_OPERATION_TRANSPOSE, matrix.size[0], num_rhs,
+            matrix.num_stored_elements, one<ValueType>(), factor_descr,
+            matrix.values, matrix.row_ptrs, matrix.col_idxs,
             static_cast<const ValueType*>(nullptr), num_rhs, solve_info, policy,
             work.get_data());
     }
 
-    void solve(const matrix::Csr<ValueType, IndexType>* matrix,
-               const matrix::Dense<ValueType>* input,
-               matrix::Dense<ValueType>* output, matrix::Dense<ValueType>*,
-               matrix::Dense<ValueType>*) const
+    void solve(matrix::view::csr<const ValueType, const IndexType> matrix,
+               matrix::view::dense<const ValueType> input,
+               matrix::view::dense<ValueType> output) const
     {
-        if (input->get_size()[1] != num_rhs) {
+        if (input.size[1] != num_rhs) {
             throw gko::ValueMismatch{
                 __FILE__,
                 __LINE__,
                 __FUNCTION__,
-                input->get_size()[1],
+                input.size[1],
                 num_rhs,
                 "the dimensions of the multivector do not match the value "
                 "provided at generation time. Check the value specified in "
@@ -257,12 +251,10 @@ struct CudaSolveStruct : gko::solver::SolveStruct {
         dense::copy(exec, input, output);
         sparselib::csrsm2_solve(
             handle, algorithm, SPARSELIB_OPERATION_NON_TRANSPOSE,
-            SPARSELIB_OPERATION_TRANSPOSE, matrix->get_size()[0],
-            output->get_stride(), matrix->get_num_stored_elements(),
-            one<ValueType>(), factor_descr, matrix->get_const_values(),
-            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-            output->get_values(), output->get_stride(), solve_info, policy,
-            work.get_data());
+            SPARSELIB_OPERATION_TRANSPOSE, matrix.size[0], output.stride,
+            matrix.num_stored_elements, one<ValueType>(), factor_descr,
+            matrix.values, matrix.row_ptrs, matrix.col_idxs, output.values,
+            output.stride, solve_info, policy, work.get_data());
     }
 
     ~CudaSolveStruct()
@@ -299,12 +291,12 @@ void should_perform_transpose_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
-                     const matrix::Csr<ValueType, IndexType>* matrix,
+                     matrix::view::csr<const ValueType, const IndexType> matrix,
                      std::shared_ptr<solver::SolveStruct>& solve_struct,
                      const gko::size_type num_rhs, bool is_upper,
                      bool unit_diag)
 {
-    if (matrix->get_size()[0] == 0) {
+    if (matrix.size[0] == 0) {
         return;
     }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
@@ -318,14 +310,12 @@ void generate_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
-                  const matrix::Csr<ValueType, IndexType>* matrix,
+                  matrix::view::csr<const ValueType, const IndexType> matrix,
                   const solver::SolveStruct* solve_struct,
-                  matrix::Dense<ValueType>* trans_b,
-                  matrix::Dense<ValueType>* trans_x,
-                  const matrix::Dense<ValueType>* b,
-                  matrix::Dense<ValueType>* x)
+                  matrix::view::dense<const ValueType> b,
+                  matrix::view::dense<ValueType> x)
 {
-    if (matrix->get_size()[0] == 0 || b->get_size()[1] == 0) {
+    if (matrix.size[0] == 0 || b.size[1] == 0) {
         return;
     }
     using vec = matrix::Dense<ValueType>;
@@ -334,7 +324,7 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
         if (auto cuda_solve_struct =
                 dynamic_cast<const CudaSolveStruct<ValueType, IndexType>*>(
                     solve_struct)) {
-            cuda_solve_struct->solve(matrix, b, x, trans_b, trans_x);
+            cuda_solve_struct->solve(matrix, b, x);
         } else {
             GKO_NOT_SUPPORTED(solve_struct);
         }
@@ -605,16 +595,16 @@ __global__ void sptrsv_init_kernel(bool* const nan_produced,
 
 
 template <bool is_upper, typename ValueType, typename IndexType>
-void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
-                          const matrix::Csr<ValueType, IndexType>* matrix,
-                          bool unit_diag, const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* x)
+void sptrsv_naive_caching(
+    std::shared_ptr<const CudaExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> matrix, bool unit_diag,
+    matrix::view::dense<const ValueType> b, matrix::view::dense<ValueType> x)
 {
     // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
     const auto is_fallback_required = exec->get_major_version() < 7;
 
-    const auto n = matrix->get_size()[0];
-    const auto nrhs = b->get_size()[1];
+    const auto n = matrix.size[0];
+    const auto nrhs = b.size[1];
 
     // Initialize x to all NaNs.
     dense::fill(exec, x, nan<ValueType>());
@@ -631,19 +621,17 @@ void sptrsv_naive_caching(std::shared_ptr<const CudaExecutor> exec,
     if (is_fallback_required) {
         sptrsv_naive_legacy_kernel<is_upper>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                as_device_type(matrix->get_const_values()),
-                as_device_type(b->get_const_values()), b->get_stride(),
-                as_device_type(x->get_values()), x->get_stride(), n, nrhs,
-                unit_diag, nan_produced.get_data(), atomic_counter.get_data());
+                matrix.row_ptrs, matrix.col_idxs, as_device_type(matrix.values),
+                as_device_type(b.values), b.stride, as_device_type(x.values),
+                x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
+                atomic_counter.get_data());
     } else {
         sptrsv_naive_caching_kernel<is_upper>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-                as_device_type(matrix->get_const_values()),
-                as_device_type(b->get_const_values()), b->get_stride(),
-                as_device_type(x->get_values()), x->get_stride(), n, nrhs,
-                unit_diag, nan_produced.get_data(), atomic_counter.get_data());
+                matrix.row_ptrs, matrix.col_idxs, as_device_type(matrix.values),
+                as_device_type(b.values), b.stride, as_device_type(x.values),
+                x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
+                atomic_counter.get_data());
     }
 
 #if GKO_VERBOSE_LEVEL >= 1

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -154,11 +154,15 @@ void Fft::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (auto float_b = dynamic_cast<const Dense<std::complex<float>>*>(b)) {
         auto dense_x = as<Dense<std::complex<float>>>(x);
-        get_executor()->run(fft::make_fft(float_b, dense_x, inverse_, buffer_));
+        get_executor()->run(fft::make_fft(float_b->get_const_device_view(),
+                                          dense_x->get_device_view(), inverse_,
+                                          buffer_));
     } else {
         auto dense_b = as<Dense<std::complex<double>>>(b);
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        get_executor()->run(fft::make_fft(dense_b, dense_x, inverse_, buffer_));
+        get_executor()->run(fft::make_fft(dense_b->get_const_device_view(),
+                                          dense_x->get_device_view(), inverse_,
+                                          buffer_));
     }
 }
 
@@ -167,13 +171,13 @@ void Fft::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                      LinOp* x) const
 {
     if (auto float_x = dynamic_cast<Dense<std::complex<float>>*>(x)) {
-        auto clone_x = x->clone();
+        auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         float_x->scale(beta);
         float_x->add_scaled(alpha, clone_x);
     } else {
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        auto clone_x = x->clone();
+        auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
         dense_x->add_scaled(alpha, clone_x);
@@ -182,7 +186,7 @@ void Fft::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
 
 
 Fft::Fft(std::shared_ptr<const Executor> exec, size_type size, bool inverse)
-    : EnableLinOp<Fft>(exec, dim<2>{size}), buffer_{exec}, inverse_{inverse}
+    : LinOp(exec, dim<2>{size}), buffer_{exec}, inverse_{inverse}
 {}
 
 
@@ -247,13 +251,15 @@ void Fft2::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (auto float_b = dynamic_cast<const Dense<std::complex<float>>*>(b)) {
         auto dense_x = as<Dense<std::complex<float>>>(x);
-        get_executor()->run(fft::make_fft2(float_b, dense_x, fft_size_[0],
-                                           fft_size_[1], inverse_, buffer_));
+        get_executor()->run(fft::make_fft2(
+            float_b->get_const_device_view(), dense_x->get_device_view(),
+            fft_size_[0], fft_size_[1], inverse_, buffer_));
     } else {
         auto dense_b = as<Dense<std::complex<double>>>(b);
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        get_executor()->run(fft::make_fft2(dense_b, dense_x, fft_size_[0],
-                                           fft_size_[1], inverse_, buffer_));
+        get_executor()->run(fft::make_fft2(
+            dense_b->get_const_device_view(), dense_x->get_device_view(),
+            fft_size_[0], fft_size_[1], inverse_, buffer_));
     }
 }
 
@@ -262,13 +268,13 @@ void Fft2::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                       LinOp* x) const
 {
     if (auto float_x = dynamic_cast<Dense<std::complex<float>>*>(x)) {
-        auto clone_x = x->clone();
+        auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         float_x->scale(beta);
         float_x->add_scaled(alpha, clone_x);
     } else {
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        auto clone_x = x->clone();
+        auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
         dense_x->add_scaled(alpha, clone_x);
@@ -299,7 +305,7 @@ std::unique_ptr<Fft2> Fft2::create(std::shared_ptr<const Executor> exec,
 
 Fft2::Fft2(std::shared_ptr<const Executor> exec, size_type size1,
            size_type size2, bool inverse)
-    : EnableLinOp<Fft2>(exec, dim<2>{size1 * size2}),
+    : LinOp(exec, dim<2>{size1 * size2}),
       buffer_{exec},
       fft_size_{size1, size2},
       inverse_{inverse}
@@ -358,15 +364,15 @@ void Fft3::apply_impl(const LinOp* b, LinOp* x) const
 {
     if (auto float_b = dynamic_cast<const Dense<std::complex<float>>*>(b)) {
         auto dense_x = as<Dense<std::complex<float>>>(x);
-        get_executor()->run(fft::make_fft3(float_b, dense_x, fft_size_[0],
-                                           fft_size_[1], fft_size_[2], inverse_,
-                                           buffer_));
+        get_executor()->run(fft::make_fft3(
+            float_b->get_const_device_view(), dense_x->get_device_view(),
+            fft_size_[0], fft_size_[1], fft_size_[2], inverse_, buffer_));
     } else {
         auto dense_b = as<Dense<std::complex<double>>>(b);
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        get_executor()->run(fft::make_fft3(dense_b, dense_x, fft_size_[0],
-                                           fft_size_[1], fft_size_[2], inverse_,
-                                           buffer_));
+        get_executor()->run(fft::make_fft3(
+            dense_b->get_const_device_view(), dense_x->get_device_view(),
+            fft_size_[0], fft_size_[1], fft_size_[2], inverse_, buffer_));
     }
 }
 
@@ -375,13 +381,13 @@ void Fft3::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                       LinOp* x) const
 {
     if (auto float_x = dynamic_cast<Dense<std::complex<float>>*>(x)) {
-        auto clone_x = x->clone();
+        auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         float_x->scale(beta);
         float_x->add_scaled(alpha, clone_x);
     } else {
         auto dense_x = as<Dense<std::complex<double>>>(x);
-        auto clone_x = x->clone();
+        auto clone_x = as<LinOp>(as<Cloneable>(x)->clone());
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
         dense_x->add_scaled(alpha, clone_x);
@@ -412,7 +418,7 @@ std::unique_ptr<Fft3> Fft3::create(std::shared_ptr<const Executor> exec,
 
 Fft3::Fft3(std::shared_ptr<const Executor> exec, size_type size1,
            size_type size2, size_type size3, bool inverse)
-    : EnableLinOp<Fft3>(exec, dim<2>{size1 * size2 * size3}),
+    : LinOp(exec, dim<2>{size1 * size2 * size3}),
       buffer_{exec},
       fft_size_{size1, size2, size3},
       inverse_{inverse}

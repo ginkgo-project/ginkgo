@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,39 +30,39 @@ protected:
     using BMVec = gko::batch::MultiVector<value_type>;
     using CsrMtx = gko::matrix::Csr<value_type>;
     using DenseMtx = gko::matrix::Dense<value_type>;
-    Csr()
-        : exec(gko::ReferenceExecutor::create()),
-          mtx_0(gko::batch::initialize<BMtx>(
-              {{{1.0, -1.0, 0.0}, {-2.0, 2.0, 3.0}},
-               {{1.0, -2.0, 0.0}, {1.0, -2.5, 4.0}}},
-              exec, 5)),
-          mtx_00(gko::initialize<CsrMtx>(
-              {I<T>({1.0, -1.0, 0.0}), I<T>({-2.0, 2.0, 3.0})}, exec)),
-          mtx_01(gko::initialize<CsrMtx>(
-              {I<T>({1.0, -2.0, 0.0}), I<T>({1.0, -2.5, 4.0})}, exec)),
-          b_0(gko::batch::initialize<BMVec>(
-              {{I<T>({1.0, 0.0, 1.0}), I<T>({2.0, 0.0, 1.0}),
-                I<T>({1.0, 0.0, 2.0})},
-               {I<T>({-1.0, 1.0, 1.0}), I<T>({1.0, -1.0, 1.0}),
-                I<T>({1.0, 0.0, 2.0})}},
-              exec)),
-          b_00(gko::initialize<DenseMtx>(
-              {I<T>({1.0, 0.0, 1.0}), I<T>({2.0, 0.0, 1.0}),
-               I<T>({1.0, 0.0, 2.0})},
-              exec)),
-          b_01(gko::initialize<DenseMtx>(
-              {I<T>({-1.0, 1.0, 1.0}), I<T>({1.0, -1.0, 1.0}),
-               I<T>({1.0, 0.0, 2.0})},
-              exec)),
-          x_0(gko::batch::initialize<BMVec>(
-              {{I<T>({2.0, 0.0, 1.0}), I<T>({2.0, 0.0, 2.0})},
-               {I<T>({-2.0, 1.0, 1.0}), I<T>({1.0, -1.0, -1.0})}},
-              exec)),
-          x_00(gko::initialize<DenseMtx>(
-              {I<T>({2.0, 0.0, 1.0}), I<T>({2.0, 0.0, 2.0})}, exec)),
-          x_01(gko::initialize<DenseMtx>(
-              {I<T>({-2.0, 1.0, 1.0}), I<T>({1.0, -1.0, -1.0})}, exec))
-    {}
+    Csr() : exec(gko::ReferenceExecutor::create())
+    {
+        mtx_0 =
+            gko::batch::initialize<BMtx>({{{1.0, -1.0, 0.0}, {-2.0, 2.0, 3.0}},
+                                          {{1.0, -2.0, 0.0}, {1.0, -2.5, 4.0}}},
+                                         exec, 5);
+        mtx_00 = gko::initialize<CsrMtx>(
+            {I<T>({1.0, -1.0, 0.0}), I<T>({-2.0, 2.0, 3.0})}, exec);
+        mtx_01 = gko::initialize<CsrMtx>(
+            {I<T>({1.0, -2.0, 0.0}), I<T>({1.0, -2.5, 4.0})}, exec);
+        b_0 = gko::batch::initialize<BMVec>(
+            {{I<T>({1.0, 0.0, 1.0}), I<T>({2.0, 0.0, 1.0}),
+              I<T>({1.0, 0.0, 2.0})},
+             {I<T>({-1.0, 1.0, 1.0}), I<T>({1.0, -1.0, 1.0}),
+              I<T>({1.0, 0.0, 2.0})}},
+            exec);
+        b_00 = gko::initialize<DenseMtx>(
+            {I<T>({1.0, 0.0, 1.0}), I<T>({2.0, 0.0, 1.0}),
+             I<T>({1.0, 0.0, 2.0})},
+            exec);
+        b_01 = gko::initialize<DenseMtx>(
+            {I<T>({-1.0, 1.0, 1.0}), I<T>({1.0, -1.0, 1.0}),
+             I<T>({1.0, 0.0, 2.0})},
+            exec);
+        x_0 = gko::batch::initialize<BMVec>(
+            {{I<T>({2.0, 0.0, 1.0}), I<T>({2.0, 0.0, 2.0})},
+             {I<T>({-2.0, 1.0, 1.0}), I<T>({1.0, -1.0, -1.0})}},
+            exec);
+        x_00 = gko::initialize<DenseMtx>(
+            {I<T>({2.0, 0.0, 1.0}), I<T>({2.0, 0.0, 2.0})}, exec);
+        x_01 = gko::initialize<DenseMtx>(
+            {I<T>({-2.0, 1.0, 1.0}), I<T>({1.0, -1.0, -1.0})}, exec);
+    }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::unique_ptr<BMtx> mtx_0;

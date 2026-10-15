@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,17 +6,9 @@
 
 #include <string>
 
-
-#if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #include <hiprand/hiprand.h>
 #include <hipsparse/hipsparse.h>
-#else
-#include <hipblas.h>
-#include <hiprand.h>
-#include <hipsparse.h>
-#endif
-
 
 #include <ginkgo/core/base/types.hpp>
 
@@ -97,10 +89,8 @@ std::string HipsparseError::get_error(int64 error_code)
     GKO_REGISTER_HIPSPARSE_ERROR(HIPSPARSE_STATUS_INTERNAL_ERROR);
     GKO_REGISTER_HIPSPARSE_ERROR(HIPSPARSE_STATUS_MATRIX_TYPE_NOT_SUPPORTED);
     GKO_REGISTER_HIPSPARSE_ERROR(HIPSPARSE_STATUS_ZERO_PIVOT);
-#if HIP_VERSION >= 50200000
     GKO_REGISTER_HIPSPARSE_ERROR(HIPSPARSE_STATUS_NOT_SUPPORTED);
     GKO_REGISTER_HIPSPARSE_ERROR(HIPSPARSE_STATUS_INSUFFICIENT_RESOURCES);
-#endif
     return "Unknown error";
 
 #undef GKO_REGISTER_HIPSPARSE_ERROR

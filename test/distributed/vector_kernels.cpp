@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -56,9 +56,10 @@ protected:
             auto d_output = gko::clone(exec, output);
 
             gko::kernels::reference::distributed_vector::build_local(
-                ref, input, partition.get(), part, output.get());
+                ref, input, partition.get(), part, output->get_device_view());
             gko::kernels::GKO_DEVICE_NAMESPACE::distributed_vector::build_local(
-                exec, d_input, d_partition.get(), part, d_output.get());
+                exec, d_input, d_partition.get(), part,
+                d_output->get_device_view());
 
             GKO_ASSERT_MTX_NEAR(output, d_output, 0);
         }

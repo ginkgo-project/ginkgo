@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/device_matrix_data_kernels.hpp"
+#include "core/base/validation.hpp"
 #include "core/components/absolute_array_kernels.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -48,6 +49,22 @@ GKO_REGISTER_OPERATION(conj_array, coo::conj_array);
 
 }  // anonymous namespace
 }  // namespace coo
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::is_sorted(row_idxs_),
+                 "row_idxs must be non-descending");
+    GKO_VALIDATE(validation::is_within_nonegative_bounds(
+                     row_idxs_, static_cast<IndexType>(this->get_size()[0])),
+                 "row_idxs must be within bounds");
+    GKO_VALIDATE(validation::is_within_nonegative_bounds(
+                     col_idxs_, static_cast<IndexType>(this->get_size()[1])),
+                 "col_idxs must be within bounds");
+    GKO_VALIDATE(validation::sparse_matrix_values_are_finite(values_),
+                 "matrix must contain only finite values");
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -90,7 +107,7 @@ Coo<ValueType, IndexType>::create_const(
 template <typename ValueType, typename IndexType>
 Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, size_type num_nonzeros)
-    : EnableLinOp<Coo>(exec, size),
+    : LinOp(exec, size),
       values_(exec, num_nonzeros),
       col_idxs_(exec, num_nonzeros),
       row_idxs_(exec, num_nonzeros)
@@ -102,7 +119,7 @@ Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
                                const dim<2>& size, array<value_type> values,
                                array<index_type> col_idxs,
                                array<index_type> row_idxs)
-    : EnableLinOp<Coo>(exec, size),
+    : LinOp(exec, size),
       values_{exec, std::move(values)},
       col_idxs_{exec, std::move(col_idxs)},
       row_idxs_{exec, std::move(row_idxs)}
@@ -113,33 +130,31 @@ Coo<ValueType, IndexType>::Coo(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
-                                         ptr_param<LinOp> x)
+void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
+                                       ptr_param<LinOp> x)
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply2_impl(make_temporary_clone(exec, b).get(),
                       make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
-                                               ptr_param<LinOp> x) const
+void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> b,
+                                       ptr_param<LinOp> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply2_impl(make_temporary_clone(exec, b).get(),
                       make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
-                                         ptr_param<const LinOp> b,
-                                         ptr_param<LinOp> x)
+void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
+                                       ptr_param<const LinOp> b,
+                                       ptr_param<LinOp> x)
 {
     this->validate_application_parameters(b.get(), x.get());
     GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -147,14 +162,13 @@ LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
     this->apply2_impl(make_temporary_clone(exec, alpha).get(),
                       make_temporary_clone(exec, b).get(),
                       make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
-                                               ptr_param<const LinOp> b,
-                                               ptr_param<LinOp> x) const
+void Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
+                                       ptr_param<const LinOp> b,
+                                       ptr_param<LinOp> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -162,7 +176,6 @@ const LinOp* Coo<ValueType, IndexType>::apply2(ptr_param<const LinOp> alpha,
     this->apply2_impl(make_temporary_clone(exec, alpha).get(),
                       make_temporary_clone(exec, b).get(),
                       make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
@@ -171,7 +184,9 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(coo::make_spmv(this, dense_b, dense_x));
+            this->get_executor()->run(coo::make_spmv(
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -184,7 +199,10 @@ void Coo<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             this->get_executor()->run(coo::make_advanced_spmv(
-                dense_alpha, this, dense_b, dense_beta, dense_x));
+                dense_alpha->get_const_device_view(),
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_beta->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         alpha, b, beta, x);
 }
@@ -195,7 +213,9 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(coo::make_spmv2(this, dense_b, dense_x));
+            this->get_executor()->run(coo::make_spmv2(
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         b, x);
 }
@@ -207,8 +227,10 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp* alpha, const LinOp* b,
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_x) {
-            this->get_executor()->run(
-                coo::make_advanced_spmv2(dense_alpha, this, dense_b, dense_x));
+            this->get_executor()->run(coo::make_advanced_spmv2(
+                dense_alpha->get_const_device_view(),
+                this->get_const_device_view(), dense_b->get_const_device_view(),
+                dense_x->get_device_view()));
         },
         alpha, b, x);
 }
@@ -315,7 +337,8 @@ void Coo<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     auto tmp_result = make_temporary_output_clone(exec, result);
     tmp_result->resize(this->get_size());
     tmp_result->fill(zero<ValueType>());
-    exec->run(coo::make_fill_in_dense(this, tmp_result.get()));
+    exec->run(coo::make_fill_in_dense(this->get_const_device_view(),
+                                      tmp_result->get_device_view()));
 }
 
 
@@ -433,7 +456,8 @@ Coo<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(coo::make_fill_array(diag->get_values(), diag->get_size()[0],
                                    zero<ValueType>()));
-    exec->run(coo::make_extract_diagonal(this, diag.get()));
+    exec->run(
+        coo::make_extract_diagonal(this->get_const_device_view(), diag.get()));
     return diag;
 }
 
@@ -464,6 +488,26 @@ Coo<ValueType, IndexType>::compute_absolute() const
                                                 abs_coo->get_values()));
 
     return abs_coo;
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Coo<ValueType, IndexType>::get_device_view() -> device_view
+{
+    return device_view{this->get_size(), this->get_num_stored_elements(),
+                       this->get_values(), this->get_row_idxs(),
+                       this->get_col_idxs()};
+}
+
+
+template <typename ValueType, typename IndexType>
+auto Coo<ValueType, IndexType>::get_const_device_view() const
+    -> const_device_view
+{
+    return const_device_view{this->get_size(), this->get_num_stored_elements(),
+                             this->get_const_values(),
+                             this->get_const_row_idxs(),
+                             this->get_const_col_idxs()};
 }
 
 

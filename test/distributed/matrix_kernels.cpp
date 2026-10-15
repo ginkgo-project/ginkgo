@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -50,37 +50,36 @@ protected:
                                                                        input};
         for (comm_index_type part = 0; part < row_partition->get_num_parts();
              ++part) {
-            gko::array<local_index_type> local_row_idxs{ref};
-            gko::array<local_index_type> local_col_idxs{ref};
-            gko::array<value_type> local_values{ref};
-            gko::array<local_index_type> d_local_row_idxs{exec};
-            gko::array<local_index_type> d_local_col_idxs{exec};
-            gko::array<value_type> d_local_values{exec};
-            gko::array<local_index_type> non_local_row_idxs{ref};
-            gko::array<global_index_type> non_local_col_idxs{ref};
-            gko::array<value_type> non_local_values{ref};
-            gko::array<local_index_type> d_non_local_row_idxs{exec};
-            gko::array<global_index_type> d_non_local_col_idxs{exec};
-            gko::array<value_type> d_non_local_values{exec};
+            gko::array<local_index_type> diag_row_idxs{ref};
+            gko::array<local_index_type> diag_col_idxs{ref};
+            gko::array<value_type> diag_values{ref};
+            gko::array<local_index_type> d_diag_row_idxs{exec};
+            gko::array<local_index_type> d_diag_col_idxs{exec};
+            gko::array<value_type> d_diag_values{exec};
+            gko::array<local_index_type> off_diag_row_idxs{ref};
+            gko::array<global_index_type> off_diag_col_idxs{ref};
+            gko::array<value_type> off_diag_values{ref};
+            gko::array<local_index_type> d_off_diag_row_idxs{exec};
+            gko::array<global_index_type> d_off_diag_col_idxs{exec};
+            gko::array<value_type> d_off_diag_values{exec};
 
-            gko::kernels::reference::distributed_matrix::
-                separate_local_nonlocal(
-                    ref, input, row_partition.get(), col_partition.get(), part,
-                    local_row_idxs, local_col_idxs, local_values,
-                    non_local_row_idxs, non_local_col_idxs, non_local_values);
+            gko::kernels::reference::distributed_matrix::separate_diag_off_diag(
+                ref, input, row_partition.get(), col_partition.get(), part,
+                diag_row_idxs, diag_col_idxs, diag_values, off_diag_row_idxs,
+                off_diag_col_idxs, off_diag_values);
             gko::kernels::GKO_DEVICE_NAMESPACE::distributed_matrix::
-                separate_local_nonlocal(
-                    exec, d_input, d_row_partition.get(), d_col_partition.get(),
-                    part, d_local_row_idxs, d_local_col_idxs, d_local_values,
-                    d_non_local_row_idxs, d_non_local_col_idxs,
-                    d_non_local_values);
+                separate_diag_off_diag(exec, d_input, d_row_partition.get(),
+                                       d_col_partition.get(), part,
+                                       d_diag_row_idxs, d_diag_col_idxs,
+                                       d_diag_values, d_off_diag_row_idxs,
+                                       d_off_diag_col_idxs, d_off_diag_values);
 
-            GKO_ASSERT_ARRAY_EQ(local_row_idxs, d_local_row_idxs);
-            GKO_ASSERT_ARRAY_EQ(local_col_idxs, d_local_col_idxs);
-            GKO_ASSERT_ARRAY_EQ(local_values, d_local_values);
-            GKO_ASSERT_ARRAY_EQ(non_local_row_idxs, d_non_local_row_idxs);
-            GKO_ASSERT_ARRAY_EQ(non_local_col_idxs, d_non_local_col_idxs);
-            GKO_ASSERT_ARRAY_EQ(non_local_values, d_non_local_values);
+            GKO_ASSERT_ARRAY_EQ(diag_row_idxs, d_diag_row_idxs);
+            GKO_ASSERT_ARRAY_EQ(diag_col_idxs, d_diag_col_idxs);
+            GKO_ASSERT_ARRAY_EQ(diag_values, d_diag_values);
+            GKO_ASSERT_ARRAY_EQ(off_diag_row_idxs, d_off_diag_row_idxs);
+            GKO_ASSERT_ARRAY_EQ(off_diag_col_idxs, d_off_diag_col_idxs);
+            GKO_ASSERT_ARRAY_EQ(off_diag_values, d_off_diag_values);
         }
     }
 

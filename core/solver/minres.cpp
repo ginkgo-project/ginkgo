@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,8 +39,11 @@ std::unique_ptr<LinOp> Minres<ValueType>::transpose() const
 {
     return build()
         .with_generated_preconditioner(
-            share(as<Transposable>(this->get_preconditioner())->transpose()))
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(false))
+        .with_left_nullspace(this->get_transposed_left_nullspace(false))
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -51,9 +54,12 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Minres<ValueType>::conj_transpose() const
 {
     return build()
-        .with_generated_preconditioner(share(
-            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(true))
+        .with_left_nullspace(this->get_transposed_left_nullspace(true))
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -95,8 +101,9 @@ typename Minres<ValueType>::parameters_type Minres<ValueType>::parse(
 
 
 /**
- * This Minres implementation is based on Anne Grennbaum's 'Iterative Methods
- * for Solving Linear Systems' (DOI: 10.1137/1.9781611970937) Ch. 2 and Ch. 8.
+ * This Minres implementation is based on Anne Greenbaum's *Iterative Methods
+ * for Solving Linear Systems* (<https://doi.org/10.1137/1.9781611970937>),
+ * Ch. 2 and Ch. 8.
  * Most variable names are taken from that reference, with the exception that
  * the vector `w` and `w_tilde` from the reference are called `z` and `z_tilde`.
  * The variable declaration have a comment to specify the name used in the
@@ -122,6 +129,9 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b =
+        this->get_consistent_rhs(dense_b, workspace_traits<Minres>::proj_rhs);
 
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);  // z = w_k+1
@@ -159,6 +169,8 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // r = dense_b
     r->copy_from(dense_b);
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // A annihilates N(A), so removing it from x keeps r unchanged
+    this->project_nullspace(dense_x);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -177,15 +189,22 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // z = z / beta
     // p = p_prev = q_prev = v = 0
     exec->run(minres::make_initialize(
-        gko::detail::get_local(r), gko::detail::get_local(z),
-        gko::detail::get_local(p), gko::detail::get_local(p_prev),
-        gko::detail::get_local(q), gko::detail::get_local(q_prev),
-        gko::detail::get_local(v), gko::detail::get_local(beta),
-        gko::detail::get_local(gamma), gko::detail::get_local(delta),
-        gko::detail::get_local(cos_prev), gko::detail::get_local(cos),
-        gko::detail::get_local(sin_prev), gko::detail::get_local(sin),
-        gko::detail::get_local(eta_next), gko::detail::get_local(eta),
-        &stop_status));
+        gko::detail::get_local(r)->get_const_device_view(),
+        gko::detail::get_local(z)->get_device_view(),
+        gko::detail::get_local(p)->get_device_view(),
+        gko::detail::get_local(p_prev)->get_device_view(),
+        gko::detail::get_local(q)->get_device_view(),
+        gko::detail::get_local(q_prev)->get_device_view(),
+        gko::detail::get_local(v)->get_device_view(),
+        gko::detail::get_local(beta)->get_device_view(),
+        gko::detail::get_local(gamma)->get_device_view(),
+        gko::detail::get_local(delta)->get_device_view(),
+        gko::detail::get_local(cos_prev)->get_device_view(),
+        gko::detail::get_local(cos)->get_device_view(),
+        gko::detail::get_local(sin_prev)->get_device_view(),
+        gko::detail::get_local(sin)->get_device_view(),
+        gko::detail::get_local(eta_next)->get_device_view(),
+        gko::detail::get_local(eta)->get_device_view(), stop_status));
 
     int iter = -1;
     /* Memory movement summary:
@@ -248,12 +267,17 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // update the squared residual norm approximation:
         // tau = abs(sin)^2 * tau
         exec->run(minres::make_step_1(
-            gko::detail::get_local(alpha), gko::detail::get_local(beta),
-            gko::detail::get_local(gamma), gko::detail::get_local(delta),
-            gko::detail::get_local(cos_prev), gko::detail::get_local(cos),
-            gko::detail::get_local(sin_prev), gko::detail::get_local(sin),
-            gko::detail::get_local(eta), gko::detail::get_local(eta_next),
-            gko::detail::get_local(tau), &stop_status));
+            gko::detail::get_local(alpha)->get_device_view(),
+            gko::detail::get_local(beta)->get_device_view(),
+            gko::detail::get_local(gamma)->get_device_view(),
+            gko::detail::get_local(delta)->get_device_view(),
+            gko::detail::get_local(cos_prev)->get_device_view(),
+            gko::detail::get_local(cos)->get_device_view(),
+            gko::detail::get_local(sin_prev)->get_device_view(),
+            gko::detail::get_local(sin)->get_device_view(),
+            gko::detail::get_local(eta)->get_device_view(),
+            gko::detail::get_local(eta_next)->get_device_view(),
+            gko::detail::get_local(tau)->get_device_view(), stop_status));
 
 
         // update vectors
@@ -273,14 +297,20 @@ void Minres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // gamma = beta
         swap(p, p_prev);
         exec->run(minres::make_step_2(
-            gko::detail::get_local(dense_x), gko::detail::get_local(p),
-            gko::detail::get_local(p_prev), gko::detail::get_local(z),
-            gko::detail::get_local(z_tilde), gko::detail::get_local(q),
-            gko::detail::get_local(q_prev), gko::detail::get_local(v),
-            gko::detail::get_local(alpha), gko::detail::get_local(beta),
-            gko::detail::get_local(gamma), gko::detail::get_local(delta),
-            gko::detail::get_local(cos), gko::detail::get_local(eta),
-            &stop_status));
+            gko::detail::get_local(dense_x)->get_device_view(),
+            gko::detail::get_local(p)->get_device_view(),
+            gko::detail::get_local(p_prev)->get_const_device_view(),
+            gko::detail::get_local(z)->get_device_view(),
+            gko::detail::get_local(z_tilde)->get_const_device_view(),
+            gko::detail::get_local(q)->get_device_view(),
+            gko::detail::get_local(q_prev)->get_device_view(),
+            gko::detail::get_local(v)->get_device_view(),
+            gko::detail::get_local(alpha)->get_const_device_view(),
+            gko::detail::get_local(beta)->get_const_device_view(),
+            gko::detail::get_local(gamma)->get_const_device_view(),
+            gko::detail::get_local(delta)->get_const_device_view(),
+            gko::detail::get_local(cos)->get_const_device_view(),
+            gko::detail::get_local(eta)->get_const_device_view(), stop_status));
         swap(gamma, beta);
     }
 }
@@ -306,15 +336,14 @@ void Minres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType>
 Minres<ValueType>::Minres(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Minres>(std::move(exec))
+    : LinOp(std::move(exec))
 {}
 
 
 template <typename ValueType>
 Minres<ValueType>::Minres(const Factory* factory,
                           std::shared_ptr<const LinOp> system_matrix)
-    : EnableLinOp<Minres>(factory->get_executor(),
-                          gko::transpose(system_matrix->get_size())),
+    : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size())),
       EnablePreconditionedIterativeSolver<ValueType, Minres>{
           std::move(system_matrix), factory->get_parameters()},
       parameters_{factory->get_parameters()}
@@ -324,7 +353,7 @@ Minres<ValueType>::Minres(const Factory* factory,
 template <typename ValueType>
 int workspace_traits<Minres<ValueType>>::num_vectors(const Solver&)
 {
-    return 21;
+    return 22;
 }
 
 
@@ -339,10 +368,12 @@ template <typename ValueType>
 std::vector<std::string> workspace_traits<Minres<ValueType>>::op_names(
     const Solver&)
 {
-    return {"r",        "z",      "p",        "q",        "v",     "z_tilde",
-            "p_prev",   "q_prev", "alpha",    "beta",     "gamma", "delta",
-            "eta_next", "eta",    "tau",      "cos_prev", "cos",   "sin_prev",
-            "sin",      "one",    "minus_one"};
+    return {
+        "r",        "z",      "p",         "q",        "v",     "z_tilde",
+        "p_prev",   "q_prev", "alpha",     "beta",     "gamma", "delta",
+        "eta_next", "eta",    "tau",       "cos_prev", "cos",   "sin_prev",
+        "sin",      "one",    "minus_one", "proj_rhs",
+    };
 }
 
 
@@ -365,12 +396,13 @@ std::vector<int> workspace_traits<Minres<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Minres<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, p, q, v, z_tilde, p_prev, q_prev};
+    return {r, z, p, q, v, z_tilde, p_prev, q_prev, proj_rhs};
 }
 
 
-#define GKO_DECLARE_MINRES(_type) class Minres<_type>
-#define GKO_DECLARE_MINRES_TRAITS(_type) struct workspace_traits<Minres<_type>>
+#define GKO_DECLARE_MINRES(ValueType) class Minres<ValueType>
+#define GKO_DECLARE_MINRES_TRAITS(ValueType) \
+    struct workspace_traits<Minres<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_TRAITS);
 

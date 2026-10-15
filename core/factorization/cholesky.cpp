@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -57,8 +57,7 @@ Cholesky<ValueType, IndexType>::parse(
 template <typename ValueType, typename IndexType>
 Cholesky<ValueType, IndexType>::Cholesky(std::shared_ptr<const Executor> exec,
                                          const parameters_type& params)
-    : EnablePolymorphicObject<Cholesky, LinOpFactory>(std::move(exec)),
-      parameters_(params)
+    : LinOpFactory(std::move(exec)), parameters_(params)
 {}
 
 
@@ -102,7 +101,7 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
         forest =
             std::make_unique<gko::factorization::elimination_forest<IndexType>>(
                 exec, num_rows);
-        exec->run(make_from_factor(factors.get(), *forest));
+        exec->run(make_from_factor(factors->get_const_device_view(), *forest));
     }
     // setup lookup structure on factors
     const auto lookup = matrix::csr::build_lookup(factors.get());
@@ -113,16 +112,17 @@ std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
                               factors->get_num_stored_elements(),
                               zero<ValueType>()));
     exec->run(make_initialize(
-        mtx.get(), lookup.storage_offsets.get_const_data(),
+        mtx->get_const_device_view(), lookup.storage_offsets.get_const_data(),
         lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-        diag_idxs.get_data(), transpose_idxs.get_data(), factors.get()));
+        diag_idxs.get_data(), transpose_idxs.get_data(),
+        factors->get_device_view()));
     // run numerical factorization
     array<int> tmp{exec};
     exec->run(make_factorize(
         lookup.storage_offsets.get_const_data(),
         lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
         diag_idxs.get_const_data(), transpose_idxs.get_const_data(), *forest,
-        factors.get(), true, tmp));
+        factors->get_device_view(), true, tmp));
     return factorization_type::create_from_combined_cholesky(
         std::move(factors));
 }

@@ -1,22 +1,15 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <hip/hip_runtime.h>
-
-#include <ginkgo/core/base/exception_helpers.hpp>
-#if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
 #include <hiprand/hiprand.h>
 #include <hipsparse/hipsparse.h>
-#else
-#include <hipblas.h>
-#include <hiprand.h>
-#include <hipsparse.h>
-#endif
-
 
 #include <gtest/gtest.h>
+
+#include <ginkgo/core/base/exception_helpers.hpp>
 
 
 namespace {

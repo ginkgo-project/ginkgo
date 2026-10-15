@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,12 +6,7 @@
 #define GKO_HIP_BASE_HIPRAND_BINDINGS_HIP_HPP_
 
 
-#if HIP_VERSION >= 50200000
 #include <hiprand/hiprand.h>
-#else
-#include <hiprand.h>
-#endif
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
@@ -26,7 +21,6 @@ namespace hip {
 /**
  * @brief The HIPRAND namespace.
  *
- * @ingroup hiprand
  */
 namespace hiprand {
 namespace detail {
@@ -99,6 +93,25 @@ GKO_BIND_HIPRAND_RANDOM_VECTOR(ValueType, detail::not_implemented);
 
 
 #undef GKO_BIND_HIPRAND_RANDOM_VECTOR
+
+
+#define GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR(ValueType, HiprandName)       \
+    inline void uniform_rand_vector(hiprandGenerator_t& gen, size_type n,    \
+                                    ValueType* values)                       \
+    {                                                                        \
+        GKO_ASSERT_NO_HIPRAND_ERRORS(HiprandName(gen, values, n));           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
+                  "semi-colon warnings")
+
+GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR(float, hiprandGenerateUniform);
+GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR(double, hiprandGenerateUniformDouble);
+template <typename ValueType>
+GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR(ValueType, detail::not_implemented);
+
+
+#undef GKO_BIND_HIPRAND_UNIFORM_RANDOM_VECTOR
 
 
 }  // namespace hiprand

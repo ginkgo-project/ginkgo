@@ -11,6 +11,7 @@ target_sources(
         components/absolute_array_kernels.cpp
         components/fill_array_kernels.cpp
         components/format_conversion_kernels.cpp
+        components/gather_kernels.cpp
         components/precision_conversion_kernels.cpp
         components/prefix_sum_kernels.cpp
         components/range_minimum_query_kernels.cpp
@@ -47,6 +48,9 @@ target_sources(
         matrix/sellp_kernels.cpp
         matrix/sparsity_csr_kernels.cpp
         multigrid/pgm_kernels.cpp
+        multigrid/pmis_kernels.cpp
+        multigrid/rs_kernels.cpp
+        multigrid/uniform_coarsening_kernels.cpp
         preconditioner/batch_jacobi_kernels.cpp
         preconditioner/isai_kernels.cpp
         preconditioner/jacobi_kernels.cpp
@@ -69,6 +73,7 @@ target_sources(
         solver/lower_trs_kernels.cpp
         solver/minres_kernels.cpp
         solver/multigrid_kernels.cpp
+        solver/nullspace_kernels.cpp
         solver/pipe_cg_kernels.cpp
         solver/upper_trs_kernels.cpp
         stop/criterion_kernels.cpp

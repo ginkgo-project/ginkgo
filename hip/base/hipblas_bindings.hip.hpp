@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,12 +6,7 @@
 #define GKO_HIP_BASE_HIPBLAS_BINDINGS_HIP_HPP_
 
 
-#if HIP_VERSION >= 50200000
 #include <hipblas/hipblas.h>
-#else
-#include <hipblas.h>
-#endif
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -25,25 +20,21 @@ namespace gko {
 /**
  * @brief The device specific kernels namespace.
  *
- * @ingroup kernels
  */
 namespace kernels {
 /**
  * @brief The HIP namespace.
  *
- * @ingroup hip
  */
 namespace hip {
 /**
  * @brief The HIPBLAS namespace.
  *
- * @ingroup hipblas
  */
 namespace hipblas {
 /**
  * @brief The detail namespace.
  *
- * @ingroup detail
  */
 namespace detail {
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,7 +59,7 @@ Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     const Hybrid& other)
 {
     if (&other != this) {
-        EnableLinOp<Hybrid>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         *coo_ = *other.coo_;
         *ell_ = *other.ell_;
@@ -74,7 +74,7 @@ Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
     Hybrid&& other)
 {
     if (&other != this) {
-        EnableLinOp<Hybrid>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         auto exec = this->get_executor();
         *coo_ = std::move(*other.coo_);
         *ell_ = std::move(*other.ell_);
@@ -106,11 +106,28 @@ Hybrid<ValueType, IndexType>::Hybrid(std::shared_ptr<const Executor> exec,
                                      size_type num_stored_elements_per_row,
                                      size_type stride, size_type num_nonzeros,
                                      std::shared_ptr<strategy_type> strategy)
-    : EnableLinOp<Hybrid>(exec, size),
+    : LinOp(exec, size),
       ell_(ell_type::create(exec, size, num_stored_elements_per_row, stride)),
       coo_(coo_type::create(exec, size, num_nonzeros)),
       strategy_(strategy ? std::move(strategy) : std::make_shared<automatic>())
 {}
+
+
+template <typename ValueType, typename IndexType>
+typename Hybrid<ValueType, IndexType>::device_view
+Hybrid<ValueType, IndexType>::get_device_view()
+{
+    return device_view{ell_->get_device_view(), coo_->get_device_view()};
+}
+
+
+template <typename ValueType, typename IndexType>
+typename Hybrid<ValueType, IndexType>::const_device_view
+Hybrid<ValueType, IndexType>::get_const_device_view() const
+{
+    return const_device_view{ell_->get_const_device_view(),
+                             coo_->get_const_device_view()};
+}
 
 
 template <typename ValueType, typename IndexType>
@@ -276,9 +293,11 @@ void Hybrid<ValueType, IndexType>::convert_to(Dense<ValueType>* result) const
     result->fill(zero<ValueType>());
     auto result_local = make_temporary_clone(exec, result);
     exec->run(
-        hybrid::make_ell_fill_in_dense(this->get_ell(), result_local.get()));
+        hybrid::make_ell_fill_in_dense(this->get_ell()->get_const_device_view(),
+                                       result_local->get_device_view()));
     exec->run(
-        hybrid::make_coo_fill_in_dense(this->get_coo(), result_local.get()));
+        hybrid::make_coo_fill_in_dense(this->get_coo()->get_const_device_view(),
+                                       result_local->get_device_view()));
 }
 
 
@@ -300,7 +319,7 @@ void Hybrid<ValueType, IndexType>::convert_to(
         array<IndexType> ell_row_ptrs{exec, num_rows + 1};
         array<IndexType> coo_row_ptrs{exec, num_rows + 1};
         exec->run(hybrid::make_ell_count_nonzeros_per_row(
-            this->get_ell(), ell_row_ptrs.get_data()));
+            this->get_ell()->get_const_device_view(), ell_row_ptrs.get_data()));
         exec->run(hybrid::make_prefix_sum_nonnegative(ell_row_ptrs.get_data(),
                                                       num_rows + 1));
         exec->run(hybrid::make_convert_idxs_to_ptrs(
@@ -314,8 +333,8 @@ void Hybrid<ValueType, IndexType>::convert_to(
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
         exec->run(hybrid::make_convert_to_csr(
-            this, ell_row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(),
-            tmp.get()));
+            this->get_const_device_view(), ell_row_ptrs.get_const_data(),
+            coo_row_ptrs.get_const_data(), tmp->get_device_view()));
     }
     result->make_srow();
 }
@@ -365,9 +384,9 @@ void Hybrid<ValueType, IndexType>::read(const device_mat_data& data)
                                                 coo_row_ptrs.get_data()));
     coo_nnz = get_element(coo_row_ptrs, num_rows);
     this->resize(data.get_size(), ell_max_nnz, coo_nnz);
-    exec->run(
-        hybrid::make_fill_in_matrix_data(*local_data, row_ptrs.get_const_data(),
-                                         coo_row_ptrs.get_const_data(), this));
+    exec->run(hybrid::make_fill_in_matrix_data(
+        *local_data, row_ptrs.get_const_data(), coo_row_ptrs.get_const_data(),
+        this->get_device_view()));
 }
 
 
@@ -428,8 +447,10 @@ Hybrid<ValueType, IndexType>::extract_diagonal() const
     auto diag = Diagonal<ValueType>::create(exec, diag_size);
     exec->run(hybrid::make_fill_array(diag->get_values(), diag->get_size()[0],
                                       zero<ValueType>()));
-    exec->run(hybrid::make_ell_extract_diagonal(this->get_ell(), diag.get()));
-    exec->run(hybrid::make_coo_extract_diagonal(this->get_coo(), diag.get()));
+    exec->run(hybrid::make_ell_extract_diagonal(
+        this->get_ell()->get_const_device_view(), diag.get()));
+    exec->run(hybrid::make_coo_extract_diagonal(
+        this->get_coo()->get_const_device_view(), diag.get()));
     return diag;
 }
 

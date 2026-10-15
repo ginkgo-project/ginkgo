@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,7 +68,8 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
                   gko::ptr_param<gko::matrix::Dense<>> x)
 {
     using Mtx = gko::matrix::Csr<>;
-    auto A = gko::share(Mtx::create(exec, std::make_shared<Mtx::classical>()));
+    auto A = gko::share(
+        Mtx::create(exec, gko::matrix::csr::spmv_strategy::classical));
 
     auto num_iters = 20u;
     double reduction_factor = 1e-7;
@@ -89,8 +90,8 @@ void check_solver(std::shared_ptr<gko::Executor> exec,
 #if defined(HAS_HIP) || defined(HAS_CUDA)
     // If we are on a device, we need to run a reference test to compare against
     auto exec_ref = exec->get_master();
-    auto A_ref =
-        gko::share(Mtx::create(exec_ref, std::make_shared<Mtx::classical>()));
+    auto A_ref = gko::share(
+        Mtx::create(exec_ref, gko::matrix::csr::spmv_strategy::classical));
     A_ref->read(A_raw);
     auto solver_gen_ref =
         Solver::build()
@@ -359,7 +360,8 @@ int main()
     // core/matrix/csr.hpp
     {
         using Mtx = gko::matrix::Csr<>;
-        auto test = Mtx::create(exec, std::make_shared<Mtx::classical>());
+        auto test =
+            Mtx::create(exec, gko::matrix::csr::spmv_strategy::classical);
     }
 
     // core/matrix/dense.hpp
@@ -415,6 +417,11 @@ int main()
         auto test = gko::multigrid::Pgm<>::build().on(exec);
     }
 
+    // core/multigrid/uniform_coarsening.hpp
+    {
+        auto test = gko::multigrid::UniformCoarsening<>::build().on(exec);
+    }
+
     // core/preconditioner/ilu.hpp
     {
         auto test = gko::preconditioner::Ilu<>::build().on(exec);
@@ -430,6 +437,17 @@ int main()
     {
         using Bj = gko::preconditioner::Jacobi<>;
         auto test = Bj::build().with_max_block_size(1u).on(exec);
+    }
+
+    // core/preconditioner/nullspace_projection.hpp
+    {
+        using Projection = gko::preconditioner::NullspaceProjection<>;
+        auto test =
+            Projection::build()
+                .with_preconditioner(gko::preconditioner::Jacobi<>::build())
+                .with_nullspace(
+                    gko::solver::Nullspace<>::create_from_constant(exec))
+                .on(exec);
     }
 
     // core/solver/batch_bicgstab.hpp
@@ -509,6 +527,27 @@ int main()
     {
         using Solver = gko::solver::LowerTrs<>;
         auto test = Solver::build().on(exec);
+    }
+
+    // core/solver/nullspace.hpp
+    {
+        using Nullspace = gko::solver::Nullspace<>;
+        auto test = gko::share(Nullspace::create_from_constant(
+            exec, gko::dim<2>{b->get_size()[0], b->get_size()[0]}));
+        auto solver =
+            gko::solver::Cg<>::build()
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+                .with_nullspace(test)
+                .on(exec);
+#if HAS_REFERENCE
+        // b is constant, so it lies in the nullspace
+        auto b_clone = gko::clone(b);
+        test->project(b_clone);
+        auto zero = vec::create(exec->get_master(), b->get_size());
+        zero->fill(0.0);
+        assert_similar_matrices(gko::clone(exec->get_master(), b_clone), zero,
+                                1e-14);
+#endif  // HAS_REFERENCE
     }
 
     // core/stop/

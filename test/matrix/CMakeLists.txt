@@ -1,10 +1,13 @@
 ginkgo_create_common_test(batch_csr_kernels)
 ginkgo_create_common_test(batch_dense_kernels)
 ginkgo_create_common_test(batch_ell_kernels)
+# omp does not have load balance, so we do not have srow to test
+ginkgo_create_common_test(csr_builder DISABLE_EXECUTORS omp)
 ginkgo_create_common_device_test(csr_kernels)
 ginkgo_create_common_test(csr_kernels2)
 ginkgo_create_common_test(coo_kernels)
 ginkgo_create_common_test(dense_kernels)
+ginkgo_create_common_device_test(device_views)
 ginkgo_create_common_test(diagonal_kernels)
 ginkgo_create_common_test(ell_kernels)
 ginkgo_create_common_test(fbcsr_kernels DISABLE_EXECUTORS dpcpp)

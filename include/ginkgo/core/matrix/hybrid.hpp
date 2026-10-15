@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -34,13 +34,13 @@ class Csr;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup hybrid
  * @ingroup mat_formats
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Hybrid
-    : public EnableLinOp<Hybrid<ValueType, IndexType>>,
+    : public LinOp,
+      public EnableCloneable<Hybrid<ValueType, IndexType>>,
       public ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Hybrid<next_precision<ValueType, 2>, IndexType>>,
@@ -55,15 +55,15 @@ class Hybrid
       public WritableToMatrixData<ValueType, IndexType>,
       public EnableAbsoluteComputation<
           remove_complex<Hybrid<ValueType, IndexType>>> {
-    friend class EnablePolymorphicObject<Hybrid, LinOp>;
+    friend class EnableCloneable<Hybrid>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
     friend class Hybrid<to_complex<ValueType>, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Hybrid>::convert_to;
-    using EnableLinOp<Hybrid>::move_to;
+    using EnableCloneable<Hybrid>::convert_to;
+    using EnableCloneable<Hybrid>::move_to;
     using ConvertibleTo<
         Hybrid<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>::move_to;
@@ -77,6 +77,8 @@ public:
     using index_type = IndexType;
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
+    using device_view = view::hybrid<value_type, index_type>;
+    using const_device_view = view::hybrid<const value_type, const index_type>;
     using coo_type = Coo<ValueType, IndexType>;
     using ell_type = Ell<ValueType, IndexType>;
     using absolute_type = remove_complex<Hybrid>;
@@ -410,6 +412,8 @@ public:
 
     void read(device_mat_data&& data) override;
 
+    using WritableToMatrixData<ValueType, IndexType>::write;
+
     void write(mat_data& data) const override;
 
     std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
@@ -641,6 +645,20 @@ public:
      */
     template <typename HybType>
     std::shared_ptr<typename HybType::strategy_type> get_strategy() const;
+
+    /**
+     * Returns a non-owning device view of this matrix.
+     *
+     * @return a device view of this matrix.
+     */
+    device_view get_device_view();
+
+    /**
+     * Returns a non-owning const device view of this matrix.
+     *
+     * @return a const device view of this matrix.
+     */
+    const_device_view get_const_device_view() const;
 
     /**
      * Creates an uninitialized Hybrid matrix of specified method.

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,13 +24,13 @@ namespace matrix {
  *
  * @tparam ValueType  precision of matrix elements
  *
- * @ingroup batch_identity
  * @ingroup mat_formats
  * @ingroup BatchLinOp
  */
 template <typename ValueType = default_precision>
-class Identity final : public EnableBatchLinOp<Identity<ValueType>> {
-    friend class EnablePolymorphicObject<Identity, BatchLinOp>;
+class Identity final : public BatchLinOp,
+                       public EnableCloneable<Identity<ValueType>> {
+    friend class EnableCloneable<Identity>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -47,8 +47,8 @@ public:
      * @param b  the multi-vector to be applied to
      * @param x  the output multi-vector
      */
-    Identity* apply(ptr_param<const MultiVector<value_type>> b,
-                    ptr_param<MultiVector<value_type>> x);
+    void apply(ptr_param<const MultiVector<value_type>> b,
+               ptr_param<MultiVector<value_type>> x);
 
     /**
      * Apply the matrix to a multi-vector with a linear combination of the given
@@ -60,26 +60,26 @@ public:
      * @param beta   the scalar to scale the x vector with
      * @param x      the output multi-vector
      */
-    Identity* apply(ptr_param<const MultiVector<value_type>> alpha,
-                    ptr_param<const MultiVector<value_type>> b,
-                    ptr_param<const MultiVector<value_type>> beta,
-                    ptr_param<MultiVector<value_type>> x);
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
+               ptr_param<const MultiVector<value_type>> b,
+               ptr_param<const MultiVector<value_type>> beta,
+               ptr_param<MultiVector<value_type>> x);
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, MultiVector<value_type>*)
      */
-    const Identity* apply(ptr_param<const MultiVector<value_type>> b,
-                          ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> b,
+               ptr_param<MultiVector<value_type>> x) const;
 
     /**
      * @copydoc apply(const MultiVector<value_type>*, const
      * MultiVector<value_type>*, const MultiVector<value_type>*,
      * MultiVector<value_type>*)
      */
-    const Identity* apply(ptr_param<const MultiVector<value_type>> alpha,
-                          ptr_param<const MultiVector<value_type>> b,
-                          ptr_param<const MultiVector<value_type>> beta,
-                          ptr_param<MultiVector<value_type>> x) const;
+    void apply(ptr_param<const MultiVector<value_type>> alpha,
+               ptr_param<const MultiVector<value_type>> b,
+               ptr_param<const MultiVector<value_type>> beta,
+               ptr_param<MultiVector<value_type>> x) const;
     /**
      * Creates an Identity matrix of the specified size.
      *

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,30 +20,33 @@ namespace kernels {
 namespace common_gmres {
 
 
-#define GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL(_type)                   \
-    void initialize(                                                        \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        const matrix::Dense<_type>* b, matrix::Dense<_type>* residual,      \
-        matrix::Dense<_type>* givens_sin, matrix::Dense<_type>* givens_cos, \
-        stopping_status* stop_status)
+#define GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL(ValueType)    \
+    void initialize(std::shared_ptr<const DefaultExecutor> exec, \
+                    matrix::view::dense<const ValueType> b,      \
+                    matrix::view::dense<ValueType> residual,     \
+                    matrix::view::dense<ValueType> givens_sin,   \
+                    matrix::view::dense<ValueType> givens_cos,   \
+                    stopping_status* stop_status)
 
 
-#define GKO_DECLARE_COMMON_GMRES_HESSENBERG_QR_KERNEL(_type)                \
-    void hessenberg_qr(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                        \
-        matrix::Dense<_type>* givens_sin, matrix::Dense<_type>* givens_cos, \
-        matrix::Dense<remove_complex<_type>>* residual_norm,                \
-        matrix::Dense<_type>* residual_norm_collection,                     \
-        matrix::Dense<_type>* hessenberg_iter, size_type iter,              \
+#define GKO_DECLARE_COMMON_GMRES_HESSENBERG_QR_KERNEL(ValueType)        \
+    void hessenberg_qr(                                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        matrix::view::dense<ValueType> givens_sin,                      \
+        matrix::view::dense<ValueType> givens_cos,                      \
+        matrix::view::dense<remove_complex<ValueType>> residual_norm,   \
+        matrix::view::dense<ValueType> residual_norm_collection,        \
+        matrix::view::dense<ValueType> hessenberg_iter, size_type iter, \
         size_type* final_iter_nums, const stopping_status* stop_status)
 
 
-#define GKO_DECLARE_COMMON_GMRES_SOLVE_KRYLOV_KERNEL(_type1)               \
-    void solve_krylov(                                                     \
-        std::shared_ptr<const DefaultExecutor> exec,                       \
-        const matrix::Dense<_type1>* residual_norm_collection,             \
-        const matrix::Dense<_type1>* hessenberg, matrix::Dense<_type1>* y, \
-        const size_type* final_iter_nums, const stopping_status* stop_status)
+#define GKO_DECLARE_COMMON_GMRES_SOLVE_KRYLOV_KERNEL(ValueType)             \
+    void solve_krylov(                                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        matrix::view::dense<const ValueType> residual_norm_collection,      \
+        matrix::view::dense<const ValueType> hessenberg,                    \
+        matrix::view::dense<ValueType> y, const size_type* final_iter_nums, \
+        const stopping_status* stop_status)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                          \

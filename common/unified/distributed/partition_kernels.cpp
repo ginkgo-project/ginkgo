@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -127,7 +127,7 @@ void has_ordered_parts(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
-    bool* result)
+    bool& result)
 {
     const auto part_ids = partition->get_part_ids();
     const auto num_ranges = partition->get_num_ranges();
@@ -144,7 +144,7 @@ void has_ordered_parts(
         },
         [] GKO_KERNEL(const auto a) { return a; }, uint32(1),
         result_uint32.get_data(), num_ranges - 1, part_ids);
-    *result = static_cast<bool>(get_element(result_uint32, 0));
+    result = static_cast<bool>(get_element(result_uint32, 0));
 }
 
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -67,6 +67,7 @@ std::shared_ptr<Csr> extend_sparsity(std::shared_ptr<const Executor>& exec,
         // copy the matrix, as it will be used to store the inverse
         return {std::move(mtx->clone())};
     }
+
     auto id_power = mtx->clone();
     // accumulates mtx * the remainder from odd powers
     auto acc = mtx->clone();
@@ -143,7 +144,7 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
         // Extract lower triangular part: compute non-zeros
         array<IndexType> inverted_row_ptrs{exec, num_rows + 1};
         exec->run(isai::make_initialize_row_ptrs_l(
-            to_invert.get(), inverted_row_ptrs.get_data()));
+            to_invert->get_const_device_view(), inverted_row_ptrs.get_data()));
 
         // Get nnz from device memory
         auto inverted_nnz =
@@ -157,7 +158,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             std::move(inverted_col_idxs), std::move(inverted_row_ptrs)));
 
         // Extract lower factor: columns and values
-        exec->run(isai::make_initialize_l(to_invert.get(), inverted_base.get(),
+        exec->run(isai::make_initialize_l(to_invert->get_const_device_view(),
+                                          inverted_base->get_device_view(),
                                           false));
 
         inverted = power == 1
@@ -174,12 +176,14 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 
     if (is_general || is_spd) {
         exec->run(isai::make_generate_general_inverse(
-            to_invert.get(), inverted.get(), excess_block_ptrs.get_data(),
-            excess_row_ptrs_full.get_data(), is_spd));
+            to_invert->get_const_device_view(), inverted->get_device_view(),
+            excess_block_ptrs.get_data(), excess_row_ptrs_full.get_data(),
+            is_spd));
     } else {
         exec->run(isai::make_generate_tri_inverse(
-            to_invert.get(), inverted.get(), excess_block_ptrs.get_data(),
-            excess_row_ptrs_full.get_data(), is_lower));
+            to_invert->get_const_device_view(), inverted->get_device_view(),
+            excess_block_ptrs.get_data(), excess_row_ptrs_full.get_data(),
+            is_lower));
     }
 
     auto host_excess_block_ptrs_array =
@@ -212,14 +216,16 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             auto excess_system =
                 Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
             excess_system->set_strategy(
-                std::make_shared<typename Csr::classical>());
+                gko::matrix::csr::spmv_strategy::classical);
             auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
             auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
             exec->run(isai::make_generate_excess_system(
-                to_invert.get(), inverted.get(),
+                to_invert->get_const_device_view(),
+                inverted->get_const_device_view(),
                 excess_block_ptrs.get_const_data(),
-                excess_row_ptrs_full.get_const_data(), excess_system.get(),
-                excess_rhs.get(), excess_start, block));
+                excess_row_ptrs_full.get_const_data(),
+                excess_system->get_device_view(), excess_rhs->get_device_view(),
+                excess_start, block));
             // solve it after transposing
             auto system_copy = gko::clone(exec->get_master(), excess_system);
             auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
@@ -251,13 +257,14 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                 ->apply(excess_rhs, excess_solution);
             if (is_spd) {
                 exec->run(isai::make_scale_excess_solution(
-                    excess_block_ptrs.get_const_data(), excess_solution.get(),
-                    excess_start, block));
+                    excess_block_ptrs.get_const_data(),
+                    excess_solution->get_device_view(), excess_start, block));
             }
             // and copy the results back to the original ISAI
             exec->run(isai::make_scatter_excess_solution(
-                excess_block_ptrs.get_const_data(), excess_solution.get(),
-                inverted.get(), excess_start, block));
+                excess_block_ptrs.get_const_data(),
+                excess_solution->get_const_device_view(),
+                inverted->get_device_view(), excess_start, block));
         }
     }
 
@@ -270,7 +277,7 @@ Isai<IsaiType, ValueType, IndexType>&
 Isai<IsaiType, ValueType, IndexType>::operator=(const Isai& other)
 {
     if (&other != this) {
-        EnableLinOp<Isai>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         approximate_inverse_ = other.approximate_inverse_;
         parameters_ = other.parameters_;
@@ -288,7 +295,7 @@ Isai<IsaiType, ValueType, IndexType>&
 Isai<IsaiType, ValueType, IndexType>::operator=(Isai&& other)
 {
     if (&other != this) {
-        EnableLinOp<Isai>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         auto exec = this->get_executor();
         approximate_inverse_ = std::move(other.approximate_inverse_);
         parameters_ = std::exchange(other.parameters_, parameters_type{});
@@ -322,7 +329,9 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
 {
     auto is_spd = IsaiType == isai_type::spd;
     if (is_spd) {
-        return this->clone();
+        auto cloned = std::unique_ptr<Isai>(new Isai{this->get_executor()});
+        cloned->operator=(*this);
+        return cloned;
     }
 
     std::unique_ptr<transposed_type> transp{
@@ -341,7 +350,9 @@ std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
 {
     auto is_spd = IsaiType == isai_type::spd;
     if (is_spd) {
-        return this->clone();
+        auto cloned = std::unique_ptr<Isai>(new Isai{this->get_executor()});
+        cloned->operator=(*this);
+        return cloned;
     }
 
     std::unique_ptr<transposed_type> transp{

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,12 +33,12 @@ struct CheckOperationLogger : gko::log::Logger {
 };
 
 
-class DummyLinOp : public gko::EnableLinOp<DummyLinOp>,
+class DummyLinOp : public gko::LinOp,
                    public gko::EnableCreateMethod<DummyLinOp> {
 public:
     DummyLinOp(std::shared_ptr<const gko::Executor> exec,
                gko::dim<2> size = gko::dim<2>{})
-        : EnableLinOp<DummyLinOp>(exec, size)
+        : LinOp(exec, size)
     {}
 
 protected:
@@ -215,14 +215,13 @@ TYPED_TEST(Ilu, SetLStrategy)
 {
     using Csr = typename TestFixture::Csr;
     using ilu_type = typename TestFixture::ilu_type;
-    auto l_strategy = std::make_shared<typename Csr::classical>();
+    auto l_strategy = gko::matrix::csr::spmv_strategy::classical;
 
     auto factory = ilu_type::build().with_l_strategy(l_strategy).on(this->ref);
     auto ilu = factory->generate(this->mtx_small);
 
     ASSERT_EQ(factory->get_parameters().l_strategy, l_strategy);
-    ASSERT_EQ(ilu->get_l_factor()->get_strategy()->get_name(),
-              l_strategy->get_name());
+    ASSERT_EQ(ilu->get_l_factor()->get_strategy(), l_strategy);
 }
 
 
@@ -230,14 +229,13 @@ TYPED_TEST(Ilu, SetUStrategy)
 {
     using Csr = typename TestFixture::Csr;
     using ilu_type = typename TestFixture::ilu_type;
-    auto u_strategy = std::make_shared<typename Csr::classical>();
+    auto u_strategy = gko::matrix::csr::spmv_strategy::classical;
 
     auto factory = ilu_type::build().with_u_strategy(u_strategy).on(this->ref);
     auto ilu = factory->generate(this->mtx_small);
 
     ASSERT_EQ(factory->get_parameters().u_strategy, u_strategy);
-    ASSERT_EQ(ilu->get_u_factor()->get_strategy()->get_name(),
-              u_strategy->get_name());
+    ASSERT_EQ(ilu->get_u_factor()->get_strategy(), u_strategy);
 }
 
 

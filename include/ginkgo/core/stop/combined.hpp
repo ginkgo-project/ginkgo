@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,9 +23,7 @@ namespace stop {
  *
  * @ingroup stop
  */
-class Combined : public EnablePolymorphicObject<Combined, Criterion> {
-    friend class EnablePolymorphicObject<Combined, Criterion>;
-
+class Combined : public Criterion {
 public:
     class Factory;
 
@@ -47,8 +45,6 @@ public:
     class Factory
         : public ::gko::stop::EnableDefaultCriterionFactory<Factory, Combined,
                                                             parameters_type> {
-        friend class ::gko::EnablePolymorphicObject<
-            Factory, ::gko::stop::CriterionFactory>;
         friend class ::gko::enable_parameters_type<parameters_type, Factory>;
 
         using Base =

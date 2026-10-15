@@ -1,0 +1,86 @@
+name: Linux-GCC
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+jobs:
+  linux-omp-mpi:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {shared: "ON", build_type: "Release", name: "linux/gcc/omp/openmpi/release/shared"}
+    name: ${{ matrix.config.name }}
+    runs-on: [ubuntu-24.04]
+    timeout-minutes: 300
+    env:
+      # compiled objects are cached between runs, see the ccache steps
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 500M
+      # the runner has 4 cores, but some MPI tests use up to 8 processes
+      OMPI_MCA_rmaps_base_oversubscribe: 1
+
+    steps:
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v4
+
+      - name: setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache libopenmpi-dev openmpi-bin
+
+      - name: info
+        run: |
+          g++ -v
+          cmake --version
+          mpirun --version
+
+      # restores the cache of this branch or, as a fallback, of any branch
+      # (e.g. develop for a new pull request)
+      - name: restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-linux-omp-mpi-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-linux-omp-mpi-${{ github.ref_name }}-
+            ccache-linux-omp-mpi-
+
+      - name: Debug over SSH (tmate)
+        uses: mxschmitt/action-tmate@v3.5
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+
+      # MPI tests run one at a time after the other tests
+      - name: configure
+        run: |
+          mkdir build
+          mkdir install
+          INSTALL_PREFIX="${PWD}/install"
+          cd build
+          cmake .. -G Ninja -DCMAKE_CXX_FLAGS=-Wpedantic -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_MPI=ON -DMPIEXEC_MAX_NUMPROCS=8
+          ccache --zero-stats
+          ninja -j4
+          ccache --show-stats
+          ctest -j4 --output-on-failure --label-exclude distributed
+          OMP_NUM_THREADS=1 ctest --output-on-failure --label-regex distributed
+
+      - name: install
+        run: |
+          cd build
+          ninja install
+          ninja test_install
+
+      # saved even if the build fails or times out, so the next run is faster
+      - name: save ccache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-linux-omp-mpi-${{ github.ref_name }}-${{ github.run_id }}

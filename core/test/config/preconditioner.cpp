@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,6 +17,7 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/nullspace_projection.hpp>
 #include <ginkgo/core/preconditioner/sor.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
@@ -106,9 +107,9 @@ struct Ic : PreconditionerConfigTest<::gko::preconditioner::Ic<float, int>,
 };
 
 
-struct Ilu : PreconditionerConfigTest<
-                 ::gko::preconditioner::Ilu<float, float, true, int>,
-                 ::gko::preconditioner::Ilu<double, double, false, int>> {
+struct Ilu
+    : PreconditionerConfigTest<::gko::preconditioner::Ilu<float, true, int>,
+                               ::gko::preconditioner::Ilu<double, false, int>> {
     static pnode::map_type setup_base()
     {
         return {{"type", pnode{"preconditioner::Ilu"}}};
@@ -299,6 +300,67 @@ struct Jacobi
         ASSERT_EQ(res_so.of_all_blocks, ans_so.of_all_blocks);
         GKO_ASSERT_ARRAY_EQ(res_so.block_wise, ans_so.block_wise);
         ASSERT_EQ(res_param.accuracy, ans_param.accuracy);
+    }
+};
+
+
+struct NullspaceProjection
+    : PreconditionerConfigTest<
+          ::gko::preconditioner::NullspaceProjection<float>,
+          ::gko::preconditioner::NullspaceProjection<double>> {
+    static pnode::map_type setup_base()
+    {
+        return {{"type", pnode{"preconditioner::NullspaceProjection"}}};
+    }
+
+    static void change_template(pnode::map_type& config_map)
+    {
+        config_map["value_type"] = pnode{"float32"};
+    }
+
+    template <bool from_reg, typename ParamType>
+    static void set(pnode::map_type& config_map, ParamType& param, registry reg,
+                    std::shared_ptr<const gko::Executor> exec)
+    {
+        auto linop =
+            detail::registry_accessor::get_data<gko::LinOp>(reg, "linop");
+        config_map["generated_preconditioner"] = pnode{"linop"};
+        param.with_generated_preconditioner(linop);
+        config_map["nullspace"] = pnode{"linop"};
+        param.with_nullspace(linop);
+        config_map["left_nullspace"] = pnode{"linop"};
+        param.with_left_nullspace(linop);
+        if (from_reg) {
+            config_map["preconditioner"] = pnode{"solver"};
+            param.with_preconditioner(
+                detail::registry_accessor::get_data<gko::LinOpFactory>(
+                    reg, "solver"));
+        } else {
+            config_map["preconditioner"] =
+                pnode{{{"type", pnode{"solver::Ir"}},
+                       {"value_type", pnode{"float32"}}}};
+            param.with_preconditioner(DummyIr::build());
+        }
+    }
+
+    template <bool from_reg, typename AnswerType>
+    static void validate(gko::LinOpFactory* result, AnswerType* answer)
+    {
+        auto res_param = gko::as<AnswerType>(result)->get_parameters();
+        auto ans_param = answer->get_parameters();
+
+        ASSERT_EQ(res_param.generated_preconditioner,
+                  ans_param.generated_preconditioner);
+        ASSERT_EQ(res_param.nullspace, ans_param.nullspace);
+        ASSERT_EQ(res_param.left_nullspace, ans_param.left_nullspace);
+        if (from_reg) {
+            ASSERT_EQ(res_param.preconditioner, ans_param.preconditioner);
+        } else {
+            ASSERT_NE(
+                std::dynamic_pointer_cast<const typename DummyIr::Factory>(
+                    res_param.preconditioner),
+                nullptr);
+        }
     }
 };
 
@@ -529,7 +591,7 @@ using PreconditionerTypes = ::testing::Types<
 #if GINKGO_BUILD_MPI
     ::Schwarz,
 #endif  // GINKGO_BUILD_MPI
-    ::GaussSeidel, ::Ic, ::Ilu, ::Isai, ::Jacobi, ::Sor>;
+    ::GaussSeidel, ::Ic, ::Ilu, ::Isai, ::Jacobi, ::NullspaceProjection, ::Sor>;
 
 
 TYPED_TEST_SUITE(Preconditioner, PreconditionerTypes, TypenameNameGenerator);

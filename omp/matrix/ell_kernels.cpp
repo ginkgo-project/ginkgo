@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,7 +23,6 @@ namespace omp {
 /**
  * @brief The ELL matrix format namespace.
  *
- * @ingroup ell
  */
 namespace ell {
 
@@ -31,11 +30,11 @@ namespace ell {
 template <int num_rhs, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType, typename OutFn>
 void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Ell<MatrixValueType, IndexType>* a,
-                    const matrix::Dense<InputValueType>* b,
-                    matrix::Dense<OutputValueType>* c, OutFn out)
+                    matrix::view::ell<const MatrixValueType, const IndexType> a,
+                    matrix::view::dense<const InputValueType> b,
+                    matrix::view::dense<OutputValueType> c, OutFn out)
 {
-    GKO_ASSERT(b->get_size()[1] == num_rhs);
+    GKO_ASSERT(b.size[1] == num_rhs);
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
@@ -43,28 +42,25 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
     using b_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
-    const auto num_stored_elements_per_row =
-        a->get_num_stored_elements_per_row();
-    const auto stride = a->get_stride();
+    const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
+    const auto stride = a.stride;
     const auto a_vals = gko::acc::range<a_accessor>(
         std::array<acc::size_type, 1>{
             static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
-        a->get_const_values());
+        a.values);
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(b->get_size()[0]),
-             static_cast<acc::size_type>(b->get_size()[1])}},
-        b->get_const_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(b->get_stride())}});
+        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
+                                       static_cast<acc::size_type>(b.size[1])}},
+        b.values,
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
 
 #pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; row++) {
+    for (size_type row = 0; row < a.size[0]; row++) {
         std::array<arithmetic_type, num_rhs> partial_sum;
         partial_sum.fill(zero<arithmetic_type>());
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             arithmetic_type val = a_vals(row + i * stride);
-            auto col = a->col_at(row, i);
+            auto col = a.col_at(row, i);
             if (col != invalid_index<IndexType>()) {
 #pragma unroll
                 for (size_type j = 0; j < num_rhs; j++) {
@@ -74,7 +70,7 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
         }
 #pragma unroll
         for (size_type j = 0; j < num_rhs; j++) {
-            [&] { c->at(row, j) = out(row, j, partial_sum[j]); }();
+            [&] { c(row, j) = out(row, j, partial_sum[j]); }();
         }
     }
 }
@@ -83,11 +79,11 @@ void spmv_small_rhs(std::shared_ptr<const OmpExecutor> exec,
 template <int block_size, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType, typename OutFn>
 void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
-                  const matrix::Ell<MatrixValueType, IndexType>* a,
-                  const matrix::Dense<InputValueType>* b,
-                  matrix::Dense<OutputValueType>* c, OutFn out)
+                  matrix::view::ell<const MatrixValueType, const IndexType> a,
+                  matrix::view::dense<const InputValueType> b,
+                  matrix::view::dense<OutputValueType> c, OutFn out)
 {
-    GKO_ASSERT(b->get_size()[1] > block_size);
+    GKO_ASSERT(b.size[1] > block_size);
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     using a_accessor =
@@ -95,33 +91,30 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
     using b_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
 
-    const auto num_stored_elements_per_row =
-        a->get_num_stored_elements_per_row();
-    const auto stride = a->get_stride();
+    const auto num_stored_elements_per_row = a.num_stored_elements_per_row;
+    const auto stride = a.stride;
     const auto a_vals = gko::acc::range<a_accessor>(
         std::array<acc::size_type, 1>{
             static_cast<acc::size_type>(num_stored_elements_per_row * stride)},
-        a->get_const_values());
+        a.values);
     const auto b_vals = gko::acc::range<b_accessor>(
-        std::array<acc::size_type, 2>{
-            {static_cast<acc::size_type>(b->get_size()[0]),
-             static_cast<acc::size_type>(b->get_size()[1])}},
-        b->get_const_values(),
-        std::array<acc::size_type, 1>{
-            {static_cast<acc::size_type>(b->get_stride())}});
+        std::array<acc::size_type, 2>{{static_cast<acc::size_type>(b.size[0]),
+                                       static_cast<acc::size_type>(b.size[1])}},
+        b.values,
+        std::array<acc::size_type, 1>{{static_cast<acc::size_type>(b.stride)}});
 
-    const auto num_rhs = b->get_size()[1];
+    const auto num_rhs = b.size[1];
     const auto rounded_rhs = num_rhs / block_size * block_size;
 
 #pragma omp parallel for
-    for (size_type row = 0; row < a->get_size()[0]; row++) {
+    for (size_type row = 0; row < a.size[0]; row++) {
         std::array<arithmetic_type, block_size> partial_sum;
         for (size_type rhs_base = 0; rhs_base < rounded_rhs;
              rhs_base += block_size) {
             partial_sum.fill(zero<arithmetic_type>());
             for (size_type i = 0; i < num_stored_elements_per_row; i++) {
                 arithmetic_type val = a_vals(row + i * stride);
-                auto col = a->col_at(row, i);
+                auto col = a.col_at(row, i);
                 if (col != invalid_index<IndexType>()) {
 #pragma unroll
                     for (size_type j = 0; j < block_size; j++) {
@@ -132,13 +125,13 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
 #pragma unroll
             for (size_type j = 0; j < block_size; j++) {
                 const auto col = j + rhs_base;
-                [&] { c->at(row, col) = out(row, col, partial_sum[j]); }();
+                [&] { c(row, col) = out(row, col, partial_sum[j]); }();
             }
         }
         partial_sum.fill(zero<arithmetic_type>());
         for (size_type i = 0; i < num_stored_elements_per_row; i++) {
             arithmetic_type val = a_vals(row + i * stride);
-            auto col = a->col_at(row, i);
+            auto col = a.col_at(row, i);
             if (col != invalid_index<IndexType>()) {
                 for (size_type j = rounded_rhs; j < num_rhs; j++) {
                     partial_sum[j - rounded_rhs] += val * b_vals(col, j);
@@ -146,9 +139,7 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
             }
         }
         for (size_type j = rounded_rhs; j < num_rhs; j++) {
-            [&] {
-                c->at(row, j) = out(row, j, partial_sum[j - rounded_rhs]);
-            }();
+            [&] { c(row, j) = out(row, j, partial_sum[j - rounded_rhs]); }();
         }
     }
 }
@@ -157,11 +148,11 @@ void spmv_blocked(std::shared_ptr<const OmpExecutor> exec,
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Ell<MatrixValueType, IndexType>* a,
-          const matrix::Dense<InputValueType>* b,
-          matrix::Dense<OutputValueType>* c)
+          matrix::view::ell<const MatrixValueType, const IndexType> a,
+          matrix::view::dense<const InputValueType> b,
+          matrix::view::dense<OutputValueType> c)
 {
-    const auto num_rhs = b->get_size()[1];
+    const auto num_rhs = b.size[1];
     if (num_rhs <= 0) {
         return;
     }
@@ -192,24 +183,24 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
 template <typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<MatrixValueType>* alpha,
-                   const matrix::Ell<MatrixValueType, IndexType>* a,
-                   const matrix::Dense<InputValueType>* b,
-                   const matrix::Dense<OutputValueType>* beta,
-                   matrix::Dense<OutputValueType>* c)
+                   matrix::view::dense<const MatrixValueType> alpha,
+                   matrix::view::ell<const MatrixValueType, const IndexType> a,
+                   matrix::view::dense<const InputValueType> b,
+                   matrix::view::dense<const OutputValueType> beta,
+                   matrix::view::dense<OutputValueType> c)
 {
     using arithmetic_type =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
-    const auto num_rhs = b->get_size()[1];
+    const auto num_rhs = b.size[1];
     if (num_rhs <= 0) {
         return;
     }
-    const auto alpha_val = arithmetic_type{alpha->at(0, 0)};
-    const auto beta_val = arithmetic_type{beta->at(0, 0)};
+    const auto alpha_val = arithmetic_type{alpha(0, 0)};
+    const auto beta_val = arithmetic_type{beta(0, 0)};
     auto out = [&](auto i, auto j, auto value) {
-        return is_zero(beta_val) ? alpha_val * value
-                                 : alpha_val * value +
-                                       beta_val * arithmetic_type{c->at(i, j)};
+        return is_zero(beta_val)
+                   ? alpha_val * value
+                   : alpha_val * value + beta_val * arithmetic_type{c(i, j)};
     };
     if (num_rhs == 1) {
         spmv_small_rhs<1>(exec, a, b, c, out);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 
 namespace gko {
@@ -44,12 +45,12 @@ class Hybrid;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup ell
  * @ingroup mat_formats
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
+class Ell : public LinOp,
+            public EnableCloneable<Ell<ValueType, IndexType>>,
             public ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Ell<next_precision<ValueType, 2>, IndexType>>,
@@ -64,7 +65,7 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
             public WritableToMatrixData<ValueType, IndexType>,
             public EnableAbsoluteComputation<
                 remove_complex<Ell<ValueType, IndexType>>> {
-    friend class EnablePolymorphicObject<Ell, LinOp>;
+    friend class EnableCloneable<Ell>;
     friend class Dense<ValueType>;
     friend class Coo<ValueType, IndexType>;
     friend class Csr<ValueType, IndexType>;
@@ -74,8 +75,8 @@ class Ell : public EnableLinOp<Ell<ValueType, IndexType>>,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Ell>::convert_to;
-    using EnableLinOp<Ell>::move_to;
+    using EnableCloneable<Ell>::convert_to;
+    using EnableCloneable<Ell>::move_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -89,6 +90,9 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Ell>;
+    using device_view = matrix::view::ell<value_type, index_type>;
+    using const_device_view =
+        matrix::view::ell<const value_type, const index_type>;
 
     void convert_to(
         Ell<next_precision<ValueType>, IndexType>* result) const override;
@@ -132,6 +136,8 @@ public:
     void read(const device_mat_data& data) override;
 
     void read(device_mat_data&& data) override;
+
+    using WritableToMatrixData<ValueType, IndexType>::write;
 
     void write(mat_data& data) const override;
 
@@ -251,6 +257,14 @@ public:
     {
         return this->get_const_col_idxs()[this->linearize_index(row, idx)];
     }
+
+    /** get the non-owning device view */
+    device_view get_device_view();
+
+    /** get the const non-owning device view */
+    const_device_view get_const_device_view() const;
+
+    void validate_data() const override;
 
     /**
      * Creates an uninitialized Ell matrix of the specified size.

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,6 +41,7 @@ namespace kernels {
     void build_mapping(                                                      \
         std::shared_ptr<const DefaultExecutor> exec,                         \
         const experimental::distributed::Partition<_ltype, _gtype>* part,    \
+        experimental::distributed::comm_index_type rank,                     \
         const array<_gtype>& recv_connections,                               \
         array<experimental::distributed::comm_index_type>& part_ids,         \
         array<_ltype>& remote_local_idxs, array<_gtype>& remote_global_idxs, \

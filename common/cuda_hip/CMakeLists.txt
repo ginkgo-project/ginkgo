@@ -36,6 +36,7 @@ set(CUDA_HIP_SOURCES
     matrix/sellp_kernels.cpp
     matrix/sparsity_csr_kernels.cpp
     multigrid/pgm_kernels.cpp
+    multigrid/pmis_kernels.cpp
     preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     preconditioner/jacobi_advanced_apply_kernels.cpp

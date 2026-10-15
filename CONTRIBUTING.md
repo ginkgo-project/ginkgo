@@ -166,6 +166,10 @@ improvements from code reviews.
   platforms. Another comprehensive Linux based pipeline is run from a [mirror on
   gitlab](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines) and
   contains additional checks like static analysis and test coverage.
+* By default, the Github Actions pipeline only runs a reduced set of jobs on
+  pull requests. Adding the label `1:ST:run-full-test` or
+  `1:ST:ready-to-merge` starts the full set of jobs, as does every following
+  push to the branch while one of these labels is present.
 * Once a PR has been approved and the build has passed, one of the reviewers can
   mark the PR as `READY TO MERGE`. At this point the creator/assignee of the PR
   *needs to* verify that the branch is up to date with `develop` and rebase it
@@ -514,6 +518,18 @@ existing code has been broken.
 ## Documentation style
 
 Documentation uses standard Doxygen.
+
+### Command prefix: `@` for Doxygen, `\` for math
+
+Doxygen accepts both `\cmd` and `@cmd` and treats them identically. Ginkgo
+uses the at-sign for all Doxygen commands (`@brief`, `@param`, `@tparam`,
+`@return`, `@note`, `@ingroup`, `@ref`, ...) and reserves the backslash for
+the LaTeX formula delimiters `\f$ ... \f$` and `\f[ ... \f]`.
+
+Keeping the two apart means that the prefix tells you what you are looking at:
+`@` introduces Doxygen structure, `\` introduces LaTeX. It also keeps a formula
+visually consistent with the math it contains, as in
+`\f$\alpha \frac{a}{b}\f$`.
 
 ###  Developer targeted notes
 

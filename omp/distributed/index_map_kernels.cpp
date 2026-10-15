@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/distributed/index_map_kernels.hpp"
+
+#include <tuple>
 
 #include <omp.h>
 
@@ -26,6 +28,7 @@ void build_mapping(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         part,
+    experimental::distributed::comm_index_type rank,
     const array<GlobalIndexType>& recv_connections,
     array<experimental::distributed::comm_index_type>& remote_part_ids,
     array<LocalIndexType>& remote_local_idxs,
@@ -54,12 +57,24 @@ void build_mapping(
         full_remote_part_ids[i] = part_ids[range_ids[i]];
     }
 
-    // sort by part-id and recv_connection
+    // sort by part-id and recv_connection, sort part-local elements last
     auto sort_it = detail::make_zip_iterator(
         full_remote_part_ids.begin(), recv_connections_ptr, range_ids.begin());
-    std::sort(sort_it, sort_it + input_size, [](const auto& a, const auto& b) {
-        return std::tie(get<0>(a), get<1>(a)) < std::tie(get<0>(b), get<1>(b));
-    });
+    // Local elements sort after all non-local ones, each group by (part-id,
+    // index). Putting the local flag first in the key keeps this a strict weak
+    // ordering, which std::sort requires.
+    std::sort(
+        sort_it, sort_it + input_size, [rank](const auto& a, const auto& b) {
+            return std::make_tuple(get<0>(a) == rank, get<0>(a), get<1>(a)) <
+                   std::make_tuple(get<0>(b) == rank, get<0>(b), get<1>(b));
+        });
+    auto local_begin = std::partition_point(
+        sort_it, sort_it + input_size,
+        [rank](const auto& a) { return get<0>(a) != rank; });
+    auto local_size = std::distance(local_begin, sort_it + input_size);
+
+    // exclude local elements
+    input_size = input_size - local_size;
 
     // get only unique connections
     auto unique_end = std::unique(sort_it, sort_it + input_size,

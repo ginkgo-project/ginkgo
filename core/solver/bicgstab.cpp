@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,8 +55,11 @@ std::unique_ptr<LinOp> Bicgstab<ValueType>::transpose() const
 {
     return build()
         .with_generated_preconditioner(
-            share(as<Transposable>(this->get_preconditioner())->transpose()))
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(false))
+        .with_left_nullspace(this->get_transposed_left_nullspace(false))
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -67,9 +70,12 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Bicgstab<ValueType>::conj_transpose() const
 {
     return build()
-        .with_generated_preconditioner(share(
-            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(true))
+        .with_left_nullspace(this->get_transposed_left_nullspace(true))
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -101,6 +107,9 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b =
+        this->get_consistent_rhs(dense_b, workspace_traits<Bicgstab>::proj_rhs);
 
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);
@@ -128,15 +137,23 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // rr = v = s = t = z = y = p = 0
     // stop_status = 0x00
     exec->run(bicgstab::make_initialize(
-        gko::detail::get_local(dense_b), gko::detail::get_local(r),
-        gko::detail::get_local(rr), gko::detail::get_local(y),
-        gko::detail::get_local(s), gko::detail::get_local(t),
-        gko::detail::get_local(z), gko::detail::get_local(v),
-        gko::detail::get_local(p), prev_rho, rho, alpha, beta, gamma, omega,
-        &stop_status));
+        gko::detail::get_local(dense_b)->get_const_device_view(),
+        gko::detail::get_local(r)->get_device_view(),
+        gko::detail::get_local(rr)->get_device_view(),
+        gko::detail::get_local(y)->get_device_view(),
+        gko::detail::get_local(s)->get_device_view(),
+        gko::detail::get_local(t)->get_device_view(),
+        gko::detail::get_local(z)->get_device_view(),
+        gko::detail::get_local(v)->get_device_view(),
+        gko::detail::get_local(p)->get_device_view(),
+        prev_rho->get_device_view(), rho->get_device_view(),
+        alpha->get_device_view(), beta->get_device_view(),
+        gamma->get_device_view(), omega->get_device_view(), stop_status));
 
     // r = b - Ax
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // A annihilates N(A), so removing it from x keeps r unchanged
+    this->project_nullspace(dense_x);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -176,10 +193,13 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
         // tmp = rho / prev_rho * alpha / omega
         // p = r + tmp * (p - omega * v)
-        exec->run(bicgstab::make_step_1(gko::detail::get_local(r),
-                                        gko::detail::get_local(p),
-                                        gko::detail::get_local(v), rho,
-                                        prev_rho, alpha, omega, &stop_status));
+        exec->run(bicgstab::make_step_1(
+            gko::detail::get_local(r)->get_const_device_view(),
+            gko::detail::get_local(p)->get_device_view(),
+            gko::detail::get_local(v)->get_const_device_view(),
+            rho->get_const_device_view(), prev_rho->get_const_device_view(),
+            alpha->get_const_device_view(), omega->get_const_device_view(),
+            stop_status));
 
         // y = preconditioner * p
         this->get_preconditioner()->apply(p, y);
@@ -190,8 +210,11 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // alpha = rho / beta
         // s = r - alpha * v
         exec->run(bicgstab::make_step_2(
-            gko::detail::get_local(r), gko::detail::get_local(s),
-            gko::detail::get_local(v), rho, alpha, beta, &stop_status));
+            gko::detail::get_local(r)->get_const_device_view(),
+            gko::detail::get_local(s)->get_device_view(),
+            gko::detail::get_local(v)->get_const_device_view(),
+            rho->get_const_device_view(), alpha->get_device_view(),
+            beta->get_const_device_view(), stop_status));
 
         all_stopped =
             stop_criterion->update()
@@ -201,9 +224,10 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
                 // .solution(dense_x) // outdated at this point
                 .check(RelativeStoppingId, false, &stop_status, &one_changed);
         if (one_changed) {
-            exec->run(bicgstab::make_finalize(gko::detail::get_local(dense_x),
-                                              gko::detail::get_local(y), alpha,
-                                              &stop_status));
+            exec->run(bicgstab::make_finalize(
+                gko::detail::get_local(dense_x)->get_device_view(),
+                gko::detail::get_local(y)->get_const_device_view(),
+                alpha->get_const_device_view(), stop_status));
         }
         this->template log<log::Logger::iteration_complete>(
             this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
@@ -224,10 +248,15 @@ void Bicgstab<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // x = x + alpha * y + omega * z
         // r = s - omega * t
         exec->run(bicgstab::make_step_3(
-            gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(s), gko::detail::get_local(t),
-            gko::detail::get_local(y), gko::detail::get_local(z), alpha, beta,
-            gamma, omega, &stop_status));
+            gko::detail::get_local(dense_x)->get_device_view(),
+            gko::detail::get_local(r)->get_device_view(),
+            gko::detail::get_local(s)->get_const_device_view(),
+            gko::detail::get_local(t)->get_const_device_view(),
+            gko::detail::get_local(y)->get_const_device_view(),
+            gko::detail::get_local(z)->get_const_device_view(),
+            alpha->get_const_device_view(), beta->get_const_device_view(),
+            gamma->get_const_device_view(), omega->get_device_view(),
+            stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -261,7 +290,7 @@ int workspace_traits<Bicgstab<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Bicgstab<ValueType>>::num_vectors(const Solver&)
 {
-    return 16;
+    return 17;
 }
 
 
@@ -270,9 +299,9 @@ std::vector<std::string> workspace_traits<Bicgstab<ValueType>>::op_names(
     const Solver&)
 {
     return {
-        "r",   "z",     "y",     "v",         "s",     "t",
-        "p",   "rr",    "alpha", "beta",      "gamma", "prev_rho",
-        "rho", "omega", "one",   "minus_one",
+        "r",   "z",     "y",     "v",         "s",        "t",
+        "p",   "rr",    "alpha", "beta",      "gamma",    "prev_rho",
+        "rho", "omega", "one",   "minus_one", "proj_rhs",
     };
 }
 
@@ -295,13 +324,13 @@ std::vector<int> workspace_traits<Bicgstab<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Bicgstab<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, y, v, s, t, p, rr};
+    return {r, z, y, v, s, t, p, rr, proj_rhs};
 }
 
 
-#define GKO_DECLARE_BICGSTAB(_type) class Bicgstab<_type>
-#define GKO_DECLARE_BICGSTAB_TRAITS(_type) \
-    struct workspace_traits<Bicgstab<_type>>
+#define GKO_DECLARE_BICGSTAB(ValueType) class Bicgstab<ValueType>
+#define GKO_DECLARE_BICGSTAB_TRAITS(ValueType) \
+    struct workspace_traits<Bicgstab<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICGSTAB_TRAITS);
 

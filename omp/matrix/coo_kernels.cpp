@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,21 +22,20 @@ namespace kernels {
 /**
  * @brief OpenMP namespace.
  *
- * @ingroup omp
  */
 namespace omp {
 /**
  * @brief The Coordinate matrix format namespace.
  *
- * @ingroup coo
  */
 namespace coo {
 
 
 template <typename ValueType, typename IndexType>
 void spmv(std::shared_ptr<const OmpExecutor> exec,
-          const matrix::Coo<ValueType, IndexType>* a,
-          const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+          matrix::view::coo<const ValueType, const IndexType> a,
+          matrix::view::dense<const ValueType> b,
+          matrix::view::dense<ValueType> c)
 {
     dense::fill(exec, c, zero<ValueType>());
     spmv2(exec, a, b, c);
@@ -47,11 +46,11 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Dense<ValueType>* alpha,
-                   const matrix::Coo<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   const matrix::Dense<ValueType>* beta,
-                   matrix::Dense<ValueType>* c)
+                   matrix::view::dense<const ValueType> alpha,
+                   matrix::view::coo<const ValueType, const IndexType> a,
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<const ValueType> beta,
+                   matrix::view::dense<ValueType> c)
 {
     dense::scale(exec, beta, c);
     advanced_spmv2(exec, alpha, a, b, c);
@@ -63,18 +62,18 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <int block_size, typename ValueType, typename IndexType>
 void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Coo<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   matrix::Dense<ValueType>* c, ValueType scale)
+                   matrix::view::coo<const ValueType, const IndexType> a,
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<ValueType> c, ValueType scale)
 {
-    GKO_ASSERT(b->get_size()[1] > block_size);
-    const auto coo_val = a->get_const_values();
-    const auto coo_col = a->get_const_col_idxs();
-    const auto coo_row = a->get_const_row_idxs();
-    const auto num_rhs = b->get_size()[1];
+    GKO_ASSERT(b.size[1] > block_size);
+    const auto coo_val = a.values;
+    const auto coo_col = a.col_idxs;
+    const auto coo_row = a.row_idxs;
+    const auto num_rhs = b.size[1];
     const auto rounded_rhs = num_rhs / block_size * block_size;
-    const auto sentinel_row = a->get_size()[0] + 1;
-    const auto nnz = a->get_num_stored_elements();
+    const auto sentinel_row = a.size[0] + 1;
+    const auto nnz = a.num_stored_elements;
 
 #pragma omp parallel
     {
@@ -103,7 +102,7 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                         for (size_type i = 0; i < block_size; i++) {
                             const auto rhs = i + rhs_base;
                             partial_sum[i] +=
-                                scale * coo_val[local_nz] * b->at(col, rhs);
+                                scale * coo_val[local_nz] * b(col, rhs);
                         }
                     }
                     // handle row overlap with previous thread: block add to
@@ -111,7 +110,7 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
 #pragma unroll
                     for (size_type i = 0; i < block_size; i++) {
                         const auto rhs = i + rhs_base;
-                        atomic_add(c->at(first, rhs), partial_sum[i]);
+                        atomic_add(c(first, rhs), partial_sum[i]);
                     }
                 }
                 // handle row overlap with previous thread: remainder partial
@@ -122,14 +121,13 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                     const auto col = coo_col[nz];
                     for (size_type rhs = rounded_rhs; rhs < num_rhs; rhs++) {
                         partial_sum[rhs - rounded_rhs] +=
-                            scale * coo_val[nz] * b->at(col, rhs);
+                            scale * coo_val[nz] * b(col, rhs);
                     }
                 }
                 // handle row overlap with previous thread: remainder add to
                 // memory
                 for (size_type rhs = rounded_rhs; rhs < num_rhs; rhs++) {
-                    atomic_add(c->at(first, rhs),
-                               partial_sum[rhs - rounded_rhs]);
+                    atomic_add(c(first, rhs), partial_sum[rhs - rounded_rhs]);
                 }
             }
             // handle non-overlapping rows
@@ -141,12 +139,11 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
 #pragma unroll
                     for (size_type i = 0; i < block_size; i++) {
                         const auto rhs = i + rhs_base;
-                        c->at(row, rhs) +=
-                            scale * coo_val[nz] * b->at(col, rhs);
+                        c(row, rhs) += scale * coo_val[nz] * b(col, rhs);
                     }
                 }
                 for (size_type rhs = rounded_rhs; rhs < num_rhs; rhs++) {
-                    c->at(row, rhs) += scale * coo_val[nz] * b->at(col, rhs);
+                    c(row, rhs) += scale * coo_val[nz] * b(col, rhs);
                 }
             }
             if (last != sentinel_row) {
@@ -161,7 +158,7 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                         for (size_type i = 0; i < block_size; i++) {
                             const auto rhs = i + rhs_base;
                             partial_sum[i] +=
-                                scale * coo_val[local_nz] * b->at(col, rhs);
+                                scale * coo_val[local_nz] * b(col, rhs);
                         }
                     }
                     // handle row overlap with following thread: block add to
@@ -170,7 +167,7 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                     for (size_type i = 0; i < block_size; i++) {
                         const auto rhs = i + rhs_base;
                         const auto row = last;
-                        atomic_add(c->at(row, rhs), partial_sum[i]);
+                        atomic_add(c(row, rhs), partial_sum[i]);
                     }
                 }
                 // handle row overlap with following thread: block partial sums
@@ -179,13 +176,13 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
                     const auto col = coo_col[nz];
                     for (size_type rhs = rounded_rhs; rhs < num_rhs; rhs++) {
                         partial_sum[rhs - rounded_rhs] +=
-                            scale * coo_val[nz] * b->at(col, rhs);
+                            scale * coo_val[nz] * b(col, rhs);
                     }
                 }
                 // handle row overlap with following thread: block add to memory
                 for (size_type rhs = rounded_rhs; rhs < num_rhs; rhs++) {
                     const auto row = last;
-                    atomic_add(c->at(row, rhs), partial_sum[rhs - rounded_rhs]);
+                    atomic_add(c(row, rhs), partial_sum[rhs - rounded_rhs]);
                 }
             }
         }
@@ -195,16 +192,16 @@ void spmv2_blocked(std::shared_ptr<const OmpExecutor> exec,
 
 template <int num_rhs, typename ValueType, typename IndexType>
 void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
-                     const matrix::Coo<ValueType, IndexType>* a,
-                     const matrix::Dense<ValueType>* b,
-                     matrix::Dense<ValueType>* c, ValueType scale)
+                     matrix::view::coo<const ValueType, const IndexType> a,
+                     matrix::view::dense<const ValueType> b,
+                     matrix::view::dense<ValueType> c, ValueType scale)
 {
-    GKO_ASSERT(b->get_size()[1] == num_rhs);
-    const auto coo_val = a->get_const_values();
-    const auto coo_col = a->get_const_col_idxs();
-    const auto coo_row = a->get_const_row_idxs();
-    const auto sentinel_row = a->get_size()[0] + 1;
-    const auto nnz = a->get_num_stored_elements();
+    GKO_ASSERT(b.size[1] == num_rhs);
+    const auto coo_val = a.values;
+    const auto coo_col = a.col_idxs;
+    const auto coo_row = a.row_idxs;
+    const auto sentinel_row = a.size[0] + 1;
+    const auto nnz = a.num_stored_elements;
 
 #pragma omp parallel
     {
@@ -226,14 +223,13 @@ void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                     const auto col = coo_col[nz];
 #pragma unroll
                     for (size_type rhs = 0; rhs < num_rhs; rhs++) {
-                        partial_sum[rhs] +=
-                            scale * coo_val[nz] * b->at(col, rhs);
+                        partial_sum[rhs] += scale * coo_val[nz] * b(col, rhs);
                     }
                 }
                 // handle row overlap with previous thread: add to memory
 #pragma unroll
                 for (size_type rhs = 0; rhs < num_rhs; rhs++) {
-                    atomic_add(c->at(first, rhs), partial_sum[rhs]);
+                    atomic_add(c(first, rhs), partial_sum[rhs]);
                 }
             }
             // handle non-overlapping rows
@@ -242,7 +238,7 @@ void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                 const auto col = coo_col[nz];
 #pragma unroll
                 for (size_type rhs = 0; rhs < num_rhs; rhs++) {
-                    c->at(row, rhs) += scale * coo_val[nz] * b->at(col, rhs);
+                    c(row, rhs) += scale * coo_val[nz] * b(col, rhs);
                 }
             }
             if (last != sentinel_row) {
@@ -252,15 +248,14 @@ void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
                     const auto col = coo_col[nz];
 #pragma unroll
                     for (size_type rhs = 0; rhs < num_rhs; rhs++) {
-                        partial_sum[rhs] +=
-                            scale * coo_val[nz] * b->at(col, rhs);
+                        partial_sum[rhs] += scale * coo_val[nz] * b(col, rhs);
                     }
                 }
                 // handle row overlap with following thread: add to memory
 #pragma unroll
                 for (size_type rhs = 0; rhs < num_rhs; rhs++) {
                     const auto row = last;
-                    atomic_add(c->at(row, rhs), partial_sum[rhs]);
+                    atomic_add(c(row, rhs), partial_sum[rhs]);
                 }
             }
         }
@@ -270,11 +265,11 @@ void spmv2_small_rhs(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void generic_spmv2(std::shared_ptr<const OmpExecutor> exec,
-                   const matrix::Coo<ValueType, IndexType>* a,
-                   const matrix::Dense<ValueType>* b,
-                   matrix::Dense<ValueType>* c, ValueType scale)
+                   matrix::view::coo<const ValueType, const IndexType> a,
+                   matrix::view::dense<const ValueType> b,
+                   matrix::view::dense<ValueType> c, ValueType scale)
 {
-    const auto num_rhs = b->get_size()[1];
+    const auto num_rhs = b.size[1];
     if (num_rhs <= 0) {
         return;
     }
@@ -300,8 +295,9 @@ void generic_spmv2(std::shared_ptr<const OmpExecutor> exec,
 
 template <typename ValueType, typename IndexType>
 void spmv2(std::shared_ptr<const OmpExecutor> exec,
-           const matrix::Coo<ValueType, IndexType>* a,
-           const matrix::Dense<ValueType>* b, matrix::Dense<ValueType>* c)
+           matrix::view::coo<const ValueType, const IndexType> a,
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<ValueType> c)
 {
     generic_spmv2(exec, a, b, c, one<ValueType>());
 }
@@ -311,12 +307,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_COO_SPMV2_KERNEL);
 
 template <typename ValueType, typename IndexType>
 void advanced_spmv2(std::shared_ptr<const OmpExecutor> exec,
-                    const matrix::Dense<ValueType>* alpha,
-                    const matrix::Coo<ValueType, IndexType>* a,
-                    const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c)
+                    matrix::view::dense<const ValueType> alpha,
+                    matrix::view::coo<const ValueType, const IndexType> a,
+                    matrix::view::dense<const ValueType> b,
+                    matrix::view::dense<ValueType> c)
 {
-    generic_spmv2(exec, a, b, c, alpha->at(0, 0));
+    generic_spmv2(exec, a, b, c, alpha(0, 0));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

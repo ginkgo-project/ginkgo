@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 
 #include "core/base/kernel_declaration.hpp"
@@ -58,52 +59,56 @@ namespace pgm {
 #define GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType)   \
     void find_strongest_neighbor(                                       \
         std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Csr<ValueType, IndexType>* weight_mtx,            \
+        matrix::view::csr<const ValueType, const IndexType> weight_mtx, \
         const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg, \
         array<IndexType>& strongest_neighbor)
 
 #define GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType)       \
     void assign_to_exist_agg(                                           \
         std::shared_ptr<const DefaultExecutor> exec,                    \
-        const matrix::Csr<ValueType, IndexType>* weight_mtx,            \
+        matrix::view::csr<const ValueType, const IndexType> weight_mtx, \
         const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg, \
         array<IndexType>& intermediate_agg)
 
-#define GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType)              \
-    void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,      \
-                            size_type fine_nnz, const IndexType* row_idxs,    \
-                            const IndexType* col_idxs, const ValueType* vals, \
-                            matrix::Coo<ValueType, IndexType>* coarse_coo)
+#define GKO_DECLARE_PGM_SORT_ROW_MAJOR_WITH_MAPPING(ValueType, IndexType) \
+    void sort_row_major_with_mapping(                                     \
+        std::shared_ptr<const DefaultExecutor> exec, size_type nnz,       \
+        IndexType* row_idxs, IndexType* col_idxs, ValueType* vals,        \
+        IndexType* mapping_cols)
 
-#define GKO_DECLARE_PGM_GATHER_INDEX(IndexType)                    \
-    void gather_index(std::shared_ptr<const DefaultExecutor> exec, \
-                      size_type num_res, const IndexType* orig,    \
-                      const IndexType* gather_map, IndexType* result)
+// mapping_rows may be a nullptr, in which case the number of fine nonzeros
+// reduced into each coarse nonzero is not written out.
+#define GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType)         \
+    void compute_coarse_coo(                                             \
+        std::shared_ptr<const DefaultExecutor> exec, size_type fine_nnz, \
+        const IndexType* row_idxs, const IndexType* col_idxs,            \
+        const ValueType* vals,                                           \
+        matrix::view::coo<ValueType, IndexType> coarse_coo,              \
+        IndexType* mapping_rows)
 
-
-#define GKO_DECLARE_ALL_AS_TEMPLATES                               \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_MATCH_EDGE_KERNEL(IndexType);                  \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_COUNT_UNAGG_KERNEL(IndexType);                 \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_RENUMBER_KERNEL(IndexType);                    \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_SORT_AGG_KERNEL(IndexType);                    \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_MAP_ROW_KERNEL(IndexType);                     \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_MAP_COL_KERNEL(IndexType);                     \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_COUNT_UNREPEATED_NNZ_KERNEL(IndexType);        \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType); \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>              \
-    GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType);      \
-    template <typename IndexType>                                  \
-    GKO_DECLARE_PGM_GATHER_INDEX(IndexType)
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                   \
+    template <typename IndexType>                                      \
+    GKO_DECLARE_PGM_MATCH_EDGE_KERNEL(IndexType);                      \
+    template <typename IndexType>                                      \
+    GKO_DECLARE_PGM_COUNT_UNAGG_KERNEL(IndexType);                     \
+    template <typename IndexType>                                      \
+    GKO_DECLARE_PGM_RENUMBER_KERNEL(IndexType);                        \
+    template <typename IndexType>                                      \
+    GKO_DECLARE_PGM_SORT_AGG_KERNEL(IndexType);                        \
+    template <typename IndexType>                                      \
+    GKO_DECLARE_PGM_MAP_ROW_KERNEL(IndexType);                         \
+    template <typename IndexType>                                      \
+    GKO_DECLARE_PGM_MAP_COL_KERNEL(IndexType);                         \
+    template <typename IndexType>                                      \
+    GKO_DECLARE_PGM_COUNT_UNREPEATED_NNZ_KERNEL(IndexType);            \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_PGM_FIND_STRONGEST_NEIGHBOR(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_PGM_ASSIGN_TO_EXIST_AGG(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_PGM_SORT_ROW_MAJOR_WITH_MAPPING(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                  \
+    GKO_DECLARE_PGM_COMPUTE_COARSE_COO(ValueType, IndexType)
 
 
 }  // namespace pgm

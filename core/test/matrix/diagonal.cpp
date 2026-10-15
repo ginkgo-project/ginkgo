@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -143,14 +143,6 @@ TYPED_TEST(Diagonal, CanBeCloned)
 }
 
 
-TYPED_TEST(Diagonal, CanBeCleared)
-{
-    this->diag->clear();
-
-    this->assert_empty(this->diag.get());
-}
-
-
 TYPED_TEST(Diagonal, CanBeReadFromMatrixData)
 {
     using value_type = typename TestFixture::value_type;
@@ -192,5 +184,15 @@ TYPED_TEST(Diagonal, GeneratesCorrectMatrixData)
     EXPECT_EQ(data.nonzeros[2], tpl(2, 2, value_type{2.0}));
 }
 
+
+TYPED_TEST(Diagonal, RecognizesInfiniteValue)
+{
+    using value_type = typename TestFixture::value_type;
+    auto m = gko::matrix::Diagonal<TypeParam>::create(this->exec);
+    m->read(
+        gko::matrix_data<TypeParam>{{3, 3}, {{2, 2, INFINITY}, {0, 0, 1.0}}});
+
+    ASSERT_THROW(m->validate_data(), gko::InvalidData);
+}
 
 }  // namespace

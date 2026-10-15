@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,10 +21,7 @@ int main(int argc, char* argv[])
     using real_vec = gko::matrix::Dense<RealValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
-    using ilu =
-        gko::preconditioner::Ilu<gko::solver::LowerTrs<ValueType, IndexType>,
-                                 gko::solver::UpperTrs<ValueType, IndexType>,
-                                 false, IndexType>;
+    using ilu = gko::preconditioner::Ilu<ValueType, false, IndexType>;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;

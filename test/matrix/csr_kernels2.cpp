@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,6 +23,7 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_kernels.hpp"
+#include "core/matrix/csr_strategy.hpp"
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/unsort_matrix.hpp"
@@ -74,49 +75,9 @@ protected:
         dmtx2->copy_from(mtx2);
     }
 
-    template <typename Mtx>
-    void set_up_strategy(std::shared_ptr<typename Mtx::automatical>& strategy)
-    {
-#ifdef GKO_COMPILING_OMP
-        throw std::runtime_error{"We shouldn't be testing this"};
-#else
-        strategy = std::make_shared<typename Mtx::automatical>(exec);
-#endif
-    }
-
-    template <typename Mtx>
-    void set_up_strategy(std::shared_ptr<typename Mtx::sparselib>& strategy)
-    {
-        strategy = std::make_shared<typename Mtx::sparselib>();
-    }
-
-    template <typename Mtx>
-    void set_up_strategy(std::shared_ptr<typename Mtx::load_balance>& strategy)
-    {
-#ifdef GKO_COMPILING_OMP
-        throw std::runtime_error{"We shouldn't be testing this"};
-#else
-        strategy = std::make_shared<typename Mtx::load_balance>(exec);
-#endif
-    }
-
-    template <typename Mtx>
-    void set_up_strategy(std::shared_ptr<typename Mtx::classical>& strategy)
-    {
-        strategy = std::make_shared<typename Mtx::classical>();
-    }
-
-    template <typename Mtx>
-    void set_up_strategy(std::shared_ptr<typename Mtx::merge_path>& strategy)
-    {
-        strategy = std::make_shared<typename Mtx::merge_path>();
-    }
-
-    template <typename StrategyType>
+    template <gko::matrix::csr::spmv_strategy strategy>
     void set_up_apply_data(int num_vectors = 1)
     {
-        std::shared_ptr<StrategyType> strategy;
-        set_up_strategy<Mtx>(strategy);
         mtx = Mtx::create(ref, strategy);
         mtx->move_from(gen_mtx<Vec>(mtx_size[0], mtx_size[1], 1));
         square_mtx = Mtx::create(ref, strategy);
@@ -159,11 +120,9 @@ protected:
             *cpermute_idxs);
     }
 
-    template <typename StrategyType>
+    template <gko::matrix::csr::spmv_strategy strategy>
     void set_up_apply_complex_data()
     {
-        std::shared_ptr<StrategyType> strategy;
-        set_up_strategy<ComplexMtx>(strategy);
         complex_mtx = ComplexMtx::create(ref, strategy);
         complex_mtx->move_from(
             gen_mtx<ComplexVec>(mtx_size[0], mtx_size[1], 1));
@@ -208,16 +167,57 @@ protected:
 
 TEST_F(Csr, StrategyAfterCopyIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::merge_path>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::merge_path>();
 
-    ASSERT_EQ(mtx->get_strategy()->get_name(),
-              dmtx->get_strategy()->get_name());
+    ASSERT_EQ(mtx->get_strategy(), dmtx->get_strategy());
 }
 
 
+TEST_F(Csr, SrowIsCorrectFromLoadBalance)
+{
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>();
+
+    if (std::dynamic_pointer_cast<const gko::OmpExecutor>(exec)) {
+        GTEST_SKIP() << "Csr does not have load balance on OmpExecutor";
+    }
+    int warp_size = 0;
+    if (auto dexec = std::dynamic_pointer_cast<const gko::CudaExecutor>(exec)) {
+        warp_size = dexec->get_warp_size();
+    } else if (auto dexec =
+                   std::dynamic_pointer_cast<const gko::HipExecutor>(exec)) {
+        warp_size = dexec->get_warp_size();
+    } else if (auto dexec =
+                   std::dynamic_pointer_cast<const gko::DpcppExecutor>(exec)) {
+        warp_size = 32;
+    }
+    const auto srow_size = dmtx->get_num_srow_elements();
+    // group `warp_size` as a unit, num_lines means how many units we need to
+    // handle
+    const auto num_lines =
+        gko::ceildiv(dmtx->get_num_stored_elements(), warp_size);
+    ASSERT_GT(srow_size, 0);
+    ASSERT_EQ(exec->copy_val_to_host(dmtx->get_const_srow()), 0);
+    for (int i = 1; i < srow_size; i++) {
+        auto start = (i * num_lines / srow_size) * warp_size;
+        auto srow_val = exec->copy_val_to_host(dmtx->get_const_srow() + i);
+        if (srow_val > 0) {
+            // the number of elements before this row should be less than the
+            // assigned number
+            ASSERT_LE(exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
+                                             srow_val - 1),
+                      start);
+        }
+        // the starting point should be in this row not the next row.
+        ASSERT_GE(start, exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
+                                                srow_val));
+        ASSERT_LT(start, exec->copy_val_to_host(dmtx->get_const_row_ptrs() +
+                                                srow_val + 1));
+    }
+}
+
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     mtx->apply(y, expected);
     dmtx->apply(dy, dresult);
@@ -228,7 +228,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassicalUnsorted)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     unsort_mtx();
 
     mtx->apply(y, expected);
@@ -240,7 +240,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassicalUnsorted)
 
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     mtx->apply(alpha, y, beta, expected);
     dmtx->apply(dalpha, dy, dbeta, dresult);
@@ -251,7 +251,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithClassical)
 
 TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithClassical)
 {
-    set_up_apply_data<Mtx::classical>(3);
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>(3);
 
     mtx->apply(y, expected);
     dmtx->apply(dy, dresult);
@@ -262,7 +262,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithClassical)
 
 TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithClassical)
 {
-    set_up_apply_data<Mtx::classical>(3);
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>(3);
 
     mtx->apply(alpha, y, beta, expected);
     dmtx->apply(dalpha, dy, dbeta, dresult);
@@ -277,7 +277,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithClassical)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data<Mtx::load_balance>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>();
 
     mtx->apply(y, expected);
     dmtx->apply(dy, dresult);
@@ -288,7 +288,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalanceUnsorted)
 {
-    set_up_apply_data<Mtx::load_balance>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>();
     unsort_mtx();
 
     mtx->apply(y, expected);
@@ -300,7 +300,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithLoadBalanceUnsorted)
 
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data<Mtx::load_balance>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>();
 
     mtx->apply(alpha, y, beta, expected);
     dmtx->apply(dalpha, dy, dbeta, dresult);
@@ -311,7 +311,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithSparselib)
 {
-    set_up_apply_data<Mtx::sparselib>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::sparselib>();
 
     mtx->apply(y, expected);
     dmtx->apply(dy, dresult);
@@ -322,7 +322,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithSparselib)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithSparselibUnsorted)
 {
-    set_up_apply_data<Mtx::sparselib>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::sparselib>();
     unsort_mtx();
 
     mtx->apply(y, expected);
@@ -334,7 +334,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithSparselibUnsorted)
 
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithSparselib)
 {
-    set_up_apply_data<Mtx::sparselib>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::sparselib>();
 
     mtx->apply(alpha, y, beta, expected);
     dmtx->apply(dalpha, dy, dbeta, dresult);
@@ -345,7 +345,7 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithSparselib)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePath)
 {
-    set_up_apply_data<Mtx::merge_path>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::merge_path>();
 
     mtx->apply(y, expected);
     dmtx->apply(dy, dresult);
@@ -356,7 +356,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePath)
 
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePathUnsorted)
 {
-    set_up_apply_data<Mtx::merge_path>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::merge_path>();
     unsort_mtx();
 
     mtx->apply(y, expected);
@@ -368,7 +368,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithMergePathUnsorted)
 
 TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithMergePath)
 {
-    set_up_apply_data<Mtx::merge_path>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::merge_path>();
 
     mtx->apply(alpha, y, beta, expected);
     dmtx->apply(dalpha, dy, dbeta, dresult);
@@ -377,9 +377,9 @@ TEST_F(Csr, AdvancedApplyIsEquivalentToRefWithMergePath)
 }
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatic)
 {
-    set_up_apply_data<Mtx::automatical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::automatic>();
 
     mtx->apply(y, expected);
     dmtx->apply(dy, dresult);
@@ -388,9 +388,9 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomatical)
 }
 
 
-TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticalUnsorted)
+TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticUnsorted)
 {
-    set_up_apply_data<Mtx::automatical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::automatic>();
     unsort_mtx();
 
     mtx->apply(y, expected);
@@ -402,7 +402,7 @@ TEST_F(Csr, SimpleApplyIsEquivalentToRefWithAutomaticalUnsorted)
 
 TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data<Mtx::load_balance>(3);
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>(3);
 
     mtx->apply(y, expected);
     dmtx->apply(dy, dresult);
@@ -413,7 +413,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 {
-    set_up_apply_data<Mtx::load_balance>(3);
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>(3);
 
     mtx->apply(alpha, y, beta, expected);
     dmtx->apply(dalpha, dy, dbeta, dresult);
@@ -424,7 +424,7 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithLoadBalance)
 
 TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 {
-    set_up_apply_data<Mtx::merge_path>(3);
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::merge_path>(3);
 
     mtx->apply(y, expected);
     dmtx->apply(dy, dresult);
@@ -435,7 +435,7 @@ TEST_F(Csr, SimpleApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 
 TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 {
-    set_up_apply_data<Mtx::merge_path>(3);
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::merge_path>(3);
 
     mtx->apply(alpha, y, beta, expected);
     dmtx->apply(dalpha, dy, dbeta, dresult);
@@ -444,30 +444,56 @@ TEST_F(Csr, AdvancedApplyToDenseMatrixIsEquivalentToRefWithMergePath)
 }
 
 
-TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
+TEST_F(Csr, OneAutomaticWorksWithDifferentMatrices)
 {
-    auto automatical = std::make_shared<Mtx::automatical>(exec);
+    if (std::dynamic_pointer_cast<const gko::OmpExecutor>(exec)) {
+        GTEST_SKIP() << "Csr does not have load balance under automatic on "
+                        "OmpExecutor";
+    }
+    auto automatic = gko::matrix::csr::spmv_strategy::automatic;
 #ifdef GKO_COMPILING_CUDA
-    auto row_len_limit = automatical->nvidia_row_len_limit;
+    int64_t nnz_limit = 1e6;
+    int64_t row_len_limit = 1024;
 #elif defined(GKO_COMPILING_HIP)
-    auto row_len_limit = std::max(automatical->nvidia_row_len_limit,
-                                  automatical->amd_row_len_limit);
-#else
-    auto row_len_limit = automatical->intel_row_len_limit;
+    int64_t nnz_limit = 1e8;
+    int64_t row_len_limit = 768;
+#else  // INTEL
+    int64_t nnz_limit = 3e8;
+    int64_t row_len_limit = 25600;
 #endif
     auto load_balance_mtx =
         gen_mtx<Mtx>(1, row_len_limit + 1000, row_len_limit + 1);
     auto classical_mtx = gen_mtx<Mtx>(50, 50, 1);
+    auto get_max_nnz_per_row = [](gko::size_type num_rows, auto row_ptrs) {
+        int64_t max_row_nnz = 0;
+        for (gko::size_type i = 0; i < num_rows; i++) {
+            max_row_nnz =
+                std::max(max_row_nnz,
+                         static_cast<int64_t>(row_ptrs[i + 1] - row_ptrs[i]));
+        }
+        return max_row_nnz;
+    };
+    auto load_balance_max_row_nnz =
+        get_max_nnz_per_row(load_balance_mtx->get_size()[0],
+                            load_balance_mtx->get_const_row_ptrs());
+    auto classical_max_row_nnz = get_max_nnz_per_row(
+        classical_mtx->get_size()[0], classical_mtx->get_const_row_ptrs());
     auto load_balance_mtx_d = gko::clone(exec, load_balance_mtx);
     auto classical_mtx_d = gko::clone(exec, classical_mtx);
 
-    load_balance_mtx_d->set_strategy(automatical);
-    classical_mtx_d->set_strategy(automatical);
+    load_balance_mtx_d->set_strategy(automatic);
+    classical_mtx_d->set_strategy(automatic);
 
-    EXPECT_EQ("load_balance", load_balance_mtx_d->get_strategy()->get_name());
-    EXPECT_EQ("classical", classical_mtx_d->get_strategy()->get_name());
-    ASSERT_NE(load_balance_mtx_d->get_strategy().get(),
-              classical_mtx_d->get_strategy().get());
+    EXPECT_EQ(gko::matrix::csr::detail::get_actual_strategy(
+                  exec, load_balance_mtx_d->get_strategy(),
+                  load_balance_mtx_d->get_num_stored_elements(),
+                  static_cast<gko::size_type>(load_balance_max_row_nnz)),
+              gko::matrix::csr::spmv_strategy::load_balance);
+    EXPECT_EQ(gko::matrix::csr::detail::get_actual_strategy(
+                  exec, classical_mtx_d->get_strategy(),
+                  classical_mtx_d->get_num_stored_elements(),
+                  static_cast<gko::size_type>(classical_max_row_nnz)),
+              gko::matrix::csr::spmv_strategy::classical);
 }
 
 
@@ -476,7 +502,7 @@ TEST_F(Csr, OneAutomaticalWorksWithDifferentMatrices)
 
 TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto trans = mtx->transpose();
     auto dtrans = dmtx->transpose();
 
@@ -491,7 +517,7 @@ TEST_F(Csr, AdvancedApplyToCsrMatrixIsEquivalentToRef)
 
 TEST_F(Csr, MultiplyAddIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
     auto dtrans = gko::as<Mtx>(dmtx->transpose());
 
@@ -506,7 +532,7 @@ TEST_F(Csr, MultiplyAddIsEquivalentToRef)
 
 TEST_F(Csr, MultiplyAddIsEquivalentToRefCrossExecutor)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
 
     auto result = mtx->multiply_add(alpha, trans, beta, square_mtx);
@@ -521,7 +547,7 @@ TEST_F(Csr, MultiplyAddIsEquivalentToRefCrossExecutor)
 
 TEST_F(Csr, MultiplyAddReuseCrossExecutor)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
 
     auto [dresult, _dreuse] =
@@ -537,7 +563,7 @@ TEST_F(Csr, MultiplyAddReuseCrossExecutor)
 
 TEST_F(Csr, MultiplyAddReuseUpdateCrossExecutor)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
     auto [dresult, dreuse] =
         dmtx->multiply_add_reuse(alpha, trans, beta, square_mtx);
@@ -559,7 +585,7 @@ TEST_F(Csr, MultiplyAddReuseUpdateCrossExecutor)
 
 TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto trans = mtx->transpose();
     auto dtrans = dmtx->transpose();
 
@@ -574,7 +600,7 @@ TEST_F(Csr, SimpleApplyToCsrMatrixIsEquivalentToRef)
 
 TEST_F(Csr, MultiplyIsEquivalentToRefCrossExecutor)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
 
     auto result = mtx->multiply(trans);
@@ -589,7 +615,7 @@ TEST_F(Csr, MultiplyIsEquivalentToRefCrossExecutor)
 
 TEST_F(Csr, MultiplyWithSparseIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto mtx2 =
         gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
     auto dmtx2 = gko::clone(exec, mtx2);
@@ -605,7 +631,7 @@ TEST_F(Csr, MultiplyWithSparseIsEquivalentToRef)
 
 TEST_F(Csr, MultiplySparseWithSparseIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto mtx1 = gen_mtx<Mtx>(mtx->get_size()[0], mtx->get_size()[1], 0, 10);
     auto mtx2 =
         gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 10);
@@ -621,13 +647,9 @@ TEST_F(Csr, MultiplySparseWithSparseIsEquivalentToRef)
 }
 
 
-// TODO: broken in ROCm <= 4.5
-#ifndef GKO_COMPILING_HIP
-
-
 TEST_F(Csr, MultiplyWithEmptyIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto mtx2 =
         gen_mtx<Mtx>(mtx->get_size()[1], square_mtx->get_size()[1], 0, 0);
     auto dmtx2 = gko::clone(exec, mtx2);
@@ -641,12 +663,9 @@ TEST_F(Csr, MultiplyWithEmptyIsEquivalentToRef)
 }
 
 
-#endif
-
-
 TEST_F(Csr, MultiplyReuseCrossExecutor)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
 
     auto [dresult, _dreuse] = dmtx->multiply_reuse(trans);
@@ -661,7 +680,7 @@ TEST_F(Csr, MultiplyReuseCrossExecutor)
 
 TEST_F(Csr, MultiplyReuseUpdateCrossExecutor)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto trans = gko::as<Mtx>(mtx->transpose());
     auto [dresult, dreuse] = dmtx->multiply_reuse(trans);
     auto expected = mtx->multiply(trans);
@@ -679,7 +698,7 @@ TEST_F(Csr, MultiplyReuseUpdateCrossExecutor)
 
 TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto da = gko::clone(exec, a);
@@ -699,7 +718,7 @@ TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
 
 TEST_F(Csr, ScaleAddZeroIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto a = Mtx::create(ref);
     auto b = Mtx::create(ref);
     auto da = gko::clone(exec, a);
@@ -714,7 +733,7 @@ TEST_F(Csr, ScaleAddZeroIsEquivalentToRef)
 
 TEST_F(Csr, ScaleAddIsEquivalentToRefCrossExecutor)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto a = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto b = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     auto da = gko::clone(exec, a);
@@ -731,7 +750,7 @@ TEST_F(Csr, ScaleAddIsEquivalentToRefCrossExecutor)
 
 TEST_F(Csr, ScaleAddReuseCrossExecutor)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     mtx2 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     dmtx = gko::clone(exec, mtx);
@@ -749,7 +768,7 @@ TEST_F(Csr, ScaleAddReuseCrossExecutor)
 
 TEST_F(Csr, ScaleAddReuseUpdateCrossExecutor)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     mtx = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     mtx2 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0);
     dmtx = gko::clone(exec, mtx);
@@ -772,7 +791,7 @@ TEST_F(Csr, ScaleAddReuseUpdateCrossExecutor)
 
 TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
     auto dcomplex_b = gko::clone(exec, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
@@ -787,7 +806,7 @@ TEST_F(Csr, ApplyToComplexIsEquivalentToRef)
 
 TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto complex_b = gen_mtx<ComplexVec>(this->mtx_size[1], 3, 1);
     auto dcomplex_b = gko::clone(exec, complex_b);
     auto complex_x = gen_mtx<ComplexVec>(this->mtx_size[0], 3, 1);
@@ -802,7 +821,7 @@ TEST_F(Csr, AdvancedApplyToComplexIsEquivalentToRef)
 
 TEST_F(Csr, TransposeIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto trans = gko::as<Mtx>(mtx->transpose());
     auto dtrans = gko::as<Mtx>(dmtx->transpose());
@@ -828,7 +847,7 @@ TEST_F(Csr, Transpose64IsEquivalentToRef)
 
 TEST_F(Csr, TransposeReuseIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto [trans, reuse] = mtx->transpose_reuse();
     auto [dtrans, dreuse] = dmtx->transpose_reuse();
@@ -842,7 +861,7 @@ TEST_F(Csr, TransposeReuseIsEquivalentToRef)
 
 TEST_F(Csr, TransposeReuseUpdateIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto [trans, reuse] = mtx->transpose_reuse();
     auto [dtrans, dreuse] = dmtx->transpose_reuse();
     // test that the value permutation works: modify input values
@@ -861,7 +880,7 @@ TEST_F(Csr, TransposeReuse64IsEquivalentToRef)
 {
     SKIP_IF_SINGLE_MODE;
     using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto mtx = gen_mtx<Mtx64>(123, 234, 0);
     auto dmtx = gko::clone(exec, mtx);
 
@@ -879,7 +898,7 @@ TEST_F(Csr, TransposeReuse64UpdateIsEquivalentToRef)
 {
     SKIP_IF_SINGLE_MODE;
     using Mtx64 = gko::matrix::Csr<value_type, gko::int64>;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto mtx = gen_mtx<Mtx64>(123, 234, 0);
     auto dmtx = gko::clone(exec, mtx);
     auto [trans, reuse] = mtx->transpose_reuse();
@@ -898,7 +917,7 @@ TEST_F(Csr, TransposeReuse64UpdateIsEquivalentToRef)
 
 TEST_F(Csr, ConjugateTransposeIsEquivalentToRef)
 {
-    set_up_apply_complex_data<ComplexMtx::classical>();
+    set_up_apply_complex_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto trans = gko::as<ComplexMtx>(complex_mtx->conj_transpose());
     auto dtrans = gko::as<ComplexMtx>(dcomplex_mtx->conj_transpose());
@@ -924,7 +943,7 @@ TEST_F(Csr, ConjugateTranspose64IsEquivalentToRef)
 
 TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
@@ -937,7 +956,7 @@ TEST_F(Csr, ConvertToDenseIsEquivalentToRef)
 
 TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
     auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
@@ -950,7 +969,7 @@ TEST_F(Csr, MoveToDenseIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto ell_mtx = gko::matrix::Ell<value_type>::create(ref);
     auto dell_mtx = gko::matrix::Ell<value_type>::create(exec);
 
@@ -963,7 +982,7 @@ TEST_F(Csr, ConvertToEllIsEquivalentToRef)
 
 TEST_F(Csr, MoveToEllIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto ell_mtx = gko::matrix::Ell<value_type>::create(ref);
     auto dell_mtx = gko::matrix::Ell<value_type>::create(exec);
 
@@ -976,7 +995,7 @@ TEST_F(Csr, MoveToEllIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(exec);
 
@@ -989,7 +1008,7 @@ TEST_F(Csr, ConvertToSparsityCsrIsEquivalentToRef)
 
 TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(ref);
     auto d_sparsity_mtx = gko::matrix::SparsityCsr<value_type>::create(exec);
 
@@ -1002,7 +1021,7 @@ TEST_F(Csr, MoveToSparsityCsrIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto coo_mtx = gko::matrix::Coo<value_type>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<value_type>::create(exec);
 
@@ -1015,7 +1034,7 @@ TEST_F(Csr, ConvertToCooIsEquivalentToRef)
 
 TEST_F(Csr, MoveToCooIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto coo_mtx = gko::matrix::Coo<value_type>::create(ref);
     auto dcoo_mtx = gko::matrix::Coo<value_type>::create(exec);
 
@@ -1028,7 +1047,7 @@ TEST_F(Csr, MoveToCooIsEquivalentToRef)
 
 TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto sellp_mtx = gko::matrix::Sellp<value_type>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<value_type>::create(exec);
 
@@ -1041,7 +1060,7 @@ TEST_F(Csr, ConvertToSellpIsEquivalentToRef)
 
 TEST_F(Csr, MoveToSellpIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto sellp_mtx = gko::matrix::Sellp<value_type>::create(ref);
     auto dsellp_mtx = gko::matrix::Sellp<value_type>::create(exec);
 
@@ -1067,7 +1086,7 @@ TEST_F(Csr, ConvertsEmptyToSellp)
 TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
 {
     using Hybrid_type = gko::matrix::Hybrid<value_type>;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto hybrid_mtx = Hybrid_type::create(
         ref, std::make_shared<Hybrid_type::column_limit>(2));
     auto dhybrid_mtx = Hybrid_type::create(
@@ -1083,7 +1102,7 @@ TEST_F(Csr, ConvertToHybridIsEquivalentToRef)
 TEST_F(Csr, MoveToHybridIsEquivalentToRef)
 {
     using Hybrid_type = gko::matrix::Hybrid<value_type>;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     auto hybrid_mtx = Hybrid_type::create(
         ref, std::make_shared<Hybrid_type::column_limit>(2));
     auto dhybrid_mtx = Hybrid_type::create(
@@ -1099,7 +1118,7 @@ TEST_F(Csr, MoveToHybridIsEquivalentToRef)
 TEST_F(Csr, IsGenericPermutable)
 {
     using gko::matrix::permute_mode;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto mode :
          {permute_mode::none, permute_mode::rows, permute_mode::columns,
@@ -1119,7 +1138,7 @@ TEST_F(Csr, IsGenericPermutable)
 TEST_F(Csr, IsGenericReusePermutable)
 {
     using gko::matrix::permute_mode;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto mode :
          {permute_mode::none, permute_mode::rows, permute_mode::columns,
@@ -1142,7 +1161,7 @@ TEST_F(Csr, IsGenericReusePermutable)
 TEST_F(Csr, IsGenericReusePermuteUpdatable)
 {
     using gko::matrix::permute_mode;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto mode :
          {permute_mode::none, permute_mode::rows, permute_mode::columns,
@@ -1190,7 +1209,7 @@ TEST_F(Csr, IsColPermutableHypersparse)
 TEST_F(Csr, IsGenericPermutableRectangular)
 {
     using gko::matrix::permute_mode;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto mode :
          {permute_mode::rows, permute_mode::columns, permute_mode::inverse_rows,
@@ -1212,7 +1231,7 @@ TEST_F(Csr, IsGenericPermutableRectangular)
 
 TEST_F(Csr, IsNonsymmPermutable)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto invert : {false, true}) {
         SCOPED_TRACE(invert);
@@ -1229,7 +1248,7 @@ TEST_F(Csr, IsNonsymmPermutable)
 TEST_F(Csr, IsNonsymmReusePermutable)
 {
     using gko::matrix::permute_mode;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto invert : {false, true}) {
         SCOPED_TRACE(invert);
@@ -1250,7 +1269,7 @@ TEST_F(Csr, IsNonsymmReusePermutable)
 TEST_F(Csr, IsNonsymmReusePermuteUpdatable)
 {
     using gko::matrix::permute_mode;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto invert : {false, true}) {
         SCOPED_TRACE(invert);
@@ -1276,7 +1295,7 @@ TEST_F(Csr, IsNonsymmReusePermuteUpdatable)
 TEST_F(Csr, IsGenericScalePermutable)
 {
     using gko::matrix::permute_mode;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto mode :
          {permute_mode::none, permute_mode::rows, permute_mode::columns,
@@ -1318,7 +1337,7 @@ TEST_F(Csr, IsColScalePermutableHypersparse)
 TEST_F(Csr, IsGenericScalePermutableRectangular)
 {
     using gko::matrix::permute_mode;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto mode :
          {permute_mode::rows, permute_mode::columns, permute_mode::inverse_rows,
@@ -1341,7 +1360,7 @@ TEST_F(Csr, IsGenericScalePermutableRectangular)
 TEST_F(Csr, IsNonsymmScalePermutable)
 {
     using gko::matrix::permute_mode;
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     for (auto invert : {false, true}) {
         SCOPED_TRACE(invert);
@@ -1359,7 +1378,7 @@ TEST_F(Csr, IsNonsymmScalePermutable)
 
 TEST_F(Csr, IsPermutable)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto permuted = gko::as<Mtx>(square_mtx->permute(rpermute_idxs.get()));
     auto dpermuted = gko::as<Mtx>(dsquare_mtx->permute(rpermute_idxs.get()));
@@ -1372,7 +1391,7 @@ TEST_F(Csr, IsPermutable)
 
 TEST_F(Csr, IsInversePermutable)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto permuted =
         gko::as<Mtx>(square_mtx->inverse_permute(rpermute_idxs.get()));
@@ -1387,7 +1406,7 @@ TEST_F(Csr, IsInversePermutable)
 
 TEST_F(Csr, IsRowPermutable)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto r_permute = gko::as<Mtx>(mtx->row_permute(rpermute_idxs.get()));
     auto dr_permute = gko::as<Mtx>(dmtx->row_permute(rpermute_idxs.get()));
@@ -1400,7 +1419,7 @@ TEST_F(Csr, IsRowPermutable)
 
 TEST_F(Csr, IsColPermutable)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto c_permute = gko::as<Mtx>(mtx->column_permute(cpermute_idxs.get()));
     auto dc_permute = gko::as<Mtx>(dmtx->column_permute(cpermute_idxs.get()));
@@ -1413,7 +1432,7 @@ TEST_F(Csr, IsColPermutable)
 
 TEST_F(Csr, IsInverseRowPermutable)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto inverse_r_permute =
         gko::as<Mtx>(mtx->inverse_row_permute(rpermute_idxs.get()));
@@ -1428,7 +1447,7 @@ TEST_F(Csr, IsInverseRowPermutable)
 
 TEST_F(Csr, IsInverseColPermutable)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto inverse_c_permute =
         gko::as<Mtx>(mtx->inverse_column_permute(cpermute_idxs.get()));
@@ -1443,7 +1462,7 @@ TEST_F(Csr, IsInverseColPermutable)
 
 TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     bool is_sorted_exec{};
     bool is_sorted_ref{};
 
@@ -1456,7 +1475,7 @@ TEST_F(Csr, RecognizeSortedMatrixIsEquivalentToRef)
 
 TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     unsort_mtx();
     bool is_sorted_exec{};
     bool is_sorted_ref{};
@@ -1470,7 +1489,7 @@ TEST_F(Csr, RecognizeUnsortedMatrixIsEquivalentToRef)
 
 TEST_F(Csr, SortSortedMatrixIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     ASSERT_TRUE(dmtx->is_sorted_by_column_index());
 
     mtx->sort_by_column_index();
@@ -1500,7 +1519,7 @@ TEST_F(Csr, SortSortedMatrixIsEquivalentToRef64)
 
 TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     unsort_mtx();
     ASSERT_FALSE(dmtx->is_sorted_by_column_index());
 
@@ -1527,6 +1546,33 @@ TEST_F(Csr, SortUnsortedMatrixIsEquivalentToRef64)
     ASSERT_TRUE(dmtx->is_sorted_by_column_index());
     // Values must be unchanged, therefore, tolerance is `0`
     GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortEmptyMatrixIsEquivalentToRef)
+{
+    auto mtx = gen_mtx<Mtx>(123, 234, 0, 0);
+    auto dmtx = gko::clone(exec, mtx);
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_EQ(dmtx->get_num_stored_elements(), gko::size_type{});
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
+    GKO_ASSERT_MTX_NEAR(mtx, dmtx, 0);
+}
+
+
+TEST_F(Csr, SortZeroSizeMatrixIsEquivalentToRef)
+{
+    auto mtx = Mtx::create(ref);
+    auto dmtx = Mtx::create(exec);
+
+    mtx->sort_by_column_index();
+    dmtx->sort_by_column_index();
+
+    ASSERT_EQ(dmtx->get_size(), mtx->get_size());
+    ASSERT_TRUE(dmtx->is_sorted_by_column_index());
 }
 
 
@@ -1598,7 +1644,7 @@ TEST_F(Csr, SortUnsortedComplexMatrixIsEquivalentToRef64)
 
 TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto diag = mtx->extract_diagonal();
     auto ddiag = dmtx->extract_diagonal();
@@ -1609,7 +1655,7 @@ TEST_F(Csr, ExtractDiagonalIsEquivalentToRef)
 
 TEST_F(Csr, InplaceAbsoluteMatrixIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     mtx->compute_absolute_inplace();
     dmtx->compute_absolute_inplace();
@@ -1620,7 +1666,7 @@ TEST_F(Csr, InplaceAbsoluteMatrixIsEquivalentToRef)
 
 TEST_F(Csr, OutplaceAbsoluteMatrixIsEquivalentToRef)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto abs_mtx = mtx->compute_absolute();
     auto dabs_mtx = dmtx->compute_absolute();
@@ -1631,7 +1677,7 @@ TEST_F(Csr, OutplaceAbsoluteMatrixIsEquivalentToRef)
 
 TEST_F(Csr, InplaceAbsoluteComplexMatrixIsEquivalentToRef)
 {
-    set_up_apply_complex_data<ComplexMtx::classical>();
+    set_up_apply_complex_data<gko::matrix::csr::spmv_strategy::classical>();
 
     complex_mtx->compute_absolute_inplace();
     dcomplex_mtx->compute_absolute_inplace();
@@ -1642,7 +1688,7 @@ TEST_F(Csr, InplaceAbsoluteComplexMatrixIsEquivalentToRef)
 
 TEST_F(Csr, OutplaceAbsoluteComplexMatrixIsEquivalentToRef)
 {
-    set_up_apply_complex_data<ComplexMtx::classical>();
+    set_up_apply_complex_data<gko::matrix::csr::spmv_strategy::classical>();
 
     auto abs_mtx = complex_mtx->compute_absolute();
     auto dabs_mtx = dcomplex_mtx->compute_absolute();
@@ -1662,9 +1708,10 @@ TEST_F(Csr, CalculateNnzPerRowInSpanIsEquivalentToRef)
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
-        this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
+        this->ref, this->mtx2->get_const_device_view(), rspan, cspan, row_nnz);
     gko::kernels::GKO_DEVICE_NAMESPACE::csr::calculate_nonzeros_per_row_in_span(
-        this->exec, this->dmtx2.get(), rspan, cspan, &drow_nnz);
+        this->exec, this->dmtx2->get_const_device_view(), rspan, cspan,
+        drow_nnz);
 
     GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
 }
@@ -1680,7 +1727,7 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
     auto row_nnz = gko::array<int>(this->ref, rspan.length() + 1);
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_span(
-        this->ref, this->mtx2.get(), rspan, cspan, &row_nnz);
+        this->ref, this->mtx2->get_const_device_view(), rspan, cspan, row_nnz);
     gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, row_nnz.get_data(), row_nnz.get_size());
     auto num_nnz = row_nnz.get_data()[rspan.length()];
@@ -1697,10 +1744,12 @@ TEST_F(Csr, ComputeSubmatrixIsEquivalentToRef)
                     std::move(drow_nnz));
 
 
-    gko::kernels::reference::csr::compute_submatrix(this->ref, this->mtx2.get(),
-                                                    rspan, cspan, smat1.get());
+    gko::kernels::reference::csr::compute_submatrix(
+        this->ref, this->mtx2->get_const_device_view(), rspan, cspan,
+        smat1->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::csr::compute_submatrix(
-        this->exec, this->dmtx2.get(), rspan, cspan, sdmat1.get());
+        this->exec, this->dmtx2->get_const_device_view(), rspan, cspan,
+        sdmat1->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
 }
@@ -1724,10 +1773,12 @@ TEST_F(Csr, CalculateNnzPerRowInIndexSetIsEquivalentToRef)
     auto drow_nnz = gko::array<int>(this->exec, row_nnz);
 
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
-        this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
+        this->ref, this->mtx2->get_const_device_view(), rset, cset,
+        row_nnz.get_data());
     gko::kernels::GKO_DEVICE_NAMESPACE::csr::
         calculate_nonzeros_per_row_in_index_set(
-            this->exec, this->dmtx2.get(), drset, dcset, drow_nnz.get_data());
+            this->exec, this->dmtx2->get_const_device_view(), drset, dcset,
+            drow_nnz.get_data());
 
     GKO_ASSERT_ARRAY_EQ(row_nnz, drow_nnz);
 }
@@ -1746,7 +1797,8 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
     auto row_nnz = gko::array<int>(this->ref, rset.get_size() + 1);
     row_nnz.fill(gko::zero<int>());
     gko::kernels::reference::csr::calculate_nonzeros_per_row_in_index_set(
-        this->ref, this->mtx2.get(), rset, cset, row_nnz.get_data());
+        this->ref, this->mtx2->get_const_device_view(), rset, cset,
+        row_nnz.get_data());
     gko::kernels::reference::components::prefix_sum_nonnegative(
         this->ref, row_nnz.get_data(), row_nnz.get_size());
     auto num_nnz = row_nnz.get_data()[rset.get_size()];
@@ -1763,9 +1815,11 @@ TEST_F(Csr, ComputeSubmatrixFromIndexSetIsEquivalentToRef)
                     std::move(drow_nnz));
 
     gko::kernels::reference::csr::compute_submatrix_from_index_set(
-        this->ref, this->mtx2.get(), rset, cset, smat1.get());
+        this->ref, this->mtx2->get_const_device_view(), rset, cset,
+        smat1->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::csr::compute_submatrix_from_index_set(
-        this->exec, this->dmtx2.get(), drset, dcset, sdmat1.get());
+        this->exec, this->dmtx2->get_const_device_view(), drset, dcset,
+        sdmat1->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(sdmat1, smat1, 0.0);
 }
@@ -1820,7 +1874,7 @@ TEST_F(Csr, CanDetectMissingDiagonalEntry)
     bool has_diags = true;
 
     gko::kernels::GKO_DEVICE_NAMESPACE::csr::check_diagonal_entries_exist(
-        exec, mtx.get(), has_diags);
+        exec, mtx->get_const_device_view(), has_diags);
 
     ASSERT_FALSE(has_diags);
 }
@@ -1835,7 +1889,7 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
     bool has_diags = true;
 
     gko::kernels::GKO_DEVICE_NAMESPACE::csr::check_diagonal_entries_exist(
-        exec, mtx.get(), has_diags);
+        exec, mtx->get_const_device_view(), has_diags);
 
     ASSERT_TRUE(has_diags);
 }
@@ -1843,7 +1897,7 @@ TEST_F(Csr, CanDetectWhenAllDiagonalEntriesArePresent)
 
 TEST_F(Csr, AddScaledIdentityToNonSquare)
 {
-    set_up_apply_data<Mtx::classical>();
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
     gko::utils::ensure_all_diagonal_entries(mtx.get());
     dmtx->copy_from(mtx);
 

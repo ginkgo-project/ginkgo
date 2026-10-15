@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,7 +27,6 @@ namespace reference {
 /**
  * @brief The PGM solver namespace.
  *
- * @ingroup pgm
  */
 namespace pgm {
 
@@ -160,13 +159,13 @@ GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void find_strongest_neighbor(
     std::shared_ptr<const ReferenceExecutor> exec,
-    const matrix::Csr<ValueType, IndexType>* weight_mtx,
+    matrix::view::csr<const ValueType, const IndexType> weight_mtx,
     const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
     array<IndexType>& strongest_neighbor)
 {
-    const auto row_ptrs = weight_mtx->get_const_row_ptrs();
-    const auto col_idxs = weight_mtx->get_const_col_idxs();
-    const auto vals = weight_mtx->get_const_values();
+    const auto row_ptrs = weight_mtx.row_ptrs;
+    const auto col_idxs = weight_mtx.col_idxs;
+    const auto vals = weight_mtx.values;
     const auto diag_vals = diag->get_const_values();
     for (size_type row = 0; row < agg.get_size(); row++) {
         auto max_weight_unagg = zero<ValueType>();
@@ -213,15 +212,15 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
-void assign_to_exist_agg(std::shared_ptr<const ReferenceExecutor> exec,
-                         const matrix::Csr<ValueType, IndexType>* weight_mtx,
-                         const matrix::Diagonal<ValueType>* diag,
-                         array<IndexType>& agg,
-                         array<IndexType>& intermediate_agg)
+void assign_to_exist_agg(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> weight_mtx,
+    const matrix::Diagonal<ValueType>* diag, array<IndexType>& agg,
+    array<IndexType>& intermediate_agg)
 {
-    const auto row_ptrs = weight_mtx->get_const_row_ptrs();
-    const auto col_idxs = weight_mtx->get_const_col_idxs();
-    const auto vals = weight_mtx->get_const_values();
+    const auto row_ptrs = weight_mtx.row_ptrs;
+    const auto col_idxs = weight_mtx.col_idxs;
+    const auto vals = weight_mtx.values;
     const auto agg_const_val = agg.get_const_data();
     auto agg_val = (intermediate_agg.get_size() > 0)
                        ? intermediate_agg.get_data()
@@ -265,54 +264,66 @@ GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void sort_row_major_with_mapping(std::shared_ptr<const DefaultExecutor> exec,
+                                 size_type nnz, IndexType* row_idxs,
+                                 IndexType* col_idxs, ValueType* vals,
+                                 IndexType* mapping_cols)
+{
+    auto it = detail::make_zip_iterator(row_idxs, col_idxs, vals, mapping_cols);
+    std::stable_sort(it, it + nnz, [](auto a, auto b) {
+        return std::tie(get<0>(a), get<1>(a)) < std::tie(get<0>(b), get<1>(b));
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_PGM_SORT_ROW_MAJOR_WITH_MAPPING);
+
+
+template <typename ValueType, typename IndexType>
 void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
                         size_type fine_nnz, const IndexType* row_idxs,
                         const IndexType* col_idxs, const ValueType* vals,
-                        matrix::Coo<ValueType, IndexType>* coarse_coo)
+                        matrix::view::coo<ValueType, IndexType> coarse_coo,
+                        IndexType* mapping_rows)
 {
-    auto coarse_row = coarse_coo->get_row_idxs();
-    auto coarse_col = coarse_coo->get_col_idxs();
-    auto coarse_val = coarse_coo->get_values();
-    IndexType row = 0;
+    auto coarse_row = coarse_coo.row_idxs;
+    auto coarse_col = coarse_coo.col_idxs;
+    auto coarse_val = coarse_coo.values;
     size_type idxs = 0;
     size_type coarse_idxs = 0;
     IndexType curr_row = row_idxs[0];
     IndexType curr_col = col_idxs[0];
     ValueType temp_val = vals[0];
+    IndexType count = 1;
     for (size_type idxs = 1; idxs < fine_nnz; idxs++) {
         if (curr_row != row_idxs[idxs] || curr_col != col_idxs[idxs]) {
             coarse_row[coarse_idxs] = curr_row;
             coarse_col[coarse_idxs] = curr_col;
             coarse_val[coarse_idxs] = temp_val;
+            if (mapping_rows) {
+                mapping_rows[coarse_idxs] = count;
+            }
             curr_row = row_idxs[idxs];
             curr_col = col_idxs[idxs];
             temp_val = vals[idxs];
+            count = 1;
             coarse_idxs++;
             continue;
         }
         temp_val += vals[idxs];
+        count++;
     }
-    GKO_ASSERT(coarse_idxs + 1 == coarse_coo->get_num_stored_elements());
+    GKO_ASSERT(coarse_idxs + 1 == coarse_coo.num_stored_elements);
     coarse_row[coarse_idxs] = curr_row;
     coarse_col[coarse_idxs] = curr_col;
     coarse_val[coarse_idxs] = temp_val;
+    if (mapping_rows) {
+        mapping_rows[coarse_idxs] = count;
+    }
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_PGM_COMPUTE_COARSE_COO);
-
-
-template <typename IndexType>
-void gather_index(std::shared_ptr<const DefaultExecutor> exec,
-                  size_type num_res, const IndexType* orig,
-                  const IndexType* gather_map, IndexType* result)
-{
-    for (size_type i = 0; i < num_res; ++i) {
-        result[i] = orig[gather_map[i]];
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PGM_GATHER_INDEX);
 
 
 }  // namespace pgm

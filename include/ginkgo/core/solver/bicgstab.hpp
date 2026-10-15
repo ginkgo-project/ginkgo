@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,22 +39,32 @@ namespace solver {
  * non-s.p.d matrices. Though, the memory and the computational requirement of
  * the BiCGSTAB solver are higher than of its s.p.d solver counterpart, it has
  * the capability to solve generic systems. It was developed by stabilizing the
- * BiCG method.
+ * BiCG method: both operator applications of an iteration use \f$ A \f$
+ * itself, so no \f$ A^H \f$ apply (nor a transposed preconditioner) is
+ * needed, at the cost of one additional inner product per iteration.
+ *
+ * Each iteration interleaves a BiCG-style step with a one-dimensional GMRES
+ * minimization: an intermediate residual
+ * \f$ s = r_k - \alpha_k A p_k \f$ is constructed, then the stabilizing
+ * coefficient is chosen to minimize \f$ \| r_{k+1} \|_2 \f$ along
+ * \f$ A s \f$:
+ * \f[
+ *   \omega_k = \frac{(A s)^H s}{(A s)^H (A s)}, \qquad
+ *   x_{k+1}  = x_k + \alpha_k p_k + \omega_k s, \qquad
+ *   r_{k+1}  = s - \omega_k A s.
+ * \f]
  *
  * @tparam ValueType precision of the elements of the system matrix.
  *
- * @ingroup bicgstab
  * @ingroup solvers
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
 class Bicgstab
-    : public EnableLinOp<Bicgstab<ValueType>>,
+    : public LinOp,
       public EnablePreconditionedIterativeSolver<ValueType,
                                                  Bicgstab<ValueType>>,
       public Transposable {
-    friend class EnableLinOp<Bicgstab>;
-    friend class EnablePolymorphicObject<Bicgstab, LinOp>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -108,17 +118,25 @@ protected:
                     LinOp* x) const override;
 
     explicit Bicgstab(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Bicgstab>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     explicit Bicgstab(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Bicgstab>(factory->get_executor(),
-                                gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Bicgstab<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
+};
+
+
+template <typename ValueType>
+struct nullspace_traits<Bicgstab<ValueType>> {
+    static constexpr bool is_supported = true;
+    static constexpr bool requires_hermitian = false;
+    static constexpr bool two_sided_projection = false;
 };
 
 
@@ -170,6 +188,8 @@ struct workspace_traits<Bicgstab<ValueType>> {
     constexpr static int one = 14;
     // constant -1.0 scalar
     constexpr static int minus_one = 15;
+    // right-hand side projected onto the range of the system matrix
+    constexpr static int proj_rhs = 16;
 
     // stopping status array
     constexpr static int stop = 0;

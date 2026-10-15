@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -11,7 +11,7 @@
 #include <memory>
 #include <type_traits>
 
-#include "ginkgo/core/base/types.hpp"
+#include <ginkgo/core/base/types.hpp>
 
 
 // This header provides implementations of useful utilities introduced into the
@@ -24,7 +24,6 @@ namespace gko {
 /**
  * @brief The namespace for functionalities after C++14 standard.
  * @internal
- * @ingroup xstd
  */
 namespace xstd {
 namespace detail {

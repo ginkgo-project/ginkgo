@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,10 +12,10 @@
 namespace {
 
 
-struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
+struct DummyOperator : public gko::LinOp {
     DummyOperator(std::shared_ptr<const gko::Executor> exec,
                   gko::dim<2> size = {})
-        : gko::EnableLinOp<DummyOperator>(exec, size)
+        : gko::LinOp(exec, size)
     {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override {}
@@ -26,12 +26,10 @@ struct DummyOperator : public gko::EnableLinOp<DummyOperator> {
 };
 
 
-struct TransposableDummyOperator
-    : public gko::EnableLinOp<TransposableDummyOperator>,
-      public gko::Transposable {
+struct TransposableDummyOperator : public gko::LinOp, public gko::Transposable {
     TransposableDummyOperator(std::shared_ptr<const gko::Executor> exec,
                               gko::dim<2> size = {})
-        : gko::EnableLinOp<TransposableDummyOperator>(exec, size)
+        : gko::LinOp(exec, size)
     {}
 
     void apply_impl(const LinOp* b, LinOp* x) const override {}

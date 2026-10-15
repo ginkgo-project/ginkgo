@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -65,9 +65,6 @@ void HipAllocator::deallocate(void* dev_ptr)
 }
 
 
-#if HIP_VERSION >= 50200000
-
-
 HipAsyncAllocator::HipAsyncAllocator(hipStream_t stream) : stream_{stream} {}
 
 
@@ -84,35 +81,6 @@ void HipAsyncAllocator::deallocate(void* ptr)
 {
     GKO_EXIT_ON_HIP_ERROR(hipFreeAsync(ptr, stream_));
 }
-
-
-#else  // Fall back to regular allocation
-
-
-HipAsyncAllocator::HipAsyncAllocator(hipStream_t stream) : stream_{stream}
-{
-#if GKO_VERBOSE_LEVEL >= 1
-    std::cerr << "This version of HIP does not support hipMallocAsync, "
-                 "please use HipAllocator instead of HipAsyncAllocator.\n";
-#endif
-}
-
-
-void* HipAsyncAllocator::allocate(size_type num_bytes)
-{
-    void* ptr{};
-    GKO_ASSERT_NO_HIP_ALLOCATION_ERRORS(hipMalloc(&ptr, num_bytes), num_bytes);
-    return ptr;
-}
-
-
-void HipAsyncAllocator::deallocate(void* ptr)
-{
-    GKO_EXIT_ON_HIP_ERROR(hipFree(ptr));
-}
-
-
-#endif
 
 
 bool HipAsyncAllocator::check_environment(int device_id,

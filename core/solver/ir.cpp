@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -58,6 +58,10 @@ typename Ir<ValueType>::parameters_type Ir<ValueType>::parse(
         params.with_default_initial_guess(
             config::get_value<solver::initial_guess_mode>(obj));
     }
+    if (auto& obj = config_check.get("inner_initial_guess")) {
+        params.with_inner_initial_guess(
+            config::get_value<solver::initial_guess_mode>(obj));
+    }
 
     return params;
 }
@@ -94,7 +98,7 @@ template <typename ValueType>
 Ir<ValueType>& Ir<ValueType>::operator=(const Ir& other)
 {
     if (&other != this) {
-        EnableLinOp<Ir>::operator=(other);
+        LinOp::operator=(other);
         EnableSolverBase<Ir>::operator=(other);
         EnableIterativeBase<Ir>::operator=(other);
         this->parameters_ = other.parameters_;
@@ -109,7 +113,7 @@ template <typename ValueType>
 Ir<ValueType>& Ir<ValueType>::operator=(Ir&& other)
 {
     if (&other != this) {
-        EnableLinOp<Ir>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         EnableSolverBase<Ir>::operator=(std::move(other));
         EnableIterativeBase<Ir>::operator=(std::move(other));
         this->parameters_ = std::exchange(other.parameters_, parameters_type{});
@@ -144,6 +148,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::transpose() const
             share(as<Transposable>(this->get_solver())->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_relaxation_factor(parameters_.relaxation_factor)
+        .with_inner_initial_guess(parameters_.inner_initial_guess)
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -158,6 +163,7 @@ std::unique_ptr<LinOp> Ir<ValueType>::conj_transpose() const
             share(as<Transposable>(this->get_solver())->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
         .with_relaxation_factor(conj(parameters_.relaxation_factor))
+        .with_inner_initial_guess(parameters_.inner_initial_guess)
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -207,7 +213,7 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto& stop_status = this->template create_workspace_array<stopping_status>(
         ws::stop, dense_b->get_size()[1]);
-    exec->run(ir::make_initialize(&stop_status));
+    exec->run(ir::make_initialize(stop_status));
     if (guess != initial_guess_mode::zero) {
         residual->copy_from(dense_b);
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
@@ -243,8 +249,13 @@ void Ir<ValueType>::apply_dense_impl(const VectorType* dense_b,
         if (solver_->apply_uses_initial_guess()) {
             // Use the inner solver to solve
             // A * inner_solution = residual
-            // with residual as initial guess.
-            inner_solution->copy_from(residual_ptr);
+            // starting from zero or, if requested, from the residual. The
+            // latter makes the iteration depend on the scaling of A.
+            if (parameters_.inner_initial_guess == initial_guess_mode::rhs) {
+                inner_solution->copy_from(residual_ptr);
+            } else {
+                inner_solution->fill(zero<ValueType>());
+            }
             solver_->apply(residual_ptr, inner_solution);
 
             // x = x + relaxation_factor * inner_solution
@@ -335,8 +346,8 @@ std::vector<int> workspace_traits<Ir<ValueType>>::vectors(const Solver&)
 }
 
 
-#define GKO_DECLARE_IR(_type) class Ir<_type>
-#define GKO_DECLARE_IR_TRAITS(_type) struct workspace_traits<Ir<_type>>
+#define GKO_DECLARE_IR(ValueType) class Ir<ValueType>
+#define GKO_DECLARE_IR_TRAITS(ValueType) struct workspace_traits<Ir<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IR_TRAITS);
 

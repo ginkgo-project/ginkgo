@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,9 +15,41 @@
 /**
  * @brief The Ginkgo namespace.
  *
- * @ingroup gko
  */
 namespace gko {
+namespace detail {
+
+/**
+ * workaround for nvcc 13.3 complains `typename decltype(_name)::element_type`
+ * needs `typename` before `decltype`.
+ *
+ * TODO: remove workaround for nvcc 13.3. see
+ * https://github.com/ginkgo-project/ginkgo/pull/2076
+ *
+ * @note can not use `using element_type_t = typename T::element_type`.
+ * cuda 13.1 has difficulty to resolve it in Isai.
+ */
+template <typename T>
+struct element_type {
+    using type = typename T::element_type;
+};
+
+template <typename T>
+using element_type_t = typename element_type<T>::type;
+
+
+/**
+ * workaround for nvcc 13.3 complains `typename decltype(_name)::element_type`
+ * needs `typename` before `decltype`.
+ *
+ * TODO: remove workaround for nvcc 13.3. see
+ * https://github.com/ginkgo-project/ginkgo/pull/2076
+ */
+template <typename T>
+using value_element_type_t = typename T::value_type::element_type;
+
+
+}  // namespace detail
 
 
 /**
@@ -42,9 +74,7 @@ namespace gko {
  *                         the product
  */
 template <typename AbstractProductType, typename ComponentsType>
-class AbstractFactory
-    : public EnableAbstractPolymorphicObject<
-          AbstractFactory<AbstractProductType, ComponentsType>> {
+class AbstractFactory : public PolymorphicObject {
 public:
     using abstract_product_type = AbstractProductType;
     using components_type = ComponentsType;
@@ -81,7 +111,7 @@ protected:
      * @param exec  the executor where the factory should be constructed
      */
     AbstractFactory(std::shared_ptr<const Executor> exec)
-        : EnableAbstractPolymorphicObject<AbstractFactory>(std::move(exec))
+        : PolymorphicObject(std::move(exec))
     {}
 
     /**
@@ -121,12 +151,8 @@ protected:
  */
 template <typename ConcreteFactory, typename ProductType,
           typename ParametersType, typename PolymorphicBase>
-class EnableDefaultFactory
-    : public EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>,
-      public EnablePolymorphicAssignment<ConcreteFactory> {
+class EnableDefaultFactory : public PolymorphicBase {
 public:
-    friend class EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>;
-
     using product_type = ProductType;
     using parameters_type = ParametersType;
     using polymorphic_base = PolymorphicBase;
@@ -176,9 +202,7 @@ protected:
      */
     explicit EnableDefaultFactory(std::shared_ptr<const Executor> exec,
                                   const parameters_type& parameters = {})
-        : EnablePolymorphicObject<ConcreteFactory, PolymorphicBase>(
-              std::move(exec)),
-          parameters_{parameters}
+        : PolymorphicBase(std::move(exec)), parameters_{parameters}
     {}
 
     std::unique_ptr<abstract_product_type> generate_impl(
@@ -522,7 +546,7 @@ private:
     _name{};                                                                   \
                                                                                \
 private:                                                                       \
-    using _name##_type = typename decltype(_name)::element_type;               \
+    using _name##_type = ::gko::detail::element_type_t<decltype(_name)>;       \
                                                                                \
 public:                                                                        \
     auto with_##_name(::gko::deferred_factory_parameter<_name##_type> factory) \
@@ -560,7 +584,7 @@ public:                                                                        \
     _name{};                                                                   \
                                                                                \
 private:                                                                       \
-    using _name##_type = typename decltype(_name)::value_type::element_type;   \
+    using _name##_type = ::gko::detail::value_element_type_t<decltype(_name)>; \
                                                                                \
 public:                                                                        \
     template <typename... Args,                                                \

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -139,17 +139,17 @@ TYPED_TEST(Lu, KernelInitializeIsEquivalentToRef)
         gko::array<index_type> ddiag_idxs{this->exec, this->num_rows};
 
         gko::kernels::reference::lu_factorization::initialize(
-            this->ref, this->mtx.get(),
+            this->ref, this->mtx->get_const_device_view(),
             this->lookup.storage_offsets.get_const_data(),
             this->lookup.row_descs.get_const_data(),
             this->lookup.storage.get_const_data(), diag_idxs.get_data(),
-            this->mtx_lu.get());
+            this->mtx_lu->get_device_view());
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
-            this->exec, this->dmtx.get(),
+            this->exec, this->dmtx->get_const_device_view(),
             this->dlookup.storage_offsets.get_const_data(),
             this->dlookup.row_descs.get_const_data(),
             this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
-            this->dmtx_lu.get());
+            this->dmtx_lu->get_device_view());
 
         GKO_ASSERT_MTX_NEAR(this->dmtx_lu, this->dmtx_lu, 0.0);
         GKO_ASSERT_ARRAY_EQ(diag_idxs, ddiag_idxs);
@@ -167,28 +167,28 @@ TYPED_TEST(Lu, KernelFactorizeIsEquivalentToRef)
         gko::array<int> tmp{this->ref};
         gko::array<int> dtmp{this->exec};
         gko::kernels::reference::lu_factorization::initialize(
-            this->ref, this->mtx.get(),
+            this->ref, this->mtx->get_const_device_view(),
             this->lookup.storage_offsets.get_const_data(),
             this->lookup.row_descs.get_const_data(),
             this->lookup.storage.get_const_data(), diag_idxs.get_data(),
-            this->mtx_lu.get());
+            this->mtx_lu->get_device_view());
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::initialize(
-            this->exec, this->dmtx.get(),
+            this->exec, this->dmtx->get_const_device_view(),
             this->dlookup.storage_offsets.get_const_data(),
             this->dlookup.row_descs.get_const_data(),
             this->dlookup.storage.get_const_data(), ddiag_idxs.get_data(),
-            this->dmtx_lu.get());
+            this->dmtx_lu->get_device_view());
 
         gko::kernels::reference::lu_factorization::factorize(
             this->ref, this->lookup.storage_offsets.get_const_data(),
             this->lookup.row_descs.get_const_data(),
             this->lookup.storage.get_const_data(), diag_idxs.get_const_data(),
-            this->mtx_lu.get(), true, tmp);
+            this->mtx_lu->get_device_view(), true, tmp);
         gko::kernels::GKO_DEVICE_NAMESPACE::lu_factorization::factorize(
             this->exec, this->dlookup.storage_offsets.get_const_data(),
             this->dlookup.row_descs.get_const_data(),
             this->dlookup.storage.get_const_data(), ddiag_idxs.get_const_data(),
-            this->dmtx_lu.get(), true, dtmp);
+            this->dmtx_lu->get_device_view(), true, dtmp);
 
         GKO_ASSERT_MTX_NEAR(this->mtx_lu, this->dmtx_lu, r<value_type>::value);
     });
@@ -203,7 +203,8 @@ TYPED_TEST(Lu, KernelValidateValidFactors)
         bool valid = false;
 
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
-            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            this->exec, this->dmtx->get_const_device_view(),
+            this->dmtx_lu->get_const_device_view(),
             gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
 
         ASSERT_TRUE(valid);
@@ -227,7 +228,8 @@ TYPED_TEST(Lu, KernelValidateInvalidFactorsIdentity)
         this->dmtx_lu->read(data);
 
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
-            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            this->exec, this->dmtx->get_const_device_view(),
+            this->dmtx_lu->get_const_device_view(),
             gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
 
         ASSERT_FALSE(valid);
@@ -249,7 +251,8 @@ TYPED_TEST(Lu, KernelValidateInvalidFactorsMissing)
         this->dmtx_lu->read(data);
 
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
-            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            this->exec, this->dmtx->get_const_device_view(),
+            this->dmtx_lu->get_const_device_view(),
             gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
 
         ASSERT_FALSE(valid);
@@ -276,7 +279,8 @@ TYPED_TEST(Lu, KernelValidateInvalidFactorsExtra)
         this->dmtx_lu->read(data);
 
         gko::kernels::GKO_DEVICE_NAMESPACE::factorization::symbolic_validate(
-            this->exec, this->dmtx.get(), this->dmtx_lu.get(),
+            this->exec, this->dmtx->get_const_device_view(),
+            this->dmtx_lu->get_const_device_view(),
             gko::matrix::csr::build_lookup(this->dmtx_lu.get()), valid);
 
         ASSERT_FALSE(valid);

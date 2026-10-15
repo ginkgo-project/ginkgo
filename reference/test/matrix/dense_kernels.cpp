@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -40,23 +40,23 @@ protected:
     using MixedMtx = gko::matrix::Dense<gko::next_precision<value_type>>;
     using ComplexMtx = gko::to_complex<Mtx>;
     using RealMtx = gko::remove_complex<Mtx>;
-    Dense()
-        : exec(gko::ReferenceExecutor::create()),
-          mtx1(gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}},
-                                    exec)),
-          mtx2(gko::initialize<Mtx>({I<T>({1.0, -1.0}), I<T>({-2.0, 2.0})},
-                                    exec)),
-          mtx3(gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}},
-                                    exec)),
-          mtx4(gko::initialize<Mtx>(4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}},
-                                    exec)),
-          mtx5(gko::initialize<Mtx>(
-              {{1.0, -1.0, -0.5}, {-2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}, exec)),
-          mtx6(gko::initialize<Mtx>({{1.0, 2.0, 0.0}, {0.0, 1.5, 0.0}}, exec)),
-          mtx7(gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, exec)),
-          mtx8(gko::initialize<Mtx>(
-              {I<T>({1.0, -1.0}), I<T>({-2.0, 2.0}), I<T>({-3.0, 3.0})}, exec))
-    {}
+    Dense() : exec(gko::ReferenceExecutor::create())
+    {
+        mtx1 =
+            gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {1.5, 2.5, 3.5}}, exec);
+        mtx2 =
+            gko::initialize<Mtx>({I<T>({1.0, -1.0}), I<T>({-2.0, 2.0})}, exec);
+        mtx3 =
+            gko::initialize<Mtx>(4, {{1.0, 2.0, 3.0}, {0.5, 1.5, 2.5}}, exec);
+        mtx4 =
+            gko::initialize<Mtx>(4, {{1.0, 3.0, 2.0}, {0.0, 5.0, 0.0}}, exec);
+        mtx5 = gko::initialize<Mtx>(
+            {{1.0, -1.0, -0.5}, {-2.0, 2.0, 4.5}, {2.1, 3.4, 1.2}}, exec);
+        mtx6 = gko::initialize<Mtx>({{1.0, 2.0, 0.0}, {0.0, 1.5, 0.0}}, exec);
+        mtx7 = gko::initialize<Mtx>({{1.0, 2.0, 3.0}, {0.0, 1.5, 0.0}}, exec);
+        mtx8 = gko::initialize<Mtx>(
+            {I<T>({1.0, -1.0}), I<T>({-2.0, 2.0}), I<T>({-3.0, 3.0})}, exec);
+    }
 
     std::shared_ptr<const gko::Executor> exec;
     std::unique_ptr<Mtx> mtx1;
@@ -672,8 +672,8 @@ TYPED_TEST(Dense, ComputesNorm2Squared)
     auto result = NormVector::create(this->exec, gko::dim<2>{1, 2});
 
     gko::kernels::reference::dense::compute_squared_norm2(
-        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get(), result.get(),
-        tmp);
+        gko::as<gko::ReferenceExecutor>(this->exec),
+        mtx->get_const_device_view(), result->get_device_view(), tmp);
 
     EXPECT_EQ(result->at(0, 0), T_nc{9.0});
     EXPECT_EQ(result->at(0, 1), T_nc{25.0});
@@ -689,7 +689,7 @@ TYPED_TEST(Dense, ComputesSqrt)
     auto mtx(gko::initialize<NormVector>(I<I<T_nc>>{{9.0, 25.0}}, this->exec));
 
     gko::kernels::reference::dense::compute_sqrt(
-        gko::as<gko::ReferenceExecutor>(this->exec), mtx.get());
+        gko::as<gko::ReferenceExecutor>(this->exec), mtx->get_device_view());
 
     EXPECT_EQ(mtx->at(0, 0), T_nc{3.0});
     EXPECT_EQ(mtx->at(0, 1), T_nc{5.0});
@@ -1503,8 +1503,8 @@ TYPED_TEST(DenseWithIndexType, ConvertsToCsr)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Csr = typename gko::matrix::Csr<value_type, index_type>;
-    auto csr_s_classical = std::make_shared<typename Csr::classical>();
-    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_s_classical = gko::matrix::csr::spmv_strategy::classical;
+    auto csr_s_merge = gko::matrix::csr::spmv_strategy::merge_path;
     auto csr_mtx_c = Csr::create(this->mtx4->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx4->get_executor(), csr_s_merge);
 
@@ -1512,9 +1512,11 @@ TYPED_TEST(DenseWithIndexType, ConvertsToCsr)
     this->mtx4->convert_to(csr_mtx_m);
 
     assert_csr_eq_mtx4(csr_mtx_c.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_c->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
     GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(csr_mtx_m->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
 }
 
 
@@ -1523,8 +1525,8 @@ TYPED_TEST(DenseWithIndexType, MovesToCsr)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using Csr = typename gko::matrix::Csr<value_type, index_type>;
-    auto csr_s_classical = std::make_shared<typename Csr::classical>();
-    auto csr_s_merge = std::make_shared<typename Csr::merge_path>();
+    auto csr_s_classical = gko::matrix::csr::spmv_strategy::classical;
+    auto csr_s_merge = gko::matrix::csr::spmv_strategy::merge_path;
     auto csr_mtx_c = Csr::create(this->mtx4->get_executor(), csr_s_classical);
     auto csr_mtx_m = Csr::create(this->mtx4->get_executor(), csr_s_merge);
     auto mtx_clone = this->mtx4->clone();
@@ -1533,9 +1535,11 @@ TYPED_TEST(DenseWithIndexType, MovesToCsr)
     mtx_clone->move_to(csr_mtx_m);
 
     assert_csr_eq_mtx4(csr_mtx_c.get());
-    ASSERT_EQ(csr_mtx_c->get_strategy()->get_name(), "classical");
+    ASSERT_EQ(csr_mtx_c->get_strategy(),
+              gko::matrix::csr::spmv_strategy::classical);
     GKO_ASSERT_MTX_NEAR(csr_mtx_c, csr_mtx_m, 0.0);
-    ASSERT_EQ(csr_mtx_m->get_strategy()->get_name(), "merge_path");
+    ASSERT_EQ(csr_mtx_m->get_strategy(),
+              gko::matrix::csr::spmv_strategy::merge_path);
 }
 
 
@@ -1647,18 +1651,15 @@ void assert_strided_ell_eq_mtx6(
     ASSERT_EQ(ell_mtx->get_num_stored_elements_per_row(), 2);
     ASSERT_EQ(ell_mtx->get_num_stored_elements(), 6);
     ASSERT_EQ(ell_mtx->get_stride(), 3);
+    // only check the actual matrix entries.
     EXPECT_EQ(c[0], 0);
     EXPECT_EQ(c[1], 1);
-    EXPECT_EQ(c[2], invalid_index);
     EXPECT_EQ(c[3], 1);
     EXPECT_EQ(c[4], invalid_index);
-    EXPECT_EQ(c[5], invalid_index);
     EXPECT_EQ(v[0], ValueType{1.0});
     EXPECT_EQ(v[1], ValueType{1.5});
-    EXPECT_EQ(v[2], ValueType{0.0});
     EXPECT_EQ(v[3], ValueType{2.0});
     EXPECT_EQ(v[4], ValueType{0.0});
-    EXPECT_EQ(v[5], ValueType{0.0});
 }
 
 
@@ -2325,8 +2326,9 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_permute(
     }
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         // compute A * P^T = (P * A^T)^T
-        auto tmp = result->transpose();
-        auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(tmp->clone());
+        auto tmp = gko::share(result->transpose());
+        auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(
+            gko::as<gko::Cloneable>(tmp)->clone());
         permutation_dense->apply(tmp, tmp2);
         tmp2->transpose(result);
     }
@@ -2358,8 +2360,9 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_permute(
     row_permutation_dense->read(row_permutation_data);
     col_permutation_dense->read(col_permutation_data);
     row_permutation_dense->apply(input, result);
-    auto tmp = result->transpose();
-    auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(tmp->clone());
+    auto tmp = gko::share(result->transpose());
+    auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(
+        gko::as<gko::Cloneable>(tmp)->clone());
     col_permutation_dense->apply(tmp, tmp2);
     tmp2->transpose(result);
     return result;
@@ -3291,8 +3294,9 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_scaled_permute(
     }
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         // compute A * P^T = (P * A^T)^T
-        auto tmp = result->transpose();
-        auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(tmp->clone());
+        auto tmp = share(result->transpose());
+        auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(
+            gko::as<gko::Cloneable>(tmp)->clone());
         permutation_dense->apply(tmp, tmp2);
         tmp2->transpose(result);
     }
@@ -3325,8 +3329,9 @@ std::unique_ptr<gko::matrix::Dense<ValueType>> ref_scaled_permute(
     row_permutation_dense->read(row_permutation_data);
     col_permutation_dense->read(col_permutation_data);
     row_permutation_dense->apply(input, result);
-    auto tmp = result->transpose();
-    auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(tmp->clone());
+    auto tmp = gko::share(result->transpose());
+    auto tmp2 = gko::as<gko::matrix::Dense<ValueType>>(
+        gko::as<gko::Cloneable>(tmp)->clone());
     col_permutation_dense->apply(tmp, tmp2);
     tmp2->transpose(result);
     return result;

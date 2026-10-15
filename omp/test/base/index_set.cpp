@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -71,11 +71,11 @@ TYPED_TEST(index_set, PopulateSubsetsIsEquivalentToReferenceForUnsortedInput)
     auto omp_superset_comp = gko::array<TypeParam>{this->omp};
 
     gko::kernels::reference::idx_set::populate_subsets(
-        this->ref, TypeParam(520), &rand_arr, &ref_begin_comp, &ref_end_comp,
-        &ref_superset_comp, false);
+        this->ref, TypeParam(520), rand_arr, ref_begin_comp, ref_end_comp,
+        ref_superset_comp, false);
     gko::kernels::omp::idx_set::populate_subsets(
-        this->omp, TypeParam(520), &rand_arr, &omp_begin_comp, &omp_end_comp,
-        &omp_superset_comp, false);
+        this->omp, TypeParam(520), rand_arr, omp_begin_comp, omp_end_comp,
+        omp_superset_comp, false);
 
     GKO_ASSERT_ARRAY_EQ(ref_begin_comp, omp_begin_comp);
     GKO_ASSERT_ARRAY_EQ(ref_end_comp, omp_end_comp);
@@ -95,11 +95,11 @@ TYPED_TEST(index_set, PopulateSubsetsIsEquivalentToReferenceForSortedInput)
     auto omp_superset_comp = gko::array<TypeParam>{this->omp};
 
     gko::kernels::reference::idx_set::populate_subsets(
-        this->ref, TypeParam(520), &rand_arr, &ref_begin_comp, &ref_end_comp,
-        &ref_superset_comp, false);
+        this->ref, TypeParam(520), rand_arr, ref_begin_comp, ref_end_comp,
+        ref_superset_comp, false);
     gko::kernels::omp::idx_set::populate_subsets(
-        this->omp, TypeParam(520), &rand_arr, &omp_begin_comp, &omp_end_comp,
-        &omp_superset_comp, false);
+        this->omp, TypeParam(520), rand_arr, omp_begin_comp, omp_end_comp,
+        omp_superset_comp, false);
 
     GKO_ASSERT_ARRAY_EQ(ref_begin_comp, omp_begin_comp);
     GKO_ASSERT_ARRAY_EQ(ref_end_comp, omp_end_comp);
@@ -116,11 +116,11 @@ TYPED_TEST(index_set, IndicesContainsIsEquivalentToReference)
     auto ref_indices_arr = this->setup_random_indices(73);
     auto ref_validity_arr = gko::array<bool>(this->omp, 73);
     gko::kernels::reference::idx_set::compute_validity(
-        this->ref, &ref_indices_arr, &ref_validity_arr);
+        this->ref, ref_indices_arr, ref_validity_arr);
     auto omp_indices_arr = gko::array<TypeParam>(this->omp, ref_indices_arr);
     auto omp_validity_arr = gko::array<bool>(this->omp, 73);
-    gko::kernels::omp::idx_set::compute_validity(this->omp, &omp_indices_arr,
-                                                 &omp_validity_arr);
+    gko::kernels::omp::idx_set::compute_validity(this->omp, omp_indices_arr,
+                                                 omp_validity_arr);
 
     GKO_ASSERT_ARRAY_EQ(ref_validity_arr, omp_validity_arr);
 }

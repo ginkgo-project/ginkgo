@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -105,7 +105,7 @@ Composition<ValueType>& Composition<ValueType>::operator=(
     const Composition& other)
 {
     if (&other != this) {
-        EnableLinOp<Composition>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         operators_ = other.operators_;
         // if the operators are on the wrong executor, copy them over
@@ -123,7 +123,7 @@ template <typename ValueType>
 Composition<ValueType>& Composition<ValueType>::operator=(Composition&& other)
 {
     if (&other != this) {
-        EnableLinOp<Composition>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         auto exec = this->get_executor();
         operators_ = std::move(other.operators_);
         // if the operators are on the wrong executor, copy them over
@@ -221,7 +221,7 @@ void Composition<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
-#define GKO_DECLARE_COMPOSITION(_type) class Composition<_type>
+#define GKO_DECLARE_COMPOSITION(ValueType) class Composition<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_COMPOSITION);
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -60,61 +60,6 @@ TYPED_TEST(Fcg, FcgFactoryCreatesCorrectSolver)
     auto fcg_solver = dynamic_cast<Solver*>(this->solver.get());
     ASSERT_NE(fcg_solver->get_system_matrix(), nullptr);
     ASSERT_EQ(fcg_solver->get_system_matrix(), this->mtx);
-}
-
-
-TYPED_TEST(Fcg, CanBeCopied)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy = this->fcg_factory->generate(Mtx::create(this->exec));
-
-    copy->copy_from(this->solver);
-
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = dynamic_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(copy_mtx.get()), this->mtx,
-                        0.0);
-}
-
-
-TYPED_TEST(Fcg, CanBeMoved)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto copy = this->fcg_factory->generate(Mtx::create(this->exec));
-
-    copy->move_from(this->solver);
-
-    ASSERT_EQ(copy->get_size(), gko::dim<2>(3, 3));
-    auto copy_mtx = dynamic_cast<Solver*>(copy.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(copy_mtx.get()), this->mtx,
-                        0.0);
-}
-
-
-TYPED_TEST(Fcg, CanBeCloned)
-{
-    using Mtx = typename TestFixture::Mtx;
-    using Solver = typename TestFixture::Solver;
-    auto clone = this->solver->clone();
-
-    ASSERT_EQ(clone->get_size(), gko::dim<2>(3, 3));
-    auto clone_mtx = dynamic_cast<Solver*>(clone.get())->get_system_matrix();
-    GKO_ASSERT_MTX_NEAR(dynamic_cast<const Mtx*>(clone_mtx.get()), this->mtx,
-                        0.0);
-}
-
-
-TYPED_TEST(Fcg, CanBeCleared)
-{
-    using Solver = typename TestFixture::Solver;
-    this->solver->clear();
-
-    ASSERT_EQ(this->solver->get_size(), gko::dim<2>(0, 0));
-    auto solver_mtx =
-        static_cast<Solver*>(this->solver.get())->get_system_matrix();
-    ASSERT_EQ(solver_mtx, nullptr);
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,7 +15,7 @@ Perturbation<ValueType>& Perturbation<ValueType>::operator=(
     const Perturbation& other)
 {
     if (&other != this) {
-        EnableLinOp<Perturbation>::operator=(other);
+        LinOp::operator=(other);
         auto exec = this->get_executor();
         scalar_ = other.scalar_;
         basis_ = other.basis_;
@@ -35,7 +35,7 @@ Perturbation<ValueType>& Perturbation<ValueType>::operator=(
     Perturbation&& other)
 {
     if (&other != this) {
-        EnableLinOp<Perturbation>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         auto exec = this->get_executor();
         scalar_ = std::move(other.scalar_);
         basis_ = std::move(other.basis_);
@@ -68,7 +68,7 @@ Perturbation<ValueType>::Perturbation(Perturbation&& other)
 
 template <typename ValueType>
 Perturbation<ValueType>::Perturbation(std::shared_ptr<const Executor> exec)
-    : EnableLinOp<Perturbation>(std::move(exec))
+    : LinOp(std::move(exec))
 {}
 
 
@@ -87,8 +87,7 @@ template <typename ValueType>
 Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
                                       std::shared_ptr<const LinOp> basis,
                                       std::shared_ptr<const LinOp> projector)
-    : EnableLinOp<Perturbation>(basis->get_executor(),
-                                gko::dim<2>{basis->get_size()[0]}),
+    : LinOp(basis->get_executor(), gko::dim<2>{basis->get_size()[0]}),
       basis_{std::move(basis)},
       projector_{std::move(projector)},
       scalar_{std::move(scalar)}
@@ -181,7 +180,7 @@ void Perturbation<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 }
 
 
-#define GKO_DECLARE_PERTURBATION(_type) class Perturbation<_type>
+#define GKO_DECLARE_PERTURBATION(ValueType) class Perturbation<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PERTURBATION);
 
 

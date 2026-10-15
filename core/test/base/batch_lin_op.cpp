@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,19 +42,19 @@ struct DummyLogger : gko::log::Logger {
 };
 
 
-class DummyBatchLinOp : public gko::batch::EnableBatchLinOp<DummyBatchLinOp>,
+class DummyBatchLinOp : public gko::batch::BatchLinOp,
                         public gko::EnableCreateMethod<DummyBatchLinOp> {
 public:
     DummyBatchLinOp(std::shared_ptr<const gko::Executor> exec,
                     gko::batch_dim<2> size = gko::batch_dim<2>{})
-        : gko::batch::EnableBatchLinOp<DummyBatchLinOp>(exec, size)
+        : gko::batch::BatchLinOp(exec, size)
     {}
 };
 
 
-class EnableBatchLinOp : public ::testing::Test {
+class BatchLinOp : public ::testing::Test {
 protected:
-    EnableBatchLinOp()
+    BatchLinOp()
         : ref{gko::ReferenceExecutor::create()},
           op{DummyBatchLinOp::create(ref,
                                      gko::batch_dim<2>(1, gko::dim<2>{3, 5}))}
@@ -65,13 +65,13 @@ protected:
 };
 
 
-TEST_F(EnableBatchLinOp, KnowsNumBatchItems)
+TEST_F(BatchLinOp, KnowsNumBatchItems)
 {
     ASSERT_EQ(op->get_num_batch_items(), 1);
 }
 
 
-TEST_F(EnableBatchLinOp, KnowsItsSizes)
+TEST_F(BatchLinOp, KnowsItsSizes)
 {
     auto op1_sizes = gko::batch_dim<2>(1, gko::dim<2>{3, 5});
     ASSERT_EQ(op->get_size(), op1_sizes);
@@ -79,11 +79,10 @@ TEST_F(EnableBatchLinOp, KnowsItsSizes)
 
 
 template <typename T = int>
-class DummyBatchLinOpWithFactory
-    : public gko::batch::EnableBatchLinOp<DummyBatchLinOpWithFactory<T>> {
+class DummyBatchLinOpWithFactory : public gko::batch::BatchLinOp {
 public:
     DummyBatchLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
-        : gko::batch::EnableBatchLinOp<DummyBatchLinOpWithFactory>(exec)
+        : gko::batch::BatchLinOp(exec)
     {}
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
@@ -96,8 +95,7 @@ public:
 
     DummyBatchLinOpWithFactory(const Factory* factory,
                                std::shared_ptr<const gko::batch::BatchLinOp> op)
-        : gko::batch::EnableBatchLinOp<DummyBatchLinOpWithFactory>(
-              factory->get_executor()),
+        : gko::batch::BatchLinOp(factory->get_executor()),
           parameters_{factory->get_parameters()},
           op_{op}
     {}
@@ -106,9 +104,9 @@ public:
 };
 
 
-class EnableBatchLinOpFactory : public ::testing::Test {
+class BatchLinOpFactory : public ::testing::Test {
 protected:
-    EnableBatchLinOpFactory()
+    BatchLinOpFactory()
         : ref{gko::ReferenceExecutor::create()},
           logger{std::make_shared<DummyLogger>()}
 
@@ -119,7 +117,7 @@ protected:
 };
 
 
-TEST_F(EnableBatchLinOpFactory, CreatesDefaultFactory)
+TEST_F(BatchLinOpFactory, CreatesDefaultFactory)
 {
     auto factory = DummyBatchLinOpWithFactory<>::build().on(ref);
 
@@ -128,7 +126,7 @@ TEST_F(EnableBatchLinOpFactory, CreatesDefaultFactory)
 }
 
 
-TEST_F(EnableBatchLinOpFactory, CreatesFactoryWithParameters)
+TEST_F(BatchLinOpFactory, CreatesFactoryWithParameters)
 {
     auto factory = DummyBatchLinOpWithFactory<>::build().with_value(7).on(ref);
 
@@ -137,7 +135,7 @@ TEST_F(EnableBatchLinOpFactory, CreatesFactoryWithParameters)
 }
 
 
-TEST_F(EnableBatchLinOpFactory, PassesParametersToBatchLinOp)
+TEST_F(BatchLinOpFactory, PassesParametersToBatchLinOp)
 {
     auto dummy = gko::share(
         DummyBatchLinOp::create(ref, gko::batch_dim<2>(1, gko::dim<2>{3, 5})));
@@ -151,7 +149,7 @@ TEST_F(EnableBatchLinOpFactory, PassesParametersToBatchLinOp)
 }
 
 
-TEST_F(EnableBatchLinOpFactory, FactoryGenerateIsLogged)
+TEST_F(BatchLinOpFactory, FactoryGenerateIsLogged)
 {
     auto before_logger = *logger;
     auto factory = DummyBatchLinOpWithFactory<>::build().on(ref);
@@ -166,7 +164,7 @@ TEST_F(EnableBatchLinOpFactory, FactoryGenerateIsLogged)
 }
 
 
-TEST_F(EnableBatchLinOpFactory, WithLoggersWorksAndPropagates)
+TEST_F(BatchLinOpFactory, WithLoggersWorksAndPropagates)
 {
     auto before_logger = *logger;
     auto factory =
@@ -178,23 +176,6 @@ TEST_F(EnableBatchLinOpFactory, WithLoggersWorksAndPropagates)
               before_logger.batch_linop_factory_generate_started + 1);
     ASSERT_EQ(logger->batch_linop_factory_generate_completed,
               before_logger.batch_linop_factory_generate_completed + 1);
-}
-
-
-TEST_F(EnableBatchLinOpFactory, CopiesLinOpToOtherExecutor)
-{
-    auto ref2 = gko::ReferenceExecutor::create();
-    auto dummy = gko::share(
-        DummyBatchLinOp::create(ref2, gko::batch_dim<2>(1, gko::dim<2>{3, 5})));
-    auto factory = DummyBatchLinOpWithFactory<>::build().with_value(6).on(ref);
-
-    auto op = factory->generate(dummy);
-
-    ASSERT_EQ(op->get_executor(), ref);
-    ASSERT_EQ(op->get_parameters().value, 6);
-    ASSERT_EQ(op->op_->get_executor(), ref);
-    ASSERT_NE(op->op_.get(), dummy.get());
-    ASSERT_TRUE(dynamic_cast<const DummyBatchLinOp*>(op->op_.get()));
 }
 
 

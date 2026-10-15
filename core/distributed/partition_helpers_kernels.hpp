@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,23 +15,23 @@ namespace gko {
 namespace kernels {
 
 
-#define GKO_DECLARE_PARTITION_HELPERS_SORT_BY_RANGE_START(_type) \
-    void sort_by_range_start(                                    \
-        std::shared_ptr<const DefaultExecutor> exec,             \
-        array<_type>& range_start_ends,                          \
+#define GKO_DECLARE_PARTITION_HELPERS_SORT_BY_RANGE_START(IndexType) \
+    void sort_by_range_start(                                        \
+        std::shared_ptr<const DefaultExecutor> exec,                 \
+        array<IndexType>& range_start_ends,                          \
         array<experimental::distributed::comm_index_type>& part_ids)
 
 
-#define GKO_DECLARE_PARTITION_HELPERS_CHECK_CONSECUTIVE_RANGES(_type)          \
+#define GKO_DECLARE_PARTITION_HELPERS_CHECK_CONSECUTIVE_RANGES(IndexType)      \
     void check_consecutive_ranges(std::shared_ptr<const DefaultExecutor> exec, \
-                                  const array<_type>& range_start_ends,        \
+                                  const array<IndexType>& range_start_ends,    \
                                   bool& result)
 
 
-#define GKO_DECLARE_PARTITION_HELPERS_COMPRESS_RANGES(_type)          \
+#define GKO_DECLARE_PARTITION_HELPERS_COMPRESS_RANGES(IndexType)      \
     void compress_ranges(std::shared_ptr<const DefaultExecutor> exec, \
-                         const array<_type>& range_start_ends,        \
-                         array<_type>& range_offsets)
+                         const array<IndexType>& range_start_ends,    \
+                         array<IndexType>& range_offsets)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                         \

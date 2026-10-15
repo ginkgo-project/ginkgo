@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -73,8 +73,7 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
 template <typename ValueType, typename IndexType>
 Lu<ValueType, IndexType>::Lu(std::shared_ptr<const Executor> exec,
                              const parameters_type& params)
-    : EnablePolymorphicObject<Lu, LinOpFactory>(std::move(exec)),
-      parameters_(params)
+    : LinOpFactory(std::move(exec)), parameters_(params)
 {}
 
 
@@ -134,15 +133,15 @@ std::unique_ptr<LinOp> Lu<ValueType, IndexType>::generate_impl(
     const auto lookup = matrix::csr::build_lookup(factors.get());
     array<IndexType> diag_idxs{exec, num_rows};
     exec->run(make_initialize(
-        mtx.get(), lookup.storage_offsets.get_const_data(),
+        mtx->get_const_device_view(), lookup.storage_offsets.get_const_data(),
         lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-        diag_idxs.get_data(), factors.get()));
+        diag_idxs.get_data(), factors->get_device_view()));
     // run numerical factorization
     array<int> tmp{exec};
     exec->run(make_factorize(
         lookup.storage_offsets.get_const_data(),
         lookup.row_descs.get_const_data(), lookup.storage.get_const_data(),
-        diag_idxs.get_const_data(), factors.get(), true, tmp));
+        diag_idxs.get_const_data(), factors->get_device_view(), true, tmp));
     return factorization_type::create_from_combined_lu(std::move(factors));
 }
 

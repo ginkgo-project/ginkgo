@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -45,13 +45,14 @@ void apply(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
            const array<precision_reduction>& block_precisions,
            const array<IndexType>& block_pointers,
            const array<ValueType>& blocks,
-           const matrix::Dense<ValueType>* alpha,
-           const matrix::Dense<ValueType>* b,
-           const matrix::Dense<ValueType>* beta, matrix::Dense<ValueType>* x)
+           matrix::view::dense<const ValueType> alpha,
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<const ValueType> beta,
+           matrix::view::dense<ValueType> x)
 {
     // TODO: write a special kernel for multiple RHS
     dense::scale(exec, beta, x);
-    for (size_type col = 0; col < b->get_size()[1]; ++col) {
+    for (size_type col = 0; col < b.size[1]; ++col) {
         select_advanced_apply(
             compiled_kernels(),
             [&](int compiled_block_size) {
@@ -60,9 +61,8 @@ void apply(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
             syn::value_list<int, config::min_warps_per_block>(),
             syn::type_list<>(), exec, num_blocks,
             block_precisions.get_const_data(), block_pointers.get_const_data(),
-            blocks.get_const_data(), storage_scheme, alpha->get_const_values(),
-            b->get_const_values() + col, b->get_stride(), x->get_values() + col,
-            x->get_stride());
+            blocks.get_const_data(), storage_scheme, alpha.values,
+            b.values + col, b.stride, x.values + col, x.stride);
     }
 }
 

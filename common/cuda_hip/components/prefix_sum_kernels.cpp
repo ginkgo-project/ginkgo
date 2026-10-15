@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,7 +59,6 @@ template <typename IndexType>
 void prefix_sum_nonnegative(std::shared_ptr<const DefaultExecutor> exec,
                             IndexType* counts, size_type num_entries)
 {
-    constexpr auto max = std::numeric_limits<IndexType>::max();
     thrust::exclusive_scan(thrust_policy(exec), counts, counts + num_entries,
                            counts, IndexType{}, overflowing_sum<IndexType>{});
     if (num_entries > 0 &&

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,13 +8,13 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 
 namespace gko {
 /**
  * @brief The matrix namespace.
  *
- * @ingroup matrix
  */
 namespace matrix {
 
@@ -42,12 +42,12 @@ class Hybrid;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup coo
  * @ingroup mat_formats
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
+class Coo : public LinOp,
+            public EnableCloneable<Coo<ValueType, IndexType>>,
             public ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
             public ConvertibleTo<Coo<next_precision<ValueType, 2>, IndexType>>,
@@ -63,7 +63,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
             public Transposable,
             public EnableAbsoluteComputation<
                 remove_complex<Coo<ValueType, IndexType>>> {
-    friend class EnablePolymorphicObject<Coo, LinOp>;
+    friend class EnableCloneable<Coo>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class CooBuilder<ValueType, IndexType>;
@@ -72,8 +72,8 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Coo>::convert_to;
-    using EnableLinOp<Coo>::move_to;
+    using EnableCloneable<Coo>::convert_to;
+    using EnableCloneable<Coo>::move_to;
     using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
@@ -88,6 +88,9 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Coo>;
+    using device_view = matrix::view::coo<value_type, index_type>;
+    using const_device_view =
+        matrix::view::coo<const value_type, const index_type>;
 
     friend class Coo<previous_precision<ValueType>, IndexType>;
 
@@ -133,6 +136,8 @@ public:
     void read(const device_mat_data& data) override;
 
     void read(device_mat_data&& data) override;
+
+    using WritableToMatrixData<ValueType, IndexType>::write;
 
     void write(mat_data& data) const override;
 
@@ -214,6 +219,20 @@ public:
     }
 
     /**
+     * Returns a non-owning device view of this matrix.
+     *
+     * @return a device view of this matrix.
+     */
+    device_view get_device_view();
+
+    /**
+     * Returns a non-owning const device view of this matrix.
+     *
+     * @return a const device view of this matrix.
+     */
+    const_device_view get_const_device_view() const;
+
+    /**
      * Applies Coo matrix axpy to a vector (or a sequence of vectors).
      *
      * Performs the operation x = Coo * b + x
@@ -223,12 +242,12 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x);
+    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x);
 
     /**
      * @copydoc apply2(cost LinOp *, LinOp *)
      */
-    const LinOp* apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
+    void apply2(ptr_param<const LinOp> b, ptr_param<LinOp> x) const;
 
     /**
      * Performs the operation x = alpha * Coo * b + x.
@@ -239,14 +258,17 @@ public:
      *
      * @return this
      */
-    LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                  ptr_param<LinOp> x);
+    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                ptr_param<LinOp> x);
 
     /**
      * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
      */
-    const LinOp* apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
-                        ptr_param<LinOp> x) const;
+    void apply2(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b,
+                ptr_param<LinOp> x) const;
+
+
+    void validate_data() const override;
 
     /**
      * Creates an uninitialized COO matrix of the specified size.
@@ -314,7 +336,7 @@ public:
      * @param size  the dimensions of the matrix
      * @param values  the value array of the matrix
      * @param col_idxs  the column index array of the matrix
-     * @param row_ptrs  the row index array of the matrix
+     * @param row_idxs  the row index array of the matrix
      *
      * @return A smart pointer to the constant matrix wrapping the input arrays
      *         (if they reside on the same executor as the matrix) or a copy of

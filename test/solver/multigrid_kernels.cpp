@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,12 +10,19 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
+#include "core/test/utils/matrix_generator.hpp"
+#include "core/utils/matrix_utils.hpp"
 #include "test/utils/common_fixture.hpp"
 
 
@@ -139,10 +146,13 @@ TEST_F(Multigrid, MultigridKCycleStep1IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::multigrid::kcycle_step_1(
-        ref, alpha.get(), rho.get(), v.get(), g.get(), d.get(), e.get());
+        ref, alpha->get_const_device_view(), rho->get_const_device_view(),
+        v->get_const_device_view(), g->get_device_view(), d->get_device_view(),
+        e->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::multigrid::kcycle_step_1(
-        exec, d_alpha.get(), d_rho.get(), d_v.get(), d_g.get(), d_d.get(),
-        d_e.get());
+        exec, d_alpha->get_const_device_view(), d_rho->get_const_device_view(),
+        d_v->get_const_device_view(), d_g->get_device_view(),
+        d_d->get_device_view(), d_e->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_g, g, 1e-14);
     GKO_ASSERT_MTX_NEAR(d_d, d, 1e-14);
@@ -155,11 +165,15 @@ TEST_F(Multigrid, MultigridKCycleStep2IsEquivalentToRef)
     initialize_data();
 
     gko::kernels::reference::multigrid::kcycle_step_2(
-        ref, alpha.get(), rho.get(), gamma.get(), beta.get(), zeta.get(),
-        d.get(), e.get());
+        ref, alpha->get_const_device_view(), rho->get_const_device_view(),
+        gamma->get_const_device_view(), beta->get_const_device_view(),
+        zeta->get_const_device_view(), d->get_const_device_view(),
+        e->get_device_view());
     gko::kernels::GKO_DEVICE_NAMESPACE::multigrid::kcycle_step_2(
-        exec, d_alpha.get(), d_rho.get(), d_gamma.get(), d_beta.get(),
-        d_zeta.get(), d_d.get(), d_e.get());
+        exec, d_alpha->get_const_device_view(), d_rho->get_const_device_view(),
+        d_gamma->get_const_device_view(), d_beta->get_const_device_view(),
+        d_zeta->get_const_device_view(), d_d->get_const_device_view(),
+        d_e->get_device_view());
 
     GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
 }
@@ -174,16 +188,116 @@ TEST_F(Multigrid, MultigridKCycleCheckStopIsEquivalentToRef)
     bool d_is_stop_5;
 
     gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, old_norm.get(), new_norm.get(), 1.0, is_stop_10);
+        ref, old_norm->get_const_device_view(),
+        new_norm->get_const_device_view(), 1.0, is_stop_10);
     gko::kernels::GKO_DEVICE_NAMESPACE::multigrid::kcycle_check_stop(
-        exec, d_old_norm.get(), d_new_norm.get(), 1.0, d_is_stop_10);
+        exec, d_old_norm->get_const_device_view(),
+        d_new_norm->get_const_device_view(), 1.0, d_is_stop_10);
     gko::kernels::reference::multigrid::kcycle_check_stop(
-        ref, old_norm.get(), new_norm.get(), 0.5, is_stop_5);
+        ref, old_norm->get_const_device_view(),
+        new_norm->get_const_device_view(), 0.5, is_stop_5);
     gko::kernels::GKO_DEVICE_NAMESPACE::multigrid::kcycle_check_stop(
-        exec, d_old_norm.get(), d_new_norm.get(), 0.5, d_is_stop_5);
+        exec, d_old_norm->get_const_device_view(),
+        d_new_norm->get_const_device_view(), 0.5, d_is_stop_5);
 
     GKO_ASSERT_EQ(d_is_stop_10, is_stop_10);
     GKO_ASSERT_EQ(d_is_stop_10, true);
     GKO_ASSERT_EQ(d_is_stop_5, is_stop_5);
     GKO_ASSERT_EQ(d_is_stop_5, false);
+}
+
+
+// generate_reuse runs the Pgm mapping and regenerates the smoothers and the
+// coarsest solver on whichever executor the solver lives on
+class MultigridReuse : public CommonTestFixture {
+protected:
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+    using Coarse = gko::multigrid::Pgm<value_type, index_type>;
+    using Smoother = gko::solver::Ir<value_type>;
+    using InnerSolver = gko::preconditioner::Jacobi<value_type>;
+
+    MultigridReuse() : rand_engine(42)
+    {
+#ifdef GINKGO_FAST_TESTS
+        const int m = 129;
+#else
+        const int m = 597;
+#endif
+        auto data =
+            gko::test::generate_random_matrix_data<value_type, index_type>(
+                m, m, std::uniform_int_distribution<>(m / 20, m / 10),
+                std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+        gko::utils::make_hpd(data);
+        mtx = gko::share(Csr::create(ref));
+        mtx->read(data);
+        // scaling keeps the sparsity pattern and the aggregates
+        scaled = gko::share(gko::clone(mtx));
+        scaled->scale(gko::initialize<Vec>({value_type{2}}, ref));
+        d_mtx = gko::share(gko::clone(exec, mtx));
+        d_scaled = gko::share(gko::clone(exec, scaled));
+        b = gko::test::generate_random_matrix<Vec>(
+            m, 1, std::uniform_int_distribution<>(1, 1),
+            std::normal_distribution<value_type>(-1.0, 1.0), rand_engine, ref);
+        d_b = gko::clone(exec, b);
+    }
+
+    std::unique_ptr<gko::solver::Multigrid::Factory> gen_factory(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::solver::Multigrid::build()
+            .with_max_levels(2u)
+            .with_min_coarse_rows(8u)
+            .with_post_uses_pre(true)
+            .with_mg_level(Coarse::build().with_deterministic(true))
+            .with_pre_smoother(
+                Smoother::build()
+                    .with_solver(InnerSolver::build().with_max_block_size(1u))
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(1u)))
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .on(exec);
+    }
+
+    std::default_random_engine rand_engine;
+    std::shared_ptr<Csr> mtx;
+    std::shared_ptr<Csr> scaled;
+    std::shared_ptr<Csr> d_mtx;
+    std::shared_ptr<Csr> d_scaled;
+    std::unique_ptr<Vec> b;
+    std::unique_ptr<Vec> d_b;
+};
+
+
+TEST_F(MultigridReuse, GenerateReuseIsEquivalentToRefAndToRegenerated)
+{
+    auto factory = gen_factory(ref);
+    auto d_factory = gen_factory(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto d_reuse_data = d_factory->create_empty_reuse_data();
+    factory->generate_reuse(mtx, *reuse_data);
+    d_factory->generate_reuse(d_mtx, *d_reuse_data);
+    auto x = Vec::create(ref, gko::dim<2>{b->get_size()[0], 1});
+    x->fill(gko::zero<value_type>());
+    auto d_x = gko::clone(exec, x);
+    auto d_expected_x = gko::clone(exec, x);
+
+    auto solver = factory->generate_reuse(scaled, *reuse_data);
+    auto d_solver = d_factory->generate_reuse(d_scaled, *d_reuse_data);
+    auto d_expected = d_factory->generate(d_scaled);
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
+    d_expected->apply(d_b, d_expected_x);
+
+    auto levels = solver->get_mg_level_list();
+    auto d_levels = d_solver->get_mg_level_list();
+    ASSERT_GT(levels.size(), 0);
+    ASSERT_EQ(levels.size(), d_levels.size());
+    for (gko::size_type i = 0; i < levels.size(); i++) {
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_levels.at(i)->get_coarse_op()),
+                            gko::as<Csr>(levels.at(i)->get_coarse_op()),
+                            r<value_type>::value);
+    }
+    GKO_ASSERT_MTX_NEAR(d_x, x, r<value_type>::value * 1e3);
+    GKO_ASSERT_MTX_NEAR(d_x, d_expected_x, r<value_type>::value * 1e3);
 }

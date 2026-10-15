@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -20,7 +20,7 @@ void build_local(
     const device_matrix_data<ValueType, GlobalIndexType>& input,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
-    comm_index_type local_part, matrix::Dense<ValueType>* local_mtx)
+    comm_index_type local_part, matrix::view::dense<ValueType> local_mtx)
 {
     auto row_idxs = input.get_const_row_idxs();
     auto col_idxs = input.get_const_col_idxs();
@@ -36,8 +36,8 @@ void build_local(
         auto part_id = range_parts[range_id];
         // skip non-local rows
         if (part_id == local_part) {
-            local_mtx->at(map_to_local(row_idxs[i], partition, range_id),
-                          static_cast<LocalIndexType>(col_idxs[i])) = values[i];
+            local_mtx(map_to_local(row_idxs[i], partition, range_id),
+                      static_cast<LocalIndexType>(col_idxs[i])) = values[i];
         }
     }
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -36,8 +36,8 @@ void index_set<IndexType>::populate_subsets(
     auto exec = this->get_executor();
     this->num_stored_indices_ = indices.get_size();
     exec->run(idx_set::make_populate_subsets(
-        this->index_space_size_, &indices, &this->subsets_begin_,
-        &this->subsets_end_, &this->superset_cumulative_indices_, is_sorted));
+        this->index_space_size_, indices, this->subsets_begin_,
+        this->subsets_end_, this->superset_cumulative_indices_, is_sorted));
 }
 
 
@@ -127,7 +127,7 @@ array<IndexType> index_set<IndexType>::map_global_to_local(
 }
 
 
-#define GKO_DECLARE_INDEX_SET(_type) class index_set<_type>
+#define GKO_DECLARE_INDEX_SET(IndexType) class index_set<IndexType>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_INDEX_SET);
 
 

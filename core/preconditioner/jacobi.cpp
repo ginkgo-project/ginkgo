@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -100,7 +100,7 @@ Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(
     const Jacobi& other)
 {
     if (&other != this) {
-        EnableLinOp<Jacobi>::operator=(other);
+        LinOp::operator=(other);
         storage_scheme_ = other.storage_scheme_;
         num_blocks_ = other.num_blocks_;
         blocks_ = other.blocks_;
@@ -116,7 +116,7 @@ Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(
     Jacobi&& other)
 {
     if (&other != this) {
-        EnableLinOp<Jacobi>::operator=(std::move(other));
+        LinOp::operator=(std::move(other));
         // reset size values to 0 in other
         storage_scheme_ =
             std::exchange(other.storage_scheme_,
@@ -153,12 +153,15 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         [this](auto dense_b, auto dense_x) {
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_simple_scalar_apply(
-                    this->blocks_, dense_b, dense_x));
+                    this->blocks_, dense_b->get_const_device_view(),
+                    dense_x->get_device_view()));
             } else {
                 this->get_executor()->run(jacobi::make_simple_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
-                    parameters_.block_pointers, blocks_, dense_b, dense_x));
+                    parameters_.block_pointers, blocks_,
+                    dense_b->get_const_device_view(),
+                    dense_x->get_device_view()));
             }
         },
         b, x);
@@ -174,13 +177,19 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* alpha,
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             if (parameters_.max_block_size == 1) {
                 this->get_executor()->run(jacobi::make_scalar_apply(
-                    this->blocks_, dense_alpha, dense_b, dense_beta, dense_x));
+                    this->blocks_, dense_alpha->get_const_device_view(),
+                    dense_b->get_const_device_view(),
+                    dense_beta->get_const_device_view(),
+                    dense_x->get_device_view()));
             } else {
                 this->get_executor()->run(jacobi::make_apply(
                     num_blocks_, parameters_.max_block_size, storage_scheme_,
                     parameters_.storage_optimization.block_wise,
-                    parameters_.block_pointers, blocks_, dense_alpha, dense_b,
-                    dense_beta, dense_x));
+                    parameters_.block_pointers, blocks_,
+                    dense_alpha->get_const_device_view(),
+                    dense_b->get_const_device_view(),
+                    dense_beta->get_const_device_view(),
+                    dense_x->get_device_view()));
             }
         },
         alpha, b, beta, x);
@@ -194,7 +203,8 @@ void Jacobi<ValueType, IndexType>::convert_to(
     auto exec = this->get_executor();
     auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
     if (parameters_.max_block_size == 1) {
-        exec->run(jacobi::make_scalar_convert_to_dense(blocks_, tmp.get()));
+        exec->run(jacobi::make_scalar_convert_to_dense(blocks_,
+                                                       tmp->get_device_view()));
     } else {
         exec->run(jacobi::make_convert_to_dense(
             num_blocks_, parameters_.storage_optimization.block_wise,
@@ -316,9 +326,9 @@ void Jacobi<ValueType, IndexType>::detect_blocks(
 {
     parameters_.block_pointers.resize_and_reset(system_matrix->get_size()[0] +
                                                 1);
-    this->get_executor()->run(
-        jacobi::make_find_blocks(system_matrix, parameters_.max_block_size,
-                                 num_blocks_, parameters_.block_pointers));
+    this->get_executor()->run(jacobi::make_find_blocks(
+        system_matrix->get_const_device_view(), parameters_.max_block_size,
+        num_blocks_, parameters_.block_pointers));
     blocks_.resize_and_reset(
         storage_scheme_.compute_storage_space(num_blocks_));
 }
@@ -337,7 +347,8 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             auto csr_mtx = convert_to_with_sorting<const csr_type>(
                 exec, system_matrix, skip_sorting);
             auto diagonal = share(csr_mtx->extract_diagonal());
-            exec->run(jacobi::make_scalar_l1(csr_mtx.get(), diagonal.get()));
+            exec->run(jacobi::make_scalar_l1(csr_mtx->get_const_device_view(),
+                                             diagonal.get()));
             diag = diagonal;
         } else {
             diag = share(as<DiagonalLinOpExtractable>(system_matrix)
@@ -371,11 +382,14 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             // Because we change the matrix value, we clone it to avoid
             // overwriting to the original matrix.
             auto changed_mtx = share(csr_mtx->clone());
-            exec->run(
-                jacobi::make_add_diagonal_elements(changed_mtx.get(), true));
+            // TODO: it always run make_srow even if the matrix is not
+            // changed
+            exec->run(jacobi::make_add_diagonal_elements(
+                matrix::make_builder_unique_ptr(changed_mtx).get(), true));
             // block_pointers has larger size than actual num_blocks_
-            exec->run(jacobi::make_block_l1(
-                num_blocks_, parameters_.block_pointers, changed_mtx.get()));
+            exec->run(jacobi::make_block_l1(num_blocks_,
+                                            parameters_.block_pointers,
+                                            changed_mtx->get_device_view()));
             csr_mtx = changed_mtx;
         }
         const auto all_block_opt =
@@ -396,9 +410,9 @@ void Jacobi<ValueType, IndexType>::generate(const LinOp* system_matrix,
             conditioning_.resize_and_reset(num_blocks_);
         }
         exec->run(jacobi::make_generate(
-            csr_mtx.get(), num_blocks_, parameters_.max_block_size,
-            parameters_.accuracy, storage_scheme_, conditioning_, precisions,
-            parameters_.block_pointers, blocks_));
+            csr_mtx->get_const_device_view(), num_blocks_,
+            parameters_.max_block_size, parameters_.accuracy, storage_scheme_,
+            conditioning_, precisions, parameters_.block_pointers, blocks_));
     }
 }
 

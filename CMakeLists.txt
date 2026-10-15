@@ -3,11 +3,11 @@ cmake_minimum_required(VERSION 3.16)
 project(
     Ginkgo
     LANGUAGES CXX
-    VERSION 1.11.0
+    VERSION 2.0.0
     DESCRIPTION
         "A numerical linear algebra library targeting many-core architectures"
 )
-set(Ginkgo_VERSION_TAG "main")
+set(Ginkgo_VERSION_TAG "develop")
 set(PROJECT_VERSION_TAG ${Ginkgo_VERSION_TAG})
 if(Ginkgo_VERSION_TAG STREQUAL "master")
     set(GINKGO_VERSION_TAG_DEPRECATED ON)
@@ -159,7 +159,6 @@ option(
     OFF
 )
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
-option(GINKGO_BUILD_HWLOC "Build Ginkgo with HWLOC. Default is OFF." OFF)
 option(
     GINKGO_BUILD_PAPI_SDE
     "Build Ginkgo with PAPI SDE. Enabled if a system installation is found."
@@ -226,24 +225,12 @@ if(GINKGO_BUILD_CUDA)
 endif()
 if(GINKGO_BUILD_HIP)
     include(cmake/hip.cmake)
-    if(GINKGO_HIP_PLATFORM_AMD AND GINKGO_HIP_VERSION VERSION_LESS 5.7)
-        # Hip allow custom namespace but does not fully make everything in the custom namespace before rocm-5.7
-        # more specific pr: https://github.com/ROCm/rocThrust/pull/286
-        message(
-            STATUS
-            "Disable custom thrust namespace for hip before 5.7 because hip does not fully support it before 5.7"
-        )
-        set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE OFF)
-    elseif(
-        GINKGO_HIP_PLATFORM_AMD
-        AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 7.1
-        AND GINKGO_HIP_VERSION VERSION_LESS 7.2
-    )
-        # https://github.com/ROCm/rocm-libraries/pull/1769 should fix this issue in ROCm 7.1.1.
+    if(GINKGO_HIP_PLATFORM_AMD AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 7.1)
+        # track this issue by https://github.com/ROCm/rocm-libraries/issues/6309 
         # HIP VERSION does not use the exact version number as ROCm. Need to wait for ROCm 7.1.1 to set proper range for ROCm 7.1.0
         message(
             STATUS
-            "Disable custom thrust namespace for hip 7.1 because hip does not adapt the custom namespace fully."
+            "Disable custom thrust namespace after hip 7.1 because hip does not adapt the custom namespace fully."
         )
         set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE OFF)
     else()
@@ -251,6 +238,7 @@ if(GINKGO_BUILD_HIP)
         set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE ON)
     endif()
 endif()
+
 if(GINKGO_BUILD_SYCL)
     include(cmake/sycl.cmake)
 endif()
@@ -267,8 +255,28 @@ include(cmake/install_helpers.cmake)
 include(cmake/compiler_features.cmake)
 include(cmake/generate_ginkgo_hpp.cmake)
 
+# The standard library of GCC 7 and 8 lacks parts of C++17 that Ginkgo uses,
+# like std::inclusive_scan
+if(
+    CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9
+)
+    message(
+        FATAL_ERROR
+        "Ginkgo requires GCC 9 or newer, but the C++ compiler is "
+        "${CMAKE_CXX_COMPILER} with version ${CMAKE_CXX_COMPILER_VERSION}."
+    )
+endif()
+
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /permissive-")
+    # MSVC has macro for min/max, it leads C2589 issue with CUDA 13.2.
+    # We disable it by -DNOMINMAX
+    # similar issue: https://stackoverflow.com/questions/1825904/error-c2589-on-stdnumeric-limitsdoublemin
+    # After CMake 4.1, they do not add several flags for MSVC. (see Other Changes section in https://cmake.org/cmake/help/v4.1/release/4.1.html)
+    # `/Zc:inline` is required in Ginkgo to reduce the symbol significantly, so we add it back here.
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive- /Zc:inline"
+    )
 endif()
 if(MINGW OR CYGWIN)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -393,20 +401,6 @@ if(GINKGO_BUILD_HIP AND ROCTX_FOUND)
     set(GINKGO_HAVE_ROCTX 1)
 endif()
 
-# Switch off HWLOC for Windows and MacOS
-if(GINKGO_BUILD_HWLOC AND (MSVC OR WIN32 OR CYGWIN OR APPLE))
-    set(GINKGO_BUILD_HWLOC
-        OFF
-        CACHE BOOL
-        "Build Ginkgo with HWLOC. Default is OFF. Ginkgo does not support HWLOC on Windows/MacOS"
-        FORCE
-    )
-    message(
-        WARNING
-        "Ginkgo does not support HWLOC on Windows/MacOS, switch GINKGO_BUILD_HWLOC to OFF"
-    )
-endif()
-
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)
 set(GINKGO_HAVE_OPENMPI_PRE_4_1_X OFF)
 if(GINKGO_BUILD_MPI)
@@ -458,17 +452,6 @@ if(GINKGO_BUILD_BENCHMARKS)
 endif()
 if(GINKGO_BUILD_TESTS OR GINKGO_BUILD_BENCHMARKS OR GINKGO_BUILD_EXAMPLES)
     find_package(nlohmann_json 3.9.1 QUIET)
-endif()
-
-# System provided, third party libraries (not bundled!)
-set(GINKGO_HAVE_HWLOC 0)
-if(GINKGO_BUILD_HWLOC)
-    find_package(HWLOC 2.1 REQUIRED)
-    set(GINKGO_HAVE_HWLOC 1)
-    message(
-        WARNING
-        "The GINKGO_BUILD_HWLOC option has no beneficial effect. Consider setting it to GINKGO_BUILD_HWLOC=OFF."
-    )
 endif()
 
 set(GINKGO_HAVE_PAPI_SDE 0)

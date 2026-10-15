@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,12 +26,52 @@ namespace matrix {
 namespace {
 
 
-GKO_REGISTER_OPERATION(separate_local_nonlocal,
-                       distributed_matrix::separate_local_nonlocal);
+GKO_REGISTER_OPERATION(separate_diag_off_diag,
+                       distributed_matrix::separate_diag_off_diag);
 
 
 }  // namespace
 }  // namespace matrix
+
+
+namespace {
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void append_global_matrix_data(
+    std::shared_ptr<const Executor> exec,
+    const matrix_data<ValueType, LocalIndexType>& local_data,
+    const index_map<LocalIndexType, GlobalIndexType>& imap,
+    index_space col_space, matrix_data<ValueType, GlobalIndexType>& result)
+{
+    if (local_data.nonzeros.empty()) {
+        return;
+    }
+
+    auto device_data =
+        device_matrix_data<ValueType, LocalIndexType>::create_from_host(
+            exec, local_data);
+    const auto nnz = device_data.get_num_stored_elements();
+    auto local_row_idxs =
+        make_array_view(exec, nnz, device_data.get_row_idxs());
+    auto local_col_idxs =
+        make_array_view(exec, nnz, device_data.get_col_idxs());
+    auto global_row_idxs =
+        imap.map_to_global(local_row_idxs, index_space::local);
+    auto global_col_idxs = imap.map_to_global(local_col_idxs, col_space);
+    auto values = make_array_view(exec, nnz, device_data.get_values());
+    auto global_data =
+        device_matrix_data<ValueType, GlobalIndexType>{
+            exec, result.size, std::move(global_row_idxs),
+            std::move(global_col_idxs), std::move(values)}
+            .copy_to_host();
+
+    result.nonzeros.insert(result.nonzeros.end(), global_data.nonzeros.begin(),
+                           global_data.nonzeros.end());
+}
+
+
+}  // namespace
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
@@ -47,47 +87,52 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec,
     std::shared_ptr<const RowGatherer<LocalIndexType>> row_gather_template,
-    ptr_param<const LinOp> local_matrix_template,
-    ptr_param<const LinOp> non_local_matrix_template)
-    : EnableLinOp<Matrix>{exec},
+    ptr_param<const LinOp> diag_matrix_template,
+    ptr_param<const LinOp> off_diag_matrix_template)
+    : LinOp{exec},
       DistributedBase{row_gather_template->get_communicator()},
-      row_gatherer_{row_gather_template->clone(exec)},
+      row_gatherer_{clone(exec, row_gather_template)},
       imap_{exec},
       one_scalar_{exec, 1.0},
-      local_mtx_{local_matrix_template->clone(exec)},
-      non_local_mtx_{non_local_matrix_template->clone(exec)}
+      diag_mtx_{clone(exec, diag_matrix_template.get())},
+      off_diag_mtx_{clone(exec, off_diag_matrix_template.get())}
 {
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
-            local_mtx_.get())));
+            diag_mtx_.get())));
     GKO_ASSERT(
         (dynamic_cast<ReadableFromMatrixData<ValueType, LocalIndexType>*>(
-            non_local_mtx_.get())));
+            off_diag_mtx_.get())));
 }
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
-    std::shared_ptr<LinOp> local_linop)
-    : EnableLinOp<Matrix>{exec},
+    std::shared_ptr<LinOp> diag_linop)
+    : LinOp{exec},
       DistributedBase{comm},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           exec, mpi::detail::create_default_collective_communicator(comm))},
       imap_{exec},
       one_scalar_{exec, 1.0},
-      non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
-          exec, dim<2>{local_linop->get_size()[0], 0}))
+      off_diag_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
+          exec, dim<2>{diag_linop->get_size()[0], 0}))
 {
     this->set_size(size);
-    local_mtx_ = std::move(local_linop);
+    auto partition =
+        share(build_partition_from_local_size<LocalIndexType, GlobalIndexType>(
+            exec, comm, diag_linop->get_size()[0]));
+    imap_ = index_map<local_index_type, global_index_type>(
+        exec, partition, comm.rank(), array<global_index_type>{exec});
+    diag_mtx_ = std::move(diag_linop);
 }
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     index_map<LocalIndexType, GlobalIndexType> imap,
-    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop)
-    : EnableLinOp<Matrix>{exec},
+    std::shared_ptr<LinOp> diag_linop, std::shared_ptr<LinOp> off_diag_linop)
+    : LinOp{exec},
       DistributedBase{comm},
       row_gatherer_(RowGatherer<LocalIndexType>::create(
           exec,
@@ -98,8 +143,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
       one_scalar_{exec, 1.0}
 {
     this->set_size({imap_.get_global_size(), imap_.get_global_size()});
-    local_mtx_ = std::move(local_linop);
-    non_local_mtx_ = std::move(non_local_linop);
+    diag_mtx_ = std::move(diag_linop);
+    off_diag_mtx_ = std::move(off_diag_linop);
 }
 
 
@@ -109,6 +154,19 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
 {
     return std::unique_ptr<Matrix>{new Matrix{exec, comm}};
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const RowGatherer<LocalIndexType>> row_gatherer_template)
+{
+    return std::unique_ptr<Matrix>{
+        new Matrix{exec, std::move(row_gatherer_template),
+                   gko::matrix::Csr<ValueType, LocalIndexType>::create(exec),
+                   gko::matrix::Csr<ValueType, LocalIndexType>::create(exec)}};
 }
 
 
@@ -126,14 +184,14 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
-    ptr_param<const LinOp> local_matrix_template,
-    ptr_param<const LinOp> non_local_matrix_template)
+    ptr_param<const LinOp> diag_matrix_template,
+    ptr_param<const LinOp> off_diag_matrix_template)
 {
     return std::unique_ptr<Matrix>{new Matrix{
         exec,
         RowGatherer<LocalIndexType>::create(
             exec, mpi::detail::create_default_collective_communicator(comm)),
-        local_matrix_template, non_local_matrix_template}};
+        diag_matrix_template, off_diag_matrix_template}};
 }
 
 
@@ -141,9 +199,9 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
-    std::shared_ptr<LinOp> local_linop)
+    std::shared_ptr<LinOp> diag_linop)
 {
-    return std::unique_ptr<Matrix>{new Matrix{exec, comm, size, local_linop}};
+    return std::unique_ptr<Matrix>{new Matrix{exec, comm, size, diag_linop}};
 }
 
 
@@ -151,7 +209,7 @@ template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<const Executor> exec, mpi::communicator comm, dim<2> size,
-    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop,
+    std::shared_ptr<LinOp> diag_linop, std::shared_ptr<LinOp> off_diag_linop,
     std::vector<comm_index_type> recv_sizes,
     std::vector<comm_index_type> recv_offsets,
     array<local_index_type> recv_gather_idxs)
@@ -161,7 +219,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
               0);
     auto contiguous_partition =
         share(build_partition_from_local_size<LocalIndexType, GlobalIndexType>(
-            exec, comm, local_linop->get_size()[0]));
+            exec, comm, diag_linop->get_size()[0]));
     array<global_index_type> global_recv_gather_idxs(
         exec, recv_gather_idxs.get_size());
     for (int rank = 0; rank < comm.size(); ++rank) {
@@ -182,7 +240,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
         exec, comm,
         index_map<LocalIndexType, GlobalIndexType>(
             exec, contiguous_partition, comm.rank(), global_recv_gather_idxs),
-        std::move(local_linop), std::move(non_local_linop));
+        std::move(diag_linop), std::move(off_diag_linop));
 }
 
 
@@ -191,11 +249,11 @@ std::unique_ptr<Matrix<ValueType, LocalIndexType, GlobalIndexType>>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     std::shared_ptr<const Executor> exec, mpi::communicator comm,
     index_map<LocalIndexType, GlobalIndexType> imap,
-    std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop)
+    std::shared_ptr<LinOp> diag_linop, std::shared_ptr<LinOp> off_diag_linop)
 {
     return std::unique_ptr<Matrix>{
         new Matrix{std::move(exec), comm, std::move(imap),
-                   std::move(local_linop), std::move(non_local_linop)}};
+                   std::move(diag_linop), std::move(off_diag_linop)}};
 }
 
 
@@ -206,10 +264,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->copy_from(this->local_mtx_);
-    result->non_local_mtx_->copy_from(this->non_local_mtx_);
-    result->row_gatherer_->copy_from(this->row_gatherer_);
+    as<Cloneable>(result->diag_mtx_)->copy_from(as<Cloneable>(this->diag_mtx_));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->copy_from(as<Cloneable>(this->off_diag_mtx_));
+    as<Cloneable>(result->row_gatherer_)
+        ->copy_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = this->imap_;
+    result->row_partition_ = this->row_partition_;
     result->set_size(this->get_size());
 }
 
@@ -221,10 +282,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->move_from(this->local_mtx_);
-    result->non_local_mtx_->move_from(this->non_local_mtx_);
-    result->row_gatherer_->move_from(this->row_gatherer_);
+    as<Cloneable>(result->diag_mtx_)->move_from(as<Cloneable>(this->diag_mtx_));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->move_from(as<Cloneable>(this->off_diag_mtx_));
+    as<Cloneable>(result->row_gatherer_)
+        ->move_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = std::move(this->imap_);
+    result->row_partition_ = std::move(this->row_partition_);
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -238,10 +302,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->copy_from(this->local_mtx_.get());
-    result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
-    result->row_gatherer_->copy_from(this->row_gatherer_);
+    as<Cloneable>(result->diag_mtx_)
+        ->copy_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->copy_from(as<Cloneable>(this->off_diag_mtx_.get()));
+    as<Cloneable>(result->row_gatherer_)
+        ->copy_from(as<Cloneable>(this->row_gatherer_));
     result->imap_ = this->imap_;
+    result->row_partition_ = this->row_partition_;
     result->set_size(this->get_size());
 }
 
@@ -253,10 +321,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->move_from(this->local_mtx_.get());
-    result->non_local_mtx_->move_from(this->non_local_mtx_.get());
+    as<Cloneable>(result->diag_mtx_)
+        ->move_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->move_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
+    result->row_partition_ = std::move(this->row_partition_);
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -271,10 +342,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->copy_from(this->local_mtx_.get());
-    result->non_local_mtx_->copy_from(this->non_local_mtx_.get());
+    as<Cloneable>(result->diag_mtx_)
+        ->copy_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->copy_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->copy_from(this->row_gatherer_);
     result->imap_ = this->imap_;
+    result->row_partition_ = this->row_partition_;
     result->set_size(this->get_size());
 }
 
@@ -286,10 +360,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->local_mtx_->move_from(this->local_mtx_.get());
-    result->non_local_mtx_->move_from(this->non_local_mtx_.get());
+    as<Cloneable>(result->diag_mtx_)
+        ->move_from(as<Cloneable>(this->diag_mtx_.get()));
+    as<Cloneable>(result->off_diag_mtx_)
+        ->move_from(as<Cloneable>(this->off_diag_mtx_.get()));
     result->row_gatherer_->move_from(this->row_gatherer_);
     result->imap_ = std::move(this->imap_);
+    result->row_partition_ = std::move(this->row_partition_);
     result->set_size(this->get_size());
     this->set_size({});
 }
@@ -333,44 +410,45 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     this->set_size(global_dim);
 
     // temporary storage for the output
-    array<local_index_type> local_row_idxs{exec};
-    array<local_index_type> local_col_idxs{exec};
-    array<value_type> local_values{exec};
-    array<local_index_type> non_local_row_idxs{exec};
-    array<global_index_type> global_non_local_col_idxs{exec};
-    array<value_type> non_local_values{exec};
+    array<local_index_type> diag_row_idxs{exec};
+    array<local_index_type> diag_col_idxs{exec};
+    array<value_type> diag_values{exec};
+    array<local_index_type> off_diag_row_idxs{exec};
+    array<global_index_type> global_off_diag_col_idxs{exec};
+    array<value_type> off_diag_values{exec};
 
-    // separate input into local and non-local block
-    // The rows and columns of the local block are mapped into local indexing,
-    // as well as the rows of the non-local block. The columns of the non-local
+    // separate input into diag and off-diag block
+    // The rows and columns of the diag block are mapped into local indexing,
+    // as well as the rows of the off-diag block. The columns of the off-diag
     // block are still in global indices.
-    exec->run(matrix::make_separate_local_nonlocal(
+    exec->run(matrix::make_separate_diag_off_diag(
         *all_data_ptr, tmp_row_partition.get(), tmp_col_partition.get(),
-        local_part, local_row_idxs, local_col_idxs, local_values,
-        non_local_row_idxs, global_non_local_col_idxs, non_local_values));
+        local_part, diag_row_idxs, diag_col_idxs, diag_values,
+        off_diag_row_idxs, global_off_diag_col_idxs, off_diag_values));
 
     imap_ = index_map<local_index_type, global_index_type>(
-        exec, col_partition, comm.rank(), global_non_local_col_idxs);
+        exec, col_partition, comm.rank(), global_off_diag_col_idxs);
+    row_partition_ = row_partition;
 
-    auto non_local_col_idxs =
-        imap_.map_to_local(global_non_local_col_idxs, index_space::non_local);
+    auto off_diag_col_idxs =
+        imap_.map_to_local(global_off_diag_col_idxs, index_space::non_local);
 
-    // read the local matrix data
+    // read the diag matrix data
     const auto num_local_rows =
         static_cast<size_type>(row_partition->get_part_size(local_part));
     const auto num_local_cols =
         static_cast<size_type>(col_partition->get_part_size(local_part));
-    device_matrix_data<value_type, local_index_type> local_data{
-        exec, dim<2>{num_local_rows, num_local_cols}, std::move(local_row_idxs),
-        std::move(local_col_idxs), std::move(local_values)};
-    device_matrix_data<value_type, local_index_type> non_local_data{
+    device_matrix_data<value_type, local_index_type> diag_data{
+        exec, dim<2>{num_local_rows, num_local_cols}, std::move(diag_row_idxs),
+        std::move(diag_col_idxs), std::move(diag_values)};
+    device_matrix_data<value_type, local_index_type> off_diag_data{
         exec, dim<2>{num_local_rows, imap_.get_remote_global_idxs().get_size()},
-        std::move(non_local_row_idxs), std::move(non_local_col_idxs),
-        std::move(non_local_values)};
-    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->local_mtx_)
-        ->read(std::move(local_data));
-    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->non_local_mtx_)
-        ->read(std::move(non_local_data));
+        std::move(off_diag_row_idxs), std::move(off_diag_col_idxs),
+        std::move(off_diag_values)};
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->diag_mtx_)
+        ->read(std::move(diag_data));
+    as<ReadableFromMatrixData<ValueType, LocalIndexType>>(this->off_diag_mtx_)
+        ->read(std::move(off_diag_data));
 
     row_gatherer_ = RowGatherer<LocalIndexType>::create(
         row_gatherer_->get_executor(),
@@ -418,6 +496,27 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     assembly_mode assembly_type)
 {
     return this->read_distributed(data, partition, partition, assembly_type);
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::write(
+    matrix_data<value_type, global_index_type>& data) const
+{
+    GKO_ASSERT_IS_SQUARE_MATRIX(this);
+    auto diag_data = matrix_data<value_type, local_index_type>{};
+    auto off_diag_data = matrix_data<value_type, local_index_type>{};
+    as<WritableToMatrixData<ValueType, LocalIndexType>>(this->diag_mtx_)
+        ->write(diag_data);
+    as<WritableToMatrixData<ValueType, LocalIndexType>>(this->off_diag_mtx_)
+        ->write(off_diag_data);
+
+    data = {this->get_size(), {}};
+    auto exec = this->get_executor();
+    append_global_matrix_data(exec, diag_data, imap_, index_space::local, data);
+    append_global_matrix_data(exec, off_diag_data, imap_,
+                              index_space::non_local, data);
+    data.sort_row_major();
 }
 
 
@@ -479,13 +578,13 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 // reference and omp executor does not have event, so we still
                 // submit the mpi first.
                 auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
-                local_mtx_->apply(dense_b->get_local_vector(), local_x);
+                diag_mtx_->apply(dense_b->get_local_vector(), local_x);
                 req.wait();
             } else {
                 // we use event here such that we can submit spmv job first
                 // without waiting for synchronization from the row gatherer.
                 auto ev = this->row_gatherer_->apply_prepare(dense_b);
-                local_mtx_->apply(dense_b->get_local_vector(), local_x);
+                diag_mtx_->apply(dense_b->get_local_vector(), local_x);
                 auto req =
                     this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
                 req.wait();
@@ -496,10 +595,10 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             }
             if (auto coo = std::dynamic_pointer_cast<
                     const ::gko::matrix::Coo<ValueType, LocalIndexType>>(
-                    non_local_mtx_)) {
+                    off_diag_mtx_)) {
                 coo->apply2(recv_vector->get_local_vector(), local_x);
             } else {
-                non_local_mtx_->apply(
+                off_diag_mtx_->apply(
                     one_scalar_.template get<ValueType>().get(),
                     recv_vector->get_local_vector(),
                     one_scalar_.template get<x_value_type>().get(), local_x);
@@ -545,17 +644,15 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
                 // reference and omp executor does not have event, so we still
                 // submit the mpi first.
                 auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
-                local_mtx_->apply(local_alpha.get(),
-                                  dense_b->get_local_vector(), local_beta.get(),
-                                  local_x);
+                diag_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
+                                 local_beta.get(), local_x);
                 req.wait();
             } else {
                 // we use event here such that we can submit spmv job first
                 // without waiting for synchronization from the row gatherer.
                 auto ev = this->row_gatherer_->apply_prepare(dense_b);
-                local_mtx_->apply(local_alpha.get(),
-                                  dense_b->get_local_vector(), local_beta.get(),
-                                  local_x);
+                diag_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
+                                 local_beta.get(), local_x);
                 auto req =
                     this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
                 req.wait();
@@ -566,11 +663,11 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             }
             if (auto coo = std::dynamic_pointer_cast<
                     const ::gko::matrix::Coo<ValueType, LocalIndexType>>(
-                    non_local_mtx_)) {
+                    off_diag_mtx_)) {
                 coo->apply2(local_alpha.get(), recv_vector->get_local_vector(),
                             local_x);
             } else {
-                non_local_mtx_->apply(
+                off_diag_mtx_->apply(
                     local_alpha.get(), recv_vector->get_local_vector(),
                     one_scalar_.template get<x_value_type>().get(), local_x);
             }
@@ -587,8 +684,8 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
     GKO_ASSERT_EQ(scaling_factors->get_size()[1], 1);
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
-    size_type n_local_cols = local_mtx_->get_size()[1];
-    size_type n_non_local_cols = non_local_mtx_->get_size()[1];
+    size_type n_local_cols = diag_mtx_->get_size()[1];
+    size_type n_off_diag_cols = off_diag_mtx_->get_size()[1];
 
     std::unique_ptr<global_vector_type> scaling_factors_single_stride;
     auto scaling_stride = scaling_factors->get_stride();
@@ -617,27 +714,27 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
         // submit the mpi first.
         auto req =
             this->row_gatherer_->apply_async(scaling_factors_ptr, recv_ptr);
-        scale_diag->rapply(local_mtx_, local_mtx_);
+        scale_diag->rapply(diag_mtx_, diag_mtx_);
         req.wait();
     } else {
-        // we use event here such that we can submit local matrix scaling job
+        // we use event here such that we can submit diag matrix scaling job
         // first without waiting for synchronization from the row gatherer.
         auto ev = this->row_gatherer_->apply_prepare(scaling_factors_ptr);
-        scale_diag->rapply(local_mtx_, local_mtx_);
+        scale_diag->rapply(diag_mtx_, diag_mtx_);
         auto req = this->row_gatherer_->apply_finalize(scaling_factors_ptr,
                                                        recv_ptr, ev);
         req.wait();
     }
-    if (n_non_local_cols > 0) {
+    if (n_off_diag_cols > 0) {
         if (recv_ptr != recv_vector.get()) {
             recv_vector->copy_from(host_recv_vector);
         }
-        const auto non_local_scale_diag =
+        const auto off_diag_scale_diag =
             gko::matrix::Diagonal<ValueType>::create_const(
-                exec, n_non_local_cols,
-                make_const_array_view(exec, n_non_local_cols,
+                exec, n_off_diag_cols,
+                make_const_array_view(exec, n_off_diag_cols,
                                       recv_vector->get_const_local_values()));
-        non_local_scale_diag->rapply(non_local_mtx_, non_local_mtx_);
+        off_diag_scale_diag->rapply(off_diag_mtx_, off_diag_mtx_);
     }
 }
 
@@ -650,7 +747,7 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
     GKO_ASSERT_EQ(scaling_factors->get_size()[1], 1);
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
-    size_type n_local_rows = local_mtx_->get_size()[0];
+    size_type n_local_rows = diag_mtx_->get_size()[0];
     std::unique_ptr<global_vector_type> scaling_factors_single_stride;
     auto stride = scaling_factors->get_stride();
     if (stride != 1) {
@@ -664,15 +761,14 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
         exec, n_local_rows,
         make_const_array_view(exec, n_local_rows, scale_values));
 
-    scale_diag->apply(local_mtx_, local_mtx_);
-    scale_diag->apply(non_local_mtx_, non_local_mtx_);
+    scale_diag->apply(diag_mtx_, diag_mtx_);
+    scale_diag->apply(off_diag_mtx_, off_diag_mtx_);
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
-    : EnableLinOp<Matrix<value_type, local_index_type,
-                         global_index_type>>{other.get_executor()},
+    : LinOp{other.get_executor()},
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
@@ -686,8 +782,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     Matrix&& other) noexcept
-    : EnableLinOp<Matrix<value_type, local_index_type,
-                         global_index_type>>{other.get_executor()},
+    : LinOp{other.get_executor()},
       DistributedBase{other.get_communicator()},
       row_gatherer_{RowGatherer<LocalIndexType>::create(
           other.get_executor(), other.get_communicator())},
@@ -707,10 +802,13 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
         GKO_ASSERT_EQ(other.get_communicator().size(),
                       this->get_communicator().size());
         this->set_size(other.get_size());
-        local_mtx_->copy_from(other.local_mtx_);
-        non_local_mtx_->copy_from(other.non_local_mtx_);
-        row_gatherer_->copy_from(other.row_gatherer_);
+        as<Cloneable>(diag_mtx_)->copy_from(as<Cloneable>(other.diag_mtx_));
+        as<Cloneable>(off_diag_mtx_)
+            ->copy_from(as<Cloneable>(other.off_diag_mtx_));
+        as<Cloneable>(row_gatherer_)
+            ->copy_from(as<Cloneable>(other.row_gatherer_));
         imap_ = other.imap_;
+        row_partition_ = other.row_partition_;
     }
     return *this;
 }
@@ -725,12 +823,23 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
                       this->get_communicator().size());
         this->set_size(other.get_size());
         other.set_size({});
-        local_mtx_->move_from(other.local_mtx_);
-        non_local_mtx_->move_from(other.non_local_mtx_);
-        row_gatherer_->move_from(other.row_gatherer_);
+        as<Cloneable>(diag_mtx_)->move_from(as<Cloneable>(other.diag_mtx_));
+        as<Cloneable>(off_diag_mtx_)
+            ->move_from(as<Cloneable>(other.off_diag_mtx_));
+        as<Cloneable>(row_gatherer_)
+            ->move_from(as<Cloneable>(other.row_gatherer_));
         imap_ = std::move(other.imap_);
+        row_partition_ = std::move(other.row_partition_);
     }
     return *this;
+}
+
+
+template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
+std::shared_ptr<const Partition<LocalIndexType, GlobalIndexType>>
+Matrix<ValueType, LocalIndexType, GlobalIndexType>::get_row_partition() const
+{
+    return row_partition_;
 }
 
 

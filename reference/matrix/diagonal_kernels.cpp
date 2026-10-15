@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -14,7 +14,6 @@ namespace reference {
 /**
  * @brief The Diagonal matrix format namespace.
  *
- * @ingroup diagonal
  */
 namespace diagonal {
 
@@ -22,15 +21,15 @@ namespace diagonal {
 template <typename ValueType>
 void apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Diagonal<ValueType>* a,
-                    const matrix::Dense<ValueType>* b,
-                    matrix::Dense<ValueType>* c, bool inverse)
+                    matrix::view::dense<const ValueType> b,
+                    matrix::view::dense<ValueType> c, bool inverse)
 {
     const auto diag_values = a->get_const_values();
     for (size_type row = 0; row < a->get_size()[0]; row++) {
         const auto scal =
             inverse ? one<ValueType>() / diag_values[row] : diag_values[row];
-        for (size_type col = 0; col < b->get_size()[1]; col++) {
-            c->at(row, col) = b->at(row, col) * scal;
+        for (size_type col = 0; col < b.size[1]; col++) {
+            c(row, col) = b(row, col) * scal;
         }
     }
 }
@@ -41,13 +40,13 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
 template <typename ValueType>
 void right_apply_to_dense(std::shared_ptr<const ReferenceExecutor> exec,
                           const matrix::Diagonal<ValueType>* a,
-                          const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* c)
+                          matrix::view::dense<const ValueType> b,
+                          matrix::view::dense<ValueType> c)
 {
     const auto diag_values = a->get_const_values();
-    for (size_type row = 0; row < b->get_size()[0]; row++) {
+    for (size_type row = 0; row < b.size[0]; row++) {
         for (size_type col = 0; col < a->get_size()[1]; col++) {
-            c->at(row, col) = b->at(row, col) * diag_values[col];
+            c(row, col) = b(row, col) * diag_values[col];
         }
     }
 }
@@ -59,15 +58,14 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
 template <typename ValueType, typename IndexType>
 void apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                   const matrix::Diagonal<ValueType>* a,
-                  const matrix::Csr<ValueType, IndexType>* b,
-                  matrix::Csr<ValueType, IndexType>* c, bool inverse)
+                  matrix::view::csr<const ValueType, const IndexType> b,
+                  matrix::view::csr<ValueType, IndexType> c, bool inverse)
 {
     const auto diag_values = a->get_const_values();
-    c->copy_from(b);
-    auto csr_values = c->get_values();
-    const auto csr_row_ptrs = c->get_const_row_ptrs();
+    auto csr_values = c.values;
+    const auto csr_row_ptrs = c.row_ptrs;
 
-    for (size_type row = 0; row < c->get_size()[0]; row++) {
+    for (size_type row = 0; row < c.size[0]; row++) {
         const auto scal =
             inverse ? one<ValueType>() / diag_values[row] : diag_values[row];
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
@@ -84,16 +82,15 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void right_apply_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                         const matrix::Diagonal<ValueType>* a,
-                        const matrix::Csr<ValueType, IndexType>* b,
-                        matrix::Csr<ValueType, IndexType>* c)
+                        matrix::view::csr<const ValueType, const IndexType> b,
+                        matrix::view::csr<ValueType, IndexType> c)
 {
     const auto diag_values = a->get_const_values();
-    c->copy_from(b);
-    auto csr_values = c->get_values();
-    const auto csr_row_ptrs = c->get_const_row_ptrs();
-    const auto csr_col_idxs = c->get_const_col_idxs();
+    auto csr_values = c.values;
+    const auto csr_row_ptrs = c.row_ptrs;
+    const auto csr_col_idxs = c.col_idxs;
 
-    for (size_type row = 0; row < c->get_size()[0]; row++) {
+    for (size_type row = 0; row < c.size[0]; row++) {
         for (size_type idx = csr_row_ptrs[row]; idx < csr_row_ptrs[row + 1];
              idx++) {
             csr_values[idx] *= diag_values[csr_col_idxs[idx]];
@@ -125,12 +122,12 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 template <typename ValueType, typename IndexType>
 void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
                     const matrix::Diagonal<ValueType>* source,
-                    matrix::Csr<ValueType, IndexType>* result)
+                    matrix::view::csr<ValueType, IndexType> result)
 {
     const auto size = source->get_size()[0];
-    auto row_ptrs = result->get_row_ptrs();
-    auto col_idxs = result->get_col_idxs();
-    auto csr_values = result->get_values();
+    auto row_ptrs = result.row_ptrs;
+    auto col_idxs = result.col_idxs;
+    auto csr_values = result.values;
     const auto diag_values = source->get_const_values();
 
     for (size_type i = 0; i < size; i++) {

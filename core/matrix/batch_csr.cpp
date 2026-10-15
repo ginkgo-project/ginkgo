@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -114,7 +114,7 @@ template <typename ValueType, typename IndexType>
 Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
                                const batch_dim<2>& size,
                                size_type num_nnz_per_item)
-    : EnableBatchLinOp<Csr<ValueType, IndexType>>(exec, size),
+    : BatchLinOp(exec, size),
       values_(exec, num_nnz_per_item * size.get_num_batch_items()),
       col_idxs_(exec, num_nnz_per_item),
       row_ptrs_(exec, size.get_common_size()[0] + 1)
@@ -124,33 +124,29 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x)
+void Csr<ValueType, IndexType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                                      ptr_param<MultiVector<ValueType>> x)
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply_impl(make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
-    ptr_param<const MultiVector<ValueType>> b,
-    ptr_param<MultiVector<ValueType>> x) const
+void Csr<ValueType, IndexType>::apply(ptr_param<const MultiVector<ValueType>> b,
+                                      ptr_param<MultiVector<ValueType>> x) const
 {
     this->validate_application_parameters(b.get(), x.get());
     auto exec = this->get_executor();
     this->apply_impl(make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
+void Csr<ValueType, IndexType>::apply(
     ptr_param<const MultiVector<ValueType>> alpha,
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<const MultiVector<ValueType>> beta,
@@ -163,12 +159,11 @@ Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
                      make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, beta).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
 template <typename ValueType, typename IndexType>
-const Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
+void Csr<ValueType, IndexType>::apply(
     ptr_param<const MultiVector<ValueType>> alpha,
     ptr_param<const MultiVector<ValueType>> b,
     ptr_param<const MultiVector<ValueType>> beta,
@@ -181,7 +176,6 @@ const Csr<ValueType, IndexType>* Csr<ValueType, IndexType>::apply(
                      make_temporary_clone(exec, b).get(),
                      make_temporary_clone(exec, beta).get(),
                      make_temporary_clone(exec, x).get());
-    return this;
 }
 
 
@@ -233,7 +227,8 @@ void Csr<ValueType, IndexType>::add_scaled_identity(
     auto csr_mat = this->create_const_view_for_item(0);
 
     bool has_all_diags{false};
-    exec->run(csr::make_check_diagonal_entries(csr_mat.get(), has_all_diags));
+    exec->run(csr::make_check_diagonal_entries(csr_mat->get_const_device_view(),
+                                               has_all_diags));
     if (!has_all_diags) {
         GKO_UNSUPPORTED_MATRIX_PROPERTY(
             "The matrix is missing one or more diagonal entries!");

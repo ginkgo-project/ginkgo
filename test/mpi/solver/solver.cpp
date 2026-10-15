@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -79,11 +79,8 @@ struct SimpleSolverTest {
         std::shared_ptr<const gko::Executor> exec)
     {
         return solver_type::build().with_criteria(
-            gko::stop::Iteration::build().with_max_iters(iteration_count()),
-            gko::stop::ResidualNorm<value_type>::build()
-                .with_baseline(gko::stop::mode::absolute)
-                .with_reduction_factor(reduction_factor())
-                .on(exec));
+            gko::stop::max_iters(iteration_count()),
+            gko::stop::absolute_residual_norm(reduction_factor()).on(exec));
     }
 
     static void assert_empty_state(const solver_type* mtx)
@@ -152,15 +149,7 @@ struct CgWithMg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
                         gko::stop::Iteration::build().with_max_iters(1u)));
     }
 
-    static bool blacklisted(const std::string& test)
-    {
-#ifdef GKO_COMPILING_HIP
-        // SPGEAM is broken for empty matrices on rocm <= 4.5
-        return test == "some-empty-partition";
-#else
-        return false;
-#endif
-    }
+    static bool blacklisted(const std::string& test) { return false; }
 };
 
 

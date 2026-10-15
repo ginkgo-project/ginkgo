@@ -1,9 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/config/config_helper.hpp"
 
+#include <exception>
 #include <type_traits>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -174,6 +175,10 @@ config_check_decorator::config_check_decorator(
 
 config_check_decorator::~config_check_decorator() noexcept(false)
 {
+    // throwing during unwinding would terminate
+    if (std::uncaught_exceptions() > 0) {
+        return;
+    }
     if (config_.get_tag() != pnode::tag_t::map) {
         // we only check the key in the map
         return;

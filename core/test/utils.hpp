@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,10 @@
 #include <limits>
 #include <tuple>
 #include <type_traits>
+
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 
 #include <gtest/gtest.h>
 
@@ -494,5 +498,44 @@ struct TupleTypenameNameGenerator {
     static_assert(true,                                                      \
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
+
+
+// Helper function necessary for death tests
+// see https://google.github.io/googletest/advanced.html#death-tests
+inline bool check_assertion_exit_code(int exit_code)
+{
+#ifdef _MSC_VER
+    // MSVC picks up the exit code incorrectly,
+    // so we can only check that it exits
+    return true;
+#else
+    return exit_code != 0;
+#endif
+}
+
+
+// Death tests abort the forked child, which hands it to the system core dump
+// collector. The kernel waits for that collector before reaping the child, and
+// on some machines it stalls for minutes per check. Note that `ulimit -c 0`
+// does not help: RLIMIT_CORE is ignored when core_pattern pipes core dumps to
+// a program, see `man 5 core`.
+inline void disable_core_dump()
+{
+#ifdef __linux__
+    prctl(PR_SET_DUMPABLE, 0);
+#endif
+}
+
+
+// Checks that `_statement` aborts by failing a GKO_ASSERT. Preferred over a
+// bare EXPECT_EXIT, which leaves a core dump behind for every check.
+#define GKO_EXPECT_ASSERTION_FAILURE(_statement) \
+    EXPECT_EXIT(                                 \
+        {                                        \
+            disable_core_dump();                 \
+            _statement;                          \
+        },                                       \
+        check_assertion_exit_code, "")
+
 
 #endif  // GKO_CORE_TEST_UTILS_HPP_

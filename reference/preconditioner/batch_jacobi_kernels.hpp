@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2024 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,12 +25,13 @@ namespace batch_single_kernels {
 
 template <typename ValueType>
 inline void extract_block_pattern_impl(
-    const size_type k, const matrix::Csr<ValueType, int>* const first_sys_csr,
+    const size_type k,
+    matrix::view::csr<const ValueType, const int> const first_sys_csr,
     const int* const cumulative_block_storage, const int* const block_pointers,
     int* const blocks_pattern)
 {
-    const int* row_ptrs = first_sys_csr->get_const_row_ptrs();
-    const int* col_idxs = first_sys_csr->get_const_col_idxs();
+    const int* row_ptrs = first_sys_csr.row_ptrs;
+    const int* col_idxs = first_sys_csr.col_idxs;
 
     const int row_idx_st = block_pointers[k];
     const int row_idx_end = block_pointers[k + 1];  // exclusive

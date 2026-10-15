@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,6 +18,7 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/multigrid/multigrid_level.hpp>
 
 
@@ -40,6 +41,12 @@ namespace multigrid {
  * un-aggregated elements are assigned to an aggregated group
  * or are left alone.
  *
+ * The factory supports LinOpFactory::generate_reuse(): later calls on a
+ * matrix with the same sparsity pattern keep the aggregates and only
+ * recompute the coarse matrix, so the result can differ from generate().
+ * The aggregates come from the values of the first matrix, so it should be
+ * representative of the later ones.
+ *
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
@@ -48,10 +55,7 @@ namespace multigrid {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Pgm : public EnableLinOp<Pgm<ValueType, IndexType>>,
-            public EnableMultigridLevel<ValueType> {
-    friend class EnableLinOp<Pgm>;
-    friend class EnablePolymorphicObject<Pgm, LinOp>;
+class Pgm : public LinOp, public EnableMultigridLevel<ValueType> {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -129,8 +133,30 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(skip_sorting, false);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Pgm, parameters, Factory);
+    class reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Pgm, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
+
+    /**
+     * Records the aggregates, the transfer operators and the coarse-to-fine
+     * mappings of the first generate_reuse() call.
+     */
+    class reuse_data_type : public LinOpFactory::ReuseData {
+        friend class Pgm;
+
+        bool initialized_ = false;
+        bool distributed_ = false;
+        dim<2> size_{};
+        array<IndexType> agg_;
+        std::shared_ptr<const LinOp> prolong_op_;
+        std::shared_ptr<const LinOp> restrict_op_;
+        std::shared_ptr<const LinOp> coarse_op_;
+        std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+            mapping_local_;
+        std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>
+            mapping_off_diag_;
+    };
 
     /**
      * Create the parameters from the property_tree.
@@ -162,13 +188,22 @@ protected:
         this->get_composition()->apply(alpha, b, beta, x);
     }
 
-    explicit Pgm(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Pgm>(std::move(exec))
+    explicit Pgm(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
     explicit Pgm(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Pgm>(factory->get_executor(), system_matrix->get_size()),
+        : Pgm(factory, std::move(system_matrix), nullptr)
+    {}
+
+    Pgm(const Factory* factory, std::shared_ptr<const LinOp> system_matrix,
+        reuse_data_type& reuse_data)
+        : Pgm(factory, std::move(system_matrix), &reuse_data)
+    {}
+
+    Pgm(const Factory* factory, std::shared_ptr<const LinOp> system_matrix,
+        reuse_data_type* reuse_data)
+        : LinOp(factory->get_executor(), system_matrix->get_size()),
           EnableMultigridLevel<ValueType>(system_matrix),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix},
@@ -178,25 +213,75 @@ protected:
         GKO_ASSERT(parameters_.max_unassigned_ratio >= 0.0);
         if (system_matrix_->get_size()[0] != 0) {
             // generate on the existed matrix
-            this->generate();
+            if (reuse_data && reuse_data->initialized_) {
+                this->generate_from(*reuse_data);
+            } else {
+                this->generate(reuse_data);
+            }
         }
     }
 
-    void generate();
+    /**
+     * Generates the level. With reuse_data, the coarse-to-fine mappings are
+     * built as well and everything is recorded in it at the end.
+     *
+     * @param reuse_data  empty reuse data to fill, or nullptr
+     */
+    void generate(reuse_data_type* reuse_data);
+
+    /**
+     * Generates the level from recorded reuse data: keeps the aggregates
+     * and the transfer operators and recomputes the coarse matrix.
+     */
+    void generate_from(const reuse_data_type& reuse_data);
+
+    /** Throws if `input` can't be used with `reuse_data`. */
+    static void check_reuse_consistent(const Factory* factory,
+                                       const LinOp* input,
+                                       const reuse_data_type& reuse_data);
 
     /**
      * This function generates the local matrix coarsening operators.
+     *
+     * @param mapping  if given, receives the coarse-to-fine mapping
      *
      * @return a tuple with prolongation, coarse, and restriction linop
      */
     std::tuple<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>,
                std::shared_ptr<LinOp>>
     generate_local(
-        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix);
+        std::shared_ptr<const matrix::Csr<ValueType, IndexType>> local_matrix,
+        std::shared_ptr<const matrix::SparsityCsr<ValueType, IndexType>>*
+            mapping = nullptr);
+
+    /**
+     * Converts a system matrix into a Csr with the current value type,
+     * sorting it unless skip_sorting is set.
+     *
+     * The result is not stored, so that generate_from() can convert before
+     * it decides whether the input matches the reuse data.
+     *
+     * @param system_matrix  the matrix to convert
+     *
+     * @return the Csr fine operator
+     */
+    std::shared_ptr<const matrix::Csr<ValueType, IndexType>>
+    convert_local_fine_op(std::shared_ptr<const LinOp> system_matrix) const;
 
 #if GINKGO_BUILD_MPI
     /**
-     * Communicates the non-local aggregates (as global indices)
+     * Converts a distributed system matrix into one whose diagonal and
+     * off-diagonal blocks are Csr with the current value type.
+     *
+     * @param system_matrix  the matrix to convert
+     *
+     * @return the distributed fine operator
+     */
+    std::shared_ptr<const LinOp> convert_distributed_fine_op(
+        std::shared_ptr<const LinOp> system_matrix) const;
+
+    /**
+     * Communicates the off-diag aggregates (as global indices)
      *
      * @tparam GlobalIndexType  Global index type
      *
@@ -205,11 +290,11 @@ protected:
      *                          indices
      * @param local_agg  the local aggregate indices
      *
-     * @return  the aggregates for non-local columns. The aggregated indices are
+     * @return  the aggregates for off-diag columns. The aggregated indices are
      *          in the new global indexing for the coarse matrix
      */
     template <typename GlobalIndexType>
-    array<GlobalIndexType> communicate_non_local_agg(
+    array<GlobalIndexType> communicate_off_diag_agg(
         std::shared_ptr<const experimental::distributed::Matrix<
             ValueType, IndexType, GlobalIndexType>>
             matrix,

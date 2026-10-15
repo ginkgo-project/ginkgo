@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -59,6 +59,17 @@
 
 
 // Handle deprecated notices correctly on different systems
+/**
+ * It helps the clang-format formatting properly
+ * example: deprecated class with a function having return will lead weird
+ * formatting
+ * ```c++
+ * class [[deprecated("T")]] B {
+ *   public:
+ *    int get() const { return 1; }
+ *   };
+ * ```
+ */
 // clang-format off
 #define GKO_DEPRECATED(_msg) [[deprecated(_msg)]]
 #ifdef __NVCOMPILER
@@ -1023,6 +1034,24 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(_macro);       \
     GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(_macro);       \
     template _macro(gko::size_type)
+
+
+/**
+ * Instantiates a template for each normal type paired with each index type.
+ *
+ * @param _macro  A macro which expands the template instantiation
+ *                (not including the leading `template` specifier).
+ *                Should take two arguments, the first of which is replaced by
+ *                the value type and the second by the index type.
+ */
+#define GKO_INSTANTIATE_FOR_EACH_TEMPLATE_AND_INDEX_TYPE(_macro) \
+    GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(_macro);       \
+    template _macro(int32, int32);                               \
+    template _macro(int32, int64);                               \
+    template _macro(int64, int32);                               \
+    template _macro(int64, int64);                               \
+    template _macro(gko::size_type, int32);                      \
+    template _macro(gko::size_type, int64)
 
 
 /**

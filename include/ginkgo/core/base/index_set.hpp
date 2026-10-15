@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -50,7 +50,6 @@ namespace gko {
  *
  * @tparam index_type  type of the indices being stored in the index set.
  *
- * @ingroup index_set
  */
 template <typename IndexType = int32>
 class index_set {

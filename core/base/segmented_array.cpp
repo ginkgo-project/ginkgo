@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -178,7 +178,7 @@ segmented_array<T>& segmented_array<T>::operator=(segmented_array&& other)
 }
 
 
-#define GKO_DECLARE_SEGMENTED_ARRAY(_type) struct segmented_array<_type>
+#define GKO_DECLARE_SEGMENTED_ARRAY(T) struct segmented_array<T>
 
 GKO_INSTANTIATE_FOR_EACH_POD_TYPE(GKO_DECLARE_SEGMENTED_ARRAY);
 

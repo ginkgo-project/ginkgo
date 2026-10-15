@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,13 +35,12 @@ namespace matrix {
  * calls the respective Dense rowgatherer operation. As such it only stores an
  * array of the rowgatherer indices.
  *
- * @ingroup rowgatherer
- * @ingroup matrix
  * @ingroup LinOp
  */
 template <typename IndexType = int32>
-class RowGatherer : public EnableLinOp<RowGatherer<IndexType>> {
-    friend class EnablePolymorphicObject<RowGatherer, LinOp>;
+class RowGatherer : public LinOp,
+                    public EnableCloneable<RowGatherer<IndexType>> {
+    friend class EnableCloneable<RowGatherer>;
 
 public:
     using index_type = IndexType;

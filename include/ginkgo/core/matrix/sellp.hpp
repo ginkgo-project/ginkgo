@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 
 namespace gko {
@@ -35,13 +36,13 @@ class Csr;
  * @tparam ValueType  precision of matrix elements
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup sellp
  * @ingroup mat_formats
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 class Sellp
-    : public EnableLinOp<Sellp<ValueType, IndexType>>,
+    : public LinOp,
+      public EnableCloneable<Sellp<ValueType, IndexType>>,
       public ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<Sellp<next_precision<ValueType, 2>, IndexType>>,
@@ -56,15 +57,15 @@ class Sellp
       public WritableToMatrixData<ValueType, IndexType>,
       public EnableAbsoluteComputation<
           remove_complex<Sellp<ValueType, IndexType>>> {
-    friend class EnablePolymorphicObject<Sellp, LinOp>;
+    friend class EnableCloneable<Sellp>;
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
     friend class Sellp<to_complex<ValueType>, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Sellp>::convert_to;
-    using EnableLinOp<Sellp>::move_to;
+    using EnableCloneable<Sellp>::convert_to;
+    using EnableCloneable<Sellp>::move_to;
     using ConvertibleTo<
         Sellp<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>::move_to;
@@ -79,6 +80,9 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Sellp>;
+    using device_view = matrix::view::sellp<value_type, index_type>;
+    using const_device_view =
+        matrix::view::sellp<const value_type, const index_type>;
 
     friend class Sellp<previous_precision<ValueType>, IndexType>;
 
@@ -128,6 +132,8 @@ public:
     void read(const device_mat_data& data) override;
 
     void read(device_mat_data&& data) override;
+
+    using WritableToMatrixData<ValueType, IndexType>::write;
 
     void write(mat_data& data) const override;
 
@@ -305,6 +311,12 @@ public:
         return this
             ->get_const_col_idxs()[this->linearize_index(row, slice_set, idx)];
     }
+
+    /** get the non-owning device view */
+    device_view get_device_view();
+
+    /** get the const non-owning device view */
+    const_device_view get_const_device_view() const;
 
     /**
      * Creates an uninitialized Sellp matrix of the specified size.

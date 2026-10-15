@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,7 +21,7 @@ namespace mc64 {
 
 #define GKO_DECLARE_MC64_INITIALIZE_WEIGHTS(ValueType, IndexType) \
     void initialize_weights(                                      \
-        const matrix::Csr<ValueType, IndexType>* mtx,             \
+        matrix::view::csr<const ValueType, const IndexType> mtx,  \
         array<remove_complex<ValueType>>& weights_array,          \
         array<remove_complex<ValueType>>& dual_u_array,           \
         array<remove_complex<ValueType>>& row_maxima_array,       \
@@ -51,7 +51,7 @@ namespace mc64 {
 
 #define GKO_DECLARE_MC64_COMPUTE_SCALING(ValueType, IndexType)              \
     void compute_scaling(                                                   \
-        const matrix::Csr<ValueType, IndexType>* mtx,                       \
+        matrix::view::csr<const ValueType, const IndexType> mtx,            \
         const array<remove_complex<ValueType>>& weights_array,              \
         const array<remove_complex<ValueType>>& dual_u_array,               \
         const array<remove_complex<ValueType>>& row_maxima_array,           \

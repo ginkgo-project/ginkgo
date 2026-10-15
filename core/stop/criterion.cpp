@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,7 +24,7 @@ void Criterion::set_all_statuses(uint8 stoppingId, bool setFinalized,
                                  array<stopping_status>* stop_status)
 {
     this->get_executor()->run(criterion::make_set_all_statuses(
-        stoppingId, setFinalized, stop_status));
+        stoppingId, setFinalized, *stop_status));
 }
 
 

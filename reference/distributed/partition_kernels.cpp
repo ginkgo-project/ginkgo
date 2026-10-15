@@ -1,11 +1,12 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "core/distributed/partition_kernels.hpp"
 
+#include <ginkgo/core/base/math.hpp>
+
 #include "core/base/segmented_array.hpp"
-#include "ginkgo/core/base/math.hpp"
 
 
 namespace gko {
@@ -141,14 +142,14 @@ void has_ordered_parts(
     std::shared_ptr<const DefaultExecutor> exec,
     const experimental::distributed::Partition<LocalIndexType, GlobalIndexType>*
         partition,
-    bool* result)
+    bool& result)
 {
-    *result = true;
+    result = true;
     auto part_ids = partition->get_part_ids();
 
     for (comm_index_type i = 1; i < partition->get_num_ranges(); ++i) {
         if (part_ids[i] < part_ids[i - 1]) {
-            *result = false;
+            result = false;
             return;
         }
     }

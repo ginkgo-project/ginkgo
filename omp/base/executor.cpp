@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,13 @@
 
 
 namespace gko {
+
+
+void OmpExecutor::populate_exec_info()
+{
+    this->get_exec_info().num_computing_units = omp_get_max_threads();
+    this->get_exec_info().num_pu_per_cu = 1;
+}
 
 
 int OmpExecutor::get_num_omp_threads()

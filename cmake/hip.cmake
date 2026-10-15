@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.21 FATAL_ERROR)
 include(cmake/hip_helpers.cmake)
 include(CheckLanguage)
 check_language(HIP)
-ginkgo_check_hip_detection_issue()
 
 enable_language(HIP)
 
@@ -34,7 +33,7 @@ find_package(rocrand REQUIRED)
 find_package(rocthrust REQUIRED)
 find_package(ROCTX)
 
-if(GINKGO_HIP_AMD_UNSAFE_ATOMIC AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 5)
+if(GINKGO_HIP_AMD_UNSAFE_ATOMIC)
     set(CMAKE_HIP_FLAGS
         "${CMAKE_HIP_FLAGS} -munsafe-fp-atomics -Wno-unused-command-line-argument"
     )

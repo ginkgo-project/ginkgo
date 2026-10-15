@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -15,14 +15,13 @@ namespace GKO_DEVICE_NAMESPACE {
 /**
  * @brief The Coo matrix format namespace.
  *
- * @ingroup coo
  */
 namespace coo {
 
 
 template <typename ValueType, typename IndexType>
 void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
-                      const matrix::Coo<ValueType, IndexType>* orig,
+                      matrix::view::coo<const ValueType, const IndexType> orig,
                       matrix::Diagonal<ValueType>* diag)
 {
     run_kernel(
@@ -33,8 +32,7 @@ void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec,
                 diag[orig_row_idxs[tidx]] = orig_values[tidx];
             }
         },
-        orig->get_num_stored_elements(), orig->get_const_values(),
-        orig->get_const_row_idxs(), orig->get_const_col_idxs(),
+        orig.num_stored_elements, orig.values, orig.row_idxs, orig.col_idxs,
         diag->get_values());
 }
 
@@ -44,8 +42,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 template <typename ValueType, typename IndexType>
 void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
-                   const matrix::Coo<ValueType, IndexType>* orig,
-                   matrix::Dense<ValueType>* result)
+                   matrix::view::coo<const ValueType, const IndexType> orig,
+                   matrix::view::dense<ValueType> result)
 {
     run_kernel(
         exec,
@@ -54,8 +52,8 @@ void fill_in_dense(std::shared_ptr<const DefaultExecutor> exec,
             result(orig_row_idxs[tidx], orig_col_idxs[tidx]) =
                 orig_values[tidx];
         },
-        orig->get_num_stored_elements(), orig->get_const_values(),
-        orig->get_const_row_idxs(), orig->get_const_col_idxs(), result);
+        orig.num_stored_elements, orig.values, orig.row_idxs, orig.col_idxs,
+        result);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

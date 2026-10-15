@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -124,7 +124,7 @@ struct CsrWithDefaultStrategy : CsrBase {
         CsrBase::assert_empty_state(mtx);
         auto first_strategy = mtx->create_default()->get_strategy();
         auto second_strategy = mtx->get_strategy();
-        GKO_ASSERT_DYNAMIC_TYPE_EQ(first_strategy, second_strategy);
+        ASSERT_EQ(first_strategy, second_strategy);
     }
 };
 
@@ -138,20 +138,20 @@ struct CsrWithClassicalStrategy : CsrBase {
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
         return matrix_type::create(exec, size, 0,
-                                   std::make_shared<matrix_type::classical>());
+                                   gko::matrix::csr::spmv_strategy::classical);
     }
 
     static void check_property(gko::ptr_param<const matrix_type> mtx)
     {
-        ASSERT_TRUE(dynamic_cast<const matrix_type::classical*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::classical);
     }
 
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         CsrBase::assert_empty_state(mtx);
-        ASSERT_TRUE(dynamic_cast<const matrix_type::classical*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::classical);
     }
 };
 
@@ -160,20 +160,20 @@ struct CsrWithMergePathStrategy : CsrBase {
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
         return matrix_type::create(exec, size, 0,
-                                   std::make_shared<matrix_type::merge_path>());
+                                   gko::matrix::csr::spmv_strategy::merge_path);
     }
 
     static void check_property(gko::ptr_param<const matrix_type> mtx)
     {
-        ASSERT_TRUE(dynamic_cast<const matrix_type::merge_path*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::merge_path);
     }
 
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         CsrBase::assert_empty_state(mtx);
-        ASSERT_TRUE(dynamic_cast<const matrix_type::merge_path*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::merge_path);
     }
 };
 
@@ -190,20 +190,20 @@ struct CsrWithSparselibStrategy : CsrBase {
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
         return matrix_type::create(exec, size, 0,
-                                   std::make_shared<matrix_type::sparselib>());
+                                   gko::matrix::csr::spmv_strategy::sparselib);
     }
 
     static void check_property(gko::ptr_param<const matrix_type> mtx)
     {
-        ASSERT_TRUE(dynamic_cast<const matrix_type::sparselib*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::sparselib);
     }
 
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         CsrBase::assert_empty_state(mtx);
-        ASSERT_TRUE(dynamic_cast<const matrix_type::sparselib*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::sparselib);
     }
 };
 
@@ -211,45 +211,43 @@ struct CsrWithLoadBalanceStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
-        return matrix_type::create(exec, size, 0,
-                                   std::make_shared<matrix_type::load_balance>(
-                                       gko::EXEC_TYPE::create(0, exec)));
+        return matrix_type::create(
+            exec, size, 0, gko::matrix::csr::spmv_strategy::load_balance);
     }
 
     static void check_property(gko::ptr_param<const matrix_type> mtx)
     {
-        ASSERT_TRUE(dynamic_cast<const matrix_type::load_balance*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::load_balance);
     }
 
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         CsrBase::assert_empty_state(mtx);
-        ASSERT_TRUE(dynamic_cast<const matrix_type::load_balance*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::load_balance);
     }
 };
 
-struct CsrWithAutomaticalStrategy : CsrBase {
+struct CsrWithAutomaticStrategy : CsrBase {
     static std::unique_ptr<matrix_type> create(
         std::shared_ptr<gko::Executor> exec, gko::dim<2> size)
     {
         return matrix_type::create(exec, size, 0,
-                                   std::make_shared<matrix_type::automatical>(
-                                       gko::EXEC_TYPE::create(0, exec)));
+                                   gko::matrix::csr::spmv_strategy::automatic);
     }
 
     static void check_property(gko::ptr_param<const matrix_type> mtx)
     {
-        ASSERT_TRUE(dynamic_cast<const matrix_type::automatical*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::automatic);
     }
 
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         CsrBase::assert_empty_state(mtx);
-        ASSERT_TRUE(dynamic_cast<const matrix_type::automatical*>(
-            mtx->get_strategy().get()));
+        ASSERT_EQ(mtx->get_strategy(),
+                  gko::matrix::csr::spmv_strategy::automatic);
     }
 };
 
@@ -841,7 +839,7 @@ using MatrixTypes = ::testing::Types<
 #if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP) || \
     defined(GKO_COMPILING_DPCPP)
     CsrWithSparselibStrategy, CsrWithLoadBalanceStrategy,
-    CsrWithAutomaticalStrategy,
+    CsrWithAutomaticStrategy,
 #endif
     Ell,
 #ifdef GKO_COMPILING_OMP
@@ -1154,7 +1152,7 @@ TYPED_TEST(Matrix, ConvertFromDenseIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<typename Mtx::value_type>;
     this->forall_matrix_data_scenarios([&](auto data) {
-        const auto stride = data.size[0] + 2;
+        const auto stride = data.size[1] + 2;
         auto ref_src = Dense::create(this->ref, data.size, stride);
         auto dev_src = Dense::create(this->exec, data.size, stride);
         ref_src->read(data);
@@ -1179,7 +1177,7 @@ TYPED_TEST(Matrix, MoveFromDenseIsEquivalentToRef)
     using Mtx = typename TestFixture::Mtx;
     using Dense = gko::matrix::Dense<typename Mtx::value_type>;
     this->forall_matrix_data_scenarios([&](auto data) {
-        const auto stride = data.size[0] + 2;
+        const auto stride = data.size[1] + 2;
         auto ref_src = Dense::create(this->ref, data.size, stride);
         auto dev_src = Dense::create(this->exec, data.size, stride);
         ref_src->read(data);

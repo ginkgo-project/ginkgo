@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -17,9 +17,11 @@
 // To get an accurate result, the solve is repeated multiple times (while
 // ensuring the initial guess is always the same). The result of the solve will
 // be written to x.
+template <typename ValueType>
 double measure_solve_time_in_s(std::shared_ptr<const gko::Executor> exec,
-                               gko::LinOp* solver, const gko::LinOp* b,
-                               gko::LinOp* x)
+                               gko::LinOp* solver,
+                               const gko::matrix::Dense<ValueType>* b,
+                               gko::matrix::Dense<ValueType>* x)
 {
     constexpr int repeats{5};
     double duration{0};

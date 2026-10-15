@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -39,8 +39,8 @@ namespace preconditioner {
  * generalizes the Block Jacobi preconditioner, incorporating options for
  * different local subdomain solvers and overlaps between the subdomains.
  *
- * A L1 smoother variant is also available, which updates the local matrix with
- * the sums of the non-local matrix row sums.
+ * A L1 smoother variant is also available, which updates the diagonal block
+ * with the sums of the off-diagonal block row sums.
  *
  * See Iterative Methods for Sparse Linear Systems (Y. Saad) for a general
  * treatment and variations of the method.
@@ -60,21 +60,15 @@ namespace preconditioner {
  * @tparam LocalIndexType  local integer type of the matrix
  * @tparam GlobalIndexType  global integer type of the matrix
  *
- * @ingroup schwarz
  * @ingroup precond
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Schwarz
-    : public EnableLinOp<Schwarz<ValueType, LocalIndexType, GlobalIndexType>> {
-    friend class EnableLinOp<Schwarz>;
-    friend class EnablePolymorphicObject<Schwarz, LinOp>;
+class Schwarz : public LinOp {
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Schwarz>::convert_to;
-    using EnableLinOp<Schwarz>::move_to;
     using value_type = ValueType;
     using index_type = GlobalIndexType;
     using local_index_type = LocalIndexType;
@@ -108,7 +102,7 @@ public:
          * Enable l1 smoother.
          *
          * This creates a diagonal matrix from the row-wise absolute
-         * sum of the non-local matrix entries. The diagonal matrix
+         * sum of the off-diagonal matrix entries. The diagonal matrix
          * is then added to the system matrix when generating the
          * local solver.
          *
@@ -173,7 +167,7 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Schwarz(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Schwarz>(std::move(exec))
+        : LinOp(std::move(exec))
     {}
 
     /**
@@ -185,8 +179,8 @@ protected:
      */
     explicit Schwarz(const Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Schwarz>(factory->get_executor(),
-                               gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           system_matrix_{system_matrix}
     {

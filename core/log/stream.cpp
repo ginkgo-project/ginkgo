@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -481,7 +481,7 @@ void Stream<ValueType>::on_iteration_complete(
 }
 
 
-#define GKO_DECLARE_STREAM(_type) class Stream<_type>
+#define GKO_DECLARE_STREAM(ValueType) class Stream<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_STREAM);
 
 

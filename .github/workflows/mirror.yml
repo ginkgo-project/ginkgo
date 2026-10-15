@@ -2,7 +2,13 @@ name: Mirroring
 # When push has condition for branch and path, both are required to be satisfied.
 # Also, Github does not support two push event under on in the same file.
 # We use two files distinguish the developing branches and the main branches carefully.
-on: workflow_call
+on:
+  workflow_call:
+    inputs:
+      skip:
+        description: 'Skip all CI'
+        type: string
+        default: false
 
 jobs:
   to_gitlab:
@@ -20,3 +26,4 @@ jobs:
           BOT_KEY: ${{ secrets.GITLAB_MIRROR_PRIV_KEY }}
           BRANCH_NAME: ${{ github.ref_name }}
           GITHUB_REPO: ${{ github.repository }}
+          SKIP: ${{ inputs.skip }}

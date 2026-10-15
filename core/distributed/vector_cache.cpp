@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -99,13 +99,13 @@ const array<char>& GenericVectorCacheAccessor::get_workspace(
 }
 
 
-#define GKO_DECLARE_VECTOR_CACHE(_type) class VectorCache<_type>
+#define GKO_DECLARE_VECTOR_CACHE(ValueType) class VectorCache<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_VECTOR_CACHE);
 
 class GenericVectorCache;
 
-#define GKO_DECLARE_GENERIC_VECTOR_CACHE_GET(_type)                    \
-    std::shared_ptr<Vector<_type>> GenericVectorCache::get(            \
+#define GKO_DECLARE_GENERIC_VECTOR_CACHE_GET(ValueType)                \
+    std::shared_ptr<Vector<ValueType>> GenericVectorCache::get(        \
         std::shared_ptr<const Executor> exec,                          \
         gko::experimental::mpi::communicator comm, dim<2> global_size, \
         dim<2> local_size) const

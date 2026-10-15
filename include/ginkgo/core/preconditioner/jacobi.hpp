@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -184,17 +184,15 @@ struct block_interleaved_storage_scheme {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class Jacobi : public EnableLinOp<Jacobi<ValueType, IndexType>>,
+class Jacobi : public LinOp,
+               public EnableCloneable<Jacobi<ValueType, IndexType>>,
                public ConvertibleTo<matrix::Dense<ValueType>>,
                public WritableToMatrixData<ValueType, IndexType>,
                public Transposable {
-    friend class EnableLinOp<Jacobi>;
-    friend class EnablePolymorphicObject<Jacobi, LinOp>;
+    friend class EnableCloneable<Jacobi<ValueType, IndexType>>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<Jacobi>::convert_to;
-    using EnableLinOp<Jacobi>::move_to;
     using ConvertibleTo<matrix::Dense<ValueType>>::convert_to;
     using ConvertibleTo<matrix::Dense<ValueType>>::move_to;
     using value_type = ValueType;
@@ -269,6 +267,8 @@ public:
     void convert_to(matrix::Dense<value_type>* result) const override;
 
     void move_to(matrix::Dense<value_type>* result) override;
+
+    using WritableToMatrixData<ValueType, IndexType>::write;
 
     void write(mat_data& data) const override;
 
@@ -373,15 +373,24 @@ public:
                                                             nullptr);
 
         /**
-         * Use L1 Jacboi, which is introduced in the paper A. H. Baker et al.
-         * "Multigrid smoothers for ultraparallel computing." This paper
-         * discusses this type of smoother with the following matrix property.
-         * $ A_{ii} \geq \theta \sum_{j \in \text{off diagonal block}} |A_{ij}|,
-         * \theta \geq 0 $
-         * If it is true, it generates the preconditioner on A +
-         * Diag(sum_{k in off-diagonal block of i} |A_ik|) instead of A. We
-         * aggregate the absolute value of the entries with the same row in the
-         * off-diagonal block into the diagonal value.
+         * Use L1 Jacobi, introduced by Baker et al. The smoother applies
+         * whenever the matrix satisfies the row-dominance condition
+         * \f[
+         *   A_{ii} \geq \theta \sum_{j \in \text{off-diagonal block}}
+         *                       |A_{ij}|,
+         *   \qquad \theta \geq 0.
+         * \f]
+         * If set, the preconditioner is generated on
+         * \f$ A + \mathrm{diag}\!\left( \sum_{k \in \text{off-diagonal block
+         * of } i} |A_{ik}| \right) \f$ instead of \f$A\f$ — i.e. the
+         * absolute values of off-diagonal-block entries on each row are
+         * aggregated into the diagonal entry before block inversion.
+         *
+         * @par References
+         * - Baker, A. H., Falgout, R. D., Kolev, T. V., Yang, U. M.
+         *   *Multigrid Smoothers for Ultraparallel Computing.*
+         *   SIAM Journal on Scientific Computing, 33 (5), 2864–2887, 2011.
+         *   <https://doi.org/10.1137/100798806>
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(aggregate_l1, false);
 
@@ -543,10 +552,7 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Jacobi(std::shared_ptr<const Executor> exec)
-        : EnableLinOp<Jacobi>(exec),
-          num_blocks_{},
-          blocks_(exec),
-          conditioning_(exec)
+        : LinOp(exec), num_blocks_{}, blocks_(exec), conditioning_(exec)
     {
         parameters_.block_pointers.set_executor(exec);
         parameters_.storage_optimization.block_wise.set_executor(exec);
@@ -561,8 +567,8 @@ protected:
      */
     explicit Jacobi(const Factory* factory,
                     std::shared_ptr<const LinOp> system_matrix)
-        : EnableLinOp<Jacobi>(factory->get_executor(),
-                              gko::transpose(system_matrix->get_size())),
+        : LinOp(factory->get_executor(),
+                gko::transpose(system_matrix->get_size())),
           parameters_{factory->get_parameters()},
           storage_scheme_{this->compute_storage_scheme(
               parameters_.max_block_size, parameters_.max_block_stride)},

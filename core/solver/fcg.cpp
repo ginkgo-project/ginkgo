@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -51,8 +51,11 @@ std::unique_ptr<LinOp> Fcg<ValueType>::transpose() const
 {
     return build()
         .with_generated_preconditioner(
-            share(as<Transposable>(this->get_preconditioner())->transpose()))
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(false))
+        .with_left_nullspace(this->get_transposed_left_nullspace(false))
         .on(this->get_executor())
         ->generate(
             share(as<Transposable>(this->get_system_matrix())->transpose()));
@@ -63,9 +66,12 @@ template <typename ValueType>
 std::unique_ptr<LinOp> Fcg<ValueType>::conj_transpose() const
 {
     return build()
-        .with_generated_preconditioner(share(
-            as<Transposable>(this->get_preconditioner())->conj_transpose()))
+        .with_generated_preconditioner(
+            share(as<Transposable>(this->get_unprojected_preconditioner())
+                      ->conj_transpose()))
         .with_criteria(this->get_stop_criterion_factory())
+        .with_nullspace(this->get_transposed_nullspace(true))
+        .with_left_nullspace(this->get_transposed_left_nullspace(true))
         .on(this->get_executor())
         ->generate(share(
             as<Transposable>(this->get_system_matrix())->conj_transpose()));
@@ -98,6 +104,9 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     auto exec = this->get_executor();
     this->setup_workspace();
+    // solve with the consistent right-hand side if a left nullspace is set
+    dense_b =
+        this->get_consistent_rhs(dense_b, workspace_traits<Fcg>::proj_rhs);
 
     GKO_SOLVER_VECTOR(r, dense_b);
     GKO_SOLVER_VECTOR(z, dense_b);
@@ -122,12 +131,18 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
     // rho_t = 1.0
     // z = p = q = 0
     exec->run(fcg::make_initialize(
-        gko::detail::get_local(dense_b), gko::detail::get_local(r),
-        gko::detail::get_local(z), gko::detail::get_local(p),
-        gko::detail::get_local(q), gko::detail::get_local(t), prev_rho, rho,
-        rho_t, &stop_status));
+        gko::detail::get_local(dense_b)->get_const_device_view(),
+        gko::detail::get_local(r)->get_device_view(),
+        gko::detail::get_local(z)->get_device_view(),
+        gko::detail::get_local(p)->get_device_view(),
+        gko::detail::get_local(q)->get_device_view(),
+        gko::detail::get_local(t)->get_device_view(),
+        prev_rho->get_device_view(), rho->get_device_view(),
+        rho_t->get_device_view(), stop_status));
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+    // A annihilates N(A), so removing it from x keeps r unchanged
+    this->project_nullspace(dense_x);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -165,8 +180,10 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // tmp = rho_t / prev_rho
         // p = z + tmp * p
         exec->run(fcg::make_step_1(
-            gko::detail::get_local(p), gko::detail::get_local(z),
-            gko::detail::get_local(rho_t), prev_rho, &stop_status));
+            gko::detail::get_local(p)->get_device_view(),
+            gko::detail::get_local(z)->get_const_device_view(),
+            gko::detail::get_local(rho_t)->get_const_device_view(),
+            prev_rho->get_const_device_view(), stop_status));
         this->get_system_matrix()->apply(p, q);
         p->compute_conj_dot(q, beta, reduction_tmp);
         // tmp = rho / beta
@@ -174,10 +191,14 @@ void Fcg<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // x = x + tmp * p
         // r = r - tmp * q
         // t = r - [prev_r]
-        exec->run(fcg::make_step_2(
-            gko::detail::get_local(dense_x), gko::detail::get_local(r),
-            gko::detail::get_local(t), gko::detail::get_local(p),
-            gko::detail::get_local(q), beta, rho, &stop_status));
+        exec->run(
+            fcg::make_step_2(gko::detail::get_local(dense_x)->get_device_view(),
+                             gko::detail::get_local(r)->get_device_view(),
+                             gko::detail::get_local(t)->get_device_view(),
+                             gko::detail::get_local(p)->get_const_device_view(),
+                             gko::detail::get_local(q)->get_const_device_view(),
+                             beta->get_const_device_view(),
+                             rho->get_const_device_view(), stop_status));
         swap(prev_rho, rho);
     }
 }
@@ -211,7 +232,7 @@ int workspace_traits<Fcg<ValueType>>::num_arrays(const Solver&)
 template <typename ValueType>
 int workspace_traits<Fcg<ValueType>>::num_vectors(const Solver&)
 {
-    return 11;
+    return 12;
 }
 
 
@@ -221,7 +242,7 @@ std::vector<std::string> workspace_traits<Fcg<ValueType>>::op_names(
 {
     return {
         "r",        "z",   "p",     "q",   "t",         "beta",
-        "prev_rho", "rho", "rho_t", "one", "minus_one",
+        "prev_rho", "rho", "rho_t", "one", "minus_one", "proj_rhs",
     };
 }
 
@@ -244,12 +265,13 @@ std::vector<int> workspace_traits<Fcg<ValueType>>::scalars(const Solver&)
 template <typename ValueType>
 std::vector<int> workspace_traits<Fcg<ValueType>>::vectors(const Solver&)
 {
-    return {r, z, p, q, t};
+    return {r, z, p, q, t, proj_rhs};
 }
 
 
-#define GKO_DECLARE_FCG(_type) class Fcg<_type>
-#define GKO_DECLARE_FCG_TRAITS(_type) struct workspace_traits<Fcg<_type>>
+#define GKO_DECLARE_FCG(ValueType) class Fcg<ValueType>
+#define GKO_DECLARE_FCG_TRAITS(ValueType) \
+    struct workspace_traits<Fcg<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG);
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_TRAITS);
 

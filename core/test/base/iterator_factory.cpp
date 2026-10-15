@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,7 +6,10 @@
 
 #include <algorithm>
 #include <complex>
+#include <cstring>
+#include <iterator>
 #include <numeric>
+#include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -220,18 +223,6 @@ TYPED_TEST(ZipIterator, IncreasingIterator)
 #ifndef NDEBUG
 
 
-bool check_assertion_exit_code(int exit_code)
-{
-#ifdef _MSC_VER
-    // MSVC picks up the exit code incorrectly,
-    // so we can only check that it exits
-    return true;
-#else
-    return exit_code != 0;
-#endif
-}
-
-
 TYPED_TEST(ZipIterator, IncompatibleIteratorDeathTest)
 {
     using index_type = typename TestFixture::index_type;
@@ -243,13 +234,13 @@ TYPED_TEST(ZipIterator, IncompatibleIteratorDeathTest)
 
     // a set of operations that return inconsistent results for the two
     // different iterators
-    EXPECT_EXIT((void)(it2 - it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it2 == it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it2 != it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it1 < it2), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it2 <= it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it2 > it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it1 >= it2), check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 - it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 == it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 != it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it1 < it2));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 <= it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 > it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it1 >= it2));
 }
 
 
@@ -508,6 +499,232 @@ TYPED_TEST(PermuteIterator, DecreasingIterator)
     ASSERT_TRUE(iter == decrement_post_test--);
     ASSERT_TRUE(iter - 1 == --decrement_pre_test);
     ASSERT_TRUE(*minus_2 == vec[perm(3)]);
+}
+
+
+template <typename ValueType>
+class TransformIterator : public ::testing::Test {
+protected:
+    using value_type = ValueType;
+};
+
+TYPED_TEST_SUITE(TransformIterator, gko::test::ComplexAndPODTypes,
+                 TypenameNameGenerator);
+
+
+struct identity_transform {
+    template <typename T>
+    T operator()(T v) const
+    {
+        return v;
+    }
+};
+
+
+template <typename T>
+struct scale_transform {
+    T operator()(T v) const { return scale * v; }
+
+    T scale;
+};
+
+
+struct double_transform {
+    template <typename T>
+    T operator()(T v) const
+    {
+        return T{2} * v;
+    }
+};
+
+
+TYPED_TEST(TransformIterator, EmptyIterator)
+{
+    auto test_iter = gko::detail::make_transform_iterator<TypeParam*>(
+        nullptr, identity_transform{});
+
+    ASSERT_NO_THROW((void)std::find(test_iter, test_iter, TypeParam{}));
+}
+
+
+TYPED_TEST(TransformIterator, CopyingWithIdentityFunction)
+{
+    std::vector<TypeParam> vec{6, 2, 5, 2, 4};
+    std::vector<TypeParam> result;
+    auto test_iter =
+        gko::detail::make_transform_iterator(vec.begin(), identity_transform{});
+
+    std::copy(test_iter, test_iter + vec.size(), std::back_inserter(result));
+
+    ASSERT_EQ(vec, result);
+}
+
+
+TYPED_TEST(TransformIterator, CopyingWithStatefulFunctor)
+{
+    TypeParam scale = 3;
+    std::vector<TypeParam> vec{6, 2, 5, 2, 4};
+    std::vector<TypeParam> ref{18, 6, 15, 6, 12};
+    std::vector<TypeParam> result;
+    auto test_iter = gko::detail::make_transform_iterator(
+        vec.begin(), scale_transform<TypeParam>{scale});
+
+    std::copy(test_iter, test_iter + vec.size(), std::back_inserter(result));
+
+    ASSERT_EQ(ref, result);
+}
+
+
+TYPED_TEST(TransformIterator, IncreasingIterator)
+{
+    std::vector<TypeParam> vec{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    auto transform = double_transform{};
+
+    auto test_iter =
+        gko::detail::make_transform_iterator(vec.begin(), transform);
+    auto begin = test_iter;
+    auto plus_2 = begin + 2;
+    auto plus_2_rev = 2 + begin;
+    auto plus_minus_2 = plus_2 - 2;
+    auto increment_pre_2 = begin;
+    ++increment_pre_2;
+    ++increment_pre_2;
+    auto increment_post_2 = begin;
+    increment_post_2++;
+    increment_post_2++;
+    auto increment_pre_test = begin;
+    auto increment_post_test = begin;
+
+    // check results for equality
+    ASSERT_TRUE(begin == plus_minus_2);
+    ASSERT_TRUE(plus_2 == increment_pre_2);
+    ASSERT_TRUE(plus_2_rev == increment_pre_2);
+    ASSERT_TRUE(increment_pre_2 == increment_post_2);
+    ASSERT_TRUE(begin == increment_post_test++);
+    ASSERT_TRUE(begin + 1 == ++increment_pre_test);
+    ASSERT_TRUE(*plus_2 == TypeParam{2} * vec[2]);
+    // check other comparison operators and difference
+    std::vector<gko::detail::transform_iterator<
+        typename std::vector<TypeParam>::iterator, decltype(transform)>>
+        its{begin,
+            plus_2,
+            plus_2_rev,
+            plus_minus_2,
+            increment_pre_2,
+            increment_post_2,
+            increment_pre_test,
+            increment_post_test,
+            begin + 5,
+            begin + 9};
+    std::sort(its.begin(), its.end());
+    std::vector<int> dists;
+    std::vector<int> ref_dists{0, 1, 0, 1, 0, 0, 0, 3, 4};
+    for (int i = 0; i < its.size() - 1; i++) {
+        SCOPED_TRACE(i);
+        dists.push_back(its[i + 1] - its[i]);
+        auto equal = dists.back() > 0;
+        ASSERT_EQ(its[i + 1] > its[i], equal);
+        ASSERT_EQ(its[i] < its[i + 1], equal);
+        ASSERT_EQ(its[i] != its[i + 1], equal);
+        ASSERT_EQ(its[i] == its[i + 1], !equal);
+        ASSERT_EQ(its[i] >= its[i + 1], !equal);
+        ASSERT_EQ(its[i + 1] <= its[i], !equal);
+        ASSERT_TRUE(its[i + 1] >= its[i]);
+        ASSERT_TRUE(its[i] <= its[i + 1]);
+    }
+    ASSERT_EQ(dists, ref_dists);
+}
+
+
+TYPED_TEST(TransformIterator, DecreasingIterator)
+{
+    std::vector<TypeParam> vec{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    auto transform = double_transform{};
+
+    auto test_iter =
+        gko::detail::make_transform_iterator(vec.begin(), transform);
+
+    auto iter = test_iter + 5;
+    auto minus_2 = iter - 2;
+    auto minus_plus_2 = minus_2 + 2;
+    auto decrement_pre_2 = iter;
+    --decrement_pre_2;
+    --decrement_pre_2;
+    auto decrement_post_2 = iter;
+    decrement_post_2--;
+    decrement_post_2--;
+    auto decrement_pre_test = iter;
+    auto decrement_post_test = iter;
+
+    ASSERT_TRUE(iter == minus_plus_2);
+    ASSERT_TRUE(minus_2 == decrement_pre_2);
+    ASSERT_TRUE(decrement_pre_2 == decrement_post_2);
+    ASSERT_TRUE(iter == decrement_post_test--);
+    ASSERT_TRUE(iter - 1 == --decrement_pre_test);
+    ASSERT_TRUE(*minus_2 == TypeParam{2} * vec[3]);
+}
+
+
+struct identity_permute {
+    int operator()(int i) const { return i; }
+};
+
+
+// the lambda needs to capture something: since C++20, a lambda without
+// captures is copy assignable, so it would not test anything here
+auto lambda_transform = [factor = 2](int v) { return factor * v; };
+
+
+// Iterators are passed to device kernels by value, and kernel arguments are
+// transferred by copying their bytes, so they have to be trivially copyable:
+// SYCL rejects anything else, CUDA and HIP break silently. The opposite
+// requirement, staying copy assignable as the iterator requirements ask for,
+// is asserted for every instantiation in the make_* functions.
+using transform_iterator_type =
+    gko::detail::transform_iterator<int*, double_transform>;
+using lambda_transform_iterator_type =
+    gko::detail::transform_iterator<int*, decltype(lambda_transform)>;
+using permute_iterator_type =
+    gko::detail::permute_iterator<int*, identity_permute>;
+using zip_iterator_type = gko::detail::zip_iterator<int*, double*>;
+
+static_assert(std::is_trivially_copyable<transform_iterator_type>::value,
+              "transform_iterator needs to be trivially copyable to be used as "
+              "a device kernel argument");
+// this is the instantiation that stores the transformation in
+// copy_assignable, the one above stores it directly
+static_assert(std::is_trivially_copyable<lambda_transform_iterator_type>::value,
+              "transform_iterator needs to stay trivially copyable when the "
+              "transformation is wrapped in copy_assignable");
+static_assert(std::is_trivially_copyable<permute_iterator_type>::value,
+              "permute_iterator needs to be trivially copyable to be used as a "
+              "device kernel argument");
+static_assert(std::is_trivially_copyable<zip_iterator_type>::value,
+              "zip_iterator needs to be trivially copyable to be used as a "
+              "device kernel argument");
+// nothing calls make_transform_iterator with a lambda anymore, so this just
+// checks that the transform iterator is still copy assignable
+static_assert(std::is_copy_assignable<lambda_transform_iterator_type>::value,
+              "transform_iterator needs to be copy assignable even if the "
+              "transformation is not");
+
+
+TYPED_TEST(TransformIterator, SurvivesBitwiseCopy)
+{
+    std::vector<TypeParam> vec{6, 2, 5, 2, 4};
+    const auto scale = TypeParam{3};
+    // a lambda is the case stored in copy_assignable, the storage that has to
+    // survive the byte-wise transfer of a kernel argument
+    auto test_iter = gko::detail::make_transform_iterator(
+        vec.data(), [scale](TypeParam v) { return scale * v; });
+    decltype(test_iter) device_iter;
+
+    // a kernel launch copies the bytes of its arguments and nothing else
+    std::memcpy(&device_iter, &test_iter, sizeof(test_iter));
+    std::memset(static_cast<void*>(&test_iter), 0xCC, sizeof(test_iter));
+
+    ASSERT_EQ(*device_iter, scale * vec[0]);
+    ASSERT_EQ(device_iter[3], scale * vec[3]);
 }
 
 

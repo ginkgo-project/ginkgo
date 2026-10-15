@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     using cg = gko::solver::Cg<ValueType>;
     using ir = gko::solver::Ir<ValueType>;
     using mg = gko::solver::Multigrid;
-    using ic = gko::preconditioner::Ic<gko::solver::LowerTrs<ValueType>>;
+    using ic = gko::preconditioner::Ic<ValueType>;
     using pgm = gko::multigrid::Pgm<ValueType, IndexType>;
 
     // Print version information

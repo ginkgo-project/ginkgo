@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -43,26 +43,26 @@ class Fbcsr;
  * @tparam ValueType  precision of vectors in apply
  * @tparam IndexType  precision of matrix indexes
  *
- * @ingroup sparsity
  * @ingroup mat_formats
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class SparsityCsr : public EnableLinOp<SparsityCsr<ValueType, IndexType>>,
+class SparsityCsr : public LinOp,
+                    public EnableCloneable<SparsityCsr<ValueType, IndexType>>,
                     public ConvertibleTo<Csr<ValueType, IndexType>>,
                     public ConvertibleTo<Dense<ValueType>>,
                     public ReadableFromMatrixData<ValueType, IndexType>,
                     public WritableToMatrixData<ValueType, IndexType>,
                     public Transposable {
-    friend class EnablePolymorphicObject<SparsityCsr, LinOp>;
+    friend class EnableCloneable<SparsityCsr>;
     friend class Csr<ValueType, IndexType>;
     friend class Dense<ValueType>;
     friend class Fbcsr<ValueType, IndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableLinOp<SparsityCsr>::convert_to;
-    using EnableLinOp<SparsityCsr>::move_to;
+    using EnableCloneable<SparsityCsr>::convert_to;
+    using EnableCloneable<SparsityCsr>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -88,6 +88,8 @@ public:
     void read(const device_mat_data& data) override;
 
     void read(device_mat_data&& data) override;
+
+    using WritableToMatrixData<ValueType, IndexType>::write;
 
     void write(mat_data& data) const override;
 
@@ -252,7 +254,7 @@ public:
      *
      * @param exec  the executor to create the matrix on
      * @param size  the dimensions of the matrix
-     * @param values  the value array of the matrix
+     * @param value  the value stored for all the matrix elements
      * @param col_idxs  the column index array of the matrix
      * @param row_ptrs  the row pointer array of the matrix
      * @param strategy  the strategy the matrix uses for SpMV operations
