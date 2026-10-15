@@ -55,3 +55,8 @@ jobs:
   linux-gcc-hip:
     if: *run
     uses: ./.github/workflows/linux-gcc-hip.yml
+
+  clang-tidy:
+    if: >-
+      ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI') }}
+    uses: ./.github/workflows/clang-tidy.yml

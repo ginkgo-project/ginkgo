@@ -1,0 +1,51 @@
+# Checks that find likely bugs without clashing with Ginkgo's conventions.
+# Disabled checks either produce mostly false positives here or flag deliberate
+# design: macro parameters used as types, throwing executor-aware moves,
+# virtual calls during construction, and branch-free assignment in conditions.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-assignment-in-if-condition,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-exception-escape,
+  -bugprone-macro-parentheses,
+  -bugprone-reserved-identifier,
+  -bugprone-suspicious-include,
+  -bugprone-unhandled-self-assignment,
+  clang-analyzer-*,
+  -clang-analyzer-optin.cplusplus.VirtualCall,
+  -clang-analyzer-optin.mpi.MPI-Checker,
+  performance-*,
+  -performance-avoid-endl,
+  -performance-enum-size,
+  -performance-noexcept-move-constructor,
+  cppcoreguidelines-pro-type-member-init,
+  cppcoreguidelines-slicing,
+  cppcoreguidelines-virtual-class-destructor,
+  google-build-namespaces,
+  misc-misplaced-const,
+  misc-non-copyable-objects,
+  misc-redundant-expression,
+  misc-throw-by-value-catch-by-reference,
+  misc-unconventional-assign-operator,
+  misc-uniqueptr-reset-release,
+  misc-unused-alias-decls,
+  misc-unused-using-decls
+CheckOptions:
+  # executors and other shared objects are passed as shared_ptr by value
+  - key: performance-unnecessary-value-param.AllowedTypes
+    value: 'shared_ptr'
+  - key: performance-unnecessary-copy-initialization.AllowedTypes
+    value: 'shared_ptr'
+  # conversions between value types are deliberate in mixed-precision code
+  - key: bugprone-narrowing-conversions.WarnOnFloatingPointNarrowingConversion
+    value: false
+  # sizeof(T) in templates instantiated with pointer types
+  - key: bugprone-sizeof-expression.WarnOnSizeOfPointerToAggregate
+    value: false
+  # local scratch arrays in kernels are filled before use
+  - key: cppcoreguidelines-pro-type-member-init.IgnoreArrays
+    value: true
+HeaderFilterRegex: '(include/ginkgo|core|common|reference|omp|cuda|hip|dpcpp|accessor|benchmark|examples)/'
+WarningsAsErrors: ''
+FormatStyle: none
