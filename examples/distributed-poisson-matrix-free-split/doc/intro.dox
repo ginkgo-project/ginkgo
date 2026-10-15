@@ -1,8 +1,19 @@
 <a name="Intro"></a>
 <h1>Introduction</h1>
-This distributed solver example should help you understand the basics of using Ginkgo in a distributed setting.
-The example will solve a simple 1D Laplace equation where the system can be distributed row-wise to multiple processes.
-To run the solver with multiple processes, use `mpirun -n NUM_PROCS ./distributed-solver [executor] [num_grid_points] [num_iterations]`.
+This example demonstrates how to solve a 3D Poisson equation (-Delta u = f) using Ginkgo's distributed matrix capabilities with a <b>split matrix-free linear operator</b>.
 
-If you are using GPU devices, please make sure that you run this example with at most as many processes as you have GPU
-devices available.
+<h3>Motivation and Relation to Other Approaches</h3>
+In @ref distributed_poisson_assembled_matrix "the assembled-matrix example", the 7-point stencil is assembled into a standard sparse matrix format. While convenient, storing nonzeros in memory is not necessary for constant-stencil differential equations and introduces significant memory overhead on large grids.
+
+In this tutorial series, we propose two distinct methods for leveraging Ginkgo to implement distributed matrix-free solvers:
+1. <b>The Monolithic Approach (@ref distributed_poisson_matrix_free_monolithic "the monolithic matrix-free example"):</b> Encapsulates stencil evaluation and manual point-to-point MPI communication (`MPI_Isend` / `MPI_Irecv`) inside a single custom `gko::LinOp`.
+2. <b>The Split Approach (this example):</b> Decomposes the linear operator into a purely local block (`DiagLaplacian`) and an off-diagonal halo block (`OffDiagLaplacian`), offloading all MPI communication to Ginkgo's `distributed::Matrix` and `index_map`.
+
+The core trade-off between the two approaches comes down to communication overlap versus spatial awareness: the split approach allows Ginkgo to hide communication latency by overlapping off-diagonal halo exchanges with on-diagonal stencil evaluation (and avoids writing manual MPI code), but operates on general 1D index spaces and cannot exploit 3D spatial layout directly. In contrast, the monolithic approach leverages 3D grid layout via contiguous padded arrays, but at the cost of an explicit synchronization fence (`MPI_Waitall`).
+
+<h3>Running the Example</h3>
+To run the solver with multiple processes, use the following command:
+<br><br>
+<code>mpirun -n NUM_PROCS ./distributed-poisson-matrix-free-split [executor] [Nx] [Ny] [Nz]</code>
+<br><br>
+<b>Note:</b> This example uses CPU-based host execution with the <code>reference</code> or <code>omp</code> executor.

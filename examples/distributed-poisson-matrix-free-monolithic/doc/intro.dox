@@ -1,8 +1,27 @@
 <a name="Intro"></a>
 <h1>Introduction</h1>
-This distributed solver example should help you understand the basics of using Ginkgo in a distributed setting.
-The example will solve a simple 1D Laplace equation where the system can be distributed row-wise to multiple processes.
-To run the solver with multiple processes, use `mpirun -n NUM_PROCS ./distributed-solver [executor] [num_grid_points] [num_iterations]`.
+This example demonstrates how to solve a 3D Poisson equation (-Delta u = f) using Ginkgo's distributed capabilities with a <b>monolithic matrix-free linear operator</b>.
 
-If you are using GPU devices, please make sure that you run this example with at most as many processes as you have GPU
-devices available.
+<h3>Motivation and Relation to Other Approaches</h3>
+For structured finite difference stencils (such as the 7-point 3D Laplacian), explicitly storing non-zero matrix entries in memory—as done in @ref distributed_poisson_assembled_matrix "the assembled-matrix example"—is not necessary and can consume substantial memory on large grids. Instead, matrix-vector multiplication can be evaluated directly on the fly (matrix-free).
+
+In this tutorial series, we propose two distinct methods for leveraging Ginkgo to implement distributed matrix-free solvers:
+1. <b>The Monolithic Approach (this example):</b> A single custom `gko::LinOp` subclass (`MatrixFreeLaplacian`) encapsulates the entire distributed SpMV. It manages the 3D domain layout, packs/unpacks boundary faces, and handles ghost exchanges directly with non-blocking MPI calls (`MPI_Isend` and `MPI_Irecv`).
+2. <b>The Split Approach (@ref distributed_poisson_matrix_free_split "the split matrix-free example"):</b> Instead of writing manual MPI communication code, the operator is divided into a local diagonal block (`DiagLaplacian`) and an off-diagonal halo block (`OffDiagLaplacian`), letting Ginkgo's `distributed::Matrix` and `index_map` orchestrate all halo exchanges automatically.
+
+The core trade-off between the two approaches comes down to spatial awareness versus communication overlap: while this monolithic approach directly leverages 3D spatial layout (using a contiguous padded array) without indirection, it introduces an explicit synchronization fence (`MPI_Waitall`) before stencil evaluation. In contrast, the split approach allows Ginkgo to hide communication latency by overlapping off-diagonal exchanges with on-diagonal stencil evaluation, but cannot exploit multi-dimensional spatial structure.
+
+<h3>The Monolithic SpMV Pipeline</h3>
+Inside `MatrixFreeLaplacian::apply_impl`:
+1. <b>Local Copy:</b> Local vector values are copied into the interior of a padded 3D array.
+2. <b>Face Packing:</b> The boundary faces along +-x, +-y, and +-z are packed into contiguous send buffers.
+3. <b>Ghost Exchange:</b> Non-blocking MPI sends (`MPI_Isend`) and receives (`MPI_Irecv`) are posted to exchange ghost faces with neighboring MPI ranks.
+4. <b>Face Unpacking:</b> Once communication completes (`MPI_Waitall`), received ghost values are unpacked into the halo regions of the padded buffer.
+5. <b>Stencil Application:</b> The 7-point finite difference stencil is evaluated on the padded buffer, writing results directly to the output vector with periodic boundary conditions.
+
+<h3>Running the Example</h3>
+To run the solver with multiple processes, use the following command:
+<br><br>
+<code>mpirun -n NUM_PROCS ./distributed-poisson-matrix-free-monolithic [executor] [Nx] [Ny] [Nz]</code>
+<br><br>
+<b>Note:</b> This example uses CPU-based host execution with the <code>reference</code> or <code>omp</code> executor.

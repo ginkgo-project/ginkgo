@@ -11,23 +11,27 @@
 #include <mpi.h>
 
 // Add standard C++ headers for I/O, strings, and math.
-#include <iostream>
-#include <vector>
-#include <string>
 #include <cmath>
+#include <iostream>
 #include <map>
 #include <random>
+#include <string>
+#include <vector>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-// Helper function to map 3D grid coordinates (x, y, z) to a global 1D row index.
-// The modulo operator (%) is used to enforce periodic boundary conditions,
-// seamlessly wrapping indices around the grid edges.
-gko::int64 get_global_index(gko::int64 x, gko::int64 y, gko::int64 z, gko::int64 Nx, gko::int64 Ny, gko::int64 Nz) {
-    x = (x + Nx) % Nx; 
-    y = (y + Ny) % Ny; 
+// Helper function to map 3D grid coordinates (x, y, z) to a global 1D row
+// index. The modulo operator (%) is used to enforce periodic boundary
+// conditions, seamlessly wrapping indices around the grid edges. The addition
+// operator (+ Nx/Ny/Nz) is used to deal with negative indices in periodic
+// boundary conditions.
+gko::int64 get_global_index(gko::int64 x, gko::int64 y, gko::int64 z,
+                            gko::int64 Nx, gko::int64 Ny, gko::int64 Nz)
+{
+    x = (x + Nx) % Nx;
+    y = (y + Ny) % Ny;
     z = (z + Nz) % Nz;
     return x * Ny * Nz + y * Nz + z;
 }
@@ -40,7 +44,7 @@ int main(int argc, char* argv[])
     // done with the following helper construct that uses RAII to automate the
     // initialization and finalization.
     const gko::experimental::mpi::environment env(argc, argv);
-    
+
     // Create an MPI communicator and get the rank of the calling process.
     const auto comm = gko::experimental::mpi::communicator(MPI_COMM_WORLD);
     const auto rank = comm.rank();
@@ -62,15 +66,19 @@ int main(int argc, char* argv[])
     using dist_vec = gko::experimental::distributed::Vector<ValueType>;
     // As matrix type we simply use the following type, which can read
     // distributed data and be applied to a distributed vector.
-    using dist_mtx = gko::experimental::distributed::Matrix<ValueType, LocalIndexType, GlobalIndexType>;
+    using dist_mtx =
+        gko::experimental::distributed::Matrix<ValueType, LocalIndexType,
+                                               GlobalIndexType>;
     // We still need a localized vector type to be used as scalars in the
     // advanced apply operations and to retrieve the residual norm.
     using vec = gko::matrix::Dense<ValueType>;
     // The partition type describes how the rows of the matrices are
     // distributed across the MPI ranks.
-    using part_type = gko::experimental::distributed::Partition<LocalIndexType, GlobalIndexType>;
+    using part_type =
+        gko::experimental::distributed::Partition<LocalIndexType,
+                                                  GlobalIndexType>;
     // We can use here the same solver type as you would use in a
-    // non-distributed program. 
+    // non-distributed program.
     using cg_solver = gko::solver::Cg<ValueType>;
 
     // @sect3{User Input Handling}
@@ -79,8 +87,7 @@ int main(int argc, char* argv[])
     // - The number of grid points in the X, Y, and Z dimensions (Nx, Ny, Nz).
     if (argc == 2 && (std::string(argv[1]) == "--help")) {
         if (rank == 0) {
-            std::cerr << "Usage: " << argv[0]
-                      << " [executor] [Nx] [Ny] [Nz]"
+            std::cerr << "Usage: " << argv[0] << " [executor] [Nx] [Ny] [Nz]"
                       << std::endl;
         }
         std::exit(-1);
@@ -92,16 +99,42 @@ int main(int argc, char* argv[])
     const gko::int64 Nz = argc >= 5 ? std::stoll(argv[4]) : 16;
     const gko::int64 global_size = Nx * Ny * Nz;
 
-    // Executor factory mapping. This allows us to easily select which 
+    // Executor factory mapping. This allows us to easily select which
     // hardware to run on via command line arguments.
-    const std::map<std::string, std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>> executor_factory_mpi{
-        {"reference", [](MPI_Comm) { return gko::ReferenceExecutor::create(); }},
-        {"omp", [](MPI_Comm) { return gko::OmpExecutor::create(); }},
-        {"cuda", [](MPI_Comm comm) {
-             int device_id = gko::experimental::mpi::map_rank_to_device_id(
-                 comm, gko::CudaExecutor::get_num_devices());
-             return gko::CudaExecutor::create(device_id, gko::ReferenceExecutor::create());
-         }}};
+    const std::map<std::string,
+                   std::function<std::shared_ptr<gko::Executor>(MPI_Comm)>>
+        executor_factory_mpi{
+            {"reference",
+             [](MPI_Comm) { return gko::ReferenceExecutor::create(); }},
+            {"omp", [](MPI_Comm) { return gko::OmpExecutor::create(); }},
+            {"cuda",
+             [](MPI_Comm comm) {
+                 int device_id = gko::experimental::mpi::map_rank_to_device_id(
+                     comm, gko::CudaExecutor::get_num_devices());
+                 return gko::CudaExecutor::create(
+                     device_id, gko::ReferenceExecutor::create());
+             }},
+            {"hip",
+             [](MPI_Comm comm) {
+                 int device_id = gko::experimental::mpi::map_rank_to_device_id(
+                     comm, gko::HipExecutor::get_num_devices());
+                 return gko::HipExecutor::create(
+                     device_id, gko::ReferenceExecutor::create());
+             }},
+            {"dpcpp", [](MPI_Comm comm) {
+                 int device_id = 0;
+                 if (gko::DpcppExecutor::get_num_devices("gpu")) {
+                     device_id = gko::experimental::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("gpu"));
+                 } else if (gko::DpcppExecutor::get_num_devices("cpu")) {
+                     device_id = gko::experimental::mpi::map_rank_to_device_id(
+                         comm, gko::DpcppExecutor::get_num_devices("cpu"));
+                 } else {
+                     throw std::runtime_error("No suitable Dpcpp devices");
+                 }
+                 return gko::DpcppExecutor::create(
+                     device_id, gko::ReferenceExecutor::create());
+             }}};
 
     auto exec = executor_factory_mpi.at(executor_string)(MPI_COMM_WORLD);
 
@@ -117,9 +150,9 @@ int main(int argc, char* argv[])
 
     // @sect3{Assembling the 3D Poisson Matrix (7-point stencil)}
     // Assemble the matrix using a 7-point 3D stencil. The distributed matrix
-    // supports only constructing an empty matrix of zero size and filling in the
-    // values with gko::experimental::distributed::Matrix::read_distributed.
-    // Importantly, only the data that belongs to the rows assigned to this rank 
+    // supports only constructing an empty matrix of zero size and filling in
+    // the values with gko::experimental::distributed::Matrix::read_distributed.
+    // Importantly, only the data that belongs to the rows assigned to this rank
     // will be physically assembled by this process.
     gko::matrix_data<ValueType, GlobalIndexType> A_data;
     gko::matrix_data<ValueType, GlobalIndexType> b_data;
@@ -132,7 +165,8 @@ int main(int argc, char* argv[])
     double inv_dx2 = 1.0 / std::pow((4.0 * M_PI) / Nx, 2);
     double inv_dy2 = 1.0 / std::pow((4.0 * M_PI) / Ny, 2);
     double inv_dz2 = 1.0 / std::pow((4.0 * M_PI) / Nz, 2);
-    // The diagonal entry is the sum of the contributions from the six neighbors plus a small perturbation to ensure positive definiteness.
+    // The diagonal entry is the sum of the contributions from the six neighbors
+    // plus a small perturbation to ensure positive definiteness.
     double diag_val = 2.0 * (inv_dx2 + inv_dy2 + inv_dz2) + 0.001;
 
     // Find out which rows belong to this MPI rank based on the partition.
@@ -150,19 +184,25 @@ int main(int argc, char* argv[])
         A_data.nonzeros.emplace_back(row, row, diag_val);
 
         // X-axis neighbors (periodic boundary handling)
-        A_data.nonzeros.emplace_back(row, get_global_index(x - 1, y, z, Nx, Ny, Nz), -inv_dx2);
-        A_data.nonzeros.emplace_back(row, get_global_index(x + 1, y, z, Nx, Ny, Nz), -inv_dx2);
+        A_data.nonzeros.emplace_back(
+            row, get_global_index(x - 1, y, z, Nx, Ny, Nz), -inv_dx2);
+        A_data.nonzeros.emplace_back(
+            row, get_global_index(x + 1, y, z, Nx, Ny, Nz), -inv_dx2);
 
         // Y-axis neighbors
-        A_data.nonzeros.emplace_back(row, get_global_index(x, y - 1, z, Nx, Ny, Nz), -inv_dy2);
-        A_data.nonzeros.emplace_back(row, get_global_index(x, y + 1, z, Nx, Ny, Nz), -inv_dy2);
+        A_data.nonzeros.emplace_back(
+            row, get_global_index(x, y - 1, z, Nx, Ny, Nz), -inv_dy2);
+        A_data.nonzeros.emplace_back(
+            row, get_global_index(x, y + 1, z, Nx, Ny, Nz), -inv_dy2);
 
         // Z-axis neighbors
-        A_data.nonzeros.emplace_back(row, get_global_index(x, y, z - 1, Nx, Ny, Nz), -inv_dz2);
-        A_data.nonzeros.emplace_back(row, get_global_index(x, y, z + 1, Nx, Ny, Nz), -inv_dz2);
+        A_data.nonzeros.emplace_back(
+            row, get_global_index(x, y, z - 1, Nx, Ny, Nz), -inv_dz2);
+        A_data.nonzeros.emplace_back(
+            row, get_global_index(x, y, z + 1, Nx, Ny, Nz), -inv_dz2);
 
-        // Assemble the right-hand side vector b with a random value for each row.
-        // The initial guess for x is set to zero.
+        // Assemble the right-hand side vector b with a random value for each
+        // row. The initial guess for x is set to zero.
         double b_val = dist(gen);
 
         b_data.nonzeros.emplace_back(row, 0, b_val);
@@ -181,8 +221,8 @@ int main(int argc, char* argv[])
     b_host->read_distributed(b_data, partition);
     x_host->read_distributed(x_data, partition);
 
-    // After reading on the host master, the matrix and vectors can be moved 
-    // to the chosen executor (e.g., copied to the GPU), since the distributed 
+    // After reading on the host master, the matrix and vectors can be moved
+    // to the chosen executor (e.g., copied to the GPU), since the distributed
     // matrix supports SpMV on devices.
     auto A = gko::share(dist_mtx::create(exec, comm));
     auto x = dist_vec::create(exec, comm);
@@ -194,15 +234,20 @@ int main(int argc, char* argv[])
     // @sect3{Solving the Distributed System}
     // Setup the logger to track the iteration count and residual norm.
     auto logger = gko::share(gko::log::Convergence<ValueType>::create());
-    
-    // Generate the solver. This is the exact same syntax as in the 
-    // non-distributed case. We stop after 2000 iterations or if the relative 
+
+    // Generate the solver. This is the exact same syntax as in the
+    // non-distributed case. We stop after 2000 iterations or if the relative
     // residual norm drops below 1e-13.
-    auto solver_gen = cg_solver::build()
-        .with_criteria(
-            gko::share(gko::stop::Iteration::build().with_max_iters(2000u).on(exec)),
-            gko::share(gko::stop::ResidualNorm<ValueType>::build().with_reduction_factor(1e-13).on(exec)))
-        .on(exec);
+    auto solver_gen =
+        cg_solver::build()
+            .with_criteria(
+                gko::share(
+                    gko::stop::Iteration::build().with_max_iters(2000u).on(
+                        exec)),
+                gko::share(gko::stop::ResidualNorm<ValueType>::build()
+                               .with_reduction_factor(1e-13)
+                               .on(exec)))
+            .on(exec);
 
     auto solver = solver_gen->generate(A);
     solver->add_logger(logger);
@@ -210,7 +255,7 @@ int main(int argc, char* argv[])
     // Apply the distributed solver.
     solver->apply(b, x);
 
-    // Retrieve the residual norm. We must extract it from the logger and 
+    // Retrieve the residual norm. We must extract it from the logger and
     // move it to the host master to print it.
     auto res_norm = gko::as<vec>(logger->get_residual_norm());
     auto host_res = gko::make_temporary_clone(exec->get_master(), res_norm);
@@ -218,12 +263,14 @@ int main(int argc, char* argv[])
     // @sect3{Printing Results}
     // Print the achieved residual norm and grid information on rank 0.
     if (rank == 0) {
-        std::cout << "\n--- Distributed Poisson Assembled Matrix Solver Results ---"
-                  << "\nGlobal Grid Size: " << Nx << " x " << Ny << " x " << Nz << " (" << global_size << " rows)"
-                  << "\nNum Ranks: " << comm.size()
-                  << "\nFinal Residual Norm: " << *host_res->get_const_values()
-                  << "\nIteration Count: " << logger->get_num_iterations()
-                  << std::endl;
+        std::cout
+            << "\n--- Distributed Poisson Assembled Matrix Solver Results ---"
+            << "\nGlobal Grid Size: " << Nx << " x " << Ny << " x " << Nz
+            << " (" << global_size << " rows)"
+            << "\nNum Ranks: " << comm.size()
+            << "\nFinal Residual Norm: " << *host_res->get_const_values()
+            << "\nIteration Count: " << logger->get_num_iterations()
+            << std::endl;
     }
 
     return 0;

@@ -1,1 +1,1 @@
-Solves a distributed linear system.
+Solves a 3D Poisson equation using Ginkgo's distributed matrix with custom local and non-local matrix-free operators.

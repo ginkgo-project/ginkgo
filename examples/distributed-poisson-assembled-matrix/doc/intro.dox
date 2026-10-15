@@ -3,8 +3,14 @@
 This example demonstrates how to solve a 3D Poisson equation (-Delta u = f) using Ginkgo's distributed matrix capabilities.
 To solve the problem numerically, we discretize the 3D domain into a regular grid of size Nx by Ny by Nz and approximate the continuous Laplacian operator using a standard 7-point central finite difference stencil with periodic boundary conditions.
 
-Since we choose to assemble the sparse matrix explicitly in memory, we can simply rely on Ginkgo's standard 1D sparse matrix representations and built-in solvers.
-The main task is to provide a mapping between 3D grid coordinate (i, j, k) and the corresponding 1D index in the assembled matrix.
+In this example, the sparse matrix is explicitly assembled into Ginkgo's distributed matrix format (`gko::experimental::distributed::Matrix`). This allows leveraging Ginkgo's standard 1D sparse matrix representations and built-in distributed solvers directly out of the box. The main task is simply to map each 3D grid coordinate (x, y, z) to a 1D global index in the distributed matrix.
+
+However, storing the sparse matrix explicitly in memory is actually not necessary for structured stencil problems where coefficients are constant or analytically known. For large 3D grids, explicit matrix storage consumes significant memory and incurs assembly overhead.
+
+<h3>Alternative Matrix-Free Approaches</h3>
+In addition to the assembled approach, this tutorial series proposes two alternative matrix-free methods for leveraging Ginkgo without storing nonzeros in memory:
+- @ref distributed_poisson_matrix_free_monolithic "The distributed-poisson-matrix-free-monolithic program": Encapsulates stencil evaluation and manual point-to-point MPI communication in a single operator, leveraging 3D spatial layout directly at the cost of an explicit synchronization fence.
+- @ref distributed_poisson_matrix_free_split "The distributed-poisson-matrix-free-split program": Splits the operator into local and halo components, allowing Ginkgo to automatically overlap communication with local computation, but without leveraging multi-dimensional spatial structure.
 
 <h3>Running the Example</h3>
 To run the solver with multiple processes, use the following command:
