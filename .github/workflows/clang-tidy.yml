@@ -18,23 +18,29 @@ jobs:
         with:
           fetch-depth: 2
 
+      # headers are checked with the flags of a nearby source file, which may lack the
+      # include paths of the benchmark and extension dependencies; in /usr/include
+      # they are found anyway
       - name: setup
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build clang-tidy-18 libomp-18-dev libopenmpi-dev openmpi-bin
+          sudo apt-get install -y ninja-build clang-tidy-18 libomp-18-dev libopenmpi-dev openmpi-bin \
+            libgflags-dev nlohmann-json3-dev libyaml-cpp-dev
 
       # only the compilation database is needed, nothing is compiled
       - name: configure
         run: |
           cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_MPI=ON -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_SYCL=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF
 
-      # CUDA, HIP and SYCL sources are not part of this configuration
+      # skipped: CUDA, HIP, SYCL and Kokkos code, which this configuration can't compile,
+      # dev_tools, and omp/base/kernel_launch*.hpp, which only compile inside
+      # common/unified/base/kernel_launch*.hpp
       - name: clang-tidy
         run: |
           status=0
           git diff -U0 HEAD^1 HEAD | clang-tidy-diff-18.py -p1 -path build -j 4 -quiet \
             -clang-tidy-binary clang-tidy-18 \
-            -regex '(?!third_party/|cuda/|hip/|dpcpp/|common/cuda_hip/|(?:.*/)?test/).*\.(cpp|hpp|hpp\.inc)' \
+            -regex '(?!third_party/|dev_tools/|cuda/|hip/|dpcpp/|common/cuda_hip/|accessor/(?:cuda|hip|cuda_hip|sycl)_helper|include/ginkgo/extensions/kokkos|omp/base/kernel_launch|(?:.*/)?test/).*\.(cpp|hpp|hpp\.inc)' \
             > clang-tidy.log 2>&1 || status=$?
           cat clang-tidy.log
           python3 - <<'EOF'

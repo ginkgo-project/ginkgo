@@ -54,6 +54,7 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
                     gko::as<gko::Cloneable>(to_mtx)->copy_from(
                         gko::as<gko::Cloneable>(from_mtx));
                     operations.push_back(from_format + "-" + to_format);
+                    // NOLINTNEXTLINE(bugprone-empty-catch)
                 } catch (const std::exception&) {
                 }
             }
