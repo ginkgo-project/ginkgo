@@ -29,7 +29,7 @@ namespace solver {
  *
  * - The constant vector is handled implicitly by subtracting the mean, so a
  *   constant-only nullspace works with any vector layout (`matrix::MultiVector`
- * or `experimental::distributed::Vector` with any partition).
+ *   or `experimental::distributed::Vector` with any partition).
  * - An explicit basis is copied and orthonormalized once at creation time
  *   (twice-iterated Gram-Schmidt, also against the constant if it is part of
  *   the nullspace). Columns that are numerically linearly dependent (relative
@@ -125,10 +125,11 @@ public:
      * each column of `v` independently.
      *
      * @param v  a matrix::MultiVector or experimental::distributed::Vector with
-     * as many rows as this operator (any number of rows for a constant-only
-     * nullspace created without a size). Other precisions are converted like in
-     * apply(). If the Nullspace has an explicit basis, `v` must be of the same
-     * kind (and distribution) as that basis.
+     *           as many rows as this operator (any number of rows for a
+     *           constant-only nullspace created without a size). Other
+     *           precisions are converted like in apply(). If the Nullspace has
+     *           an explicit basis, `v` must be of the same kind (and
+     *           distribution) as that basis.
      */
     void project(ptr_param<LinOp> v) const;
 
