@@ -4,6 +4,8 @@
 # never fetched: it comes from a parent project or from an installation.
 function(ginkgo_find_umpire)
     set(GINKGO_HAVE_UMPIRE 0)
+    # The version is unknown for a parent-provided target, so default to C++20.
+    set(GINKGO_UMPIRE_CXX_STANDARD cxx_std_20)
     if(GINKGO_BUILD_UMPIRE)
         if(TARGET umpire::umpire OR TARGET umpire)
             # Reuse an Umpire target added by a parent project; a second copy
@@ -68,10 +70,21 @@ function(ginkgo_find_umpire)
                     "Found Umpire ${umpire_VERSION}, but Ginkgo requires Umpire >= 2025.09."
                 )
             endif()
+            # Umpire >= 2026.07 requires C++20; 2025.09 to 2025.12 need C++17.
+            if(umpire_VERSION VERSION_LESS 2026.07)
+                set(GINKGO_UMPIRE_CXX_STANDARD cxx_std_17)
+            endif()
             set(GINKGO_HAVE_UMPIRE 1)
+        endif()
+        if(GINKGO_HAVE_UMPIRE)
+            message(
+                STATUS
+                "Umpire glue C++ standard: ${GINKGO_UMPIRE_CXX_STANDARD}"
+            )
         endif()
     endif()
     set(GINKGO_HAVE_UMPIRE ${GINKGO_HAVE_UMPIRE} PARENT_SCOPE)
+    set(GINKGO_UMPIRE_CXX_STANDARD ${GINKGO_UMPIRE_CXX_STANDARD} PARENT_SCOPE)
 endfunction()
 
 # Sets GINKGO_UMPIRE_TARGET in the caller's scope. Must be called after
@@ -114,10 +127,13 @@ function(ginkgo_add_umpire_to_target target)
         endif()
         # Umpire >= v2026.07.0 requires C++20 while the rest of Ginkgo is C++17.
         # Isolating the glue in its own object library keeps the standard bump to
-        # this one translation unit; linking PRIVATE keeps cxx_std_20 out of
-        # Ginkgo's INTERFACE.
+        # this one translation unit; linking PRIVATE keeps it out of Ginkgo's
+        # INTERFACE.
         add_library(ginkgo_umpire OBJECT base/umpire_allocator.cpp)
-        target_compile_features(ginkgo_umpire PRIVATE cxx_std_20)
+        target_compile_features(
+            ginkgo_umpire
+            PRIVATE ${GINKGO_UMPIRE_CXX_STANDARD}
+        )
         target_link_libraries(ginkgo_umpire PRIVATE ${GINKGO_UMPIRE_TARGET})
         ginkgo_default_includes(ginkgo_umpire)
         set_target_properties(
