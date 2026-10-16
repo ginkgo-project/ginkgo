@@ -83,7 +83,7 @@ public:
      */
     static std::unique_ptr<Nullspace> create(
         std::shared_ptr<const Executor> exec,
-        std::vector<std::shared_ptr<const LinOp>> basis,
+        std::vector<std::shared_ptr<const AbstractMultiVector>> basis,
         bool contains_constant = false);
 
     /**
@@ -118,7 +118,7 @@ public:
      *         of the same kind as the input basis (orthogonal to the constant
      *         if contains_constant()), or nullptr if there is none.
      */
-    std::shared_ptr<const LinOp> get_basis() const noexcept;
+    std::shared_ptr<const AbstractMultiVector> get_basis() const noexcept;
 
     /**
      * Applies the projector in place: \f$ v \leftarrow (I - V V^H) v \f$, for
@@ -131,7 +131,7 @@ public:
      *           an explicit basis, `v` must be of the same kind (and
      *           distribution) as that basis.
      */
-    void project(ptr_param<LinOp> v) const;
+    void project(ptr_param<AbstractMultiVector> v) const;
 
     Nullspace& operator=(const Nullspace& other);
 
@@ -145,43 +145,40 @@ protected:
     explicit Nullspace(std::shared_ptr<const Executor> exec);
 
     Nullspace(std::shared_ptr<const Executor> exec, dim<2> size,
-              std::vector<std::shared_ptr<const LinOp>> basis,
+              std::vector<std::shared_ptr<const AbstractMultiVector>> basis,
               bool contains_constant);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
 private:
-    template <typename VectorType>
-    void setup_basis(const std::vector<std::shared_ptr<const LinOp>>& basis);
-
-    template <typename VectorType>
-    const matrix::MultiVector<ValueType>* get_local_basis(
-        const VectorType* v) const;
+    void setup_basis(
+        const std::vector<std::shared_ptr<const AbstractMultiVector>>& basis);
 
     // stores [mean(v); V^H v] in coefficients_
-    template <typename VectorType>
-    void compute_components(const VectorType* v,
-                            const matrix::MultiVector<ValueType>* basis_local,
+    void compute_components(const AbstractMultiVector* v,
+                            const AbstractMultiVector* basis,
                             bool has_constant) const;
 
     // result = v - mean - V C with the coefficients from compute_components;
     // result may be v
-    template <typename VectorType>
-    void subtract_components(const VectorType* v, VectorType* result,
-                             const matrix::MultiVector<ValueType>* basis_local,
+    void subtract_components(const AbstractMultiVector* v,
+                             AbstractMultiVector* result,
+                             const AbstractMultiVector* basis,
                              bool has_constant) const;
 
-    template <typename VectorType>
-    void remove_components(VectorType* v,
-                           const matrix::MultiVector<ValueType>* basis_local,
+    void remove_components(AbstractMultiVector* v,
+                           const AbstractMultiVector* basis,
                            bool has_constant) const;
 
     bool contains_constant_;
     // orthonormal explicit basis (n x k), MultiVector or distributed::Vector
-    std::shared_ptr<const LinOp> basis_;
+    std::shared_ptr<const AbstractMultiVector> basis_;
     // scratch: (1 + k) x nrhs coefficients (means, then V^H x)
     gko::detail::DenseCache<ValueType> coefficients_;
     gko::detail::DenseCache<ValueType> host_coefficients_;

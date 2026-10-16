@@ -87,15 +87,16 @@ std::unique_ptr<experimental::distributed::Vector<ValueType>> create_like(
 
 // sums `values` over all ranks if `v` is a distributed vector
 template <typename ValueType>
-void sum_over_ranks(const LinOp* v, matrix::MultiVector<ValueType>* values,
+void sum_over_ranks(const AbstractMultiVector* v,
+                    matrix::MultiVector<ValueType>* values,
                     const gko::detail::DenseCache<ValueType>& host_buffer)
 {
 #if GINKGO_BUILD_MPI
     if (auto distributed =
             dynamic_cast<const experimental::distributed::DistributedBase*>(
                 v)) {
-        gko::detail::all_reduce_sum(distributed->get_communicator(), values,
-                                    host_buffer);
+        experimental::distributed::detail::all_reduce_sum(
+            distributed->get_communicator(), values, host_buffer);
     }
 #endif
 }
@@ -103,37 +104,18 @@ void sum_over_ranks(const LinOp* v, matrix::MultiVector<ValueType>* values,
 
 template <typename ValueType>
 matrix::view::dense<const ValueType> basis_view(
-    const matrix::MultiVector<ValueType>* basis, size_type num_rows)
+    ptr_param<const AbstractMultiVector> basis)
 {
-    return basis ? basis->get_const_device_view()
-                 : matrix::view::dense<const ValueType>{dim<2>{num_rows, 0}, 0,
-                                                        nullptr};
+    return basis ? basis->template get_const_local_device_view<ValueType>()
+                 : matrix::view::dense<const ValueType>{
+                       dim<2>{basis->get_local_size()[0], 0}, 0, nullptr};
 }
-
-
-enum class vector_kind { unsupported, dense, distributed };
-
-
-template <typename ValueType>
-vector_kind get_vector_kind(const LinOp* vec)
-{
-    if (dynamic_cast<const matrix::MultiVector<ValueType>*>(vec)) {
-        return vector_kind::dense;
-    }
-#if GINKGO_BUILD_MPI
-    if (dynamic_cast<const experimental::distributed::Vector<ValueType>*>(
-            vec)) {
-        return vector_kind::distributed;
-    }
-#endif
-    return vector_kind::unsupported;
-}
-
-
-std::string type_name_of(const LinOp* obj)
-{
-    return name_demangling::get_type_name(typeid(*obj));
-}
+//
+//
+// std::string type_name_of(const LinOp* obj)
+// {
+//     return name_demangling::get_type_name(typeid(*obj));
+// }
 
 
 }  // anonymous namespace
@@ -142,7 +124,8 @@ std::string type_name_of(const LinOp* obj)
 template <typename ValueType>
 std::unique_ptr<Nullspace<ValueType>> Nullspace<ValueType>::create(
     std::shared_ptr<const Executor> exec,
-    std::vector<std::shared_ptr<const LinOp>> basis, bool contains_constant)
+    std::vector<std::shared_ptr<const AbstractMultiVector>> basis,
+    bool contains_constant)
 {
     if (basis.empty()) {
         GKO_INVALID_STATE(
@@ -152,15 +135,6 @@ std::unique_ptr<Nullspace<ValueType>> Nullspace<ValueType>::create(
     for (const auto& vec : basis) {
         if (!vec) {
             GKO_INVALID_STATE("Nullspace::create got a null basis entry");
-        }
-        const auto kind = get_vector_kind<ValueType>(vec.get());
-        if (kind == vector_kind::unsupported ||
-            kind != get_vector_kind<ValueType>(basis[0].get())) {
-            // all entries need to be MultiVector or all distributed vectors
-            throw NotSupported(__FILE__, __LINE__,
-                               "Nullspace::create with a basis entry of type " +
-                                   type_name_of(basis[0].get()),
-                               type_name_of(vec.get()));
         }
     }
     const auto n = basis[0]->get_size()[0];
@@ -194,7 +168,8 @@ size_type Nullspace<ValueType>::get_dimension() const noexcept
 
 
 template <typename ValueType>
-std::shared_ptr<const LinOp> Nullspace<ValueType>::get_basis() const noexcept
+std::shared_ptr<const AbstractMultiVector> Nullspace<ValueType>::get_basis()
+    const noexcept
 {
     return basis_;
 }
@@ -207,33 +182,27 @@ Nullspace<ValueType>::Nullspace(std::shared_ptr<const Executor> exec)
 
 
 template <typename ValueType>
-Nullspace<ValueType>::Nullspace(std::shared_ptr<const Executor> exec,
-                                dim<2> size,
-                                std::vector<std::shared_ptr<const LinOp>> basis,
-                                bool contains_constant)
+Nullspace<ValueType>::Nullspace(
+    std::shared_ptr<const Executor> exec, dim<2> size,
+    std::vector<std::shared_ptr<const AbstractMultiVector>> basis,
+    bool contains_constant)
     : LinOp(exec, size),
       contains_constant_{contains_constant},
       reduction_tmp_{exec}
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(size);
     if (!basis.empty()) {
-        gko::detail::vector_dispatch<ValueType>(
-            basis[0].get(), [&](auto first) {
-                using vector_type =
-                    std::remove_const_t<std::remove_pointer_t<decltype(first)>>;
-                this->template setup_basis<vector_type>(basis);
-            });
+        this->setup_basis(basis);
     }
 }
 
 
 template <typename ValueType>
-template <typename VectorType>
 void Nullspace<ValueType>::setup_basis(
-    const std::vector<std::shared_ptr<const LinOp>>& basis)
+    const std::vector<std::shared_ptr<const AbstractMultiVector>>& basis)
 {
     auto exec = this->get_executor();
-    const auto first = as<VectorType>(basis[0].get());
+    const auto first = basis[0].get();
     size_type num_cols = 0;
     for (const auto& vec : basis) {
         GKO_ASSERT_EQUAL_ROWS(vec, this);
@@ -241,17 +210,17 @@ void Nullspace<ValueType>::setup_basis(
     }
 
     // gather all columns into a single block on this executor
-    auto block = create_like(first, exec, num_cols);
-    auto block_local = gko::detail::get_local(block.get());
-    const auto local_rows = block_local->get_size()[0];
+    auto block = AbstractMultiVector::create_with_type_of(
+        first, exec, {first->get_size()[0], num_cols},
+        {first->get_local_size()[0], num_cols});
+    const auto local_rows = block->get_local_size()[0];
     size_type col = 0;
     for (const auto& vec : basis) {
-        auto vec_local = gko::detail::get_local(as<VectorType>(vec.get()));
-        const auto vec_cols = vec_local->get_size()[1];
-        GKO_ASSERT_EQUAL_ROWS(vec_local, block_local);
-        auto target = block_local->create_submatrix(span{0, local_rows},
-                                                    span{col, col + vec_cols});
-        target->copy_from(vec_local);
+        const auto vec_cols = vec->get_size()[1];
+        GKO_ASSERT_EQUAL_ROWS(vec, block);
+        auto target = block->create_subview(local_span{0, local_rows},
+                                            local_span{col, col + vec_cols});
+        target->copy_from(vec);
         col += vec_cols;
     }
 
@@ -269,9 +238,9 @@ void Nullspace<ValueType>::setup_basis(
     auto norm = matrix::MultiVector<absolute_type>::create(exec, dim<2>{1, 1});
     size_type num_kept = 0;
     for (size_type j = 0; j < num_cols; ++j) {
-        auto col_j = column_view(block.get(), j);
-        auto kept = block_local->create_submatrix(span{0, local_rows},
-                                                  span{0, num_kept});
+        auto col_j = block->create_subview(local_span{0, local_rows}, j);
+        auto kept = block->create_subview(local_span{0, local_rows},
+                                          local_span{0, num_kept});
         const auto kept_basis = num_kept > 0 ? kept.get() : nullptr;
         for (int pass = 0; pass < 2; ++pass) {
             this->remove_components(col_j.get(), kept_basis,
@@ -284,9 +253,9 @@ void Nullspace<ValueType>::setup_basis(
             host_norm > drop_tolerance * orig_norm) {
             col_j->inv_scale(norm);
             if (j != num_kept) {
-                auto target = block_local->create_submatrix(
-                    span{0, local_rows}, span{num_kept, num_kept + 1});
-                target->copy_from(gko::detail::get_local(col_j.get()));
+                auto target =
+                    block->create_subview(local_span{0, local_rows}, num_kept);
+                target->copy_from(col_j.get());
             }
             ++num_kept;
         }
@@ -294,64 +263,38 @@ void Nullspace<ValueType>::setup_basis(
     if (num_kept == 0) {
         return;
     }
-    auto result = create_like(first, exec, num_kept);
-    auto kept =
-        block_local->create_submatrix(span{0, local_rows}, span{0, num_kept});
-    gko::detail::get_local(result.get())->copy_from(kept.get());
+    auto result = AbstractMultiVector::create_with_type_of(
+        first, exec, {first->get_size()[0], num_kept},
+        {first->get_local_size()[0], num_kept});
+    auto kept = block->create_subview(local_span{0, local_rows},
+                                      local_span{0, num_kept});
+    result->copy_from(kept.get());
     basis_ = std::move(result);
 }
 
 
 template <typename ValueType>
-void Nullspace<ValueType>::project(ptr_param<LinOp> v) const
+void Nullspace<ValueType>::project(ptr_param<AbstractMultiVector> v) const
 {
     // v is passed as input and output to convert it like apply does
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto, auto dense_v) {
-            // a constant-only nullspace without size projects any size
-            if (basis_ || this->get_size()[0] > 0) {
-                GKO_ASSERT_EQUAL_ROWS(dense_v, this);
-            }
-            this->remove_components(dense_v, this->get_local_basis(dense_v),
-                                    contains_constant_);
-        },
-        v.get(), v.get());
+    // a constant-only nullspace without size projects any size
+    if (basis_ || this->get_size()[0] > 0) {
+        GKO_ASSERT_EQUAL_ROWS(v, this);
+    }
+    this->remove_components(v.get(), v.get(), contains_constant_);
 }
 
 
 template <typename ValueType>
-template <typename VectorType>
-const matrix::MultiVector<ValueType>* Nullspace<ValueType>::get_local_basis(
-    const VectorType* v) const
-{
-    if (!basis_) {
-        return nullptr;
-    }
-    auto basis = dynamic_cast<const VectorType*>(basis_.get());
-    if (basis == nullptr) {
-        // e.g. a non-distributed basis applied to a distributed vector
-        throw NotSupported(
-            __FILE__, __LINE__,
-            "Nullspace with a basis of type " + type_name_of(basis_.get()),
-            type_name_of(v));
-    }
-    return gko::detail::get_local(basis);
-}
-
-
-template <typename ValueType>
-template <typename VectorType>
-void Nullspace<ValueType>::compute_components(
-    const VectorType* v, const matrix::MultiVector<ValueType>* basis_local,
-    bool has_constant) const
+void Nullspace<ValueType>::compute_components(const AbstractMultiVector* v,
+                                              const AbstractMultiVector* basis,
+                                              bool has_constant) const
 {
     auto exec = this->get_executor();
-    auto v_local = gko::detail::get_local(v);
-    const auto local_rows = v_local->get_size()[0];
     const size_type num_const = has_constant ? 1 : 0;
-    const auto num_basis = basis_local ? basis_local->get_size()[1] : 0;
-    if (basis_local) {
-        GKO_ASSERT_EQUAL_ROWS(v_local, basis_local);
+    const auto num_basis = basis ? basis->get_size()[1] : 0;
+    if (basis) {
+        GKO_ASSERT_EQUAL_ROWS(v, basis);
     }
     const auto inv_size =
         static_cast<absolute_type>(1.0 / static_cast<double>(v->get_size()[0]));
@@ -359,87 +302,74 @@ void Nullspace<ValueType>::compute_components(
     // over all ranks with a single all-reduce
     coefficients_.init(exec, dim<2>{num_const + num_basis, v->get_size()[1]});
     exec->run(nullspace::make_compute_coefficients(
-        v_local->get_const_device_view(), basis_view(basis_local, local_rows),
-        has_constant, inv_size, coefficients_->get_device_view(),
-        reduction_tmp_));
+        v->template get_const_local_device_view<ValueType>(),
+        basis_view<ValueType>(basis), has_constant, inv_size,
+        coefficients_->get_device_view(), reduction_tmp_));
     sum_over_ranks(v, coefficients_.get(), host_coefficients_);
 }
 
 
 template <typename ValueType>
-template <typename VectorType>
-void Nullspace<ValueType>::subtract_components(
-    const VectorType* v, VectorType* result,
-    const matrix::MultiVector<ValueType>* basis_local, bool has_constant) const
+void Nullspace<ValueType>::subtract_components(const AbstractMultiVector* v,
+                                               AbstractMultiVector* result,
+                                               const AbstractMultiVector* basis,
+                                               bool has_constant) const
 {
-    auto v_local = gko::detail::get_local(v);
-    auto result_local = gko::detail::get_local(result);
     // result = v - mean - V C in one pass; the basis is orthogonal to the
     // constant, so both components can be removed at once
     this->get_executor()->run(nullspace::make_subtract_projection(
-        basis_view(basis_local, v_local->get_size()[0]), has_constant,
+        basis_view<ValueType>(basis), has_constant,
         coefficients_->get_const_device_view(),
-        v_local->get_const_device_view(), result_local->get_device_view()));
+        v->template get_const_local_device_view<ValueType>(),
+        result->template get_local_device_view<ValueType>()));
 }
 
 
 template <typename ValueType>
-template <typename VectorType>
-void Nullspace<ValueType>::remove_components(
-    VectorType* v, const matrix::MultiVector<ValueType>* basis_local,
-    bool has_constant) const
+void Nullspace<ValueType>::remove_components(AbstractMultiVector* v,
+                                             const AbstractMultiVector* basis,
+                                             bool has_constant) const
 {
-    if ((!has_constant && !basis_local) || v->get_size()[1] == 0) {
+    if ((!has_constant && !basis) || v->get_size()[1] == 0) {
         return;
     }
     auto v_exec = make_temporary_clone(this->get_executor(), v);
-    this->compute_components(v_exec.get(), basis_local, has_constant);
-    this->subtract_components(v_exec.get(), v_exec.get(), basis_local,
-                              has_constant);
+    this->compute_components(v_exec.get(), basis, has_constant);
+    this->subtract_components(v_exec.get(), v_exec.get(), basis, has_constant);
 }
 
 
 template <typename ValueType>
-void Nullspace<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Nullspace<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                      AbstractMultiVector* x) const
 {
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            // x = b - V C with the components C of b, without copying b first
-            const auto basis_local = this->get_local_basis(dense_b);
-            if (!contains_constant_ && !basis_local) {
-                dense_x->copy_from(dense_b);
-                return;
-            }
-            this->compute_components(dense_b, basis_local, contains_constant_);
-            this->subtract_components(dense_b, dense_x, basis_local,
-                                      contains_constant_);
-        },
-        b, x);
+    // x = b - V C with the components C of b, without copying b first
+    if (!contains_constant_ && !basis_) {
+        x->copy_from(b);
+        return;
+    }
+    this->compute_components(b, basis_.get(), contains_constant_);
+    this->subtract_components(b, x, basis_.get(), contains_constant_);
 }
 
 
 template <typename ValueType>
-void Nullspace<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                      const LinOp* beta, LinOp* x) const
+void Nullspace<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                      const AbstractMultiVector* b,
+                                      const AbstractMultiVector* beta,
+                                      AbstractMultiVector* x) const
 {
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            // x = beta x + alpha (b - V C) with the components C of b
-            const auto basis_local = this->get_local_basis(dense_b);
-            const auto has_components = contains_constant_ || basis_local;
-            if (has_components) {
-                this->compute_components(dense_b, basis_local,
-                                         contains_constant_);
-                coefficients_->scale(dense_alpha);
-            }
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, dense_b);
-            if (has_components) {
-                this->subtract_components(dense_x, dense_x, basis_local,
-                                          contains_constant_);
-            }
-        },
-        alpha, b, beta, x);
+    // x = beta x + alpha (b - V C) with the components C of b
+    const auto has_components = contains_constant_ || basis_;
+    if (has_components) {
+        this->compute_components(b, basis_.get(), contains_constant_);
+        coefficients_->scale(alpha);
+    }
+    x->scale(beta);
+    x->add_scaled(alpha, b);
+    if (has_components) {
+        this->subtract_components(x, x, basis_.get(), contains_constant_);
+    }
 }
 
 
@@ -543,7 +473,7 @@ std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
                 name_demangling::get_type_name(typeid(Nullspace<ValueType>)) +
                 " matching the value type of the operator, or a "
                 "constant-only Nullspace, got " +
-                type_name_of(param.get()));
+                name_demangling::get_type_name(typeid(param.get())));
     }
     if (!ns->get_basis()) {
         // all basis vectors were dropped, there is nothing to remove
@@ -555,13 +485,14 @@ std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
                                 "system_matrix", size, size,
                                 "expected a nullspace of matching size");
     }
-    if (gko::detail::is_distributed(op) &&
-        !gko::detail::is_distributed(ns->get_basis().get())) {
+    if (dynamic_cast<const experimental::distributed::DistributedBase*>(op) &&
+        !dynamic_cast<const experimental::distributed::DistributedBase*>(
+            ns->get_basis().get())) {
         throw InvalidStateError(
             __FILE__, __LINE__, __func__,
             std::string{"the "} + name +
                 " of a distributed operator needs a distributed basis, got " +
-                type_name_of(ns->get_basis().get()));
+                name_demangling::get_type_name(typeid(ns->get_basis().get())));
     }
     // a separate copy keeps the scratch buffers of operators generated from
     // the same parameter apart

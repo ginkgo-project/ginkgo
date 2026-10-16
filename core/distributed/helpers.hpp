@@ -58,7 +58,7 @@ const matrix::MultiVector<ValueType>* get_local(const Vector<ValueType>* mtx)
 template <typename ValueType>
 void all_reduce_sum(const experimental::mpi::communicator& comm,
                     matrix::MultiVector<ValueType>* values,
-                    const DenseCache<ValueType>& host_buffer)
+                    const gko::detail::DenseCache<ValueType>& host_buffer)
 {
     GKO_ASSERT(values->get_stride() == values->get_size()[1] ||
                values->get_size()[0] <= 1);

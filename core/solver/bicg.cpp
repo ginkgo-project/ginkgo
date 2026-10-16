@@ -11,8 +11,8 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/solver/bicg_kernels.hpp"
@@ -95,169 +95,166 @@ std::unique_ptr<LinOp> conj_transpose_with_csr(const LinOp* mtx)
 
 
 template <typename ValueType>
-void Bicg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Bicg<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                 AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
+
+    precision_dispatch<ValueType>(
+        [this](auto converted_b, auto converted_x) {
+            auto dense_b = as<matrix::MultiVector<ValueType>>(converted_b);
+            auto dense_x = as<matrix::MultiVector<ValueType>>(converted_x);
+
+            using std::swap;
+            using Vector = matrix::MultiVector<ValueType>;
+            constexpr uint8 RelativeStoppingId{1};
+
+            auto exec = this->get_executor();
+            this->setup_workspace();
+
+            GKO_SOLVER_VECTOR(r, dense_b);
+            GKO_SOLVER_VECTOR(z, dense_b);
+            GKO_SOLVER_VECTOR(p, dense_b);
+            GKO_SOLVER_VECTOR(q, dense_b);
+            GKO_SOLVER_VECTOR(r2, dense_b);
+            GKO_SOLVER_VECTOR(z2, dense_b);
+            GKO_SOLVER_VECTOR(p2, dense_b);
+            GKO_SOLVER_VECTOR(q2, dense_b);
+
+            GKO_SOLVER_SCALAR(beta, dense_b);
+            GKO_SOLVER_SCALAR(prev_rho, dense_b);
+            GKO_SOLVER_SCALAR(rho, dense_b);
+
+            GKO_SOLVER_ONE_MINUS_ONE();
+
+            bool one_changed{};
+            GKO_SOLVER_STOP_REDUCTION_ARRAYS(converted_b->get_size()[1]);
+
+            // rho = 0.0
+            // prev_rho = 1.0
+            // z = p = q = 0
+            // r = r2 = dense_b
+            // z2 = p2 = q2 = 0
+            exec->run(bicg::make_initialize(
+                dense_b->get_const_device_view(), r->get_device_view(),
+                z->get_device_view(), p->get_device_view(),
+                q->get_device_view(), prev_rho->get_device_view(),
+                rho->get_device_view(), r2->get_device_view(),
+                z2->get_device_view(), p2->get_device_view(),
+                q2->get_device_view(), stop_status));
+
+            std::unique_ptr<LinOp> conj_trans_A;
+            auto conj_transposable_system_matrix =
+                dynamic_cast<const Transposable*>(
+                    this->get_system_matrix().get());
+
+            if (conj_transposable_system_matrix) {
+                conj_trans_A =
+                    conj_transposable_system_matrix->conj_transpose();
+            } else {
+                // TODO Extend when adding more IndexTypes
+                // Try to figure out the IndexType that can be used for the CSR
+                // matrix
+                using Csr32 = matrix::Csr<ValueType, int32>;
+                using Csr64 = matrix::Csr<ValueType, int64>;
+                auto supports_int64 = dynamic_cast<const ConvertibleTo<Csr64>*>(
+                    this->get_system_matrix().get());
+                if (supports_int64) {
+                    conj_trans_A = conj_transpose_with_csr<Csr64>(
+                        this->get_system_matrix().get());
+                } else {
+                    conj_trans_A = conj_transpose_with_csr<Csr32>(
+                        this->get_system_matrix().get());
+                }
+            }
+
+            auto conj_trans_preconditioner =
+                as<const Transposable>(this->get_preconditioner())
+                    ->conj_transpose();
+
+            // r = r - Ax
+            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
+            // r2 = r
+            r2->copy_from(r);
+            auto stop_criterion = this->get_stop_criterion_factory()->generate(
+                this->get_system_matrix(),
+                std::shared_ptr<const Vector>(dense_b, [](const Vector*) {}),
+                dense_x, r);
+
+            int iter = -1;
+
+            /* Memory movement summary:
+             * 28n * values + matrix/preconditioner storage + conj storage
+             * 2x SpMV:                4n * values + storage + conj storage
+             * 2x Preconditioner:      4n * values + storage + conj storage
+             * 2x dot                  4n
+             * 1x step 1 (axpys)       6n
+             * 1x step 2 (axpys)       9n
+             * 1x norm2 residual        n
+             */
+            while (true) {
+                this->get_preconditioner()->apply(r, z);
+                conj_trans_preconditioner->apply(r2, z2);
+                z->compute_conj_dot(r2, rho, reduction_tmp);
+
+                ++iter;
+                bool all_stopped = stop_criterion->update()
+                                       .num_iterations(iter)
+                                       .residual(r)
+                                       .implicit_sq_residual_norm(rho)
+                                       .solution(dense_x)
+                                       .check(RelativeStoppingId, true,
+                                              &stop_status, &one_changed);
+                this->template log<log::Logger::iteration_complete>(
+                    this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
+                    all_stopped);
+                if (all_stopped) {
+                    break;
+                }
+
+                // tmp = rho / prev_rho
+                // p = z + tmp * p
+                // p2 = z2 + tmp * p2
+                exec->run(bicg::make_step_1(
+                    p->get_device_view(), z->get_const_device_view(),
+                    p2->get_device_view(), z2->get_const_device_view(),
+                    rho->get_const_device_view(),
+                    prev_rho->get_const_device_view(), stop_status));
+                // q = A * p
+                this->get_system_matrix()->apply(p, q);
+                // q2 = A^T * p2
+                conj_trans_A->apply(p2, q2);
+                // beta = dot(p2, q)
+                p2->compute_conj_dot(q, beta, reduction_tmp);
+                // tmp = rho / beta
+                // x = x + tmp * p
+                // r = r - tmp * q
+                // r2 = r2 - tmp * q2
+                exec->run(bicg::make_step_2(
+                    dense_x->get_device_view(), r->get_device_view(),
+                    r2->get_device_view(), p->get_const_device_view(),
+                    q->get_const_device_view(), q2->get_const_device_view(),
+                    beta->get_const_device_view(), rho->get_const_device_view(),
+                    stop_status));
+                swap(prev_rho, rho);
+            }
         },
         b, x);
 }
 
 
 template <typename ValueType>
-void Bicg<ValueType>::apply_dense_impl(
-    const matrix::MultiVector<ValueType>* dense_b,
-    matrix::MultiVector<ValueType>* dense_x) const
-{
-    using std::swap;
-    using Vector = matrix::MultiVector<ValueType>;
-    constexpr uint8 RelativeStoppingId{1};
-
-    auto exec = this->get_executor();
-    this->setup_workspace();
-
-    GKO_SOLVER_VECTOR(r, dense_b);
-    GKO_SOLVER_VECTOR(z, dense_b);
-    GKO_SOLVER_VECTOR(p, dense_b);
-    GKO_SOLVER_VECTOR(q, dense_b);
-    GKO_SOLVER_VECTOR(r2, dense_b);
-    GKO_SOLVER_VECTOR(z2, dense_b);
-    GKO_SOLVER_VECTOR(p2, dense_b);
-    GKO_SOLVER_VECTOR(q2, dense_b);
-
-    GKO_SOLVER_SCALAR(beta, dense_b);
-    GKO_SOLVER_SCALAR(prev_rho, dense_b);
-    GKO_SOLVER_SCALAR(rho, dense_b);
-
-    GKO_SOLVER_ONE_MINUS_ONE();
-
-    bool one_changed{};
-    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
-
-    // rho = 0.0
-    // prev_rho = 1.0
-    // z = p = q = 0
-    // r = r2 = dense_b
-    // z2 = p2 = q2 = 0
-    exec->run(bicg::make_initialize(
-        dense_b->get_const_device_view(), r->get_device_view(),
-        z->get_device_view(), p->get_device_view(), q->get_device_view(),
-        prev_rho->get_device_view(), rho->get_device_view(),
-        r2->get_device_view(), z2->get_device_view(), p2->get_device_view(),
-        q2->get_device_view(), stop_status));
-
-    std::unique_ptr<LinOp> conj_trans_A;
-    auto conj_transposable_system_matrix =
-        dynamic_cast<const Transposable*>(this->get_system_matrix().get());
-
-    if (conj_transposable_system_matrix) {
-        conj_trans_A = conj_transposable_system_matrix->conj_transpose();
-    } else {
-        // TODO Extend when adding more IndexTypes
-        // Try to figure out the IndexType that can be used for the CSR matrix
-        using Csr32 = matrix::Csr<ValueType, int32>;
-        using Csr64 = matrix::Csr<ValueType, int64>;
-        auto supports_int64 = dynamic_cast<const ConvertibleTo<Csr64>*>(
-            this->get_system_matrix().get());
-        if (supports_int64) {
-            conj_trans_A =
-                conj_transpose_with_csr<Csr64>(this->get_system_matrix().get());
-        } else {
-            conj_trans_A =
-                conj_transpose_with_csr<Csr32>(this->get_system_matrix().get());
-        }
-    }
-
-    auto conj_trans_preconditioner =
-        as<const Transposable>(this->get_preconditioner())->conj_transpose();
-
-    // r = r - Ax
-    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
-    // r2 = r
-    r2->copy_from(r);
-    auto stop_criterion = this->get_stop_criterion_factory()->generate(
-        this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
-
-    int iter = -1;
-
-    /* Memory movement summary:
-     * 28n * values + matrix/preconditioner storage + conj storage
-     * 2x SpMV:                4n * values + storage + conj storage
-     * 2x Preconditioner:      4n * values + storage + conj storage
-     * 2x dot                  4n
-     * 1x step 1 (axpys)       6n
-     * 1x step 2 (axpys)       9n
-     * 1x norm2 residual        n
-     */
-    while (true) {
-        this->get_preconditioner()->apply(r, z);
-        conj_trans_preconditioner->apply(r2, z2);
-        z->compute_conj_dot(r2, rho, reduction_tmp);
-
-        ++iter;
-        bool all_stopped =
-            stop_criterion->update()
-                .num_iterations(iter)
-                .residual(r)
-                .implicit_sq_residual_norm(rho)
-                .solution(dense_x)
-                .check(RelativeStoppingId, true, &stop_status, &one_changed);
-        this->template log<log::Logger::iteration_complete>(
-            this, dense_b, dense_x, iter, r, nullptr, rho, &stop_status,
-            all_stopped);
-        if (all_stopped) {
-            break;
-        }
-
-        // tmp = rho / prev_rho
-        // p = z + tmp * p
-        // p2 = z2 + tmp * p2
-        exec->run(bicg::make_step_1(
-            p->get_device_view(), z->get_const_device_view(),
-            p2->get_device_view(), z2->get_const_device_view(),
-            rho->get_const_device_view(), prev_rho->get_const_device_view(),
-            stop_status));
-        // q = A * p
-        this->get_system_matrix()->apply(p, q);
-        // q2 = A^T * p2
-        conj_trans_A->apply(p2, q2);
-        // beta = dot(p2, q)
-        p2->compute_conj_dot(q, beta, reduction_tmp);
-        // tmp = rho / beta
-        // x = x + tmp * p
-        // r = r - tmp * q
-        // r2 = r2 - tmp * q2
-        exec->run(bicg::make_step_2(
-            dense_x->get_device_view(), r->get_device_view(),
-            r2->get_device_view(), p->get_const_device_view(),
-            q->get_const_device_view(), q2->get_const_device_view(),
-            beta->get_const_device_view(), rho->get_const_device_view(),
-            stop_status));
-        swap(prev_rho, rho);
-    }
-}
-
-
-template <typename ValueType>
-void Bicg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                 const LinOp* beta, LinOp* x) const
+void Bicg<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                 const AbstractMultiVector* b,
+                                 const AbstractMultiVector* beta,
+                                 AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
-        },
-        alpha, b, beta, x);
+    LinOp::apply_impl(alpha, b, beta, x);
 }
 
 

@@ -184,10 +184,13 @@ protected:
     Factorization(std::unique_ptr<Composition<ValueType>> factors,
                   storage_type type);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
 private:
     storage_type storage_type_;
