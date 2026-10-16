@@ -564,6 +564,11 @@ void run2d_col_reduction(std::shared_ptr<gko::EXEC_TYPE> exec)
         for (auto num_cols :
              {0, 1, 2, 3, 4, 5, 7, 8, 9, 16, 31, 32, 63, 127, 128, 129,
               65535 * 128 + 1 /* check for exceeding the gridDim.y limit */}) {
+#ifdef GINKGO_FAST_TESTS
+            if (num_rows > 100 && num_cols > 65535 * 128) {
+                continue;
+            }
+#endif
             SCOPED_TRACE(std::to_string(num_rows) + " rows, " +
                          std::to_string(num_cols) + " cols");
             gko::array<int64> host_ref{exec->get_master(),
