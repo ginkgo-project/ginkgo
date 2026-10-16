@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -41,7 +41,7 @@ deferred_factory_parameter<gko::LinOpFactory> parse<LinOpFactoryType::Isai>(
 {
     auto updated = update_type(config, td);
     if (auto& obj = config.get("isai_type")) {
-        auto str = obj.get_string();
+        const auto& str = obj.get_string();
         if (str == "lower") {
             return dispatch<
                 gko::LinOpFactory,

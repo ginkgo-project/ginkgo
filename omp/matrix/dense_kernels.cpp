@@ -145,7 +145,6 @@ void convert_to_coo(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
-    auto num_nonzeros = result.num_stored_elements;
 
     auto row_idxs = result.row_idxs;
     auto col_idxs = result.col_idxs;
@@ -177,7 +176,6 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
 {
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
-    auto num_nonzeros = result.num_stored_elements;
 
     auto row_ptrs = result.row_ptrs;
     auto col_idxs = result.col_idxs;

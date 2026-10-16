@@ -43,8 +43,6 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type row = 0; row < num_rows; row++) {
         const auto factor_begin = factor_row_ptrs[row];
         const auto factor_end = factor_row_ptrs[row + 1];
-        const auto mtx_begin = mtx_row_ptrs[row];
-        const auto mtx_end = mtx_row_ptrs[row + 1];
         std::fill(factor_vals + factor_begin, factor_vals + factor_end,
                   zero<ValueType>());
         matrix::csr::device_sparsity_lookup<IndexType> lookup{
@@ -148,8 +146,6 @@ void symbolic_factorize_simple(
             lookup_storage,  lookup_descs, row};
         const auto factor_begin = factor_row_ptrs[row];
         const auto factor_end = factor_row_ptrs[row + 1];
-        const auto mtx_begin = row_ptrs[row];
-        const auto mtx_end = row_ptrs[row + 1];
         // initialize the row
         std::fill(factor_vals + factor_begin, factor_vals + factor_end,
                   zero<float>());
@@ -165,7 +161,6 @@ void symbolic_factorize_simple(
         for (auto lower_nz = factor_begin; lower_nz < row_diag; lower_nz++) {
             const auto dep = factor_cols[lower_nz];
             const auto dep_diag_idx = diag_idxs[dep];
-            const auto dep_diag = factor_vals[dep_diag_idx];
             const auto dep_end = factor_row_ptrs[dep + 1];
             if (factor_vals[lower_nz] == one<float>()) {
                 for (auto dep_nz = dep_diag_idx + 1; dep_nz < dep_end;

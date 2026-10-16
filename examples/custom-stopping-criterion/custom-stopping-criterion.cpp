@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <atomic>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -26,8 +27,8 @@ public:
         /**
          * Boolean set by the user to stop the iteration process
          */
-        std::add_pointer<volatile bool>::type GKO_FACTORY_PARAMETER_SCALAR(
-            stop_iteration_process, nullptr);
+        std::atomic<bool>* GKO_FACTORY_PARAMETER_SCALAR(stop_iteration_process,
+                                                        nullptr);
     };
     GKO_ENABLE_CRITERION_FACTORY(ByInteraction, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);
@@ -58,7 +59,7 @@ protected:
 };
 
 
-void run_solver(volatile bool* stop_iteration_process,
+void run_solver(std::atomic<bool>* stop_iteration_process,
                 std::shared_ptr<gko::Executor> exec)
 {
     // Some shortcuts
@@ -143,7 +144,7 @@ int main(int argc, char* argv[])
     const auto exec = exec_map.at(executor_string)();  // throws if not valid
 
     // Declare a user controlled boolean for the iteration process
-    volatile bool stop_iteration_process{};
+    std::atomic<bool> stop_iteration_process{false};
 
     // Create a new a thread to launch the solver
     std::thread t(run_solver, &stop_iteration_process, exec);

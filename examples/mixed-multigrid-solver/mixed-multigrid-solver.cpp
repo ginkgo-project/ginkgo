@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -19,8 +19,6 @@ int main(int argc, char* argv[])
     using IndexType = int;
     using vec = gko::matrix::Dense<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
-    using fcg = gko::solver::Fcg<ValueType>;
-    using cg = gko::solver::Cg<MixedType>;
     using ir = gko::solver::Ir<ValueType>;
     using ir2 = gko::solver::Ir<MixedType>;
     using mg = gko::solver::Multigrid;
@@ -159,7 +157,6 @@ int main(int argc, char* argv[])
     }
     std::chrono::nanoseconds gen_time(0);
     auto gen_tic = std::chrono::steady_clock::now();
-    // auto solver = solver_gen->generate(A);
     auto solver = multigrid_gen->generate(A);
     exec->synchronize();
     auto gen_toc = std::chrono::steady_clock::now();

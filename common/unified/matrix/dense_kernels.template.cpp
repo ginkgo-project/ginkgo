@@ -189,7 +189,6 @@ void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Diagonal<ValueType>* x,
                      matrix::view::dense<ValueType> y)
 {
-    const auto diag_values = x->get_const_values();
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {
@@ -207,7 +206,6 @@ void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
                      const matrix::Diagonal<ValueType>* x,
                      matrix::view::dense<ValueType> y)
 {
-    const auto diag_values = x->get_const_values();
     run_kernel(
         exec,
         [] GKO_KERNEL(auto i, auto alpha, auto diag, auto y) {

@@ -38,7 +38,7 @@ public:
     cuda_stream(const cuda_stream&) = delete;
 
     /** Move-constructs from an existing stream, which will be emptied. */
-    cuda_stream(cuda_stream&&);
+    cuda_stream(cuda_stream&&) noexcept;
 
     cuda_stream& operator=(const cuda_stream&) = delete;
 
@@ -84,7 +84,7 @@ public:
     hip_stream(const hip_stream&) = delete;
 
     /** Move-constructs from an existing stream, which will be emptied. */
-    hip_stream(hip_stream&&);
+    hip_stream(hip_stream&&) noexcept;
 
     hip_stream& operator=(const hip_stream&) = delete;
 

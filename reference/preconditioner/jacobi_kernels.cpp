@@ -607,7 +607,6 @@ void transpose_jacobi(
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
-    const size_type matrix_size = ptrs[num_blocks];
 
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group_ofs = storage_scheme.get_group_offset(i);
@@ -643,7 +642,6 @@ void conj_transpose_jacobi(
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
-    const size_type matrix_size = ptrs[num_blocks];
 
     for (size_type i = 0; i < num_blocks; ++i) {
         const auto group_ofs = storage_scheme.get_group_offset(i);

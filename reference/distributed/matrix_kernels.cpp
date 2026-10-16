@@ -39,7 +39,6 @@ void separate_diag_off_diag(
     auto input_vals = input.get_const_values();
     auto row_part_ids = row_partition->get_part_ids();
     auto col_part_ids = col_partition->get_part_ids();
-    auto num_parts = row_partition->get_num_parts();
 
     vector<global_nonzero> diag_entries(exec);
     vector<global_nonzero> off_diag_entries(exec);

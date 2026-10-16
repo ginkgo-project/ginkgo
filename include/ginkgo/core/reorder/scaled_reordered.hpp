@@ -206,11 +206,11 @@ private:
 
         cache_struct(const cache_struct&) {}
 
-        cache_struct(cache_struct&&) {}
+        cache_struct(cache_struct&&) noexcept {}
 
         cache_struct& operator=(const cache_struct&) { return *this; }
 
-        cache_struct& operator=(cache_struct&&) { return *this; }
+        cache_struct& operator=(cache_struct&&) noexcept { return *this; }
 
         std::unique_ptr<matrix::Dense<value_type>> inner_b{};
         std::unique_ptr<matrix::Dense<value_type>> inner_x{};

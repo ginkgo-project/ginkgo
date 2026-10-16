@@ -303,8 +303,6 @@ void initialize(std::shared_ptr<const OmpExecutor> exec,
                 matrix::view::dense<ValueType> givens_cos,
                 array<stopping_status>& stop_status, size_type krylov_dim)
 {
-    using rc_vtype = remove_complex<ValueType>;
-
     for (size_type j = 0; j < b.size[1]; ++j) {
 #pragma omp parallel for
         for (size_type i = 0; i < b.size[0]; ++i) {

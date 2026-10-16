@@ -40,7 +40,7 @@ hip_stream::~hip_stream()
 }
 
 
-hip_stream::hip_stream(hip_stream&& other)
+hip_stream::hip_stream(hip_stream&& other) noexcept
     : stream_{std::exchange(other.stream_, nullptr)},
       device_id_{std::exchange(other.device_id_, 0)}
 {}

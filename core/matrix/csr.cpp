@@ -261,12 +261,9 @@ Csr<ValueType, IndexType>::create_const(
     gko::detail::const_array_view<IndexType>&& row_ptrs,
     std::shared_ptr<strategy_type> strategy)
 {
-    return create_const(
-        std::move(exec), size,
-        std::forward<gko::detail::const_array_view<ValueType>>(values),
-        std::forward<gko::detail::const_array_view<IndexType>>(col_idxs),
-        std::forward<gko::detail::const_array_view<IndexType>>(row_ptrs),
-        get_strategy_enum<Csr>(strategy));
+    return create_const(std::move(exec), size, std::move(values),
+                        std::move(col_idxs), std::move(row_ptrs),
+                        get_strategy_enum<Csr>(strategy));
 }
 
 
@@ -393,7 +390,6 @@ Csr<ValueType, IndexType>::Csr(Csr<ValueType, IndexType>&& other)
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM
@@ -517,8 +513,6 @@ template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
                                            const LinOp* beta, LinOp* x) const
 {
-    using ComplexDense = Dense<to_complex<ValueType>>;
-    using RealDense = Dense<remove_complex<ValueType>>;
     using TCsr = Csr<ValueType, IndexType>;
     if (auto b_csr = dynamic_cast<const TCsr*>(b)) {
         // if b is a CSR matrix, we compute a SpGeMM

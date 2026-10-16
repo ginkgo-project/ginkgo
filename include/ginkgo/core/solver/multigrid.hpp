@@ -600,11 +600,11 @@ private:
 
         cache_struct(const cache_struct&) {}
 
-        cache_struct(cache_struct&&) {}
+        cache_struct(cache_struct&&) noexcept {}
 
         cache_struct& operator=(const cache_struct&) { return *this; }
 
-        cache_struct& operator=(cache_struct&&) { return *this; }
+        cache_struct& operator=(cache_struct&&) noexcept { return *this; }
 
         // unique_ptr with default destructor does not work with the incomplete
         // type.

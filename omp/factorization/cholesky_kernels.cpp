@@ -40,7 +40,6 @@ void symbolic_count(std::shared_ptr<const DefaultExecutor> exec,
     const auto row_ptrs = mtx.row_ptrs;
     const auto cols = mtx.col_idxs;
     const auto inv_postorder = forest.inv_postorder.get_const_data();
-    const auto postorder = forest.postorder.get_const_data();
     const auto postorder_parent = forest.postorder_parents.get_const_data();
     tmp_storage.resize_and_reset(mtx.num_stored_elements + num_rows);
     const auto postorder_cols = tmp_storage.get_data();
@@ -105,7 +104,6 @@ void symbolic_factorize(
 #pragma omp parallel for
     for (IndexType row = 0; row < num_rows; row++) {
         const auto row_begin = row_ptrs[row];
-        const auto row_end = row_ptrs[row + 1];
         // instead of relying on the input containing a diagonal, we
         // artificially introduce the diagonal entry (in postorder indexing) as
         // a sentinel after the last lower triangular entry.

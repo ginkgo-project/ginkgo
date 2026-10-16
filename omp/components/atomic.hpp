@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -189,7 +189,7 @@ inline double load(double* addr)
 
 inline int32 load(int32* addr)
 {
-    float val;
+    int32 val;
 #pragma omp atomic read
     val = *addr;
     return val;
@@ -197,7 +197,7 @@ inline int32 load(int32* addr)
 
 inline int64 load(int64* addr)
 {
-    float val;
+    int64 val;
 #pragma omp atomic read
     val = *addr;
     return val;

@@ -99,11 +99,6 @@ public:
         return inv_permutation_;
     }
 
-    /*const array<index_type>& get_permutation_array() const override
-    {
-        return permutation_array_;
-    }*/
-
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
         /**

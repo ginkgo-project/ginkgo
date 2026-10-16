@@ -389,7 +389,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     auto tmp_row_partition = make_temporary_clone(exec, row_partition);
     auto tmp_col_partition = make_temporary_clone(exec, col_partition);
 

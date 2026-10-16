@@ -88,7 +88,6 @@ void compute_coarse_coo(std::shared_ptr<const DefaultExecutor> exec,
     auto coarse_row = coarse_coo.row_idxs;
     auto coarse_col = coarse_coo.col_idxs;
     auto coarse_val = coarse_coo.values;
-    size_type idxs = 0;
     size_type coarse_idxs = 0;
     IndexType curr_row = row_idxs[0];
     IndexType curr_col = col_idxs[0];

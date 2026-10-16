@@ -197,7 +197,6 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
     auto excess_lim = excess_limit == 0 ? total_excess_dim : excess_limit;
     // if we had long rows:
     if (total_excess_dim > 0) {
-        bool done = false;
         size_type block = 0;
         while (block < num_rows) {
             // build the excess sparse triangular system

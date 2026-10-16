@@ -252,7 +252,7 @@ int main(int argc, char* argv[])
     std::cout << "Lp * Lp -> Hp time(s): " << lplp_sec << std::endl;
     std::cout << "Lp * Lp -> Hp relative error: "
               << lplp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
-    std::cout << "Lp * Hp -> Hp time(s): " << lplp_sec << std::endl;
+    std::cout << "Lp * Hp -> Hp time(s): " << lphp_sec << std::endl;
     std::cout << "Lp * Hp -> Hp relative error: "
               << lphp_diff_norm->at(0) / hp_x_norm->at(0) << "\n";
 }

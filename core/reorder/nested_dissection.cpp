@@ -71,7 +71,6 @@ void metis_nd(std::shared_ptr<const Executor> host_exec, size_type num_rows,
               const std::array<idx_t, METIS_NOPTIONS>& options, IndexType* perm,
               IndexType* iperm)
 {
-    auto nvtxs = static_cast<idx_t>(num_rows);
     vector<idx_t> tmp_row_ptrs(row_ptrs, row_ptrs + num_rows + 1, {host_exec});
     vector<idx_t> tmp_col_idxs(col_idxs, col_idxs + row_ptrs[num_rows],
                                {host_exec});

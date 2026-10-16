@@ -840,6 +840,8 @@ public:
  */
 class AbsoluteComputable {
 public:
+    virtual ~AbsoluteComputable() = default;
+
     /**
      * Gets the absolute LinOp
      *
@@ -892,6 +894,8 @@ public:
  */
 class ScaledIdentityAddable {
 public:
+    virtual ~ScaledIdentityAddable() = default;
+
     /**
      * Scales this and adds another scalar times the identity to it.
      *

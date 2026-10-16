@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -518,6 +519,23 @@ TYPED_TEST(Bicg, SolvesNonSymmetricStencilSystem)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
     auto solver = this->bicg_factory->generate(this->mtx_non_symmetric);
+    auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({1.0, 3.0, 2.0}), r<value_type>::value * 1e2);
+}
+
+
+TYPED_TEST(Bicg, SolvesNonSymmetricStencilSystemWithNonTransposableMatrix)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using Ell = gko::matrix::Ell<value_type, gko::int32>;
+    auto ell = gko::share(Ell::create(this->exec));
+    this->mtx_non_symmetric->convert_to(ell);
+    auto solver = this->bicg_factory->generate(ell);
     auto b = gko::initialize<Mtx>({13.0, 7.0, 1.0}, this->exec);
     auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0}, this->exec);
 

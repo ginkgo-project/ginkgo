@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -44,13 +44,13 @@ time_point::~time_point()
 }
 
 
-time_point::time_point(time_point&& other)
+time_point::time_point(time_point&& other) noexcept
     : type_{std::exchange(other.type_, type::cpu)},
       data_{std::exchange(other.data_, decltype(data_){})}
 {}
 
 
-time_point& time_point::operator=(time_point&& other)
+time_point& time_point::operator=(time_point&& other) noexcept
 {
     // make sure we release the data via other
     std::swap(type_, other.type_);

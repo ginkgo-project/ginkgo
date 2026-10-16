@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -129,7 +129,6 @@ inline void batch_entry_cg_impl(
     ValueType rho_old[max_num_rhs];
     ValueType rho_new[max_num_rhs];
     ValueType alpha[max_num_rhs];
-    ValueType temp[max_num_rhs];
     real_type norms_rhs[max_num_rhs];
     real_type norms_res[max_num_rhs];
 

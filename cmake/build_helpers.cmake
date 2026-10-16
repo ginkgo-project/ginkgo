@@ -23,7 +23,7 @@ function(ginkgo_compile_features name)
     if(GINKGO_WITH_CLANG_TIDY AND GINKGO_CLANG_TIDY_PATH)
         set_property(
             TARGET "${name}"
-            PROPERTY CXX_CLANG_TIDY "${GINKGO_CLANG_TIDY_PATH};-checks=*"
+            PROPERTY CXX_CLANG_TIDY "${GINKGO_CLANG_TIDY_PATH}"
         )
     endif()
     if(GINKGO_WITH_IWYU AND GINKGO_IWYU_PATH)

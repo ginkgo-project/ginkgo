@@ -66,7 +66,7 @@ void validate_permute_dimensions(dim<2> size, dim<2> permutation_size,
                 __FILE__, __LINE__, __func__, "matrix", size[0], size[1],
                 "permutation", permutation_size[0], permutation_size[0],
                 "expected the permutation size to match the number of rows");
-        };
+        }
     }
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         if (size[1] != permutation_size[0]) {
@@ -74,7 +74,7 @@ void validate_permute_dimensions(dim<2> size, dim<2> permutation_size,
                 __FILE__, __LINE__, __func__, "matrix", size[0], size[1],
                 "permutation", permutation_size[0], permutation_size[0],
                 "expected the permutation size to match the number of columns");
-        };
+        }
     }
 }
 

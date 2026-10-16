@@ -275,7 +275,7 @@ inline std::enable_if_t<
     solver::initial_guess_mode>
 get_value(const pnode& config)
 {
-    auto val = config.get_string();
+    const auto& val = config.get_string();
     if (val == "zero") {
         return solver::initial_guess_mode::zero;
     } else if (val == "rhs") {
@@ -304,7 +304,7 @@ get_value(const pnode& config)
 template <typename Csr>
 inline matrix::csr::spmv_strategy get_strategy(const pnode& config)
 {
-    auto str = config.get_string();
+    const auto& str = config.get_string();
     if (str == "sparselib") {
         return matrix::csr::spmv_strategy::sparselib;
     } else if (str == "merge_path") {

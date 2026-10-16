@@ -45,7 +45,6 @@ template <typename ValueType, typename IndexType>
 void Rs<ValueType, IndexType>::generate()
 {
     using csr_type = matrix::Csr<ValueType, IndexType>;
-    using real_type = remove_complex<ValueType>;
 
     auto exec = this->get_executor();
     const auto fine_dim = this->system_matrix_->get_size()[0];

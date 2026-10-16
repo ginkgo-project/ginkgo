@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -218,7 +218,7 @@ protected:
      * @return the shared pointer of the object
      */
     template <typename T>
-    std::shared_ptr<T> get_data(std::string key) const;
+    std::shared_ptr<T> get_data(const std::string& key) const;
 
     /**
      * Get the stored build map
@@ -240,7 +240,7 @@ inline bool registry::emplace(std::string key, std::shared_ptr<T> data)
 
 
 template <typename T>
-inline std::shared_ptr<T> registry::get_data(std::string key) const
+inline std::shared_ptr<T> registry::get_data(const std::string& key) const
 {
     return gko::as<T>(stored_map_.at(key)
                           .template get<typename detail::base_type<T>::type>());

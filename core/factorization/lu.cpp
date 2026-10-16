@@ -51,7 +51,7 @@ Lu<ValueType, IndexType>::parse(const config::pnode& config,
             config::get_stored_obj<const sparsity_pattern_type>(obj, context));
     }
     if (auto& obj = config_check.get("symbolic_algorithm")) {
-        auto str = obj.get_string();
+        const auto& str = obj.get_string();
         if (str == "general") {
             params.with_symbolic_algorithm(symbolic_type::general);
         } else if (str == "near_symmetric") {

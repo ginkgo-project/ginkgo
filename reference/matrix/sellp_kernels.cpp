@@ -28,7 +28,6 @@ void spmv(std::shared_ptr<const ReferenceExecutor> exec,
           matrix::view::dense<const ValueType> b,
           matrix::view::dense<ValueType> c)
 {
-    auto col_idxs = a.col_idxs;
     auto slice_lengths = a.slice_lengths;
     auto slice_sets = a.slice_sets;
     auto slice_size = a.slice_size;
@@ -66,8 +65,6 @@ void advanced_spmv(std::shared_ptr<const ReferenceExecutor> exec,
                    matrix::view::dense<const ValueType> beta,
                    matrix::view::dense<ValueType> c)
 {
-    auto vals = a.values;
-    auto col_idxs = a.col_idxs;
     auto slice_lengths = a.slice_lengths;
     auto slice_sets = a.slice_sets;
     auto slice_size = a.slice_size;
@@ -177,10 +174,8 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                    matrix::view::dense<ValueType> result)
 {
     auto num_rows = source.size[0];
-    auto num_cols = source.size[1];
     auto vals = source.values;
     auto col_idxs = source.col_idxs;
-    auto slice_lengths = source.slice_lengths;
     auto slice_sets = source.slice_sets;
     auto slice_size = source.slice_size;
     auto slice_num = ceildiv(source.size[0] + slice_size - 1, slice_size);
@@ -215,8 +210,6 @@ void count_nonzeros_per_row(
     auto slice_size = source.slice_size;
     auto slice_num = ceildiv(num_rows, slice_size);
 
-    const auto vals = source.values;
-    const auto slice_lengths = source.slice_lengths;
     const auto slice_sets = source.slice_sets;
     const auto col_idxs = source.col_idxs;
 
@@ -253,7 +246,6 @@ void convert_to_csr(
     auto slice_num = ceildiv(num_rows, slice_size);
 
     const auto source_vals = source.values;
-    const auto source_slice_lengths = source.slice_lengths;
     const auto source_slice_sets = source.slice_sets;
     const auto source_col_idxs = source.col_idxs;
 
@@ -299,10 +291,8 @@ void extract_diagonal(
     const auto slice_size = orig.slice_size;
     const auto slice_num = ceildiv(orig.size[0], slice_size);
 
-    const auto orig_values = orig.values;
     const auto orig_slice_sets = orig.slice_sets;
     const auto orig_slice_lengths = orig.slice_lengths;
-    const auto orig_col_idxs = orig.col_idxs;
     auto diag_values = diag->get_values();
 
     for (size_type slice = 0; slice < slice_num; slice++) {

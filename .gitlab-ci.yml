@@ -629,19 +629,7 @@ subdir-build:
     CI_PROJECT_PATH_SUFFIX: "/test_subdir"
   allow_failure: no
 
-# Run clang-tidy and iwyu
-clang-tidy:
-  stage: code_quality
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm514-nompi-gnu11-llvm11
-  variables:
-    BUILD_OMP: "ON"
-    EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_CLANG_TIDY=ON'
-  allow_failure: yes
-
+# Run iwyu
 iwyu:
   stage: code_quality
   extends:

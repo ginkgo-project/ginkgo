@@ -327,7 +327,6 @@ void generate_excess_system(
     matrix::view::dense<ValueType> excess_rhs, size_type e_start,
     size_type e_end)
 {
-    const auto num_rows = input.size[0];
     const auto m_row_ptrs = input.row_ptrs;
     const auto m_cols = input.col_idxs;
     const auto m_vals = input.values;

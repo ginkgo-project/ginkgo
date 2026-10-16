@@ -69,6 +69,9 @@ class MultigridState;
  * only be used internally.
  */
 class ApplyWithInitialGuess {
+public:
+    virtual ~ApplyWithInitialGuess() = default;
+
 protected:
     friend class multigrid::detail::MultigridState;
 
@@ -684,6 +687,8 @@ private:
  */
 class IterativeBase {
 public:
+    virtual ~IterativeBase() = default;
+
     /**
      * Gets the stopping criterion factory of the solver.
      *

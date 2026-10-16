@@ -181,7 +181,6 @@ void factorize_impl(std::shared_ptr<const DefaultExecutor> exec,
         }
         ValueType diag = vals[row_diag];
         for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
-            const auto col = cols[lower_nz];
             diag -= squared_norm(vals[lower_nz]);
             // copy the lower triangular entries to the transpose
             vals[transpose_idxs[lower_nz]] = conj(vals[lower_nz]);

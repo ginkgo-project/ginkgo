@@ -48,6 +48,8 @@ std::shared_ptr<gko::log::ProfilerHook> create_profiler_hook(
 
 template <typename State>
 struct Benchmark {
+    virtual ~Benchmark() = default;
+
     /** The name to be used in the JSON output. */
     virtual const std::string& get_name() const = 0;
 

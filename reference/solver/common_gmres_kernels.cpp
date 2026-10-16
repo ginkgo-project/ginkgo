@@ -117,7 +117,6 @@ void initialize(std::shared_ptr<const ReferenceExecutor> exec,
                 stopping_status* stop_status)
 {
     const auto krylov_dim = givens_sin.size[0];
-    using NormValueType = remove_complex<ValueType>;
     for (size_type j = 0; j < b.size[1]; ++j) {
         for (size_type i = 0; i < b.size[0]; ++i) {
             residual(i, j) = b(i, j);

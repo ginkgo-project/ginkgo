@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -74,7 +74,7 @@ inline gko::config::pnode parse_json(const nlohmann::json& input)
 /**
  * parse_json_file takes the json file to generate the property tree object
  */
-inline gko::config::pnode parse_json_file(std::string filename)
+inline gko::config::pnode parse_json_file(const std::string& filename)
 {
     std::ifstream fstream(filename);
     return parse_json(nlohmann::json::parse(fstream));

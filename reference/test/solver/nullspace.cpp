@@ -359,10 +359,12 @@ TYPED_TEST(Nullspace, KeepsSmallScaleBasis)
         gko::sqrt(std::numeric_limits<real>::epsilon()));
     auto ns = gko::solver::Nullspace<value_type>::create(
         this->exec, {this->col({s, s, s, s})});
-    auto v = vec::create(this->exec, gko::dim<2>{4, 1});
-    v->fill(gko::one<value_type>());
-    auto expected = vec::create(this->exec, gko::dim<2>{4, 1});
-    expected->fill(gko::zero<value_type>());
+    auto v = gko::initialize<vec>(
+        {value_type{1}, value_type{2}, value_type{3}, value_type{6}},
+        this->exec);
+    auto expected = gko::initialize<vec>(
+        {value_type{-2}, value_type{-1}, value_type{0}, value_type{3}},
+        this->exec);
 
     ns->project(v);
 
