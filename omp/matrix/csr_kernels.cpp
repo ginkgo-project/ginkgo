@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
 
+#include "accessor/index_limit_checks.hpp"
 #include "core/base/allocator.hpp"
 #include "core/base/index_range.hpp"
 #include "core/base/index_set_kernels.hpp"
@@ -94,10 +95,14 @@ void merge_spmv(std::shared_ptr<const OmpExecutor> exec,
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+        acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(b);
+    auto c_vals =
+        acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
 
     // Merge-SpMV variables
+    // Merge-path combines rows and nonzeros, which can overflow even when
+    // both counts fit individually.
+    GKO_ASSERT(acc::sum_fits<IndexType>(a.size[0], a.num_stored_elements));
     const auto num_rows = static_cast<IndexType>(a.size[0]);
     const auto nnz = static_cast<IndexType>(a.num_stored_elements);
     const auto num_threads = static_cast<IndexType>(omp_get_max_threads());
@@ -181,8 +186,9 @@ void classical_spmv(std::shared_ptr<const OmpExecutor> exec,
     const auto a_vals =
         acc::helper::build_const_rrm_accessor<arithmetic_type>(a);
     const auto b_vals =
-        acc::helper::build_const_rrm_accessor<arithmetic_type>(b);
-    auto c_vals = acc::helper::build_rrm_accessor<arithmetic_type>(c);
+        acc::helper::build_const_rrm_accessor<arithmetic_type, IndexType>(b);
+    auto c_vals =
+        acc::helper::build_rrm_accessor<arithmetic_type, IndexType>(c);
 
 #pragma omp parallel for
     for (size_type row = 0; row < a.size[0]; ++row) {

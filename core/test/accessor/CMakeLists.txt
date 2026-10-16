@@ -30,6 +30,7 @@ function(create_accessor_test test_name)
     )
 endfunction(create_accessor_test)
 
+create_accessor_test(index_limit_checks)
 create_accessor_test(index_span)
 create_accessor_test(range)
 create_accessor_test(math)
