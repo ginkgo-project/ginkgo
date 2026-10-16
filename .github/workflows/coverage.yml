@@ -61,14 +61,16 @@ jobs:
           OMP_NUM_THREADS=1 ctest --test-dir build --output-on-failure --label-regex distributed
 
       # also after failed tests, so that develop keeps its coverage; tests, third-party
-      # and generated code are left out, as are CMake's compiler checks and the device
-      # hooks, which stand in for the GPU backends this build leaves out
+      # and generated code are left out, as are CMake's compiler checks and the code of
+      # the GPU backends this build leaves out: the device hooks standing in for their
+      # kernels, and their executors in devices/
       - name: report
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         run: >-
           gcovr --root . --object-directory build
           --exclude-directories 'build/CMakeFiles/[0-9.]+/' --exclude-directories build/_deps
           --exclude build/ --exclude third_party/ --exclude '(.+/)?test/' --exclude core/device_hooks/
+          --exclude 'devices/(cuda|hip|dpcpp)/'
           -j 4 --cobertura coverage.xml --print-summary
 
       # pull requests from forks get no OIDC token; Codecov accepts their uploads without one
