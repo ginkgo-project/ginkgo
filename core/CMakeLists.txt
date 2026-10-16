@@ -147,6 +147,8 @@ if(GINKGO_HAVE_METIS)
     target_sources(${ginkgo_core} PRIVATE reorder/nested_dissection.cpp)
 endif()
 
+ginkgo_add_umpire_to_target(${ginkgo_core})
+
 if(GINKGO_BUILD_MPI)
     target_sources(
         ${ginkgo_core}

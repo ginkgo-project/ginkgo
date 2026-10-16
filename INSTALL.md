@@ -59,6 +59,12 @@ Ginkgo adds the following additional switches to control what is being built:
     `OFF` otherwise.
 *   `-DCMAKE_HIP_ARCHITECTURES="gpuarch1;gpuarch2"` the AMDGPU targets to be passed to the compiler.
     If empty, compiler chooses based on the available GPUs.
+*   `-DGINKGO_BUILD_UMPIRE={ON, OFF}` enables [Umpire](https://github.com/LLNL/Umpire)-backed
+    memory allocators, default is `OFF`. Requires CMake >= 3.23, `BUILD_SHARED_LIBS=ON` and a
+    compiler for Umpire's headers (C++20 for Umpire 2026.07+, C++17 for 2025.09 to 2025.12).
+    Ginkgo uses an Umpire target from a parent project, otherwise an installation of 2025.09 or
+    newer (point `-DCMAKE_PREFIX_PATH` or `-Dumpire_DIR` at it); it does not fetch Umpire. To
+    share pools with an application, build Ginkgo against that application's Umpire.
 *   `-DGINKGO_BUILD_DOC={ON, OFF}` creates an HTML version of Ginkgo's documentation
     from inline comments in the code. The default is `OFF`.
 *   `-DGINKGO_DOC_GENERATE_EXAMPLES={ON, OFF}` generates the documentation of examples
