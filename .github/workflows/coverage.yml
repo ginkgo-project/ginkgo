@@ -38,14 +38,14 @@ jobs:
           key: ccache-coverage-${{ github.run_id }}
           restore-keys: ccache-coverage-
 
-      # -O0 without debug information, which gcov doesn't need; atomic counters, since
-      # the OpenMP kernels update them from several threads
+      # -O0 without debug information, which gcov doesn't need; GCC already makes the
+      # counters atomic in the sources compiled with OpenMP, the only multithreaded ones
       - name: configure
         run: >-
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=-O0
-          "-DCMAKE_CXX_FLAGS=--coverage -fprofile-update=atomic"
+          -DCMAKE_CXX_FLAGS=--coverage
           -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_MPI=ON -DMPIEXEC_MAX_NUMPROCS=8
-          -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_EXAMPLES=OFF
+          -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_FAST_TESTS=ON
 
       - name: build
         id: build
@@ -54,11 +54,17 @@ jobs:
           cmake --build build -j4
           ccache --show-stats
 
-      # MPI tests run one at a time after the other tests
+      # MPI tests run one at a time after the other tests, even if some of those failed
       - name: test
+        env:
+          # threads updating the same coverage counters slow each other down, and gcov
+          # doesn't count the lines inside OpenMP parallel regions anyway
+          OMP_NUM_THREADS: 1
         run: |
-          ctest --test-dir build -j4 --output-on-failure --label-exclude distributed
-          OMP_NUM_THREADS=1 ctest --test-dir build --output-on-failure --label-regex distributed
+          status=0
+          ctest --test-dir build -j4 --output-on-failure --label-exclude distributed || status=1
+          ctest --test-dir build --output-on-failure --label-regex distributed || status=1
+          exit $status
 
       # also after failed tests, so that develop keeps its coverage; tests, third-party
       # and generated code are left out, as are CMake's compiler checks and the code of
@@ -73,13 +79,15 @@ jobs:
           --exclude 'devices/(cuda|hip|dpcpp)/'
           -j 4 --cobertura coverage.xml --print-summary
 
-      # pull requests from forks get no OIDC token; Codecov accepts their uploads without one
+      # the uploader's plugins are off, so it doesn't run gcov again on every object file;
+      # pull requests from forks get no OIDC token, and Codecov accepts their uploads without one
       - name: upload to Codecov
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: codecov/codecov-action@v5
         with:
           files: coverage.xml
           disable_search: true
+          plugins: noop
           use_oidc: ${{ !github.event.pull_request.head.repo.fork }}
           fail_ci_if_error: ${{ github.event_name == 'push' }}
 
