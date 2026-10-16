@@ -1,5 +1,7 @@
+# Coverage comes from .github/workflows/coverage.yml.
 coverage:
   status:
+    # shown on pull requests without failing them
     patch:
       default:
         target: auto
@@ -11,6 +13,11 @@ coverage:
         target: auto
         threshold: 2
         base: auto
+        informational: True
   ignore:
     - "examples"
     - "benchmark"
+parsers:
+  cobertura:
+    # line coverage: a line counts as covered even if some of its branches were not taken
+    partials_as_hits: true
