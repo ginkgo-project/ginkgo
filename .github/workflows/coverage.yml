@@ -1,0 +1,89 @@
+name: coverage
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    name: coverage of the reference, OpenMP and MPI code
+    runs-on: [ubuntu-24.04]
+    timeout-minutes: 300
+    permissions:
+      contents: read
+      # the upload to Codecov authenticates with GitHub's OIDC token, so no secret is needed
+      id-token: write
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 1G
+      # the runner has 4 cores, but some MPI tests use up to 8 processes
+      OMPI_MCA_rmaps_base_oversubscribe: 1
+    steps:
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v4
+
+      - name: setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache libopenmpi-dev openmpi-bin gcovr
+
+      # only pushes save the cache, so pull requests start from the latest develop build
+      - name: restore ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: .ccache
+          key: ccache-coverage-${{ github.run_id }}
+          restore-keys: ccache-coverage-
+
+      # -O0 without debug information, which gcov doesn't need; atomic counters, since
+      # the OpenMP kernels update them from several threads
+      - name: configure
+        run: >-
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=-O0
+          "-DCMAKE_CXX_FLAGS=--coverage -fprofile-update=atomic"
+          -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_MPI=ON -DMPIEXEC_MAX_NUMPROCS=8
+          -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_EXAMPLES=OFF
+
+      - name: build
+        id: build
+        run: |
+          ccache --zero-stats
+          cmake --build build -j4
+          ccache --show-stats
+
+      # MPI tests run one at a time after the other tests
+      - name: test
+        run: |
+          ctest --test-dir build -j4 --output-on-failure --label-exclude distributed
+          OMP_NUM_THREADS=1 ctest --test-dir build --output-on-failure --label-regex distributed
+
+      # also after failed tests, so that develop keeps its coverage; tests, third-party
+      # and generated code are left out, as are CMake's compiler checks and the device
+      # hooks, which stand in for the GPU backends this build leaves out
+      - name: report
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: >-
+          gcovr --root . --object-directory build
+          --exclude-directories 'build/CMakeFiles/[0-9.]+/' --exclude-directories build/_deps
+          --exclude build/ --exclude third_party/ --exclude '(.+/)?test/' --exclude core/device_hooks/
+          -j 4 --cobertura coverage.xml --print-summary
+
+      # pull requests from forks get no OIDC token; Codecov accepts their uploads without one
+      - name: upload to Codecov
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          disable_search: true
+          use_oidc: ${{ !github.event.pull_request.head.repo.fork }}
+          fail_ci_if_error: ${{ github.event_name == 'push' }}
+
+      - name: save ccache
+        if: ${{ always() && github.event_name == 'push' }}
+        uses: actions/cache/save@v4
+        with:
+          path: .ccache
+          key: ccache-coverage-${{ github.run_id }}
