@@ -84,8 +84,9 @@ std::unique_ptr<matrix::Permutation<IndexType>> Amd<IndexType>::generate(
 
 template <typename IndexType>
 std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
-    std::shared_ptr<const LinOp> system_matrix) const
+    LinOpGenerateComponents components) const
 {
+    auto system_matrix = std::move(components.system_matrix);
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     const auto exec = this->get_executor();
     const auto host_exec = exec->get_master();
