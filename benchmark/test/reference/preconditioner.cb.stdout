@@ -191,29 +191,37 @@
                         "fine_rows": 1000,
                         "coarse_rows": 391,
                         "coarse_nonzeros": 2523,
-                        "restrict_nonzeros": null,
-                        "prolong_nonzeros": null
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 1000,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 1000
                     },
                     {
                         "fine_rows": 391,
                         "coarse_rows": 192,
                         "coarse_nonzeros": 1234,
-                        "restrict_nonzeros": null,
-                        "prolong_nonzeros": null
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 391,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 391
                     },
                     {
                         "fine_rows": 192,
                         "coarse_rows": 94,
                         "coarse_nonzeros": 592,
-                        "restrict_nonzeros": null,
-                        "prolong_nonzeros": null
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 192,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 192
                     },
                     {
                         "fine_rows": 94,
                         "coarse_rows": 46,
                         "coarse_nonzeros": 294,
-                        "restrict_nonzeros": null,
-                        "prolong_nonzeros": null
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 94,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 94
                     }
                 ],
                 "completed": true
@@ -284,14 +292,18 @@
                         "fine_rows": 1000,
                         "coarse_rows": 344,
                         "coarse_nonzeros": 5250,
+                        "restrict_type": "csr",
                         "restrict_nonzeros": 2179,
+                        "prolong_type": "csr",
                         "prolong_nonzeros": 2179
                     },
                     {
                         "fine_rows": 344,
                         "coarse_rows": 64,
                         "coarse_nonzeros": 1282,
+                        "restrict_type": "csr",
                         "restrict_nonzeros": 718,
+                        "prolong_type": "csr",
                         "prolong_nonzeros": 718
                     }
                 ],
@@ -358,28 +370,36 @@
                         "fine_rows": 1000,
                         "coarse_rows": 500,
                         "coarse_nonzeros": 3100,
+                        "restrict_type": "csr",
                         "restrict_nonzeros": 1000,
+                        "prolong_type": "csr",
                         "prolong_nonzeros": 1000
                     },
                     {
                         "fine_rows": 500,
                         "coarse_rows": 250,
                         "coarse_nonzeros": 2000,
+                        "restrict_type": "csr",
                         "restrict_nonzeros": 500,
+                        "prolong_type": "csr",
                         "prolong_nonzeros": 500
                     },
                     {
                         "fine_rows": 250,
                         "coarse_rows": 125,
                         "coarse_nonzeros": 1035,
+                        "restrict_type": "csr",
                         "restrict_nonzeros": 250,
+                        "prolong_type": "csr",
                         "prolong_nonzeros": 250
                     },
                     {
                         "fine_rows": 125,
                         "coarse_rows": 63,
                         "coarse_nonzeros": 409,
+                        "restrict_type": "csr",
                         "restrict_nonzeros": 125,
+                        "prolong_type": "csr",
                         "prolong_nonzeros": 125
                     }
                 ],
