@@ -17,28 +17,22 @@
 
 namespace gko {
 namespace preconditioner {
-namespace {
-
-
-// returns the cached vector if it is configured like `like`, otherwise
-// replaces it by a new one
+template <typename ValueType>
 template <typename VectorType>
-VectorType* get_like(std::unique_ptr<LinOp>& cache, const VectorType* like)
+VectorType* NullspaceProjection<ValueType>::workspace_vector_like(
+    int id, const VectorType* like) const
 {
-    auto vec = dynamic_cast<VectorType*>(cache.get());
-    if (!vec || vec->get_executor() != like->get_executor() ||
-        vec->get_size() != like->get_size() ||
-        gko::detail::get_local(vec)->get_size() !=
-            gko::detail::get_local(like)->get_size()) {
-        auto new_vec = gko::detail::create_with_config_of(like);
-        vec = new_vec.get();
-        cache = std::move(new_vec);
-    }
-    return vec;
+    this->set_workspace_size(2, 0);
+    return this->template create_workspace_op_if<VectorType>(
+        id,
+        [like](const VectorType& vec) {
+            return vec.get_executor() != like->get_executor() ||
+                   vec.get_size() != like->get_size() ||
+                   gko::detail::get_local(&vec)->get_size() !=
+                       gko::detail::get_local(like)->get_size();
+        },
+        [like] { return gko::detail::create_with_config_of(like); });
 }
-
-
-}  // anonymous namespace
 
 
 template <typename ValueType>
@@ -73,7 +67,7 @@ NullspaceProjection<ValueType>::parse(
 template <typename ValueType>
 NullspaceProjection<ValueType>::NullspaceProjection(
     std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
+    : LinOp(std::move(exec)), gko::detail::WorkspaceHolder(this->get_executor())
 {}
 
 
@@ -82,6 +76,7 @@ NullspaceProjection<ValueType>::NullspaceProjection(
     const Factory* factory, LinOpGenerateComponents components)
     : LinOp(factory->get_executor(),
             gko::transpose(components.system_matrix->get_size())),
+      gko::detail::WorkspaceHolder(factory->get_executor(), components),
       parameters_{factory->get_parameters()}
 {
     auto system_matrix = std::move(components.system_matrix);
@@ -91,7 +86,9 @@ NullspaceProjection<ValueType>::NullspaceProjection(
     if (parameters_.generated_preconditioner) {
         preconditioner_ = parameters_.generated_preconditioner;
     } else if (parameters_.preconditioner) {
-        preconditioner_ = parameters_.preconditioner->generate(system_matrix);
+        preconditioner_ = gko::detail::generate_with_view(
+            parameters_.preconditioner.get(), system_matrix,
+            this->get_workspace_node()->get_or_create_child("preconditioner"));
     } else {
         preconditioner_ = matrix::Identity<ValueType>::create(exec, size);
     }
@@ -100,10 +97,11 @@ NullspaceProjection<ValueType>::NullspaceProjection(
         preconditioner_ = gko::clone(exec, preconditioner_);
     }
     nullspace_ = solver::detail::prepare_nullspace<ValueType>(
-        parameters_.nullspace, "nullspace", system_matrix.get(), size, exec);
+        parameters_.nullspace, "nullspace", system_matrix.get(), size, exec,
+        this->get_workspace_node());
     left_nullspace_ = solver::detail::prepare_nullspace<ValueType>(
         parameters_.left_nullspace, "left_nullspace", system_matrix.get(), size,
-        exec);
+        exec, this->get_workspace_node());
 }
 
 
@@ -114,6 +112,7 @@ NullspaceProjection<ValueType>::NullspaceProjection(
     std::shared_ptr<const solver::Nullspace<ValueType>> nullspace,
     std::shared_ptr<const solver::Nullspace<ValueType>> left_nullspace)
     : LinOp(std::move(exec), size),
+      gko::detail::WorkspaceHolder(this->get_executor()),
       preconditioner_{std::move(preconditioner)},
       nullspace_{std::move(nullspace)},
       left_nullspace_{std::move(left_nullspace)}
@@ -180,7 +179,8 @@ void NullspaceProjection<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             if (left_nullspace_) {
-                auto projected = get_like(projected_input_.vec, dense_b);
+                auto projected =
+                    this->workspace_vector_like(projected_input_id, dense_b);
                 left_nullspace_->apply(dense_b, projected);
                 preconditioner_->apply(projected, dense_x);
             } else {
@@ -202,7 +202,7 @@ void NullspaceProjection<ValueType>::apply_impl(const LinOp* alpha,
 {
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto result = get_like(result_.vec, dense_x);
+            auto result = this->workspace_vector_like(result_id, dense_x);
             this->apply_impl(dense_b, result);
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, result);
@@ -244,6 +244,7 @@ NullspaceProjection<ValueType>& NullspaceProjection<ValueType>::operator=(
 {
     if (&other != this) {
         *this = static_cast<const NullspaceProjection&>(other);
+        gko::detail::WorkspaceHolder::operator=(std::move(other));
         other.preconditioner_ = nullptr;
         other.nullspace_ = nullptr;
         other.left_nullspace_ = nullptr;
