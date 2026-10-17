@@ -386,8 +386,11 @@ The supported environment variables are described in the following list:
     benchmark runs (downloads the collections, creates the result structure,
     etc.) and outputs the list of commands that would normally be run, but does
     not run the benchmarks themselves. Default is `false`.
-* `PRECONDS={jacobi,ic,ilu,paric,parict,parilu,parilut,ic-isai,ilu-isai,paric-isai,parict-isai,parilu-isai,parilut-isai,none}`
+* `PRECONDS={jacobi,ic,ilu,paric,parict,parilu,parilut,ic-isai,ilu-isai,paric-isai,parict-isai,parilu-isai,parilut-isai,ilu-syncfree,ic-syncfree,mg-pgm,mg-pmis,mg-uniform,none}`
     the preconditioners to use for either `solver` or `preconditioner` benchmarks.
+    The `mg-*` names are one V-cycle of AMG with the PGM, PMIS or uniform
+    coarsening; their coarse solver is a CG with Jacobi running a fixed number
+    of iterations, set with `--mg_coarse_iters` (default 20).
     Multiple options can be passed to this variable. Default is `none`.
 * `FORMATS={csr,coo,ell,hybrid,sellp,hybridxx,cusparse_xx,hipsparse_xx}` the matrix
     formats to benchmark for the `spmv` phase of the benchmark. Run

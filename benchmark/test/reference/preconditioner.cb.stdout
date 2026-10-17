@@ -1,0 +1,311 @@
+[
+    {
+        "size": 1000,
+        "stencil": "7pt",
+        "preconditioner": {
+            "jacobi-32-0,0": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "completed": true
+            },
+            "ilu-syncfree": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "factorization::add_diagonal_elements": 1.0,
+                        "csr::build_lookup_offsets": 1.0,
+                        "csr::build_lookup": 1.0,
+                        "lu_factorization::initialize": 1.0,
+                        "lu_factorization::factorize": 1.0,
+                        "factorization::initialize_row_ptrs_l_u": 1.0,
+                        "factorization::initialize_l_u": 1.0,
+                        "lower_trs::generate": 1.0,
+                        "upper_trs::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "dense::copy": 1.0,
+                        "lower_trs::should_perform_transpose": 1.0,
+                        "lower_trs::solve": 1.0,
+                        "upper_trs::should_perform_transpose": 1.0,
+                        "upper_trs::solve": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "completed": true
+            },
+            "ic-syncfree": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "factorization::add_diagonal_elements": 1.0,
+                        "elimination_forest::from_factor": 1.0,
+                        "csr::build_lookup_offsets": 1.0,
+                        "csr::build_lookup": 1.0,
+                        "cholesky::initialize": 1.0,
+                        "cholesky::factorize": 1.0,
+                        "factorization::initialize_row_ptrs_l": 1.0,
+                        "factorization::initialize_l": 1.0,
+                        "csr::conj_transpose": 1.0,
+                        "lower_trs::generate": 1.0,
+                        "upper_trs::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "dense::copy": 1.0,
+                        "lower_trs::should_perform_transpose": 1.0,
+                        "lower_trs::solve": 1.0,
+                        "upper_trs::should_perform_transpose": 1.0,
+                        "upper_trs::solve": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "completed": true
+            },
+            "mg-pgm": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "components::outplace_absolute_array": 1.0,
+                        "csr::transpose": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "csr::spgeam": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "pgm::find_strongest_neighbor": 1.0,
+                        "pgm::match_edge": 1.0,
+                        "pgm::count_unagg": 1.0,
+                        "pgm::assign_to_exist_agg": 1.0,
+                        "pgm::renumber": 1.0,
+                        "components::fill_seq_array": 1.0,
+                        "pgm::sort_agg": 1.0,
+                        "components::convert_idxs_to_ptrs": 1.0,
+                        "pgm::map_row": 1.0,
+                        "pgm::map_col": 1.0,
+                        "components::sort_row_major": 1.0,
+                        "pgm::count_unrepeated_nnz": 1.0,
+                        "pgm::compute_coarse_coo": 1.0,
+                        "move(<typename>)": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "dense::fill": 1.0,
+                        "free": 1.0,
+                        "allocate": 1.0,
+                        "ir::initialize": 1.0,
+                        "check(<typename>)": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "sparsity_csr::spmv": 1.0,
+                        "cg::initialize": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "cg::step_1": 1.0,
+                        "csr::spmv": 1.0,
+                        "cg::step_2": 1.0,
+                        "dense::advanced_row_gather": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "completed": true
+            },
+            "mg-pmis": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "pmis::compute_row_maxabs": 1.0,
+                        "pmis::compute_strong_dep_row": 1.0,
+                        "components::prefix_sum_nonnegative": 1.0,
+                        "pmis::compute_strong_dep": 1.0,
+                        "sparsity_csr::transpose": 1.0,
+                        "pmis::initialize_weight_and_status": 1.0,
+                        "pmis::count": 1.0,
+                        "pmis::classify": 1.0,
+                        "pmis::direct_interpolation_row_count": 1.0,
+                        "components::convert_precision": 1.0,
+                        "pmis::direct_interpolation_fill": 1.0,
+                        "csr::transpose": 1.0,
+                        "apply(<typename>)": 1.0,
+                        "csr::spgemm": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 1,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "dense::fill": 1.0,
+                        "free": 1.0,
+                        "allocate": 1.0,
+                        "ir::initialize": 1.0,
+                        "check(<typename>)": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "csr::spmv": 1.0,
+                        "cg::initialize": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "cg::step_1": 1.0,
+                        "cg::step_2": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 1,
+                    "repetition_times": []
+                },
+                "completed": true
+            },
+            "mg-uniform": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "components::fill_seq_array": 1.0,
+                        "csr::transpose": 1.0,
+                        "pgm::map_row": 1.0,
+                        "pgm::map_col": 1.0,
+                        "components::sort_row_major": 1.0,
+                        "pgm::count_unrepeated_nnz": 1.0,
+                        "pgm::compute_coarse_coo": 1.0,
+                        "move(<typename>)": 1.0,
+                        "components::convert_idxs_to_ptrs": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "dense::fill": 1.0,
+                        "free": 1.0,
+                        "allocate": 1.0,
+                        "ir::initialize": 1.0,
+                        "check(<typename>)": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "csr::spmv": 1.0,
+                        "cg::initialize": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "cg::step_1": 1.0,
+                        "cg::step_2": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "completed": true
+            }
+        },
+        "rows": 1000,
+        "cols": 1000,
+        "nonzeros": 6400
+    }
+]

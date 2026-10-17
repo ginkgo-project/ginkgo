@@ -29,7 +29,7 @@ denumberify_paths = [
     "hyperskewness",
     "hyperflatness"
 ]
-detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check("]
+detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check(", "move("]
 empty_string_paths = ["filename"]
 empty_array_paths = [
     "recurrent_residuals",
