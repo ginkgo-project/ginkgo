@@ -29,7 +29,7 @@ denumberify_paths = [
     "hyperskewness",
     "hyperflatness"
 ]
-detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check("]
+detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check(", "move("]
 empty_string_paths = ["filename"]
 empty_array_paths = [
     "recurrent_residuals",
@@ -37,6 +37,10 @@ empty_array_paths = [
     "implicit_residuals",
     "iteration_timestamps",
 ]
+# PMIS draws its coarsening from std random distributions, which differ between
+# standard libraries, and the AMG levels depend on the coarsening: only the
+# structure of these is compared, without numbers and repeated list entries
+structure_only_paths = ["mg-pmis", "cg-mg-pmis"]
 
 
 def sanitize_json_key(key: str):
@@ -56,8 +60,12 @@ def sanitize_json_value(key: str, value, sanitize_all: bool):
 
     Strings with a key in empty_string_paths will be emptied
     Numbers with a key in denumberify_paths will be set to 1.0
+    Below a key in structure_only_paths, numbers will be set to 1 and
+    repeated list entries removed
     """
 
+    if key in structure_only_paths:
+        return sanitize_numbers(sanitize_json(value, sanitize_all))
     if key in empty_string_paths and isinstance(value, str):
         return ""
     if key in denumberify_paths and isinstance(value, float):
@@ -98,6 +106,22 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
 
 def is_number(value) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def sanitize_numbers(value):
+    """Sets every number in value to 1 of its type and removes repeated list
+    entries, keeping the structure."""
+    if isinstance(value, dict):
+        return {key: sanitize_numbers(entry) for key, entry in value.items()}
+    if isinstance(value, list):
+        entries = []
+        for entry in map(sanitize_numbers, value):
+            if entry not in entries:
+                entries.append(entry)
+        return entries
+    if is_number(value):
+        return type(value)(1)
+    return value
 
 
 def check_repetition_times(obj, path: str = "$", in_components: bool = False):
