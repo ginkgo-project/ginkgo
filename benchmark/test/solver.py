@@ -77,3 +77,17 @@ test_framework.compare_output(
     expected_stdout="solver.ir.stdout",
     expected_stderr="solver.ir.stderr",
 )
+
+# CG with Jacobi and the three AMG setups
+test_framework.compare_output(
+    [
+        "-solvers",
+        "cg",
+        "-preconditioners",
+        "jacobi,mg-pgm,mg-pmis,mg-uniform",
+        "-input",
+        '[{"size": 1000, "stencil": "7pt", "optimal": {"spmv": "csr"}}]',
+    ],
+    expected_stdout="solver.amg.stdout",
+    expected_stderr="solver.amg.stderr",
+)
