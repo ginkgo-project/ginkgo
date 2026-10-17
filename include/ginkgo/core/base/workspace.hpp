@@ -10,6 +10,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <typeindex>
 #include <typeinfo>
 #include <vector>
@@ -43,6 +44,29 @@ void claim_workspace(Workspace& node, const std::type_info& user);
 
 
 class WorkspaceHolder;
+
+
+// whether VectorType is distributed, i.e. has a local vector
+template <typename VectorType, typename = void>
+struct has_local_vector : std::false_type {};
+
+template <typename VectorType>
+struct has_local_vector<
+    VectorType,
+    std::void_t<decltype(std::declval<const VectorType&>().get_local_vector())>>
+    : std::true_type {};
+
+
+// the size of the part of `vec` this process stores
+template <typename VectorType>
+dim<2> get_local_size(const VectorType& vec)
+{
+    if constexpr (has_local_vector<VectorType>::value) {
+        return vec.get_local_vector()->get_size();
+    } else {
+        return vec.get_size();
+    }
+}
 
 
 /**
@@ -329,9 +353,17 @@ protected:
     LinOpType* create_workspace_op_with_config_of(int vector_id,
                                                   const LinOpType* vec) const
     {
-        return this->get_workspace_node()->template create_or_get_op<LinOpType>(
-            vector_id, [&] { return LinOpType::create_with_config_of(vec); },
-            typeid(*vec), vec->get_size(), vec->get_stride());
+        // distributed vectors of the same global size may be partitioned
+        // differently, so the local size is compared as well
+        return this->template create_workspace_op_if<LinOpType>(
+            vector_id,
+            [vec](const LinOpType& op) {
+                return typeid(op) != typeid(*vec) ||
+                       op.get_size() != vec->get_size() ||
+                       op.get_stride() != vec->get_stride() ||
+                       get_local_size(op) != get_local_size(*vec);
+            },
+            [vec] { return LinOpType::create_with_config_of(vec); });
     }
 
     template <typename LinOpType>
@@ -356,14 +388,21 @@ protected:
                                                 dim<2> local_size) const
     {
         auto node = this->get_workspace_node();
-        return node->template create_or_get_op<LinOpType>(
+        // the local size changes when the same global size is partitioned
+        // differently
+        return this->template create_workspace_op_if<LinOpType>(
             vector_id,
+            [&](const LinOpType& op) {
+                return typeid(op) != typeid(*vec) ||
+                       op.get_size() != global_size ||
+                       op.get_stride() != local_size[1] ||
+                       get_local_size(op) != local_size;
+            },
             [&] {
                 return LinOpType::create_with_type_of(vec, node->get_executor(),
                                                       global_size, local_size,
                                                       local_size[1]);
-            },
-            typeid(*vec), global_size, local_size[1]);
+            });
     }
 
     /**
