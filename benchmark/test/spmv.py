@@ -59,3 +59,11 @@ test_framework.compare_output(
     expected_stderr="spmv_dcomplex.simple.stderr",
     use_complex=True
 )
+
+# format parameters, one format per run: with several, "optimal" is the fastest
+for format in ["csr", "hybrid", "sellp"]:
+    test_framework.compare_output(
+        ["-formats", format, "-input", '[{"size": 100, "stencil": "7pt"}]'],
+        expected_stdout=f"spmv.formats_{format}.stdout",
+        expected_stderr=f"spmv.formats_{format}.stderr",
+    )
