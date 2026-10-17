@@ -18,6 +18,7 @@
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/runner.hpp"
+#include "benchmark/utils/structure.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -212,6 +213,20 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
             }
 
             write_times(precond_case["apply"], ic_apply);
+        }
+
+        {
+            // untimed generate to measure the preconditioner's storage
+            auto storage_logger = std::make_shared<StorageLogger>();
+            exec->add_logger(storage_logger);
+            auto precond = precond_factory.at(decoded_precond_name)(exec);
+            auto precond_op = precond->generate(state.system_matrix);
+            exec->remove_logger(storage_logger);
+            storage_logger->write_data(precond_case);
+            auto levels = describe_levels(precond_op.get());
+            if (!levels.is_null()) {
+                precond_case["levels"] = levels;
+            }
         }
 
         if (FLAGS_detailed) {

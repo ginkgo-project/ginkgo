@@ -40,7 +40,7 @@ empty_array_paths = [
 # PMIS draws its coarsening from std random distributions, which differ between
 # standard libraries, and the AMG levels depend on the coarsening: only the
 # structure of these is compared, without numbers and repeated list entries
-structure_only_paths = ["mg-pmis", "cg-mg-pmis"]
+structure_only_paths = ["levels", "mg-pmis", "cg-mg-pmis"]
 
 
 def sanitize_json_key(key: str):
