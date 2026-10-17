@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -22,44 +22,43 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(const LinOp* b,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             auto exec = this->get_executor();
-            this->set_cache_to(dense_b, dense_x);
+            auto vecs = this->set_cache_to(dense_b, dense_x);
+            auto inner_b = vecs.b;
+            auto inner_x = vecs.x;
+            auto intermediate = vecs.intermediate;
 
             // Preprocess the input vectors before applying the inner operator.
             if (row_scaling_) {
-                row_scaling_->apply(cache_.inner_b, cache_.intermediate);
-                std::swap(cache_.inner_b, cache_.intermediate);
+                row_scaling_->apply(inner_b, intermediate);
+                std::swap(inner_b, intermediate);
             }
             // Col scaling for x is only necessary if the inner operator uses an
             // initial guess. Otherwise x is overwritten anyway.
             if (col_scaling_ && inner_operator_->apply_uses_initial_guess()) {
-                col_scaling_->inverse_apply(cache_.inner_x,
-                                            cache_.intermediate);
-                std::swap(cache_.inner_x, cache_.intermediate);
+                col_scaling_->inverse_apply(inner_x, intermediate);
+                std::swap(inner_x, intermediate);
             }
             if (permutation_array_.get_size() > 0) {
-                cache_.inner_b->row_permute(&permutation_array_,
-                                            cache_.intermediate);
-                std::swap(cache_.inner_b, cache_.intermediate);
+                inner_b->row_permute(&permutation_array_, intermediate);
+                std::swap(inner_b, intermediate);
                 if (inner_operator_->apply_uses_initial_guess()) {
-                    cache_.inner_x->row_permute(&permutation_array_,
-                                                cache_.intermediate);
-                    std::swap(cache_.inner_x, cache_.intermediate);
+                    inner_x->row_permute(&permutation_array_, intermediate);
+                    std::swap(inner_x, intermediate);
                 }
             }
 
-            inner_operator_->apply(cache_.inner_b, cache_.inner_x);
+            inner_operator_->apply(inner_b, inner_x);
 
             // Permute and scale the solution vector back.
             if (permutation_array_.get_size() > 0) {
-                cache_.inner_x->inverse_row_permute(&permutation_array_,
-                                                    cache_.intermediate);
-                std::swap(cache_.inner_x, cache_.intermediate);
+                inner_x->inverse_row_permute(&permutation_array_, intermediate);
+                std::swap(inner_x, intermediate);
             }
             if (col_scaling_) {
-                col_scaling_->apply(cache_.inner_x, cache_.intermediate);
-                std::swap(cache_.inner_x, cache_.intermediate);
+                col_scaling_->apply(inner_x, intermediate);
+                std::swap(inner_x, intermediate);
             }
-            dense_x->copy_from(cache_.inner_x);
+            dense_x->copy_from(inner_x);
         },
         b, x);
 }
