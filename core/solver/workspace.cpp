@@ -67,6 +67,16 @@ void SolverBaseLinOp::adopt_workspace(LinOpGenerateComponents& components,
 }
 
 
+void claim_workspace(Workspace& node, const std::type_info& user)
+{
+    const std::type_index user_type{user};
+    if (node.user_type_ != user_type) {
+        node.clear();
+        node.user_type_ = user_type;
+    }
+}
+
+
 }  // namespace detail
 
 

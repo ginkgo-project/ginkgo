@@ -10,6 +10,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <typeindex>
 #include <typeinfo>
 #include <vector>
 
@@ -30,10 +31,22 @@ class LinOpFactory;
 namespace solver {
 
 
+class Workspace;
+
+
 namespace detail {
 
 
 class SolverBaseLinOp;
+
+
+/**
+ * Prepares `node` for its next user, a LinOp of type `user`. Slot meanings
+ * are defined per type, so if a LinOp of another type set the node up last,
+ * its operators and arrays are cleared first. Its children are left alone;
+ * their own users claim them.
+ */
+void claim_workspace(Workspace& node, const std::type_info& user);
 
 
 /**
@@ -112,14 +125,11 @@ private:
  * builds the child tree as it generates inner solvers; external users only
  * ever construct and hand off a root workspace.
  *
- * One workspace per factory shape. Slot count and type are tied to a
- * particular solver class; reusing the same workspace across a Cg and then a
- * Gmres factory works but defeats the point — the second generate() resizes
- * the slot vector to the new shape (dropping slots when the new solver needs
- * fewer, extending when it needs more) and reallocates any slots whose type
- * or dimensions don't match the new use. The old child subtree is left in
- * place as dead weight. Hold one workspace per factory you want to amortize
- * allocations for.
+ * One workspace per factory shape. Slot meanings are tied to a particular
+ * LinOp type, so a node used by a LinOp of a different type than before is
+ * cleared first: reusing a workspace across, e.g., a Cg and then a Gmres
+ * factory is correct, but allocates again. The old child subtree is kept.
+ * Hold one workspace per factory you want to amortize allocations for.
  *
  * Not thread-safe: A workspace (or any of its descendants) must not be
  * used by two solvers concurrently.
@@ -228,11 +238,15 @@ public:
     void clear();
 
 private:
+    friend void detail::claim_workspace(Workspace&, const std::type_info&);
+
     std::shared_ptr<const Executor> exec_;
     std::vector<std::unique_ptr<LinOp>> operators_;
     std::vector<detail::any_array> arrays_;
     std::map<std::string, std::unique_ptr<Workspace>> children_;
     std::string tag_;
+    // the type of the LinOp that set up the slots last
+    std::type_index user_type_{typeid(void)};
 };
 
 

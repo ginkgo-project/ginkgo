@@ -427,6 +427,8 @@ protected:
 
     void set_workspace_size(int num_operators, int num_arrays) const
     {
+        // fully qualified: it moves to gko::detail with the Workspace
+        gko::solver::detail::claim_workspace(*node_, typeid(*this));
         node_->set_size(num_operators, num_arrays);
     }
 

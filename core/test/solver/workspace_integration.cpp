@@ -400,4 +400,78 @@ TEST_F(WorkspaceIntegration, DescribeShowsCgWithPreconditionerTree)
 }
 
 
+class WorkspaceTypeSwitch : public WorkspaceIntegration {
+protected:
+    WorkspaceTypeSwitch()
+        : spd(gko::initialize<Mtx>({{4.0, -1.0, 0.0, 0.0},
+                                    {-1.0, 4.0, -1.0, 0.0},
+                                    {0.0, -1.0, 4.0, -1.0},
+                                    {0.0, 0.0, -1.0, 4.0}},
+                                   exec)),
+          rhs(gko::initialize<Mtx>({1.0, 2.0, 3.0, 4.0}, exec)),
+          // a nonzero initial guess makes the solvers use their -1 constant
+          x0(gko::initialize<Mtx>({1.0, 1.0, 1.0, 1.0}, exec)),
+          cg_factory(Cg::build()
+                         .with_criteria(
+                             gko::stop::Iteration::build().with_max_iters(10u))
+                         .on(exec)),
+          gmres_factory(
+              Gmres::build()
+                  .with_criteria(
+                      gko::stop::Iteration::build().with_max_iters(10u))
+                  .on(exec))
+    {}
+
+    // solves with a solver generated without a workspace
+    std::unique_ptr<Mtx> solve_fresh(const gko::LinOpFactory* factory)
+    {
+        auto x = gko::clone(x0);
+        factory->generate(spd)->apply(rhs, x);
+        return x;
+    }
+
+    // solves with `second`, generated on the workspace extracted from `first`
+    std::unique_ptr<Mtx> solve_after(const gko::LinOpFactory* first,
+                                     const gko::LinOpFactory* second)
+    {
+        std::unique_ptr<gko::LinOp> solver =
+            first->generate(spd, Workspace::create(exec));
+        auto x = gko::clone(x0);
+        solver->apply(rhs, x);
+        auto ws =
+            gko::solver::invalidate_and_extract_workspace(std::move(solver));
+        solver = second->generate(spd, std::move(ws));
+        x = gko::clone(x0);
+        solver->apply(rhs, x);
+        return x;
+    }
+
+    std::shared_ptr<Mtx> spd;
+    std::shared_ptr<Mtx> rhs;
+    std::shared_ptr<Mtx> x0;
+    std::shared_ptr<gko::LinOpFactory> cg_factory;
+    std::shared_ptr<gko::LinOpFactory> gmres_factory;
+};
+
+
+TEST_F(WorkspaceTypeSwitch, CgAfterGmresOnSameWorkspaceIsCorrect)
+{
+    auto expected = solve_fresh(cg_factory.get());
+
+    auto x = solve_after(gmres_factory.get(), cg_factory.get());
+
+    GKO_ASSERT_MTX_NEAR(x, expected, r<double>::value);
+}
+
+
+TEST_F(WorkspaceTypeSwitch, GmresAfterCgOnSameWorkspaceIsCorrect)
+{
+    auto expected = solve_fresh(gmres_factory.get());
+
+    auto x = solve_after(cg_factory.get(), gmres_factory.get());
+
+    GKO_ASSERT_MTX_NEAR(x, expected, r<double>::value);
+}
+
+
 }  // namespace

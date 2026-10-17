@@ -343,3 +343,42 @@ TEST_F(Workspace, ResetPreservesSlotsWhenExecutorUnchanged)
 
     ASSERT_EQ(ws.get_const_op(0), op1);
 }
+
+
+TEST_F(Workspace, ClaimByOtherTypeClearsSlotsButKeepsChildren)
+{
+    auto ws = gko::solver::Workspace::create(exec);
+    gko::solver::detail::claim_workspace(*ws, typeid(DummyLinOp));
+    ws->set_size(1, 1);
+    ws->create_or_get_op<DummyLinOp>(
+        0,
+        [&] {
+            return DummyLinOp::create(exec, gko::dim<2>{2, 1}, 1);
+        },
+        typeid(DummyLinOp), gko::dim<2>{2, 1}, 1);
+    ws->create_or_get_array<double>(0, 3);
+    auto* child = ws->get_or_create_child("child");
+
+    gko::solver::detail::claim_workspace(*ws, typeid(DummyLinOp2));
+
+    ASSERT_TRUE(ws->empty());
+    ASSERT_EQ(ws->get_child("child"), child);
+}
+
+
+TEST_F(Workspace, ClaimBySameTypeKeepsSlots)
+{
+    auto ws = gko::solver::Workspace::create(exec);
+    gko::solver::detail::claim_workspace(*ws, typeid(DummyLinOp));
+    ws->set_size(1, 0);
+    auto* op = ws->create_or_get_op<DummyLinOp>(
+        0,
+        [&] {
+            return DummyLinOp::create(exec, gko::dim<2>{2, 1}, 1);
+        },
+        typeid(DummyLinOp), gko::dim<2>{2, 1}, 1);
+
+    gko::solver::detail::claim_workspace(*ws, typeid(DummyLinOp));
+
+    ASSERT_EQ(ws->get_const_op(0), op);
+}

@@ -414,6 +414,7 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
 
     auto& storage = *lnode;
     storage.reset(exec);
+    gko::solver::detail::claim_workspace(storage, typeid(MultigridState));
     storage.set_size(6, 0);  // 6 operator slots, 0 arrays
 
     // Slot 0: r (current level dimensions)
@@ -481,6 +482,7 @@ void MultigridState::allocate_memory(
 
     auto& storage = *lnode;
     storage.reset(exec);
+    gko::solver::detail::claim_workspace(storage, typeid(MultigridState));
     storage.set_size(6, 0);  // 6 operator slots, 0 arrays
 
     // Slot 0: r (current level dimensions, distributed)
