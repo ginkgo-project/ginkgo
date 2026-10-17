@@ -202,7 +202,7 @@ std::shared_ptr<const LinOp> Nullspace<ValueType>::get_basis() const noexcept
 
 template <typename ValueType>
 Nullspace<ValueType>::Nullspace(std::shared_ptr<const Executor> exec)
-    : LinOp(exec), contains_constant_{false}, reduction_tmp_{exec}
+    : LinOp(exec), gko::detail::WorkspaceHolder(exec), contains_constant_{false}
 {}
 
 
@@ -212,8 +212,8 @@ Nullspace<ValueType>::Nullspace(std::shared_ptr<const Executor> exec,
                                 std::vector<std::shared_ptr<const LinOp>> basis,
                                 bool contains_constant)
     : LinOp(exec, size),
-      contains_constant_{contains_constant},
-      reduction_tmp_{exec}
+      gko::detail::WorkspaceHolder(exec),
+      contains_constant_{contains_constant}
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(size);
     if (!basis.empty()) {
@@ -357,12 +357,16 @@ void Nullspace<ValueType>::compute_components(
         static_cast<absolute_type>(1.0 / static_cast<double>(v->get_size()[0]));
     // coefficients = [ mean(v) ; V^H v ] in one pass over v, then combined
     // over all ranks with a single all-reduce
-    coefficients_.init(exec, dim<2>{num_const + num_basis, v->get_size()[1]});
+    this->set_workspace_size(1, 1);
+    auto coefficients =
+        this->template create_workspace_op<matrix::Dense<ValueType>>(
+            0, dim<2>{num_const + num_basis, v->get_size()[1]});
+    auto& reduction_tmp = this->template create_workspace_array<char>(0);
     exec->run(nullspace::make_compute_coefficients(
         v_local->get_const_device_view(), basis_view(basis_local, local_rows),
-        has_constant, inv_size, coefficients_->get_device_view(),
-        reduction_tmp_));
-    sum_over_ranks(v, coefficients_.get(), host_coefficients_);
+        has_constant, inv_size, coefficients->get_device_view(),
+        reduction_tmp));
+    sum_over_ranks(v, coefficients, host_coefficients_);
 }
 
 
@@ -378,7 +382,7 @@ void Nullspace<ValueType>::subtract_components(
     // constant, so both components can be removed at once
     this->get_executor()->run(nullspace::make_subtract_projection(
         basis_view(basis_local, v_local->get_size()[0]), has_constant,
-        coefficients_->get_const_device_view(),
+        this->get_coefficients()->get_const_device_view(),
         v_local->get_const_device_view(), result_local->get_device_view()));
 }
 
@@ -396,6 +400,14 @@ void Nullspace<ValueType>::remove_components(
     this->compute_components(v_exec.get(), basis_local, has_constant);
     this->subtract_components(v_exec.get(), v_exec.get(), basis_local,
                               has_constant);
+}
+
+
+template <typename ValueType>
+matrix::Dense<ValueType>* Nullspace<ValueType>::get_coefficients() const
+{
+    return static_cast<matrix::Dense<ValueType>*>(
+        this->get_workspace_node()->get_mutable_op(0));
 }
 
 
@@ -430,7 +442,7 @@ void Nullspace<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             if (has_components) {
                 this->compute_components(dense_b, basis_local,
                                          contains_constant_);
-                coefficients_->scale(dense_alpha);
+                this->get_coefficients()->scale(dense_alpha);
             }
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, dense_b);
@@ -525,15 +537,23 @@ bool is_constant_only_nullspace(const LinOp* param)
 template <typename ValueType>
 std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
     std::shared_ptr<const LinOp> param, const char* name, const LinOp* op,
-    size_type size, std::shared_ptr<const Executor> exec)
+    size_type size, std::shared_ptr<const Executor> exec, Workspace* parent)
 {
+    // the copy keeps its scratch buffers in its own node of the workspace
+    auto keep_in_workspace = [&](std::unique_ptr<Nullspace<ValueType>> ns) {
+        if (parent) {
+            gko::detail::attach_workspace(ns.get(),
+                                          parent->get_or_create_child(name));
+        }
+        return std::shared_ptr<const Nullspace<ValueType>>(std::move(ns));
+    };
     if (!param) {
         return nullptr;
     }
     if (is_constant_only_nullspace<ValueType>(param.get())) {
         // the constant does not depend on the size or value type
-        return Nullspace<ValueType>::create_from_constant(exec,
-                                                          dim<2>{size, size});
+        return keep_in_workspace(Nullspace<ValueType>::create_from_constant(
+            exec, dim<2>{size, size}));
     }
     auto ns = std::dynamic_pointer_cast<const Nullspace<ValueType>>(param);
     if (!ns) {
@@ -565,14 +585,15 @@ std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
     }
     // a separate copy keeps the scratch buffers of operators generated from
     // the same parameter apart
-    return gko::clone(exec, ns);
+    return keep_in_workspace(gko::clone(exec, ns));
 }
 
 
 #define GKO_DECLARE_PREPARE_NULLSPACE(ValueType)                               \
     std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace<ValueType>(  \
         std::shared_ptr<const LinOp> param, const char* name, const LinOp* op, \
-        size_type size, std::shared_ptr<const Executor> exec)
+        size_type size, std::shared_ptr<const Executor> exec,                  \
+        Workspace* parent)
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PREPARE_NULLSPACE);
 
 

@@ -18,10 +18,13 @@
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/nullspace_projection.hpp>
 #include <ginkgo/core/preconditioner/sor.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/nullspace.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
@@ -376,6 +379,62 @@ TEST_F(WorkspaceReuse, TopLevelIluAdvancedApplyAfterRegeneration)
     precond->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, expected, r<double>::value);
+}
+
+
+TEST_F(WorkspaceReuse, CgWithNullspaceReusesProjectionVectors)
+{
+    auto singular = neumann_laplacian_1d(exec, 10);
+    auto ns = gko::share(gko::solver::Nullspace<double>::create_from_constant(
+        exec, singular->get_size()));
+    auto factory = Cg::build()
+                       .with_criteria(iterations(5u))
+                       .with_preconditioner(
+                           gko::preconditioner::Jacobi<double, int>::build()
+                               .with_max_block_size(1u))
+                       .with_nullspace(ns)
+                       .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), singular);
+    auto tree = describe_after_apply(exec, factory.get(), singular);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=3)\n"
+              "  Workspace [nullspace] (children=0)\n"
+              "  Workspace [nullspace_projection] (children=1)\n"
+              "    Workspace [nullspace] (children=0)\n"
+              "  Workspace [preconditioner] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, CgWithProjectionFactoryReusesVectors)
+{
+    auto singular = neumann_laplacian_1d(exec, 10);
+    auto ns = gko::share(gko::solver::Nullspace<double>::create_from_constant(
+        exec, singular->get_size()));
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(
+                gko::preconditioner::NullspaceProjection<double>::build()
+                    .with_nullspace(ns)
+                    .with_left_nullspace(ns)
+                    .with_preconditioner(
+                        gko::preconditioner::Jacobi<double, int>::build()
+                            .with_max_block_size(1u)))
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), singular);
+    auto tree = describe_after_apply(exec, factory.get(), singular);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=3)\n"
+              "    Workspace [left_nullspace] (children=0)\n"
+              "    Workspace [nullspace] (children=0)\n"
+              "    Workspace [preconditioner] (children=0)\n");
 }
 
 
