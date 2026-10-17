@@ -23,6 +23,7 @@
                     "repetitions": 10,
                     "repetition_times": []
                 },
+                "storage": 0,
                 "completed": true
             }
         },
