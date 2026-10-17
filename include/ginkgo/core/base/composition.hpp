@@ -11,6 +11,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 
 
 namespace gko {
@@ -38,7 +39,8 @@ namespace gko {
 template <typename ValueType = default_precision>
 class Composition : public LinOp,
                     public EnableCreateMethod<Composition<ValueType>>,
-                    public Transposable {
+                    public Transposable,
+                    public gko::detail::WorkspaceHolder {
     friend class EnableCreateMethod<Composition>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -113,7 +115,7 @@ protected:
      * @param exec  Executor associated to the composition
      */
     explicit Composition(std::shared_ptr<const Executor> exec)
-        : LinOp(exec), storage_{exec}
+        : LinOp(exec), gko::detail::WorkspaceHolder(exec)
     {}
 
     /**
@@ -135,7 +137,7 @@ protected:
               }
               return (*begin)->get_executor();
           }()),
-          storage_{this->get_executor()}
+          gko::detail::WorkspaceHolder(this->get_executor())
     {
         for (auto it = begin; it != end; ++it) {
             add_operators(*it);
@@ -163,8 +165,14 @@ protected:
                     LinOp* x) const override;
 
 private:
+    // the storage of the intermediate vectors, in the workspace
+    array<ValueType>& get_storage() const
+    {
+        this->set_workspace_size(0, 1);
+        return this->template create_workspace_array<ValueType>(0);
+    }
+
     std::vector<std::shared_ptr<const LinOp>> operators_;
-    mutable array<ValueType> storage_;
 };
 
 
