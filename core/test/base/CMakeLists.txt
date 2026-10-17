@@ -36,4 +36,5 @@ ginkgo_create_test(utils)
 ginkgo_create_test(version EXECUTABLE_NAME version_test) # version collides with C++ stdlib header
 ginkgo_create_test(workspace)
 ginkgo_create_test(workspace_holder)
+ginkgo_create_test(workspace_reuse)
 ginkgo_create_test(workspace_tree)

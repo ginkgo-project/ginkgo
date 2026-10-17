@@ -14,12 +14,12 @@
 
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
-#include <ginkgo/core/distributed/vector_cache.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
@@ -65,7 +65,7 @@ namespace preconditioner {
  */
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Schwarz : public LinOp {
+class Schwarz : public LinOp, public gko::detail::WorkspaceHolder {
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:
@@ -73,6 +73,46 @@ public:
     using index_type = GlobalIndexType;
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
+
+    // LinOp's copy and move constructors don't keep the executor, so start
+    // from an empty Schwarz on the executor of other
+    Schwarz(const Schwarz& other) : Schwarz(other.get_executor())
+    {
+        *this = other;
+    }
+    Schwarz(Schwarz&& other) noexcept : Schwarz(other.get_executor())
+    {
+        *this = std::move(other);
+    }
+    Schwarz& operator=(const Schwarz& other)
+    {
+        if (this != &other) {
+            LinOp::operator=(other);
+            local_solver_ = other.local_solver_;
+            system_matrix_ = other.system_matrix_;
+            parameters_ = other.parameters_;
+            coarse_level_ = other.coarse_level_;
+            coarse_solver_ = other.coarse_solver_;
+            coarse_weight_ = other.coarse_weight_;
+            local_weight_ = other.local_weight_;
+        }
+        return *this;
+    }
+    Schwarz& operator=(Schwarz&& other) noexcept
+    {
+        if (this != &other) {
+            LinOp::operator=(std::move(other));
+            local_solver_ = std::move(other.local_solver_);
+            system_matrix_ = std::move(other.system_matrix_);
+            parameters_ = std::move(other.parameters_);
+            coarse_level_ = std::move(other.coarse_level_);
+            coarse_solver_ = std::move(other.coarse_solver_);
+            coarse_weight_ = std::move(other.coarse_weight_);
+            local_weight_ = std::move(other.local_weight_);
+            gko::detail::WorkspaceHolder::operator=(std::move(other));
+        }
+        return *this;
+    }
 
     /**
      * Return whether the local solvers use the data in x as an initial guess.
@@ -167,7 +207,8 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Schwarz(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
+        : LinOp(std::move(exec)),
+          gko::detail::WorkspaceHolder(this->get_executor())
     {}
 
     /**
@@ -180,6 +221,7 @@ protected:
     explicit Schwarz(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
+          gko::detail::WorkspaceHolder(factory->get_executor(), components),
           parameters_{factory->get_parameters()},
           system_matrix_{components.system_matrix}
     {
@@ -190,6 +232,16 @@ protected:
      * Generates the preconditioner.
      */
     void generate(std::shared_ptr<const LinOp> system_matrix);
+
+    /**
+     * Generate an inner LinOp, threading the workspace view through to the
+     * factory when one is available. Otherwise falls back to the workspace-
+     * less generate overload. `tag` names the child node created under the
+     * Schwarz workspace.
+     */
+    std::unique_ptr<LinOp> generate_inner(const LinOpFactory* factory,
+                                          std::shared_ptr<const LinOp> matrix,
+                                          const std::string& tag);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
@@ -210,11 +262,10 @@ private:
     std::shared_ptr<const LinOp> local_solver_;
     std::shared_ptr<const LinOp> system_matrix_;
 
-    // Used for advanced apply
-    detail::VectorCache<ValueType> cache_;
-    // Used in apply for two-level method
-    detail::VectorCache<ValueType> csol_cache_;
-    detail::VectorCache<ValueType> crhs_cache_;
+    // workspace slots
+    static constexpr int x_copy_id = 0;
+    static constexpr int coarse_solution_id = 1;
+    static constexpr int coarse_rhs_id = 2;
 
     std::shared_ptr<const LinOp> coarse_level_;
     std::shared_ptr<const LinOp> coarse_solver_;
