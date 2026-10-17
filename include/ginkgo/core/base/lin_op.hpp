@@ -340,8 +340,20 @@ private:
  *
  * @ingroup LinOp
  */
-class LinOpFactory
-    : public AbstractFactory<LinOp, std::shared_ptr<const LinOp>> {
+/**
+ * Components needed to generate a LinOp product from a factory: the system
+ * matrix the product is generated for.
+ */
+struct LinOpGenerateComponents {
+    std::shared_ptr<const LinOp> system_matrix;
+
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix)
+        : system_matrix{std::move(matrix)}
+    {}
+};
+
+
+class LinOpFactory : public AbstractFactory<LinOp, LinOpGenerateComponents> {
 public:
     using AbstractFactory::AbstractFactory;
 
@@ -926,8 +938,8 @@ private:
  *                          [CRTP parameter]
  * @tparam ConcreteLinOp  the concrete LinOp type which this factory produces,
  *                        needs to have a constructor which takes a
- *                        const ConcreteFactory *, and an
- *                        std::shared_ptr<const LinOp> as parameters.
+ *                        const ConcreteFactory *, and a
+ *                        LinOpGenerateComponents as parameters.
  * @tparam ParametersType  a subclass of enable_parameters_type template which
  *                         defines all of the parameters of the factory
  * @tparam PolymorphicBase  parent of ConcreteFactory in the polymorphic
@@ -1027,7 +1039,7 @@ protected:
  * after the macro definition, and should contain a list of
  * GKO_FACTORY_PARAMETER_* declarations. The class should provide a constructor
  * with signature
- * _lin_op(const _factory_name *, std::shared_ptr<const LinOp>)
+ * _lin_op(const _factory_name *, LinOpGenerateComponents)
  * which the factory will use a callback to construct the object.
  *
  * A minimal example of a linear operator is the following:
@@ -1047,8 +1059,9 @@ protected:
  *         : LinOp(exec) {}
  *     // constructor needed by the factory
  *     explicit MyLinOp(const Factory *factory,
- *                      std::shared_ptr<const LinOp> matrix)
- *         : LinOp(factory->get_executor()), matrix->get_size()),
+ *                      LinOpGenerateComponents components)
+ *         : LinOp(factory->get_executor(),
+ *                 components.system_matrix->get_size()),
  *           // store factory's parameters locally
  *           my_parameters_{factory->get_parameters()},
  *     {
@@ -1148,7 +1161,7 @@ public:                                                                      \
  *
  * private:
  *     // used by generate() and generate_reuse()
- *     MyLinOp(const Factory*, std::shared_ptr<const LinOp>);
+ *     MyLinOp(const Factory*, LinOpGenerateComponents);
  *     MyLinOp(const Factory*, std::shared_ptr<const LinOp>, reuse_data_type&);
  *     static void check_reuse_consistent(const Factory*, const LinOp*,
  *                                        const reuse_data_type&);
