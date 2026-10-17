@@ -321,11 +321,52 @@ inline matrix::csr::spmv_strategy get_strategy(const pnode& config)
 }
 
 
+namespace detail {
+
+
+/**
+ * The thread-local set that config_check_decorator::get records the requested
+ * keys in, or nullptr.
+ */
+std::set<std::string>*& requested_keys();
+
+
+}  // namespace detail
+
+
+/**
+ * Records the keys a parser requests through config_check_decorator::get on
+ * this thread while it is alive. The tests use it to check that write_config
+ * writes every key parse reads.
+ */
+class record_requested_keys {
+public:
+    record_requested_keys() : previous_{detail::requested_keys()}
+    {
+        detail::requested_keys() = &keys_;
+    }
+
+    ~record_requested_keys() { detail::requested_keys() = previous_; }
+
+    record_requested_keys(const record_requested_keys&) = delete;
+
+    record_requested_keys& operator=(const record_requested_keys&) = delete;
+
+    const std::set<std::string>& keys() const { return keys_; }
+
+private:
+    std::set<std::string> keys_;
+    std::set<std::string>* previous_;
+};
+
+
 /**
  * This is a decroator on top of config node. When we try to get a node by a
  * key, it registers the keys as the allowed_keys. When this object is
  * destroyed, it will check whether the config node only contains the key in
  * allowed_keys. If some key is not in allowed_keys, it will throw an exception.
+ * While a record_requested_keys is alive on this thread, get also records the
+ * key there.
  */
 class config_check_decorator {
 public:

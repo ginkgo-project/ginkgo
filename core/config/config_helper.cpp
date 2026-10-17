@@ -205,8 +205,24 @@ config_check_decorator::~config_check_decorator() noexcept(false)
 const pnode& config_check_decorator::get(const std::string& key)
 {
     allowed_keys_.insert(key);
+    if (auto keys = detail::requested_keys()) {
+        keys->insert(key);
+    }
     return config_.get(key);
 }
+
+
+namespace detail {
+
+
+std::set<std::string>*& requested_keys()
+{
+    thread_local std::set<std::string>* keys = nullptr;
+    return keys;
+}
+
+
+}  // namespace detail
 
 }  // namespace config
 }  // namespace gko
