@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/workspace.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -24,6 +25,7 @@
 #include <ginkgo/core/reorder/rcm.hpp>
 #include <ginkgo/core/reorder/scaled_reordered.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/nullspace.hpp>
@@ -464,6 +466,30 @@ TEST_F(WorkspaceReuse, CgWithScaledReorderedReusesInnerVectors)
               "Workspace (children=1)\n"
               "  Workspace [preconditioner] (children=1)\n"
               "    Workspace [inner_operator] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, DirectGivesTriangularSolversNodes)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(
+                gko::experimental::solver::Direct<double, int>::build()
+                    .with_factorization(
+                        gko::experimental::factorization::Lu<double,
+                                                             int>::build()))
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+    auto tree = describe_after_apply(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=2)\n"
+              "    Workspace [lower_solver] (children=0)\n"
+              "    Workspace [upper_solver] (children=0)\n");
 }
 
 
