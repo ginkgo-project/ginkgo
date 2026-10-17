@@ -177,10 +177,10 @@ protected:
                 gko::transpose(components.system_matrix->get_size())),
           EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             components.system_matrix)},
+                                             components.system_matrix),
+              components},
           parameters_{factory->get_parameters()}
     {
-        this->adopt_workspace(components, this->get_executor());
         this->generate();
     }
 
@@ -345,10 +345,10 @@ protected:
                 gko::transpose(components.system_matrix->get_size())),
           EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             components.system_matrix)},
+                                             components.system_matrix),
+              components},
           parameters_{factory->get_parameters()}
     {
-        this->adopt_workspace(components, this->get_executor());
         this->generate();
     }
 

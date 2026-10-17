@@ -249,7 +249,7 @@ protected:
     explicit Ir(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
-          EnableSolverBase<Ir>{std::move(components.system_matrix)},
+          EnableSolverBase<Ir>{std::move(components.system_matrix), components},
           EnableIterativeBase<Ir>{
               stop::combine(factory->get_parameters().criteria)},
           parameters_{factory->get_parameters()}
@@ -259,7 +259,6 @@ protected:
                 "inner_initial_guess must be initial_guess_mode::zero or "
                 "initial_guess_mode::rhs");
         }
-        this->adopt_workspace(components, this->get_executor());
         if (parameters_.generated_solver) {
             this->set_solver(parameters_.generated_solver);
         } else if (parameters_.solver) {

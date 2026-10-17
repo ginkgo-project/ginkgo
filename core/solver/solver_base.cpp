@@ -12,65 +12,37 @@ namespace detail {
 
 
 SolverBaseLinOp::SolverBaseLinOp(std::shared_ptr<const Executor> exec)
-{
-    owned_workspace_ = Workspace::create(std::move(exec));
-    node_ = owned_workspace_.get();
-}
+    : WorkspaceHolder(std::move(exec))
+{}
+
+
+SolverBaseLinOp::SolverBaseLinOp(std::shared_ptr<const Executor> exec,
+                                 LinOpGenerateComponents& components)
+    : WorkspaceHolder(std::move(exec), components)
+{}
+
 
 SolverBaseLinOp::SolverBaseLinOp(const SolverBaseLinOp& other)
-{
-    if (other.node_) {
-        owned_workspace_ = Workspace::create(other.node_->get_executor());
-        node_ = owned_workspace_.get();
-    }
-}
+    : WorkspaceHolder(other)
+{}
+
 
 SolverBaseLinOp::SolverBaseLinOp(SolverBaseLinOp&& other) noexcept
-{
-    owned_workspace_ = std::move(other.owned_workspace_);
-    borrowed_workspace_ = std::move(other.borrowed_workspace_);
-    node_ =
-        owned_workspace_ ? owned_workspace_.get() : borrowed_workspace_.get();
-    other.node_ = nullptr;
-}
+    : WorkspaceHolder(std::move(other))
+{}
 
-SolverBaseLinOp& SolverBaseLinOp::operator=(const SolverBaseLinOp& /*other*/)
+
+SolverBaseLinOp& SolverBaseLinOp::operator=(const SolverBaseLinOp& other)
 {
+    WorkspaceHolder::operator=(other);
     return *this;
 }
+
 
 SolverBaseLinOp& SolverBaseLinOp::operator=(SolverBaseLinOp&& other) noexcept
 {
-    if (this != &other) {
-        owned_workspace_ = std::move(other.owned_workspace_);
-        borrowed_workspace_ = std::move(other.borrowed_workspace_);
-        node_ = owned_workspace_ ? owned_workspace_.get()
-                                 : borrowed_workspace_.get();
-        other.node_ = nullptr;
-    }
+    WorkspaceHolder::operator=(std::move(other));
     return *this;
-}
-
-std::unique_ptr<Workspace> SolverBaseLinOp::extract_workspace()
-{
-    node_ = nullptr;
-    return std::move(owned_workspace_);
-}
-
-void SolverBaseLinOp::adopt_workspace(LinOpGenerateComponents& components,
-                                      std::shared_ptr<const Executor> exec)
-{
-    if (components.has_owned_workspace()) {
-        owned_workspace_ = components.take_owned_workspace();
-        borrowed_workspace_ = nullptr;
-        node_ = owned_workspace_.get();
-        owned_workspace_->reset(std::move(exec));
-    } else if (components.has_view_workspace()) {
-        owned_workspace_ = nullptr;
-        borrowed_workspace_ =
-            components.get_view_workspace()->shared_from_this();
-        node_ = borrowed_workspace_.get();
-    }
 }
 
 

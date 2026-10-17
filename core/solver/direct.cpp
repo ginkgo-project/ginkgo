@@ -129,9 +129,9 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
           Direct, factorization::Factorization<ValueType, IndexType>>{
           generate_factorization<ValueType, IndexType>(
               factory->get_parameters().factorization,
-              components.system_matrix)}
+              components.system_matrix),
+          components}
 {
-    this->adopt_workspace(components, this->get_executor());
     using factorization::storage_type;
     const auto factors = this->get_system_matrix();
     const auto exec = this->get_executor();

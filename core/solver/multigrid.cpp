@@ -1296,12 +1296,12 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
                      reuse_data_type* reuse_data)
     : LinOp(factory->get_executor(),
             transpose(components.system_matrix->get_size())),
-      EnableSolverBase<Multigrid>{std::move(components.system_matrix)},
+      EnableSolverBase<Multigrid>{std::move(components.system_matrix),
+                                  components},
       EnableIterativeBase<Multigrid>{
           stop::combine(factory->get_parameters().criteria)},
       parameters_{factory->get_parameters()}
 {
-    this->adopt_workspace(components, this->get_executor());
     this->validate();
     if (!parameters_.level_selector) {
         auto mg_level_size = parameters_.mg_level.size();

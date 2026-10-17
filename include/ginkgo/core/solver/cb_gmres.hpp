@@ -199,13 +199,9 @@ protected:
         : LinOp(factory->get_executor(),
                 transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
-              std::move(components.system_matrix), factory->get_parameters(),
-              deferred_preconditioner},
+              components, factory->get_parameters()},
           parameters_{factory->get_parameters()}
-    {
-        this->adopt_workspace(components, this->get_executor());
-        this->generate_preconditioner_with_workspace(parameters_);
-    }
+    {}
 };
 
 
