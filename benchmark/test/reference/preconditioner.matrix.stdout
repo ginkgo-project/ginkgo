@@ -10,7 +10,18 @@
                     },
                     "time": 1.0,
                     "repetitions": 10,
-                    "repetition_times": []
+                    "repetition_times": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
                 },
                 "apply": {
                     "components": {
@@ -21,8 +32,20 @@
                     },
                     "time": 1.0,
                     "repetitions": 10,
-                    "repetition_times": []
+                    "repetition_times": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
                 },
+                "storage": 0,
                 "completed": true
             }
         },

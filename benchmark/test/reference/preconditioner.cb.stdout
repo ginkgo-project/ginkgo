@@ -27,6 +27,7 @@
                     "repetitions": 10,
                     "repetition_times": []
                 },
+                "storage": 266148,
                 "completed": true
             },
             "ilu-syncfree": {
@@ -69,6 +70,7 @@
                     "repetitions": 10,
                     "repetition_times": []
                 },
+                "storage": 96808,
                 "completed": true
             },
             "ic-syncfree": {
@@ -113,6 +115,7 @@
                     "repetitions": 10,
                     "repetition_times": []
                 },
+                "storage": 96808,
                 "completed": true
             },
             "mg-pgm": {
@@ -182,6 +185,16 @@
                     "repetitions": 10,
                     "repetition_times": []
                 },
+                "storage": 285948,
+                "levels": [
+                    {
+                        "fine_rows": 1,
+                        "coarse_rows": 1,
+                        "coarse_nonzeros": 1,
+                        "restrict_nonzeros": null,
+                        "prolong_nonzeros": null
+                    }
+                ],
                 "completed": true
             },
             "mg-pmis": {
@@ -244,6 +257,16 @@
                     "repetitions": 1,
                     "repetition_times": []
                 },
+                "storage": 1,
+                "levels": [
+                    {
+                        "fine_rows": 1,
+                        "coarse_rows": 1,
+                        "coarse_nonzeros": 1,
+                        "restrict_nonzeros": 1,
+                        "prolong_nonzeros": 1
+                    }
+                ],
                 "completed": true
             },
             "mg-uniform": {
@@ -301,6 +324,16 @@
                     "repetitions": 10,
                     "repetition_times": []
                 },
+                "storage": 380824,
+                "levels": [
+                    {
+                        "fine_rows": 1,
+                        "coarse_rows": 1,
+                        "coarse_nonzeros": 1,
+                        "restrict_nonzeros": 1,
+                        "prolong_nonzeros": 1
+                    }
+                ],
                 "completed": true
             }
         },
