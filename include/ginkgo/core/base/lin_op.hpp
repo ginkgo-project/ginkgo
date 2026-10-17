@@ -24,6 +24,32 @@
 
 
 namespace gko {
+
+
+class LinOp;
+class LinOpFactory;
+class Workspace;
+
+
+namespace detail {
+
+
+/**
+ * Internal: generate a LinOp that borrows a non-owning Workspace view.
+ * Called by LinOps that generate inner LinOps (multigrid, IR, preconditioned
+ * Krylov solvers, preconditioners) to wire them into a child node of their
+ * own workspace.
+ * External callers should not use this — the borrowed view's lifetime is
+ * the responsibility of the outer solver, not the caller.
+ */
+std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
+                                          std::shared_ptr<const LinOp> input,
+                                          Workspace* view);
+
+
+}  // namespace detail
+
+
 namespace matrix {
 
 
@@ -340,39 +366,79 @@ private:
  *
  * @ingroup LinOp
  */
+
+
 /**
- * Components needed to generate a LinOp product from a factory: the system
- * matrix the product is generated for.
+ * Components needed to generate a LinOp product from a factory.
+ * Carries the system matrix and an optional workspace for temporary storage.
+ *
+ * Each instance is constructed in exactly one of three states:
+ *   - no workspace,
+ *   - owning workspace (transferred to the factory),
+ *   - non-owning workspace view (borrowed by an inner solver).
+ * The state is fixed at construction; the workspace storage is private so
+ * the two cases cannot coexist or be set after the fact.
  */
 struct LinOpGenerateComponents {
     std::shared_ptr<const LinOp> system_matrix;
 
-    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix)
-        : system_matrix{std::move(matrix)}
-    {}
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix);
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
+                            std::unique_ptr<gko::Workspace> ws);
+    ~LinOpGenerateComponents();
+    LinOpGenerateComponents(LinOpGenerateComponents&&) noexcept;
+    LinOpGenerateComponents& operator=(LinOpGenerateComponents&&) noexcept;
+
+    // Non-copyable (unique_ptr member)
+    LinOpGenerateComponents(const LinOpGenerateComponents&) = delete;
+    LinOpGenerateComponents& operator=(const LinOpGenerateComponents&) = delete;
+
+    bool has_owned_workspace() const { return owned_workspace_ != nullptr; }
+    bool has_view_workspace() const { return view_workspace_ != nullptr; }
+
+    std::unique_ptr<gko::Workspace> take_owned_workspace();
+
+    gko::Workspace* get_view_workspace() const { return view_workspace_.get(); }
+
+private:
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
+                            gko::Workspace* view);
+
+    friend std::unique_ptr<LinOp> gko::detail::generate_with_view(
+        const LinOpFactory*, std::shared_ptr<const LinOp>, gko::Workspace*);
+
+    std::unique_ptr<gko::Workspace> owned_workspace_;
+    // shares the ownership of the borrowed (child) node
+    std::shared_ptr<gko::Workspace> view_workspace_;
 };
 
 
 class LinOpFactory : public AbstractFactory<LinOp, LinOpGenerateComponents> {
 public:
-    using AbstractFactory::AbstractFactory;
+    using AbstractFactory<LinOp, LinOpGenerateComponents>::AbstractFactory;
 
-    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const
-    {
-        this->template log<log::Logger::linop_factory_generate_started>(
-            this, input.get());
-        const auto exec = this->get_executor();
-        std::unique_ptr<LinOp> generated;
-        if (input->get_executor() == exec) {
-            generated = this->AbstractFactory::generate(input);
-        } else {
-            generated =
-                this->AbstractFactory::generate(gko::clone(exec, input));
-        }
-        this->template log<log::Logger::linop_factory_generate_completed>(
-            this, input.get(), generated.get());
-        return generated;
-    }
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input) const;
+
+    /**
+     * Generate a solver that owns the given workspace. After this call returns,
+     * the workspace lives inside the returned solver — any raw Workspace*
+     * obtained before the move is dangling once the solver is destroyed. Use
+     * gko::invalidate_and_extract_workspace() to recover it safely.
+     */
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input,
+                                    std::unique_ptr<gko::Workspace> ws) const;
+
+    // Deleted: external code must transfer ownership of the workspace via the
+    // unique_ptr overload above. The non-owning view path is reserved for
+    // internal solver composition (see gko::detail::generate_with_view).
+    // Without this delete, `factory->generate(matrix, ws.get())` would silently
+    // bind to the AbstractFactory variadic template fallback and produce a
+    // solver holding a dangling Workspace* once the caller's unique_ptr drops.
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp>,
+                                    gko::Workspace*) const = delete;
+
+    friend std::unique_ptr<LinOp> gko::detail::generate_with_view(
+        const LinOpFactory*, std::shared_ptr<const LinOp>, gko::Workspace*);
 
     /**
      * Opaque base for the data a factory records in generate_reuse() to speed

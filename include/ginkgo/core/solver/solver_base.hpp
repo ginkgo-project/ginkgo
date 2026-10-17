@@ -16,12 +16,12 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/preconditioner/nullspace_projection.hpp>
 #include <ginkgo/core/solver/nullspace.hpp>
-#include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -368,11 +368,25 @@ namespace detail {
  * @ingroup solvers
  * @ingroup LinOp
  */
-class SolverBaseLinOp {
+class SolverBaseLinOp : public gko::detail::WorkspaceHolder {
 public:
-    SolverBaseLinOp(std::shared_ptr<const Executor> exec)
-        : workspace_{std::move(exec)}
-    {}
+    SolverBaseLinOp(std::shared_ptr<const Executor> exec);
+
+    /**
+     * Takes over the workspace carried by `components` (owned or borrowed).
+     */
+    SolverBaseLinOp(std::shared_ptr<const Executor> exec,
+                    LinOpGenerateComponents& components);
+
+    /**
+     * Copy-constructed solvers get a fresh, empty workspace on the source's
+     * executor: concurrent solvers must not share scratch storage. The copy
+     * starts cold and allocates on its first apply().
+     */
+    SolverBaseLinOp(const SolverBaseLinOp& other);
+    SolverBaseLinOp(SolverBaseLinOp&& other) noexcept;
+    SolverBaseLinOp& operator=(const SolverBaseLinOp& other);
+    SolverBaseLinOp& operator=(SolverBaseLinOp&& other) noexcept;
 
     virtual ~SolverBaseLinOp() = default;
 
@@ -388,7 +402,7 @@ public:
 
     const LinOp* get_workspace_op(int vector_id) const
     {
-        return workspace_.get_op(vector_id);
+        return this->get_workspace_node()->get_const_op(vector_id);
     }
 
     virtual int get_num_workspace_ops() const { return 0; }
@@ -416,105 +430,7 @@ protected:
         system_matrix_ = std::move(system_matrix);
     }
 
-    void set_workspace_size(int num_operators, int num_arrays) const
-    {
-        workspace_.set_size(num_operators, num_arrays);
-    }
-
-    template <typename LinOpType>
-    LinOpType* create_workspace_op(int vector_id, gko::dim<2> size) const
-    {
-        return workspace_.template create_or_get_op<LinOpType>(
-            vector_id,
-            [&] {
-                return LinOpType::create(this->workspace_.get_executor(), size);
-            },
-            typeid(LinOpType), size, size[1]);
-    }
-
-    template <typename LinOpType>
-    LinOpType* create_workspace_op_with_config_of(int vector_id,
-                                                  const LinOpType* vec) const
-    {
-        return workspace_.template create_or_get_op<LinOpType>(
-            vector_id, [&] { return LinOpType::create_with_config_of(vec); },
-            typeid(*vec), vec->get_size(), vec->get_stride());
-    }
-
-    template <typename LinOpType>
-    LinOpType* create_workspace_op_with_type_of(int vector_id,
-                                                const LinOpType* vec,
-                                                dim<2> size) const
-    {
-        return workspace_.template create_or_get_op<LinOpType>(
-            vector_id,
-            [&] {
-                return LinOpType::create_with_type_of(
-                    vec, workspace_.get_executor(), size, size[1]);
-            },
-            typeid(*vec), size, size[1]);
-    }
-
-    template <typename LinOpType>
-    LinOpType* create_workspace_op_with_type_of(int vector_id,
-                                                const LinOpType* vec,
-                                                dim<2> global_size,
-                                                dim<2> local_size) const
-    {
-        return workspace_.template create_or_get_op<LinOpType>(
-            vector_id,
-            [&] {
-                return LinOpType::create_with_type_of(
-                    vec, workspace_.get_executor(), global_size, local_size,
-                    local_size[1]);
-            },
-            typeid(*vec), global_size, local_size[1]);
-    }
-
-    template <typename ValueType>
-    matrix::Dense<ValueType>* create_workspace_scalar(int vector_id,
-                                                      size_type size) const
-    {
-        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
-            vector_id,
-            [&] {
-                return matrix::Dense<ValueType>::create(
-                    workspace_.get_executor(), dim<2>{1, size});
-            },
-            typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
-    }
-
-    template <typename ValueType>
-    const matrix::Dense<ValueType>* create_workspace_fixed_scalar(
-        int vector_id, size_type size, ValueType val) const
-    {
-        return workspace_.template create_or_get_op<matrix::Dense<ValueType>>(
-            vector_id,
-            [&] {
-                auto mat = matrix::Dense<ValueType>::create(
-                    workspace_.get_executor(), dim<2>{1, size});
-                mat->fill(val);
-                return mat;
-            },
-            typeid(matrix::Dense<ValueType>), gko::dim<2>{1, size}, size);
-    }
-
-    template <typename ValueType>
-    array<ValueType>& create_workspace_array(int array_id, size_type size) const
-    {
-        return workspace_.template create_or_get_array<ValueType>(array_id,
-                                                                  size);
-    }
-
-    template <typename ValueType>
-    array<ValueType>& create_workspace_array(int array_id) const
-    {
-        return workspace_.template init_or_get_array<ValueType>(array_id);
-    }
-
 private:
-    mutable detail::workspace workspace_;
-
     std::shared_ptr<const LinOp> system_matrix_;
 };
 
@@ -585,6 +501,8 @@ public:
         if (&other != this) {
             set_system_matrix(other.get_system_matrix());
             other.set_system_matrix(nullptr);
+            // transfers the workspace
+            SolverBase<MatrixType>::operator=(std::move(other));
         }
         return *this;
     }
@@ -593,6 +511,17 @@ public:
 
     EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix)
         : SolverBase<MatrixType>{self()->get_executor()}
+    {
+        set_system_matrix(std::move(system_matrix));
+    }
+
+    /**
+     * Stores the system matrix and takes over the workspace carried by
+     * `components`.
+     */
+    EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix,
+                     LinOpGenerateComponents& components)
+        : SolverBase<MatrixType>{self()->get_executor(), components}
     {
         set_system_matrix(std::move(system_matrix));
     }
@@ -846,51 +775,20 @@ class EnablePreconditionedIterativeSolver
 public:
     EnablePreconditionedIterativeSolver() = default;
 
-    EnablePreconditionedIterativeSolver(
-        std::shared_ptr<const LinOp> system_matrix,
-        std::shared_ptr<const stop::CriterionFactory> stop_factory,
-        std::shared_ptr<const LinOp> preconditioner)
-        : EnableSolverBase<DerivedType>(std::move(system_matrix)),
-          EnableIterativeBase<DerivedType>{std::move(stop_factory)},
-          EnablePreconditionable<DerivedType>{std::move(preconditioner)}
-    {}
-
+    /**
+     * Takes the system matrix and the workspace from `components`, then
+     * generates the preconditioner into the "preconditioner" child node of
+     * the workspace and wraps it in the nullspace projection if needed.
+     */
     template <typename FactoryParameters>
-    EnablePreconditionedIterativeSolver(
-        std::shared_ptr<const LinOp> system_matrix,
-        const FactoryParameters& params)
-        : EnablePreconditionedIterativeSolver{
-              system_matrix, stop::combine(params.criteria),
-              generate_preconditioner(system_matrix, params)}
+    EnablePreconditionedIterativeSolver(LinOpGenerateComponents& components,
+                                        const FactoryParameters& params)
+        : EnableSolverBase<DerivedType>(std::move(components.system_matrix),
+                                        components),
+          EnableIterativeBase<DerivedType>{stop::combine(params.criteria)}
     {
-        using traits = nullspace_traits<DerivedType>;
-        if ((params.nullspace || params.left_nullspace) &&
-            !traits::is_supported) {
-            throw NotSupported(
-                __FILE__, __LINE__, "nullspace projection",
-                name_demangling::get_type_name(typeid(DerivedType)));
-        }
-        if (system_matrix) {
-            auto exec = get_solver_executor();
-            nullspace_ = detail::prepare_nullspace<ValueType>(
-                params.nullspace, "nullspace", system_matrix.get(),
-                system_matrix->get_size()[1], exec);
-            left_nullspace_ = detail::prepare_nullspace<ValueType>(
-                params.left_nullspace, "left_nullspace", system_matrix.get(),
-                system_matrix->get_size()[0], exec);
-        }
-        if (traits::requires_hermitian) {
-            if (!left_nullspace_) {
-                left_nullspace_ = nullspace_;
-            }
-            if (!nullspace_) {
-                nullspace_ = left_nullspace_;
-            }
-        }
-        if (nullspace_) {
-            // wraps the preconditioner in the nullspace projection
-            this->set_preconditioner(this->get_preconditioner());
-        }
+        this->init_nullspaces(this->get_system_matrix(), params);
+        this->generate_preconditioner_with_workspace(params);
     }
 
     EnablePreconditionedIterativeSolver(
@@ -989,6 +887,27 @@ public:
 
 protected:
     /**
+     * Generates the preconditioner, using the workspace node if available
+     * to propagate workspace tree to inner preconditioners.
+     */
+    template <typename FactoryParameters>
+    void generate_preconditioner_with_workspace(const FactoryParameters& params)
+    {
+        if (params.generated_preconditioner) {
+            this->set_preconditioner(params.generated_preconditioner);
+        } else if (params.preconditioner) {
+            auto* child = this->get_workspace_node()->get_or_create_child(
+                "preconditioner");
+            this->set_preconditioner(gko::detail::generate_with_view(
+                params.preconditioner.get(), this->get_system_matrix(), child));
+        } else {
+            this->set_preconditioner(matrix::Identity<ValueType>::create(
+                this->get_system_matrix()->get_executor(),
+                this->get_system_matrix()->get_size()));
+        }
+    }
+
+    /**
      * Removes the right nullspace component from `v`, if a right nullspace is
      * set. Solvers apply this to the initial guess; the preconditioner keeps
      * all search directions, and thus the solution, orthogonal to
@@ -1047,6 +966,36 @@ protected:
     }
 
 private:
+    template <typename FactoryParameters>
+    void init_nullspaces(const std::shared_ptr<const LinOp>& system_matrix,
+                         const FactoryParameters& params)
+    {
+        using traits = nullspace_traits<DerivedType>;
+        if ((params.nullspace || params.left_nullspace) &&
+            !traits::is_supported) {
+            throw NotSupported(
+                __FILE__, __LINE__, "nullspace projection",
+                name_demangling::get_type_name(typeid(DerivedType)));
+        }
+        if (system_matrix) {
+            auto exec = get_solver_executor();
+            nullspace_ = detail::prepare_nullspace<ValueType>(
+                params.nullspace, "nullspace", system_matrix.get(),
+                system_matrix->get_size()[1], exec);
+            left_nullspace_ = detail::prepare_nullspace<ValueType>(
+                params.left_nullspace, "left_nullspace", system_matrix.get(),
+                system_matrix->get_size()[0], exec);
+        }
+        if (traits::requires_hermitian) {
+            if (!left_nullspace_) {
+                left_nullspace_ = nullspace_;
+            }
+            if (!nullspace_) {
+                nullspace_ = left_nullspace_;
+            }
+        }
+    }
+
     // whether precond already removes the nullspaces this solver needs removed
     bool removes_nullspaces(const LinOp* precond) const
     {
@@ -1099,21 +1048,6 @@ private:
         }
         return projection_params.on(get_solver_executor())
             ->generate(this->get_system_matrix());
-    }
-
-    template <typename FactoryParameters>
-    static std::shared_ptr<const LinOp> generate_preconditioner(
-        std::shared_ptr<const LinOp> system_matrix,
-        const FactoryParameters& params)
-    {
-        if (params.generated_preconditioner) {
-            return params.generated_preconditioner;
-        } else if (params.preconditioner) {
-            return params.preconditioner->generate(system_matrix);
-        } else {
-            return matrix::Identity<ValueType>::create(
-                system_matrix->get_executor(), system_matrix->get_size());
-        }
     }
 
     std::shared_ptr<const Nullspace<ValueType>> nullspace_{};

@@ -154,7 +154,7 @@ protected:
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, PipeCg<ValueType>>{
-              std::move(components.system_matrix), factory->get_parameters()},
+              components, factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

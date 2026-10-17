@@ -249,7 +249,7 @@ protected:
     explicit Ir(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
-          EnableSolverBase<Ir>{std::move(components.system_matrix)},
+          EnableSolverBase<Ir>{std::move(components.system_matrix), components},
           EnableIterativeBase<Ir>{
               stop::combine(factory->get_parameters().criteria)},
           parameters_{factory->get_parameters()}
@@ -262,8 +262,10 @@ protected:
         if (parameters_.generated_solver) {
             this->set_solver(parameters_.generated_solver);
         } else if (parameters_.solver) {
-            this->set_solver(
-                parameters_.solver->generate(this->get_system_matrix()));
+            auto* child =
+                this->get_workspace_node()->get_or_create_child("solver");
+            this->set_solver(gko::detail::generate_with_view(
+                parameters_.solver.get(), this->get_system_matrix(), child));
         } else {
             this->set_solver(matrix::Identity<ValueType>::create(
                 this->get_executor(), this->get_size()[0]));
