@@ -1093,10 +1093,10 @@ private:
         if (system_matrix) {
             nullspace_ = detail::prepare_nullspace<ValueType>(
                 params.nullspace, "nullspace", system_matrix.get(),
-                system_matrix->get_size()[1], exec);
+                system_matrix->get_size()[1], exec, this->get_workspace_node());
             left_nullspace_ = detail::prepare_nullspace<ValueType>(
                 params.left_nullspace, "left_nullspace", system_matrix.get(),
-                system_matrix->get_size()[0], exec);
+                system_matrix->get_size()[0], exec, this->get_workspace_node());
         }
         if (traits::requires_hermitian) {
             if (!left_nullspace_) {
@@ -1176,8 +1176,11 @@ private:
         if (nullspace_traits<DerivedType>::two_sided_projection) {
             projection_params.with_left_nullspace(left_nullspace_);
         }
-        return projection_params.on(std::move(exec))
-            ->generate(this->get_system_matrix());
+        return gko::detail::generate_with_view(
+            projection_params.on(std::move(exec)).get(),
+            this->get_system_matrix(),
+            this->get_workspace_node()->get_or_create_child(
+                "nullspace_projection"));
     }
 
     std::shared_ptr<const Nullspace<ValueType>> nullspace_{};

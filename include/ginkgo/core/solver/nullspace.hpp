@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 
@@ -56,7 +57,9 @@ namespace solver {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Nullspace : public LinOp, public EnableCloneable<Nullspace<ValueType>> {
+class Nullspace : public LinOp,
+                  public EnableCloneable<Nullspace<ValueType>>,
+                  public gko::detail::WorkspaceHolder {
     friend class EnableCloneable<Nullspace>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -160,7 +163,7 @@ private:
     template <typename VectorType>
     const matrix::Dense<ValueType>* get_local_basis(const VectorType* v) const;
 
-    // stores [mean(v); V^H v] in coefficients_
+    // stores [mean(v); V^H v] in the coefficients
     template <typename VectorType>
     void compute_components(const VectorType* v,
                             const matrix::Dense<ValueType>* basis_local,
@@ -178,13 +181,15 @@ private:
                            const matrix::Dense<ValueType>* basis_local,
                            bool has_constant) const;
 
+    // the (1 + k) x nrhs coefficients (means, then V^H x) computed by the last
+    // compute_components, in the workspace
+    matrix::Dense<ValueType>* get_coefficients() const;
+
     bool contains_constant_;
     // orthonormal explicit basis (n x k), Dense or distributed::Vector
     std::shared_ptr<const LinOp> basis_;
-    // scratch: (1 + k) x nrhs coefficients (means, then V^H x)
-    gko::detail::DenseCache<ValueType> coefficients_;
+    // host buffer for combining the coefficients over all ranks
     gko::detail::DenseCache<ValueType> host_coefficients_;
-    mutable array<char> reduction_tmp_;
 };
 
 
@@ -202,13 +207,16 @@ namespace detail {
  * @param op  the operator the nullspace belongs to
  * @param size  the size of the nullspace vectors
  * @param exec  the executor of the operator
+ * @param parent  if given, the workspace node of the operator; the copy
+ *                keeps its scratch buffers in its child node `name`
  *
  * @return the nullspace to use, or nullptr if there is none
  */
 template <typename ValueType>
 std::shared_ptr<const Nullspace<ValueType>> prepare_nullspace(
     std::shared_ptr<const LinOp> param, const char* name, const LinOp* op,
-    size_type size, std::shared_ptr<const Executor> exec);
+    size_type size, std::shared_ptr<const Executor> exec,
+    Workspace* parent = nullptr);
 
 
 }  // namespace detail
