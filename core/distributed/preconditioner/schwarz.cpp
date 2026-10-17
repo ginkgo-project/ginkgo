@@ -101,6 +101,7 @@ template <typename VectorType>
 void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
     const VectorType* dense_b, VectorType* dense_x) const
 {
+    using dist_vec = experimental::distributed::Vector<ValueType>;
     auto exec = this->get_executor();
 
     // Two-level
@@ -127,19 +128,33 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_dense_impl(
         auto cs_local_size = dim<2>(cs_local_nrows, cs_ncols);
         auto cs_global_size = dim<2>(cs_global_nrows, cs_ncols);
         auto comm = coarse_op->get_communicator();
-        csol_cache_.init(exec, comm, cs_global_size, cs_local_size);
-        crhs_cache_.init(exec, comm, cs_global_size, cs_local_size);
+        this->set_workspace_size(3, 0);
+        auto coarse_vector = [&](int id) {
+            return this->template create_workspace_op_if<dist_vec>(
+                id,
+                [&](const dist_vec& v) {
+                    return v.get_executor() != exec ||
+                           v.get_size() != cs_global_size ||
+                           v.get_local_vector()->get_size() != cs_local_size;
+                },
+                [&] {
+                    return dist_vec::create(exec, comm, cs_global_size,
+                                            cs_local_size);
+                });
+        };
+        auto csol = coarse_vector(coarse_solution_id);
+        auto crhs = coarse_vector(coarse_rhs_id);
 
         // Additive apply of coarse correction
-        restrict_op->apply(dense_b, crhs_cache_.get());
+        restrict_op->apply(dense_b, crhs);
         // TODO: Does it make sense to restrict dense_x (to csol_cache) to
         // provide a good initial guess for the coarse solver ?
         if (this->coarse_solver_->apply_uses_initial_guess()) {
-            csol_cache_->copy_from(crhs_cache_.get());
+            csol->copy_from(crhs);
         }
-        this->coarse_solver_->apply(crhs_cache_.get(), csol_cache_.get());
-        prolong_op->apply(this->coarse_weight_, csol_cache_.get(),
-                          this->local_weight_, dense_x);
+        this->coarse_solver_->apply(crhs, csol);
+        prolong_op->apply(this->coarse_weight_, csol, this->local_weight_,
+                          dense_x);
     } else if (this->local_solver_ != nullptr) {
         this->local_solver_->apply(gko::detail::get_local(dense_b),
                                    gko::detail::get_local(dense_x));
@@ -154,11 +169,21 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
     // only dispatch distributed case
     experimental::distributed::precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            cache_.init_from(dense_x);
-            cache_->copy_from(dense_x);
-            this->apply_impl(dense_b, cache_.get());
+            using dist_vec = std::decay_t<decltype(*dense_x)>;
+            this->set_workspace_size(3, 0);
+            auto x_copy = this->template create_workspace_op_if<dist_vec>(
+                x_copy_id,
+                [dense_x](const dist_vec& v) {
+                    return v.get_executor() != dense_x->get_executor() ||
+                           v.get_size() != dense_x->get_size() ||
+                           v.get_local_vector()->get_size() !=
+                               dense_x->get_local_vector()->get_size();
+                },
+                [dense_x] { return dist_vec::create_with_config_of(dense_x); });
+            x_copy->copy_from(dense_x);
+            this->apply_impl(dense_b, x_copy);
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, cache_.get());
+            dense_x->add_scaled(dense_alpha, x_copy);
         },
         alpha, b, beta, x);
 }
@@ -184,12 +209,9 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate_inner(
     const LinOpFactory* factory, std::shared_ptr<const LinOp> matrix,
     const std::string& tag)
 {
-    if (workspace_view_) {
-        auto* child = workspace_view_->get_or_create_child(tag);
-        return gko::detail::generate_with_view(factory, std::move(matrix),
-                                               child);
-    }
-    return factory->generate(std::move(matrix));
+    return gko::detail::generate_with_view(
+        factory, std::move(matrix),
+        this->get_workspace_node()->get_or_create_child(tag));
 }
 
 

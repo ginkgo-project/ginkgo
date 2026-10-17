@@ -20,7 +20,6 @@
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
-#include <ginkgo/core/distributed/vector_cache.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
 
@@ -66,7 +65,7 @@ namespace preconditioner {
  */
 template <typename ValueType = default_precision,
           typename LocalIndexType = int32, typename GlobalIndexType = int64>
-class Schwarz : public LinOp {
+class Schwarz : public LinOp, public gko::detail::WorkspaceHolder {
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
 public:
@@ -75,8 +74,13 @@ public:
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
 
-    Schwarz(const Schwarz& other) : LinOp(other) { *this = other; }
-    Schwarz(Schwarz&& other) noexcept : LinOp(std::move(other))
+    // LinOp's copy and move constructors don't keep the executor, so start
+    // from an empty Schwarz on the executor of other
+    Schwarz(const Schwarz& other) : Schwarz(other.get_executor())
+    {
+        *this = other;
+    }
+    Schwarz(Schwarz&& other) noexcept : Schwarz(other.get_executor())
     {
         *this = std::move(other);
     }
@@ -105,9 +109,7 @@ public:
             coarse_solver_ = std::move(other.coarse_solver_);
             coarse_weight_ = std::move(other.coarse_weight_);
             local_weight_ = std::move(other.local_weight_);
-            owned_workspace_ = std::move(other.owned_workspace_);
-            borrowed_workspace_ = std::move(other.borrowed_workspace_);
-            workspace_view_ = std::exchange(other.workspace_view_, nullptr);
+            gko::detail::WorkspaceHolder::operator=(std::move(other));
         }
         return *this;
     }
@@ -205,7 +207,8 @@ protected:
      * @param exec  the executor this object is assigned to
      */
     explicit Schwarz(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
+        : LinOp(std::move(exec)),
+          gko::detail::WorkspaceHolder(this->get_executor())
     {}
 
     /**
@@ -218,17 +221,10 @@ protected:
     explicit Schwarz(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
+          gko::detail::WorkspaceHolder(factory->get_executor(), components),
           parameters_{factory->get_parameters()},
           system_matrix_{components.system_matrix}
     {
-        if (components.has_owned_workspace()) {
-            owned_workspace_ = components.take_owned_workspace();
-            workspace_view_ = owned_workspace_.get();
-        } else if (components.has_view_workspace()) {
-            borrowed_workspace_ =
-                components.get_view_workspace()->shared_from_this();
-            workspace_view_ = borrowed_workspace_.get();
-        }
         this->generate(std::move(components.system_matrix));
     }
 
@@ -266,16 +262,10 @@ private:
     std::shared_ptr<const LinOp> local_solver_;
     std::shared_ptr<const LinOp> system_matrix_;
 
-    std::unique_ptr<gko::Workspace> owned_workspace_;
-    gko::Workspace* workspace_view_ = nullptr;
-    // keeps a borrowed node alive
-    std::shared_ptr<gko::Workspace> borrowed_workspace_;
-
-    // Used for advanced apply
-    detail::VectorCache<ValueType> cache_;
-    // Used in apply for two-level method
-    detail::VectorCache<ValueType> csol_cache_;
-    detail::VectorCache<ValueType> crhs_cache_;
+    // workspace slots
+    static constexpr int x_copy_id = 0;
+    static constexpr int coarse_solution_id = 1;
+    static constexpr int coarse_rhs_id = 2;
 
     std::shared_ptr<const LinOp> coarse_level_;
     std::shared_ptr<const LinOp> coarse_solver_;
