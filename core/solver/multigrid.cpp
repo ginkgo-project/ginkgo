@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
@@ -24,7 +25,6 @@
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
-#include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
@@ -95,14 +95,14 @@ casting(const T& x)
 std::unique_ptr<LinOp> generate_component(
     const LinOpFactory* factory, std::shared_ptr<const LinOp> matrix,
     std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
-    solver::Workspace* ws_node = nullptr)
+    gko::Workspace* ws_node = nullptr)
 {
     if (!reuse_data) {
         if (!ws_node) {
             return factory->generate(std::move(matrix));
         }
-        return gko::solver::detail::generate_with_view(
-            factory, std::move(matrix), ws_node);
+        return gko::detail::generate_with_view(factory, std::move(matrix),
+                                               ws_node);
     }
     if (!*reuse_data) {
         *reuse_data = factory->create_empty_reuse_data();
@@ -123,7 +123,7 @@ void handle_list(
     std::vector<std::shared_ptr<const LinOp>>& smoother, size_type iteration,
     std::complex<double> relaxation_factor,
     std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
-    solver::Workspace* ws_node)
+    gko::Workspace* ws_node)
 {
     auto list_size = smoother_list.size();
     auto gen_default_smoother = [&]() -> std::shared_ptr<const LinOp> {
@@ -238,7 +238,7 @@ public:
      */
     void generate(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
                   const size_type nrhs_in,
-                  solver::Workspace* ws_node_in = nullptr);
+                  gko::Workspace* ws_node_in = nullptr);
 
     /**
      * allocate_memory is a helper function to allocate the memory of one level
@@ -309,15 +309,15 @@ public:
     const LinOp* system_matrix;
     const Multigrid* multigrid;
     size_type nrhs;
-    solver::Workspace* ws_node = nullptr;
-    std::vector<solver::Workspace*> level_nodes;
+    gko::Workspace* ws_node = nullptr;
+    std::vector<gko::Workspace*> level_nodes;
 };
 
 
 void MultigridState::generate(const LinOp* system_matrix_in,
                               const gko::solver::Multigrid* multigrid_in,
                               const size_type nrhs_in,
-                              solver::Workspace* ws_node_in)
+                              gko::Workspace* ws_node_in)
 {
     system_matrix = system_matrix_in;
     multigrid = multigrid_in;
@@ -414,7 +414,7 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
 
     auto& storage = *lnode;
     storage.reset(exec);
-    gko::solver::detail::claim_workspace(storage, typeid(MultigridState));
+    gko::detail::claim_workspace(storage, typeid(MultigridState));
     storage.set_size(6, 0);  // 6 operator slots, 0 arrays
 
     // Slot 0: r (current level dimensions)
@@ -482,7 +482,7 @@ void MultigridState::allocate_memory(
 
     auto& storage = *lnode;
     storage.reset(exec);
-    gko::solver::detail::claim_workspace(storage, typeid(MultigridState));
+    gko::detail::claim_workspace(storage, typeid(MultigridState));
     storage.set_size(6, 0);  // 6 operator slots, 0 arrays
 
     // Slot 0: r (current level dimensions, distributed)
@@ -783,7 +783,7 @@ void Multigrid::generate_smoothers(
     std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& post_smoother_list,
-    reuse_data_type::level_data* level_reuse, solver::Workspace* level_node)
+    reuse_data_type::level_data* level_reuse, gko::Workspace* level_node)
 {
     run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
@@ -829,7 +829,7 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
     size_type level, std::shared_ptr<const LinOp> matrix,
     std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
     const size_type* recorded_index, size_type* selected_index,
-    solver::Workspace* coarse_ws_node)
+    gko::Workspace* coarse_ws_node)
 {
     std::unique_ptr<LinOp> coarsest_solver;
     run<gko::multigrid::EnableMultigridLevel, float, double,

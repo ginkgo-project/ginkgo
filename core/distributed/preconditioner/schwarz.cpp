@@ -186,8 +186,8 @@ Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate_inner(
 {
     if (workspace_view_) {
         auto* child = workspace_view_->get_or_create_child(tag);
-        return solver::detail::generate_with_view(factory, std::move(matrix),
-                                                  child);
+        return gko::detail::generate_with_view(factory, std::move(matrix),
+                                               child);
     }
     return factory->generate(std::move(matrix));
 }

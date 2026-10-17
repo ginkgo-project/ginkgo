@@ -45,6 +45,7 @@ target_sources(
         base/segmented_array.cpp
         base/timer.cpp
         base/version.cpp
+        base/workspace.cpp
         components/range_minimum_query.cpp
         config/config.cpp
         config/config_helper.cpp
@@ -131,8 +132,8 @@ target_sources(
         solver/multigrid.cpp
         solver/nullspace.cpp
         solver/pipe_cg.cpp
+        solver/solver_base.cpp
         solver/upper_trs.cpp
-        solver/workspace.cpp
         stop/combined.cpp
         stop/criterion.cpp
         stop/iteration.cpp

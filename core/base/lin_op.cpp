@@ -7,7 +7,7 @@
 #include <memory>
 #include <utility>
 
-#include <ginkgo/core/solver/workspace.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 
 
 namespace gko {
@@ -19,19 +19,18 @@ LinOpGenerateComponents::LinOpGenerateComponents(
 {}
 
 LinOpGenerateComponents::LinOpGenerateComponents(
-    std::shared_ptr<const LinOp> matrix, std::unique_ptr<solver::Workspace> ws)
+    std::shared_ptr<const LinOp> matrix, std::unique_ptr<gko::Workspace> ws)
     : system_matrix{std::move(matrix)}, owned_workspace_{std::move(ws)}
 {}
 
 LinOpGenerateComponents::LinOpGenerateComponents(
-    std::shared_ptr<const LinOp> matrix, solver::Workspace* view)
+    std::shared_ptr<const LinOp> matrix, gko::Workspace* view)
     : system_matrix{std::move(matrix)}, view_workspace_{view}
 {}
 
 LinOpGenerateComponents::~LinOpGenerateComponents() = default;
 
-std::unique_ptr<solver::Workspace>
-LinOpGenerateComponents::take_owned_workspace()
+std::unique_ptr<gko::Workspace> LinOpGenerateComponents::take_owned_workspace()
 {
     return std::move(owned_workspace_);
 }
@@ -63,7 +62,7 @@ std::unique_ptr<LinOp> LinOpFactory::generate(
 
 std::unique_ptr<LinOp> LinOpFactory::generate(
     std::shared_ptr<const LinOp> input,
-    std::unique_ptr<solver::Workspace> ws) const
+    std::unique_ptr<gko::Workspace> ws) const
 {
     this->log<log::Logger::linop_factory_generate_started>(this, input.get());
     const auto exec = this->get_executor();
@@ -128,7 +127,6 @@ std::unique_ptr<LinOp> LinOpFactory::generate_reuse_impl(
 }
 
 
-namespace solver {
 namespace detail {
 
 
@@ -150,5 +148,4 @@ std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
 
 
 }  // namespace detail
-}  // namespace solver
 }  // namespace gko

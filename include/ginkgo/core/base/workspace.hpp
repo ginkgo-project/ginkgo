@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_SOLVER_WORKSPACE_HPP_
-#define GKO_PUBLIC_CORE_SOLVER_WORKSPACE_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_WORKSPACE_HPP_
+#define GKO_PUBLIC_CORE_BASE_WORKSPACE_HPP_
 
 
 #include <iostream>
@@ -26,18 +26,10 @@ namespace gko {
 
 
 class LinOpFactory;
-
-
-namespace solver {
-
-
 class Workspace;
 
 
 namespace detail {
-
-
-class SolverBaseLinOp;
 
 
 /**
@@ -141,8 +133,6 @@ private:
  */
 class Workspace {
 public:
-    explicit Workspace(std::shared_ptr<const Executor> exec);
-
     static std::unique_ptr<Workspace> create(
         std::shared_ptr<const Executor> exec);
 
@@ -238,6 +228,9 @@ public:
     void clear();
 
 private:
+    // use Workspace::create
+    explicit Workspace(std::shared_ptr<const Executor> exec);
+
     friend void detail::claim_workspace(Workspace&, const std::type_info&);
 
     std::shared_ptr<const Executor> exec_;
@@ -268,7 +261,6 @@ std::unique_ptr<Workspace> invalidate_and_extract_workspace(
     std::unique_ptr<LinOp>&& solver);
 
 
-}  // namespace solver
 }  // namespace gko
 
-#endif  // GKO_PUBLIC_CORE_SOLVER_WORKSPACE_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_WORKSPACE_HPP_

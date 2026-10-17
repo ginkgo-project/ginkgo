@@ -16,12 +16,12 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/preconditioner/nullspace_projection.hpp>
 #include <ginkgo/core/solver/nullspace.hpp>
-#include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -428,7 +428,7 @@ protected:
     void set_workspace_size(int num_operators, int num_arrays) const
     {
         // fully qualified: it moves to gko::detail with the Workspace
-        gko::solver::detail::claim_workspace(*node_, typeid(*this));
+        gko::detail::claim_workspace(*node_, typeid(*this));
         node_->set_size(num_operators, num_arrays);
     }
 
@@ -540,13 +540,13 @@ protected:
      * Extracts the owned workspace. Only succeeds on the top-level solver.
      * Sets node_ to nullptr, invalidating this solver.
      */
-    std::unique_ptr<solver::Workspace> extract_workspace();
+    std::unique_ptr<gko::Workspace> extract_workspace();
 
 private:
-    friend std::unique_ptr<solver::Workspace>
-    solver::invalidate_and_extract_workspace(std::unique_ptr<LinOp>&& solver);
+    friend std::unique_ptr<gko::Workspace>
+    gko::invalidate_and_extract_workspace(std::unique_ptr<LinOp>&& solver);
 
-    mutable std::unique_ptr<solver::Workspace> owned_workspace_;
+    mutable std::unique_ptr<gko::Workspace> owned_workspace_;
     mutable Workspace* node_ = nullptr;
 
     std::shared_ptr<const LinOp> system_matrix_;
@@ -1017,7 +1017,7 @@ protected:
         } else if (params.preconditioner) {
             auto* child = this->get_workspace_node()->get_or_create_child(
                 "preconditioner");
-            this->set_preconditioner(detail::generate_with_view(
+            this->set_preconditioner(gko::detail::generate_with_view(
                 params.preconditioner.get(), this->get_system_matrix(), child));
         } else {
             this->set_preconditioner(matrix::Identity<ValueType>::create(

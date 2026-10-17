@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/solver/workspace.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -74,7 +74,7 @@ protected:
 
 TEST_F(Workspace, AnyArrayDefaultConstructedIsEmpty)
 {
-    gko::solver::detail::any_array array;
+    gko::detail::any_array array;
 
     ASSERT_TRUE(array.empty());
     ASSERT_FALSE(array.template contains<int>());
@@ -83,7 +83,7 @@ TEST_F(Workspace, AnyArrayDefaultConstructedIsEmpty)
 
 TEST_F(Workspace, AnyArrayDefaultConstructedIsEmptyAfterClear)
 {
-    gko::solver::detail::any_array array;
+    gko::detail::any_array array;
 
     array.clear();
 
@@ -94,7 +94,7 @@ TEST_F(Workspace, AnyArrayDefaultConstructedIsEmptyAfterClear)
 
 TEST_F(Workspace, AnyArrayInitWorks)
 {
-    gko::solver::detail::any_array array;
+    gko::detail::any_array array;
 
     auto& arr = array.template init<int>(exec, 1);
 
@@ -109,7 +109,7 @@ TEST_F(Workspace, AnyArrayInitWorks)
 
 TEST_F(Workspace, AnyArrayClearAfterInitWorks)
 {
-    gko::solver::detail::any_array array;
+    gko::detail::any_array array;
     auto& arr = array.template init<int>(exec, 1);
 
     array.clear();
@@ -121,7 +121,8 @@ TEST_F(Workspace, AnyArrayClearAfterInitWorks)
 
 TEST_F(Workspace, CanCreateArrays)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(0, 2);
 
     auto& arr1 = ws.create_or_get_array<int>(1, 2);
@@ -136,7 +137,8 @@ TEST_F(Workspace, CanCreateArrays)
 
 TEST_F(Workspace, CanReuseArrays)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(0, 2);
     auto& arr1 = ws.create_or_get_array<int>(1, 2);
     auto& arr2 = ws.create_or_get_array<double>(0, 3);
@@ -155,7 +157,8 @@ TEST_F(Workspace, CanReuseArrays)
 
 TEST_F(Workspace, CanResizeArrays)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(0, 2);
     auto& arr1 = ws.create_or_get_array<int>(1, 2);
     auto& arr2 = ws.create_or_get_array<double>(0, 3);
@@ -177,7 +180,8 @@ TEST_F(Workspace, CanResizeArrays)
 
 TEST_F(Workspace, AbortsOnDifferentArrayTypes)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(0, 1);
     ws.create_or_get_array<double>(0, 3);
 
@@ -190,7 +194,8 @@ TEST_F(Workspace, AbortsOnDifferentArrayTypes)
 
 TEST_F(Workspace, CanCreateOperators)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(2, 0);
     const gko::dim<2> size1{1, 2};
     const gko::dim<2> size2{5};
@@ -219,7 +224,8 @@ TEST_F(Workspace, CanCreateOperators)
 
 TEST_F(Workspace, CanReuseOperators)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(1, 0);
     auto op1 = ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
@@ -233,7 +239,8 @@ TEST_F(Workspace, CanReuseOperators)
 
 TEST_F(Workspace, ChecksExactOperatorType)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(1, 0);
     ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
@@ -248,7 +255,8 @@ TEST_F(Workspace, ChecksExactOperatorType)
 
 TEST_F(Workspace, ChecksOperatorSize)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(1, 0);
     const gko::dim<2> size{1, 2};
     ws.template create_or_get_op<DummyLinOp>(
@@ -264,7 +272,8 @@ TEST_F(Workspace, ChecksOperatorSize)
 
 TEST_F(Workspace, ChecksOperatorStride)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(1, 0);
     ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
@@ -279,7 +288,8 @@ TEST_F(Workspace, ChecksOperatorStride)
 
 TEST_F(Workspace, ClearResetsOperators)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(1, 0);
     auto op1 = ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
@@ -292,12 +302,13 @@ TEST_F(Workspace, ClearResetsOperators)
 
 TEST_F(Workspace, MoveTransfersOperatorsToDestination)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(1, 0);
     auto op1 = ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
 
-    gko::solver::Workspace ws2{std::move(ws)};
+    gko::Workspace ws2{std::move(ws)};
 
     ASSERT_EQ(ws2.get_const_op(0), op1);
 }
@@ -307,7 +318,8 @@ TEST_F(Workspace, ResetUpdatesExecutor)
 {
     auto exec1 = gko::ReferenceExecutor::create();
     auto exec2 = gko::ReferenceExecutor::create();
-    gko::solver::Workspace ws{exec1};
+    auto ws_ptr = gko::Workspace::create(exec1);
+    auto& ws = *ws_ptr;
 
     ws.reset(exec2);
 
@@ -319,7 +331,8 @@ TEST_F(Workspace, ResetClearsSlotsWhenExecutorChanges)
 {
     auto exec1 = gko::ReferenceExecutor::create();
     auto exec2 = gko::ReferenceExecutor::create();
-    gko::solver::Workspace ws{exec1};
+    auto ws_ptr = gko::Workspace::create(exec1);
+    auto& ws = *ws_ptr;
     ws.set_size(1, 0);
     ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec1); }, typeid(DummyLinOp), {},
@@ -334,7 +347,8 @@ TEST_F(Workspace, ResetClearsSlotsWhenExecutorChanges)
 
 TEST_F(Workspace, ResetPreservesSlotsWhenExecutorUnchanged)
 {
-    gko::solver::Workspace ws{exec};
+    auto ws_ptr = gko::Workspace::create(exec);
+    auto& ws = *ws_ptr;
     ws.set_size(1, 0);
     auto op1 = ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
@@ -347,8 +361,8 @@ TEST_F(Workspace, ResetPreservesSlotsWhenExecutorUnchanged)
 
 TEST_F(Workspace, ClaimByOtherTypeClearsSlotsButKeepsChildren)
 {
-    auto ws = gko::solver::Workspace::create(exec);
-    gko::solver::detail::claim_workspace(*ws, typeid(DummyLinOp));
+    auto ws = gko::Workspace::create(exec);
+    gko::detail::claim_workspace(*ws, typeid(DummyLinOp));
     ws->set_size(1, 1);
     ws->create_or_get_op<DummyLinOp>(
         0,
@@ -359,7 +373,7 @@ TEST_F(Workspace, ClaimByOtherTypeClearsSlotsButKeepsChildren)
     ws->create_or_get_array<double>(0, 3);
     auto* child = ws->get_or_create_child("child");
 
-    gko::solver::detail::claim_workspace(*ws, typeid(DummyLinOp2));
+    gko::detail::claim_workspace(*ws, typeid(DummyLinOp2));
 
     ASSERT_TRUE(ws->empty());
     ASSERT_EQ(ws->get_child("child"), child);
@@ -368,8 +382,8 @@ TEST_F(Workspace, ClaimByOtherTypeClearsSlotsButKeepsChildren)
 
 TEST_F(Workspace, ClaimBySameTypeKeepsSlots)
 {
-    auto ws = gko::solver::Workspace::create(exec);
-    gko::solver::detail::claim_workspace(*ws, typeid(DummyLinOp));
+    auto ws = gko::Workspace::create(exec);
+    gko::detail::claim_workspace(*ws, typeid(DummyLinOp));
     ws->set_size(1, 0);
     auto* op = ws->create_or_get_op<DummyLinOp>(
         0,
@@ -378,7 +392,7 @@ TEST_F(Workspace, ClaimBySameTypeKeepsSlots)
         },
         typeid(DummyLinOp), gko::dim<2>{2, 1}, 1);
 
-    gko::solver::detail::claim_workspace(*ws, typeid(DummyLinOp));
+    gko::detail::claim_workspace(*ws, typeid(DummyLinOp));
 
     ASSERT_EQ(ws->get_const_op(0), op);
 }

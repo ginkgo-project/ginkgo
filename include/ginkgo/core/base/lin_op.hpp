@@ -28,17 +28,17 @@ namespace gko {
 
 class LinOp;
 class LinOpFactory;
-
-
-namespace solver {
 class Workspace;
+
+
 namespace detail {
 
 
 /**
- * Internal: generate a solver that borrows a non-owning Workspace view.
- * Called by composite solvers (multigrid, IR, preconditioned Krylov) to
- * wire inner solvers into a child node of the outer solver's workspace.
+ * Internal: generate a LinOp that borrows a non-owning Workspace view.
+ * Called by LinOps that generate inner LinOps (multigrid, IR, preconditioned
+ * Krylov solvers, preconditioners) to wire them into a child node of their
+ * own workspace.
  * External callers should not use this — the borrowed view's lifetime is
  * the responsibility of the outer solver, not the caller.
  */
@@ -48,7 +48,6 @@ std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
 
 
 }  // namespace detail
-}  // namespace solver
 
 
 namespace matrix {
@@ -385,7 +384,7 @@ struct LinOpGenerateComponents {
 
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix);
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
-                            std::unique_ptr<solver::Workspace> ws);
+                            std::unique_ptr<gko::Workspace> ws);
     ~LinOpGenerateComponents();
     LinOpGenerateComponents(LinOpGenerateComponents&&) noexcept;
     LinOpGenerateComponents& operator=(LinOpGenerateComponents&&) noexcept;
@@ -397,19 +396,19 @@ struct LinOpGenerateComponents {
     bool has_owned_workspace() const { return owned_workspace_ != nullptr; }
     bool has_view_workspace() const { return view_workspace_ != nullptr; }
 
-    std::unique_ptr<solver::Workspace> take_owned_workspace();
+    std::unique_ptr<gko::Workspace> take_owned_workspace();
 
-    solver::Workspace* get_view_workspace() const { return view_workspace_; }
+    gko::Workspace* get_view_workspace() const { return view_workspace_; }
 
 private:
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
-                            solver::Workspace* view);
+                            gko::Workspace* view);
 
-    friend std::unique_ptr<LinOp> solver::detail::generate_with_view(
-        const LinOpFactory*, std::shared_ptr<const LinOp>, solver::Workspace*);
+    friend std::unique_ptr<LinOp> gko::detail::generate_with_view(
+        const LinOpFactory*, std::shared_ptr<const LinOp>, gko::Workspace*);
 
-    std::unique_ptr<solver::Workspace> owned_workspace_;
-    solver::Workspace* view_workspace_ = nullptr;
+    std::unique_ptr<gko::Workspace> owned_workspace_;
+    gko::Workspace* view_workspace_ = nullptr;
 };
 
 
@@ -423,23 +422,22 @@ public:
      * Generate a solver that owns the given workspace. After this call returns,
      * the workspace lives inside the returned solver — any raw Workspace*
      * obtained before the move is dangling once the solver is destroyed. Use
-     * solver::invalidate_and_extract_workspace() to recover it safely.
+     * gko::invalidate_and_extract_workspace() to recover it safely.
      */
-    std::unique_ptr<LinOp> generate(
-        std::shared_ptr<const LinOp> input,
-        std::unique_ptr<solver::Workspace> ws) const;
+    std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp> input,
+                                    std::unique_ptr<gko::Workspace> ws) const;
 
     // Deleted: external code must transfer ownership of the workspace via the
     // unique_ptr overload above. The non-owning view path is reserved for
-    // internal solver composition (see solver::detail::generate_with_view).
+    // internal solver composition (see gko::detail::generate_with_view).
     // Without this delete, `factory->generate(matrix, ws.get())` would silently
     // bind to the AbstractFactory variadic template fallback and produce a
     // solver holding a dangling Workspace* once the caller's unique_ptr drops.
     std::unique_ptr<LinOp> generate(std::shared_ptr<const LinOp>,
-                                    solver::Workspace*) const = delete;
+                                    gko::Workspace*) const = delete;
 
-    friend std::unique_ptr<LinOp> solver::detail::generate_with_view(
-        const LinOpFactory*, std::shared_ptr<const LinOp>, solver::Workspace*);
+    friend std::unique_ptr<LinOp> gko::detail::generate_with_view(
+        const LinOpFactory*, std::shared_ptr<const LinOp>, gko::Workspace*);
 
     /**
      * Opaque base for the data a factory records in generate_reuse() to speed

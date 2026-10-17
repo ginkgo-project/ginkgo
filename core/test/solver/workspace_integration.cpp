@@ -7,12 +7,12 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
-#include <ginkgo/core/solver/workspace.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
@@ -28,7 +28,7 @@ protected:
     using Gmres = gko::solver::Gmres<double>;
     using Ir = gko::solver::Ir<double>;
     using Jacobi = gko::preconditioner::Jacobi<double>;
-    using Workspace = gko::solver::Workspace;
+    using Workspace = gko::Workspace;
 
     WorkspaceIntegration()
         : exec(gko::ReferenceExecutor::create()),
@@ -97,8 +97,7 @@ TEST_F(WorkspaceIntegration, ExtractWorkspaceDestroysSolver)
     std::unique_ptr<gko::LinOp> solver =
         factory->generate(matrix, std::move(ws));
 
-    auto extracted =
-        gko::solver::invalidate_and_extract_workspace(std::move(solver));
+    auto extracted = gko::invalidate_and_extract_workspace(std::move(solver));
 
     ASSERT_NE(extracted, nullptr);
     ASSERT_EQ(solver, nullptr);
@@ -115,7 +114,7 @@ TEST_F(WorkspaceIntegration, ExtractAndRegenerate)
     std::unique_ptr<gko::LinOp> solver1 =
         factory->generate(matrix, std::move(ws));
 
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver1));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver1));
     auto solver2 = factory->generate(matrix, std::move(ws));
 
     ASSERT_NE(solver2, nullptr);
@@ -134,7 +133,7 @@ TEST_F(WorkspaceIntegration, ExtractAndRegenerateAndApply)
     x->fill(0.0);
     solver1->apply(b, x);
 
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver1));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver1));
     auto solver2 = factory->generate(matrix, std::move(ws));
     x->fill(0.0);
 
@@ -158,7 +157,7 @@ TEST_F(WorkspaceIntegration, NestedSolverPropagatesWorkspace)
     ASSERT_NE(solver, nullptr);
 
     // Extract and check tree structure
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver));
     std::ostringstream oss;
     ws->describe(oss);
     auto output = oss.str();
@@ -176,7 +175,7 @@ TEST_F(WorkspaceIntegration, CrossFactoryReuse)
     std::unique_ptr<gko::LinOp> solver =
         cg_factory->generate(matrix, std::move(ws));
 
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver));
 
     // Reuse CG workspace with GMRES
     auto gmres_factory =
@@ -200,7 +199,7 @@ TEST_F(WorkspaceIntegration, DescribeShowsTreeStructure)
     std::unique_ptr<gko::LinOp> solver =
         factory->generate(matrix, std::move(ws));
 
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver));
     std::ostringstream oss;
     ws->describe(oss);
 
@@ -214,9 +213,8 @@ TEST_F(WorkspaceIntegration, ExtractFromNonSolverThrows)
 {
     std::unique_ptr<gko::LinOp> dense = Mtx::create(exec, gko::dim<2>{3, 3});
 
-    ASSERT_THROW(
-        gko::solver::invalidate_and_extract_workspace(std::move(dense)),
-        gko::InvalidStateError);
+    ASSERT_THROW(gko::invalidate_and_extract_workspace(std::move(dense)),
+                 gko::InvalidStateError);
 }
 
 
@@ -231,7 +229,7 @@ TEST_F(WorkspaceIntegration, WorkspaceReusesAllocationsAcrossRegenerate)
         factory->generate(matrix, std::move(ws));
     x->fill(0.0);
     solver1->apply(b, x);
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver1));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver1));
     const auto* r_before = ws->get_const_op(0);
     const auto* p_before = ws->get_const_op(2);
 
@@ -239,7 +237,7 @@ TEST_F(WorkspaceIntegration, WorkspaceReusesAllocationsAcrossRegenerate)
         factory->generate(matrix, std::move(ws));
     x->fill(0.0);
     solver2->apply(b, x);
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver2));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver2));
 
     ASSERT_EQ(ws->get_const_op(0), r_before);
     ASSERT_EQ(ws->get_const_op(2), p_before);
@@ -259,7 +257,7 @@ TEST_F(WorkspaceIntegration, MultipleExtractRegenerateCycles)
             factory->generate(matrix, std::move(ws));
         x->fill(0.0);
         solver->apply(b, x);
-        ws = gko::solver::invalidate_and_extract_workspace(std::move(solver));
+        ws = gko::invalidate_and_extract_workspace(std::move(solver));
     }
 
     ASSERT_NE(ws, nullptr);
@@ -281,7 +279,7 @@ TEST_F(WorkspaceIntegration, WorkspacePropagatesToJacobiPreconditioner)
     solver->apply(b, x);
 
     // Extract and verify tree
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver));
     std::ostringstream oss;
     ws->describe(oss);
     ASSERT_NE(oss.str().find("preconditioner"), std::string::npos);
@@ -307,7 +305,7 @@ TEST_F(WorkspaceIntegration, DeeplyNestedWorkspace)
     solver->apply(b, x);
 
     // Extract and verify tree depth
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver));
     std::ostringstream oss;
     ws->describe(oss);
     auto output = oss.str();
@@ -328,7 +326,7 @@ TEST_F(WorkspaceIntegration, CrossFactoryReusePreservesTree)
     std::unique_ptr<gko::LinOp> solver =
         cg_factory->generate(matrix, std::move(ws));
 
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver));
 
     // Verify CG tree structure exists
     std::ostringstream oss1;
@@ -373,7 +371,7 @@ TEST_F(WorkspaceIntegration, GmresWithWorkspaceAndApply)
     x->fill(0.0);
     solver->apply(b, x);
 
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver));
     ASSERT_NE(ws, nullptr);
 }
 
@@ -390,7 +388,7 @@ TEST_F(WorkspaceIntegration, DescribeShowsCgWithPreconditionerTree)
     std::unique_ptr<gko::LinOp> solver =
         factory->generate(matrix, std::move(ws));
 
-    ws = gko::solver::invalidate_and_extract_workspace(std::move(solver));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver));
     std::ostringstream oss;
     ws->describe(oss);
 
@@ -438,8 +436,7 @@ protected:
             first->generate(spd, Workspace::create(exec));
         auto x = gko::clone(x0);
         solver->apply(rhs, x);
-        auto ws =
-            gko::solver::invalidate_and_extract_workspace(std::move(solver));
+        auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
         solver = second->generate(spd, std::move(ws));
         x = gko::clone(x0);
         solver->apply(rhs, x);

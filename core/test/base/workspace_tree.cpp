@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/solver/workspace.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 
 
 namespace {
@@ -22,7 +22,8 @@ protected:
 
 TEST_F(WorkspaceTest, DefaultConstructsEmpty)
 {
-    gko::solver::Workspace node{exec};
+    auto node_ptr = gko::Workspace::create(exec);
+    auto& node = *node_ptr;
 
     ASSERT_FALSE(node.has_child("anything"));
 }
@@ -30,7 +31,8 @@ TEST_F(WorkspaceTest, DefaultConstructsEmpty)
 
 TEST_F(WorkspaceTest, GetOrCreateChildCreatesNew)
 {
-    gko::solver::Workspace node{exec};
+    auto node_ptr = gko::Workspace::create(exec);
+    auto& node = *node_ptr;
 
     auto child = node.get_or_create_child("preconditioner");
 
@@ -41,7 +43,8 @@ TEST_F(WorkspaceTest, GetOrCreateChildCreatesNew)
 
 TEST_F(WorkspaceTest, GetOrCreateChildReturnsExisting)
 {
-    gko::solver::Workspace node{exec};
+    auto node_ptr = gko::Workspace::create(exec);
+    auto& node = *node_ptr;
 
     auto child1 = node.get_or_create_child("preconditioner");
     auto child2 = node.get_or_create_child("preconditioner");
@@ -52,7 +55,8 @@ TEST_F(WorkspaceTest, GetOrCreateChildReturnsExisting)
 
 TEST_F(WorkspaceTest, GetChildReturnsNullForMissing)
 {
-    gko::solver::Workspace node{exec};
+    auto node_ptr = gko::Workspace::create(exec);
+    auto& node = *node_ptr;
 
     ASSERT_EQ(node.get_child("missing"), nullptr);
 }
@@ -60,7 +64,8 @@ TEST_F(WorkspaceTest, GetChildReturnsNullForMissing)
 
 TEST_F(WorkspaceTest, NewChildInheritsExecutor)
 {
-    gko::solver::Workspace node{exec};
+    auto node_ptr = gko::Workspace::create(exec);
+    auto& node = *node_ptr;
 
     auto child = node.get_or_create_child("child");
 
@@ -70,7 +75,8 @@ TEST_F(WorkspaceTest, NewChildInheritsExecutor)
 
 TEST_F(WorkspaceTest, MultipleChildrenCoexist)
 {
-    gko::solver::Workspace node{exec};
+    auto node_ptr = gko::Workspace::create(exec);
+    auto& node = *node_ptr;
 
     auto a = node.get_or_create_child("pre_smoother");
     auto b = node.get_or_create_child("post_smoother");
@@ -83,7 +89,8 @@ TEST_F(WorkspaceTest, MultipleChildrenCoexist)
 
 TEST_F(WorkspaceTest, DescribeOutputContainsTag)
 {
-    gko::solver::Workspace node{exec};
+    auto node_ptr = gko::Workspace::create(exec);
+    auto& node = *node_ptr;
     node.get_or_create_child("preconditioner");
     std::ostringstream oss;
 
@@ -95,7 +102,7 @@ TEST_F(WorkspaceTest, DescribeOutputContainsTag)
 
 TEST_F(WorkspaceTest, CreateReturnsOwning)
 {
-    auto ws = gko::solver::Workspace::create(exec);
+    auto ws = gko::Workspace::create(exec);
 
     ASSERT_NE(ws, nullptr);
     ASSERT_EQ(ws->get_executor(), exec);
@@ -104,7 +111,7 @@ TEST_F(WorkspaceTest, CreateReturnsOwning)
 
 TEST_F(WorkspaceTest, DescribeOnEmptyRootShowsZeroChildren)
 {
-    auto ws = gko::solver::Workspace::create(exec);
+    auto ws = gko::Workspace::create(exec);
     std::ostringstream oss;
 
     ws->describe(oss);
