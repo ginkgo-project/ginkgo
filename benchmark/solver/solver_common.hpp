@@ -635,10 +635,8 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                                                   state.b.get(), x_clone.get());
             solver_case["residual_norm"] = residual;
         }
-        solver_case["generate"]["time"] =
-            generate_timer->compute_time(FLAGS_timer_method);
-        solver_case["apply"]["time"] =
-            apply_timer->compute_time(FLAGS_timer_method);
+        write_times(solver_case["generate"], *generate_timer);
+        write_times(solver_case["apply"], *apply_timer);
         solver_case["repetitions"] = apply_timer->get_num_repetitions();
     }
 };

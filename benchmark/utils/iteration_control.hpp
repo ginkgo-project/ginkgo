@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -148,10 +149,32 @@ public:
 
     IndexType get_num_repetitions() const { return status_run_.cur_it; }
 
+    /**
+     * Get the time of each repetition in seconds.
+     *
+     * @return the timer's per-repetition times if the timer recorded exactly
+     *         one timing per repetition, otherwise an empty vector. In
+     *         particular it is empty when repetitions were grouped into one
+     *         timing (see repetition_growth_factor): the timer then stores
+     *         the group's average for each of its repetitions, which would
+     *         not be real per-repetition times.
+     */
+    std::vector<double> get_time_detail() const
+    {
+        const auto& timer = status_run_.managed_timer.timer;
+        if (!status_run_.managed_timer.grouped &&
+            timer->get_num_repetitions() == this->get_num_repetitions()) {
+            return timer->get_time_detail();
+        }
+        return {};
+    }
+
 private:
     struct TimerManager {
         std::shared_ptr<Timer> timer;
         bool manage_timings = false;
+        //! true if a single timing covered more than one repetition
+        bool grouped = false;
 
         void tic()
         {
@@ -162,11 +185,16 @@ private:
         void toc(unsigned int num = 1)
         {
             if (manage_timings) {
+                grouped = grouped || num > 1;
                 timer->toc(num);
             }
         }
 
-        void clear() { timer->clear(); }
+        void clear()
+        {
+            grouped = false;
+            timer->clear();
+        }
 
         double get_total_time() const { return timer->get_total_time(); }
 
@@ -291,6 +319,31 @@ private:
     status status_warmup_;
     status status_run_;
 };
+
+
+/**
+ * Writes the time, the number of repetitions and the time of each repetition
+ * of the given IterationControl to the output.
+ *
+ * "repetition_times" is empty if the timings were grouped.
+ */
+inline void write_times(json& output, const IterationControl& ic)
+{
+    output["time"] = ic.compute_time(FLAGS_timer_method);
+    output["repetitions"] = ic.get_num_repetitions();
+    output["repetition_times"] = ic.get_time_detail();
+}
+
+
+/**
+ * Writes the time and the time of each repetition of the given timer to the
+ * output.
+ */
+inline void write_times(json& output, const Timer& timer)
+{
+    output["time"] = timer.compute_time(FLAGS_timer_method);
+    output["repetition_times"] = timer.get_time_detail();
+}
 
 
 #endif  // GKO_BENCHMARK_UTILS_ITERATION_CONTROL_HPP_
