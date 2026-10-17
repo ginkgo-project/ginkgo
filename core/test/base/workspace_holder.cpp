@@ -266,4 +266,24 @@ TEST_F(WorkspaceHolder, BorrowRebindsNodeToHolderExecutor)
 }
 
 
+TEST_F(WorkspaceHolder, NodeFollowsTheExecutorOfItsUser)
+{
+    auto other = gko::ReferenceExecutor::create();
+    auto root = gko::Workspace::create(exec);
+    auto* child = root->get_or_create_child("child");
+    auto first = std::make_unique<DummyHolder>(exec);
+    auto second = std::make_unique<DummyHolder>(other);
+    gko::detail::attach_workspace(first.get(), child);
+    first->vector();
+    // a later user on another executor rebinds the shared node
+    gko::detail::attach_workspace(second.get(), child);
+    second->vector();
+
+    auto* vec = first->vector();
+
+    ASSERT_EQ(vec->get_executor(), exec);
+    ASSERT_EQ(child->get_executor(), exec);
+}
+
+
 }  // namespace

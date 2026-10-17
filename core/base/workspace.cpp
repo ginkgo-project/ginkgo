@@ -209,6 +209,8 @@ void WorkspaceHolder::set_workspace_size(int num_operators,
                                          int num_arrays) const
 {
     auto node = this->get_workspace_node();
+    // another user of a shared node may have bound it to its own executor
+    node->reset(exec_);
     claim_workspace(*node, typeid(*this));
     node->set_size(num_operators, num_arrays);
 }
