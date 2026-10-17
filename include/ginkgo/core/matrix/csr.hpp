@@ -927,6 +927,15 @@ public:
     csr::spmv_strategy get_strategy() const noexcept;
 
     /**
+     * Returns the actual strategy. When the strategy is automatic, this
+     * returns the actual underlying strategy. This returns the same strategy as
+     * `get_strategy` when the strategy is not automatic.
+     *
+     * @return the actual strategy
+     */
+    csr::spmv_strategy get_actual_strategy() const noexcept;
+
+    /**
      * Set the strategy
      *
      * @param strategy the csr strategy
@@ -1193,15 +1202,6 @@ protected:
      *        instead of inv_scale(const LinOp *alpha).
      */
     virtual void inv_scale_impl(const LinOp* alpha);
-
-    /**
-     * Returns the actual strategy. When the strategy is automatic, this
-     * returns the actual underlying strategy. This returns the same strategy as
-     * `get_strategy` when the strategy is not automatic.
-     *
-     * @return the actual strategy
-     */
-    csr::spmv_strategy get_actual_strategy() const noexcept;
 
 private:
     csr::spmv_strategy strategy_;
