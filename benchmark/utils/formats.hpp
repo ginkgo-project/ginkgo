@@ -14,6 +14,7 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include "benchmark/utils/json.hpp"
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -259,6 +260,54 @@ std::unique_ptr<gko::LinOp> matrix_factory(
             data);
     }
     return mat;
+}
+
+
+inline std::string strategy_name(gko::matrix::csr::spmv_strategy strategy)
+{
+    switch (strategy) {
+    case gko::matrix::csr::spmv_strategy::automatic:
+        return "automatic";
+    case gko::matrix::csr::spmv_strategy::load_balance:
+        return "load_balance";
+    case gko::matrix::csr::spmv_strategy::merge_path:
+        return "merge_path";
+    case gko::matrix::csr::spmv_strategy::classical:
+        return "classical";
+    case gko::matrix::csr::spmv_strategy::sparselib:
+        return "sparselib";
+    }
+    return "unknown";
+}
+
+
+/**
+ * The parameters a sparse format chose for the given matrix, e.g. the stored
+ * elements per row of ELL, or an empty object.
+ */
+inline json describe_format(const gko::LinOp* mtx)
+{
+    json result = json::object();
+    if (auto p = dynamic_cast<const csr*>(mtx)) {
+        result["strategy"] = strategy_name(p->get_strategy());
+        result["actual_strategy"] = strategy_name(p->get_actual_strategy());
+    } else if (auto p = dynamic_cast<const hybrid*>(mtx)) {
+        result["ell_num_stored_elements_per_row"] =
+            p->get_ell_num_stored_elements_per_row();
+        result["coo_num_stored_elements"] = p->get_coo_num_stored_elements();
+    } else if (auto p =
+                   dynamic_cast<const gko::matrix::Sellp<etype, itype>*>(mtx)) {
+        result["slice_size"] = p->get_slice_size();
+        result["stride_factor"] = p->get_stride_factor();
+        result["total_cols"] = p->get_total_cols();
+    } else if (auto p = dynamic_cast<const ell*>(mtx)) {
+        result["num_stored_elements_per_row"] =
+            p->get_num_stored_elements_per_row();
+    } else if (auto p = dynamic_cast<const ell_mixed*>(mtx)) {
+        result["num_stored_elements_per_row"] =
+            p->get_num_stored_elements_per_row();
+    }
+    return result;
 }
 
 
