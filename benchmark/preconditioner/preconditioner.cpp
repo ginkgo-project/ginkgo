@@ -204,20 +204,14 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
                 precond_op = precond->generate(state.system_matrix);
             }
 
-            precond_case["generate"]["time"] =
-                ic_gen.compute_time(FLAGS_timer_method);
-            precond_case["generate"]["repetitions"] =
-                ic_gen.get_num_repetitions();
+            write_times(precond_case["generate"], ic_gen);
 
             for (auto _ : ic_apply.run()) {
                 auto range = annotate("repetition apply");
                 precond_op->apply(state.b, x_clone);
             }
 
-            precond_case["apply"]["time"] =
-                ic_apply.compute_time(FLAGS_timer_method);
-            precond_case["apply"]["repetitions"] =
-                ic_apply.get_num_repetitions();
+            write_times(precond_case["apply"], ic_apply);
         }
 
         if (FLAGS_detailed) {

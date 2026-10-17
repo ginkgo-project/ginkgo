@@ -31,6 +31,25 @@ test_framework.compare_output(
     expected_stderr="blas.profile.stderr",
 )
 
+# adaptive repetitions
+test_framework.compare_output(
+    [
+        "-input", '[{"n": 100}]',
+        "-repetitions", "auto",
+        "-min_repetitions", "10",
+        "-max_repetitions", "20",
+    ],
+    expected_stdout="blas.auto.stdout",
+    expected_stderr="blas.auto.stderr",
+)
+
+# ungrouped repetitions
+test_framework.compare_output(
+    ["-input", '[{"n": 100}]', "-repetition_growth_factor", "1"],
+    expected_stdout="blas.ungrouped.stdout",
+    expected_stderr="blas.ungrouped.stderr",
+)
+
 # complex
 test_framework.compare_output(
     ["-input", '[{"n": 100}]'],

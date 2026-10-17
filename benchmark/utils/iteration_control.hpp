@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -148,10 +149,25 @@ public:
 
     IndexType get_num_repetitions() const { return status_run_.cur_it; }
 
+    /**
+     * Get the time of each repetition in seconds, or an empty vector if the
+     * repetitions were timed in groups.
+     */
+    std::vector<double> get_time_detail() const
+    {
+        const auto& timer = status_run_.managed_timer.timer;
+        if (!status_run_.managed_timer.grouped &&
+            timer->get_num_repetitions() == this->get_num_repetitions()) {
+            return timer->get_time_detail();
+        }
+        return {};
+    }
+
 private:
     struct TimerManager {
         std::shared_ptr<Timer> timer;
         bool manage_timings = false;
+        bool grouped = false;
 
         void tic()
         {
@@ -162,11 +178,16 @@ private:
         void toc(unsigned int num = 1)
         {
             if (manage_timings) {
+                grouped = grouped || num > 1;
                 timer->toc(num);
             }
         }
 
-        void clear() { timer->clear(); }
+        void clear()
+        {
+            grouped = false;
+            timer->clear();
+        }
 
         double get_total_time() const { return timer->get_total_time(); }
 
@@ -291,6 +312,21 @@ private:
     status status_warmup_;
     status status_run_;
 };
+
+
+inline void write_times(json& output, const IterationControl& ic)
+{
+    output["time"] = ic.compute_time(FLAGS_timer_method);
+    output["repetitions"] = ic.get_num_repetitions();
+    output["repetition_times"] = ic.get_time_detail();
+}
+
+
+inline void write_times(json& output, const Timer& timer)
+{
+    output["time"] = timer.compute_time(FLAGS_timer_method);
+    output["repetition_times"] = timer.get_time_detail();
+}
 
 
 #endif  // GKO_BENCHMARK_UTILS_ITERATION_CONTROL_HPP_

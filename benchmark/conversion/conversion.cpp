@@ -153,8 +153,7 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
                     gko::as<gko::Cloneable>(mtx_from));
             }
         }
-        operation_case["time"] = ic.compute_time(FLAGS_timer_method);
-        operation_case["repetitions"] = ic.get_num_repetitions();
+        write_times(operation_case, ic);
     }
 };
 

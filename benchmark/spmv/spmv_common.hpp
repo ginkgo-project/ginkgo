@@ -181,8 +181,7 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             auto range = annotate("repetition");
             system_matrix->apply(state.b, x_clone);
         }
-        format_case["time"] = ic.compute_time(FLAGS_timer_method);
-        format_case["repetitions"] = ic.get_num_repetitions();
+        write_times(format_case, ic);
     }
 
     void postprocess(json& test_case) const override
