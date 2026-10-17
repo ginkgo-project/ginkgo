@@ -1,0 +1,90 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+
+Problem: 2D Poisson on a 64 x 64 grid (4096 unknowns)
+
+Phase 1: repeated apply on one solver
+multigrid: 9 levels, coarsest level 50 rows
+apply 0: 207 allocations (424036 bytes)
+apply 1: 140 allocations (952 bytes)
+apply 2: 140 allocations (952 bytes)
+apply 3: 140 allocations (952 bytes)
+apply 4: 140 allocations (952 bytes)
+
+Phase 2: regenerate the solver in every step
+step 0:
+  with workspace:    generate 421 allocations (9097212 bytes), apply 207 allocations (424036 bytes)
+  without workspace: generate 421 allocations (9097212 bytes), apply 207 allocations (424036 bytes)
+step 1:
+  with workspace:    generate 367 allocations (8727068 bytes), apply 140 allocations (952 bytes)
+  without workspace: generate 421 allocations (9097212 bytes), apply 207 allocations (424036 bytes)
+step 2:
+  with workspace:    generate 367 allocations (8727068 bytes), apply 140 allocations (952 bytes)
+  without workspace: generate 421 allocations (9097212 bytes), apply 207 allocations (424036 bytes)
+step 3:
+  with workspace:    generate 367 allocations (8727068 bytes), apply 140 allocations (952 bytes)
+  without workspace: generate 421 allocations (9097212 bytes), apply 207 allocations (424036 bytes)
+step 4:
+  with workspace:    generate 367 allocations (8727068 bytes), apply 140 allocations (952 bytes)
+  without workspace: generate 421 allocations (9097212 bytes), apply 207 allocations (424036 bytes)
+
+Workspace tree after the last step:
+Workspace (children=1)
+  Workspace [preconditioner] (children=10)
+    Workspace [coarse_solver] (children=1)
+      Workspace [preconditioner] (children=1)
+        Workspace [approximate_inverse] (children=0)
+    Workspace [level_0] (children=2)
+      Workspace [mid_smoother] (children=1)
+        Workspace [solver] (children=0)
+      Workspace [pre_smoother] (children=1)
+        Workspace [solver] (children=0)
+    Workspace [level_1] (children=2)
+      Workspace [mid_smoother] (children=1)
+        Workspace [solver] (children=0)
+      Workspace [pre_smoother] (children=1)
+        Workspace [solver] (children=0)
+    Workspace [level_2] (children=2)
+      Workspace [mid_smoother] (children=1)
+        Workspace [solver] (children=0)
+      Workspace [pre_smoother] (children=1)
+        Workspace [solver] (children=0)
+    Workspace [level_3] (children=2)
+      Workspace [mid_smoother] (children=1)
+        Workspace [solver] (children=0)
+      Workspace [pre_smoother] (children=1)
+        Workspace [solver] (children=0)
+    Workspace [level_4] (children=2)
+      Workspace [mid_smoother] (children=1)
+        Workspace [solver] (children=0)
+      Workspace [pre_smoother] (children=1)
+        Workspace [solver] (children=0)
+    Workspace [level_5] (children=2)
+      Workspace [mid_smoother] (children=1)
+        Workspace [solver] (children=0)
+      Workspace [pre_smoother] (children=1)
+        Workspace [solver] (children=0)
+    Workspace [level_6] (children=2)
+      Workspace [mid_smoother] (children=1)
+        Workspace [solver] (children=0)
+      Workspace [pre_smoother] (children=1)
+        Workspace [solver] (children=0)
+    Workspace [level_7] (children=2)
+      Workspace [mid_smoother] (children=1)
+        Workspace [solver] (children=0)
+      Workspace [pre_smoother] (children=1)
+        Workspace [solver] (children=0)
+    Workspace [level_8] (children=2)
+      Workspace [mid_smoother] (children=1)
+        Workspace [solver] (children=0)
+      Workspace [pre_smoother] (children=1)
+        Workspace [solver] (children=0)
+
+workspace reused across applies: yes
+workspace reused across regenerations: yes
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>
