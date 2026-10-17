@@ -6,6 +6,9 @@
 #define GINKGO_BENCHMARK_UTILS_STRUCTURE_HPP
 
 
+#include <string>
+#include <utility>
+
 #include <ginkgo/ginkgo.hpp>
 
 #include "benchmark/utils/general.hpp"
@@ -13,14 +16,22 @@
 
 
 /**
- * The number of stored elements of op if it is a CSR matrix, null otherwise.
+ * The type and nonzeros of a csr, sparsity_csr or row_gatherer operator, or
+ * "unknown" and null.
  */
-inline json csr_nonzeros(const gko::LinOp* op)
+inline std::pair<std::string, json> describe_operator(const gko::LinOp* op)
 {
     if (auto csr = dynamic_cast<const gko::matrix::Csr<etype, itype>*>(op)) {
-        return csr->get_num_stored_elements();
+        return {"csr", csr->get_num_stored_elements()};
     }
-    return nullptr;
+    if (auto sp =
+            dynamic_cast<const gko::matrix::SparsityCsr<etype, itype>*>(op)) {
+        return {"sparsity_csr", sp->get_num_nonzeros()};
+    }
+    if (auto rg = dynamic_cast<const gko::matrix::RowGatherer<itype>*>(op)) {
+        return {"row_gatherer", rg->get_size()[0]};
+    }
+    return {"unknown", nullptr};
 }
 
 
@@ -38,10 +49,14 @@ inline json describe_levels(const gko::LinOp* op)
         json entry;
         entry["fine_rows"] = level->get_fine_op()->get_size()[0];
         entry["coarse_rows"] = level->get_coarse_op()->get_size()[0];
-        entry["coarse_nonzeros"] = csr_nonzeros(level->get_coarse_op().get());
-        entry["restrict_nonzeros"] =
-            csr_nonzeros(level->get_restrict_op().get());
-        entry["prolong_nonzeros"] = csr_nonzeros(level->get_prolong_op().get());
+        entry["coarse_nonzeros"] =
+            describe_operator(level->get_coarse_op().get()).second;
+        auto restrict_op = describe_operator(level->get_restrict_op().get());
+        auto prolong_op = describe_operator(level->get_prolong_op().get());
+        entry["restrict_type"] = restrict_op.first;
+        entry["restrict_nonzeros"] = restrict_op.second;
+        entry["prolong_type"] = prolong_op.first;
+        entry["prolong_nonzeros"] = prolong_op.second;
         levels.push_back(entry);
     }
     return levels;

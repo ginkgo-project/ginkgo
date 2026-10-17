@@ -191,8 +191,10 @@
                         "fine_rows": 1,
                         "coarse_rows": 1,
                         "coarse_nonzeros": 1,
-                        "restrict_nonzeros": null,
-                        "prolong_nonzeros": null
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 1,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 1
                     }
                 ],
                 "completed": true
@@ -263,7 +265,9 @@
                         "fine_rows": 1,
                         "coarse_rows": 1,
                         "coarse_nonzeros": 1,
+                        "restrict_type": "csr",
                         "restrict_nonzeros": 1,
+                        "prolong_type": "csr",
                         "prolong_nonzeros": 1
                     }
                 ],
@@ -330,7 +334,9 @@
                         "fine_rows": 1,
                         "coarse_rows": 1,
                         "coarse_nonzeros": 1,
+                        "restrict_type": "csr",
                         "restrict_nonzeros": 1,
+                        "prolong_type": "csr",
                         "prolong_nonzeros": 1
                     }
                 ],
