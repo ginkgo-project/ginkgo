@@ -5,21 +5,25 @@
             "coo-read": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "coo-csr": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "csr-read": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "csr-coo": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             }
         },

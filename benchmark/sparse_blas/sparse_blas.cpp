@@ -124,10 +124,9 @@ struct SparseBlasBenchmark : Benchmark<std::unique_ptr<Mtx>> {
         const auto flops = static_cast<double>(op->get_flops());
         const auto mem = static_cast<double>(op->get_memory());
         const auto repetitions = ic.get_num_repetitions();
-        operation_case["time"] = runtime;
+        write_times(operation_case, ic);
         operation_case["flops"] = flops / runtime;
         operation_case["bandwidth"] = mem / runtime;
-        operation_case["repetitions"] = repetitions;
 
         if (FLAGS_validate) {
             auto validation_result = op->validate();

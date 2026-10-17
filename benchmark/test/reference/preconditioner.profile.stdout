@@ -7,12 +7,18 @@
                 "generate": {
                     "components": {},
                     "time": 1.0,
-                    "repetitions": 1
+                    "repetitions": 1,
+                    "repetition_times": [
+                        1.0
+                    ]
                 },
                 "apply": {
                     "components": {},
                     "time": 1.0,
-                    "repetitions": 1
+                    "repetitions": 1,
+                    "repetition_times": [
+                        1.0
+                    ]
                 },
                 "completed": true
             }
