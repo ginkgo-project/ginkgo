@@ -132,6 +132,7 @@ target_sources(
         solver/multigrid.cpp
         solver/nullspace.cpp
         solver/pipe_cg.cpp
+        solver/solver_base.cpp
         solver/upper_trs.cpp
         stop/combined.cpp
         stop/criterion.cpp
