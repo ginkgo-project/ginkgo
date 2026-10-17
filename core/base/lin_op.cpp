@@ -151,5 +151,22 @@ std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
 }
 
 
+std::unique_ptr<LinOp> generate_with_components(
+    const LinOpFactory* factory, LinOpGenerateComponents components)
+{
+    auto input = components.system_matrix;
+    factory->log<log::Logger::linop_factory_generate_started>(factory,
+                                                              input.get());
+    const auto exec = factory->get_executor();
+    if (input->get_executor() != exec) {
+        components.system_matrix = gko::clone(exec, input);
+    }
+    auto generated = factory->AbstractFactory::generate(std::move(components));
+    factory->log<log::Logger::linop_factory_generate_completed>(
+        factory, input.get(), generated.get());
+    return generated;
+}
+
+
 }  // namespace detail
 }  // namespace gko
