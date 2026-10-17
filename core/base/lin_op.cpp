@@ -25,8 +25,12 @@ LinOpGenerateComponents::LinOpGenerateComponents(
 
 LinOpGenerateComponents::LinOpGenerateComponents(
     std::shared_ptr<const LinOp> matrix, gko::Workspace* view)
-    : system_matrix{std::move(matrix)}, view_workspace_{view}
-{}
+    : system_matrix{std::move(matrix)}
+{
+    GKO_THROW_IF_INVALID(!view->weak_from_this().expired(),
+                         "only child nodes of a workspace can be borrowed");
+    view_workspace_ = view->shared_from_this();
+}
 
 LinOpGenerateComponents::~LinOpGenerateComponents() = default;
 

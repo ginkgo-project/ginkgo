@@ -6,11 +6,14 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/workspace.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -468,6 +471,107 @@ TEST_F(WorkspaceTypeSwitch, GmresAfterCgOnSameWorkspaceIsCorrect)
     auto x = solve_after(cg_factory.get(), gmres_factory.get());
 
     GKO_ASSERT_MTX_NEAR(x, expected, r<double>::value);
+}
+
+
+TEST_F(WorkspaceIntegration, InnerSolverOutlivesOuterSolver)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .with_preconditioner(
+                Ir::build()
+                    .with_solver(Jacobi::build().with_max_block_size(1u))
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(2u)))
+            .on(exec);
+    std::unique_ptr<gko::LinOp> solver =
+        factory->generate(matrix, Workspace::create(exec));
+    auto inner = gko::as<Cg>(solver.get())->get_preconditioner();
+    auto expected = Mtx::create(exec, gko::dim<2>{3, 1});
+    expected->fill(0.0);
+    inner->apply(b, expected);
+
+    solver.reset();
+    x->fill(0.0);
+    inner->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, expected, 0.0);
+}
+
+
+TEST_F(WorkspaceIntegration, InnerSolverOutlivesExtractedWorkspace)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .with_preconditioner(Ir::build().with_criteria(
+                gko::stop::Iteration::build().with_max_iters(2u)))
+            .on(exec);
+    std::unique_ptr<gko::LinOp> solver =
+        factory->generate(matrix, Workspace::create(exec));
+    auto inner = gko::as<Cg>(solver.get())->get_preconditioner();
+    auto expected = Mtx::create(exec, gko::dim<2>{3, 1});
+    expected->fill(0.0);
+    inner->apply(b, expected);
+    auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
+
+    ws.reset();
+    x->fill(0.0);
+    inner->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, expected, 0.0);
+}
+
+
+TEST_F(WorkspaceIntegration, KeptPreconditionerSurvivesDifferentSolverType)
+{
+    auto it = gko::stop::Iteration::build().with_max_iters(2u);
+    auto cg_factory = Cg::build()
+                          .with_criteria(it)
+                          .with_preconditioner(Ir::build().with_criteria(it))
+                          .on(exec);
+    // a solver of another type at the "preconditioner" node, where the kept
+    // Ir lives; Direct ignores the uninitialized initial guess Gmres passes
+    auto gmres_factory =
+        Gmres::build()
+            .with_criteria(it)
+            .with_preconditioner(
+                gko::experimental::solver::Direct<double, int>::build()
+                    .with_factorization(
+                        gko::experimental::factorization::Lu<double,
+                                                             int>::build()))
+            .on(exec);
+    std::unique_ptr<gko::LinOp> solver =
+        cg_factory->generate(matrix, Workspace::create(exec));
+    auto kept = gko::as<Cg>(solver.get())->get_preconditioner();
+    auto expected = Mtx::create(exec, gko::dim<2>{3, 1});
+    expected->fill(0.0);
+    kept->apply(b, expected);
+    auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
+    auto gmres = gmres_factory->generate(matrix, std::move(ws));
+    auto y = Mtx::create(exec, gko::dim<2>{3, 1});
+    y->fill(0.0);
+    gmres->apply(b, y);
+
+    x->fill(0.0);
+    kept->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, expected, 0.0);
+}
+
+
+TEST_F(WorkspaceIntegration, BorrowingARootNodeThrows)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(exec);
+    auto root = Workspace::create(exec);
+
+    ASSERT_THROW(
+        gko::detail::generate_with_view(factory.get(), matrix, root.get()),
+        gko::InvalidStateError);
 }
 
 

@@ -36,7 +36,7 @@ Workspace* Workspace::get_or_create_child(const std::string& tag)
     if (it != children_.end()) {
         return it->second.get();
     }
-    auto child = std::unique_ptr<Workspace>(new Workspace(exec_));
+    auto child = std::shared_ptr<Workspace>(new Workspace(exec_));
     child->tag_ = tag;
     auto* ptr = child.get();
     children_.emplace(tag, std::move(child));

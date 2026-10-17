@@ -547,6 +547,8 @@ private:
     gko::invalidate_and_extract_workspace(std::unique_ptr<LinOp>&& solver);
 
     mutable std::unique_ptr<gko::Workspace> owned_workspace_;
+    // keeps a borrowed node alive
+    mutable std::shared_ptr<gko::Workspace> borrowed_workspace_;
     mutable Workspace* node_ = nullptr;
 
     std::shared_ptr<const LinOp> system_matrix_;

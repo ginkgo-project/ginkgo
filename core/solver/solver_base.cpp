@@ -28,7 +28,9 @@ SolverBaseLinOp::SolverBaseLinOp(const SolverBaseLinOp& other)
 SolverBaseLinOp::SolverBaseLinOp(SolverBaseLinOp&& other) noexcept
 {
     owned_workspace_ = std::move(other.owned_workspace_);
-    node_ = owned_workspace_ ? owned_workspace_.get() : nullptr;
+    borrowed_workspace_ = std::move(other.borrowed_workspace_);
+    node_ =
+        owned_workspace_ ? owned_workspace_.get() : borrowed_workspace_.get();
     other.node_ = nullptr;
 }
 
@@ -41,7 +43,9 @@ SolverBaseLinOp& SolverBaseLinOp::operator=(SolverBaseLinOp&& other) noexcept
 {
     if (this != &other) {
         owned_workspace_ = std::move(other.owned_workspace_);
-        node_ = owned_workspace_ ? owned_workspace_.get() : nullptr;
+        borrowed_workspace_ = std::move(other.borrowed_workspace_);
+        node_ = owned_workspace_ ? owned_workspace_.get()
+                                 : borrowed_workspace_.get();
         other.node_ = nullptr;
     }
     return *this;
@@ -58,11 +62,14 @@ void SolverBaseLinOp::adopt_workspace(LinOpGenerateComponents& components,
 {
     if (components.has_owned_workspace()) {
         owned_workspace_ = components.take_owned_workspace();
+        borrowed_workspace_ = nullptr;
         node_ = owned_workspace_.get();
         owned_workspace_->reset(std::move(exec));
     } else if (components.has_view_workspace()) {
         owned_workspace_ = nullptr;
-        node_ = components.get_view_workspace();
+        borrowed_workspace_ =
+            components.get_view_workspace()->shared_from_this();
+        node_ = borrowed_workspace_.get();
     }
 }
 

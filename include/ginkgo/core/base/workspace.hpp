@@ -130,8 +130,13 @@ private:
  * silently produce an empty workspace (misleading).
  *
  * Move semantics transfer the full tree.
+ *
+ * Child nodes are shared: a LinOp borrowing a node keeps it alive, so inner
+ * LinOps stay usable after their outer solver is destroyed or its workspace
+ * extracted. After an extraction they share their nodes with the next LinOp
+ * generated from the workspace and must not be applied concurrently with it.
  */
-class Workspace {
+class Workspace : public std::enable_shared_from_this<Workspace> {
 public:
     static std::unique_ptr<Workspace> create(
         std::shared_ptr<const Executor> exec);
@@ -236,7 +241,7 @@ private:
     std::shared_ptr<const Executor> exec_;
     std::vector<std::unique_ptr<LinOp>> operators_;
     std::vector<detail::any_array> arrays_;
-    std::map<std::string, std::unique_ptr<Workspace>> children_;
+    std::map<std::string, std::shared_ptr<Workspace>> children_;
     std::string tag_;
     // the type of the LinOp that set up the slots last
     std::type_index user_type_{typeid(void)};

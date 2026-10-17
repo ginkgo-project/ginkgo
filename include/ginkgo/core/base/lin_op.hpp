@@ -398,7 +398,7 @@ struct LinOpGenerateComponents {
 
     std::unique_ptr<gko::Workspace> take_owned_workspace();
 
-    gko::Workspace* get_view_workspace() const { return view_workspace_; }
+    gko::Workspace* get_view_workspace() const { return view_workspace_.get(); }
 
 private:
     LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix,
@@ -408,7 +408,8 @@ private:
         const LinOpFactory*, std::shared_ptr<const LinOp>, gko::Workspace*);
 
     std::unique_ptr<gko::Workspace> owned_workspace_;
-    gko::Workspace* view_workspace_ = nullptr;
+    // shares the ownership of the borrowed (child) node
+    std::shared_ptr<gko::Workspace> view_workspace_;
 };
 
 

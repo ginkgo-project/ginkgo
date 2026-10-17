@@ -106,6 +106,7 @@ public:
             coarse_weight_ = std::move(other.coarse_weight_);
             local_weight_ = std::move(other.local_weight_);
             owned_workspace_ = std::move(other.owned_workspace_);
+            borrowed_workspace_ = std::move(other.borrowed_workspace_);
             workspace_view_ = std::exchange(other.workspace_view_, nullptr);
         }
         return *this;
@@ -224,7 +225,9 @@ protected:
             owned_workspace_ = components.take_owned_workspace();
             workspace_view_ = owned_workspace_.get();
         } else if (components.has_view_workspace()) {
-            workspace_view_ = components.get_view_workspace();
+            borrowed_workspace_ =
+                components.get_view_workspace()->shared_from_this();
+            workspace_view_ = borrowed_workspace_.get();
         }
         this->generate(std::move(components.system_matrix));
     }
@@ -265,6 +268,8 @@ private:
 
     std::unique_ptr<gko::Workspace> owned_workspace_;
     gko::Workspace* workspace_view_ = nullptr;
+    // keeps a borrowed node alive
+    std::shared_ptr<gko::Workspace> borrowed_workspace_;
 
     // Used for advanced apply
     detail::VectorCache<ValueType> cache_;
