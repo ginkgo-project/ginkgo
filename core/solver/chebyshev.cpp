@@ -82,7 +82,7 @@ Chebyshev<ValueType>::Chebyshev(const Factory* factory,
     : LinOp(factory->get_executor(),
             gko::transpose(components.system_matrix->get_size())),
       EnablePreconditionedIterativeSolver<ValueType, Chebyshev<ValueType>>{
-          std::move(components.system_matrix), factory->get_parameters()},
+          components, factory->get_parameters()},
       parameters_{factory->get_parameters()}
 {
     this->set_default_initial_guess(parameters_.default_initial_guess);
