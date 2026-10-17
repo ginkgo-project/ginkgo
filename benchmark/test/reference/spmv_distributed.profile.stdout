@@ -8,6 +8,9 @@
                 "storage": 11452,
                 "time": 1.0,
                 "repetitions": 1,
+                "repetition_times": [
+                    1.0
+                ],
                 "completed": true
             }
         },

@@ -4,9 +4,21 @@
         "sparse_blas": {
             "transpose": {
                 "time": 1.0,
+                "repetitions": 10,
+                "repetition_times": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ],
                 "flops": 1.0,
                 "bandwidth": 1.0,
-                "repetitions": 10,
                 "components": {
                     "allocate": 1.0,
                     "components::fill_array": 1.0,

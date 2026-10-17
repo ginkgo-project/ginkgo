@@ -9,7 +9,8 @@
                         "overhead": 1.0
                     },
                     "time": 1.0,
-                    "repetitions": 10
+                    "repetitions": 10,
+                    "repetition_times": []
                 },
                 "apply": {
                     "components": {
@@ -19,7 +20,8 @@
                         "overhead": 1.0
                     },
                     "time": 1.0,
-                    "repetitions": 10
+                    "repetitions": 10,
+                    "repetition_times": []
                 },
                 "completed": true
             }

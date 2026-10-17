@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -537,10 +537,8 @@ struct BlasBenchmark : Benchmark<dimensions> {
         const auto runtime = ic.compute_time(FLAGS_timer_method);
         const auto flops = static_cast<double>(op->get_flops());
         const auto mem = static_cast<double>(op->get_memory());
-        const auto repetitions = ic.get_num_repetitions();
-        operation_case["time"] = runtime;
+        write_times(operation_case, ic);
         operation_case["flops"] = flops / runtime;
         operation_case["bandwidth"] = mem / runtime;
-        operation_case["repetitions"] = repetitions;
     }
 };
