@@ -20,6 +20,7 @@ set(EXAMPLES_EXEC_LIST
     preconditioned-solver
     simple-solver
     three-pt-stencil-solver
+    workspace-reuse
 )
 
 # This example calls the Umpire API itself, so it needs Umpire support.
