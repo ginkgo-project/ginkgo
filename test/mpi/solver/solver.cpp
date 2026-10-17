@@ -677,7 +677,7 @@ protected:
     // uniformly, applies it, extracts the workspace and regenerates on the
     // same matrix partitioned differently, then compares with a solver
     // generated without a workspace.
-    void check_regeneration_on_repartitioned_matrix(
+    std::unique_ptr<gko::Workspace> check_regeneration_on_repartitioned_matrix(
         const gko::LinOpFactory* factory)
     {
         const auto size = static_cast<global_index_type>(comm.size());
@@ -703,8 +703,21 @@ protected:
 
         solver->apply(vector(part2, true), x2);
 
-        GKO_ASSERT_MTX_NEAR(x2->get_local_vector(),
+        GKO_EXPECT_MTX_NEAR(x2->get_local_vector(),
                             expected->get_local_vector(), r<value_type>::value);
+        return gko::invalidate_and_extract_workspace(std::move(solver));
+    }
+
+    // the number of rows this rank owns in the shifted partition
+    gko::size_type shifted_local_rows() const
+    {
+        const auto size = static_cast<global_index_type>(comm.size());
+        const auto rank = static_cast<global_index_type>(comm.rank());
+        auto bound = [&](global_index_type i) {
+            const auto uniform = i * n / size;
+            return (i == 0 || i == size) ? uniform : uniform - 1;
+        };
+        return static_cast<gko::size_type>(bound(rank + 1) - bound(rank));
     }
 };
 
@@ -728,4 +741,25 @@ TEST_F(WorkspaceRepartition, GmresRegeneratesOnRepartitionedMatrix)
             .on(exec);
 
     check_regeneration_on_repartitioned_matrix(factory.get());
+}
+
+
+TEST_F(WorkspaceRepartition, MultigridRegeneratesOnRepartitionedMatrix)
+{
+    auto factory =
+        gko::solver::Multigrid::build()
+            .with_mg_level(
+                gko::multigrid::Pgm<value_type, local_index_type>::build())
+            .with_max_levels(1u)
+            .with_min_coarse_rows(2u)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .on(exec);
+
+    auto ws = check_regeneration_on_repartitioned_matrix(factory.get());
+
+    // the residual of the finest level follows the new partition
+    auto residual =
+        gko::as<dist_vec_type>(ws->get_child("level_0")->get_const_op(0));
+    ASSERT_EQ(residual->get_local_vector()->get_size()[0],
+              shifted_local_rows());
 }

@@ -507,6 +507,8 @@ protected:
      * @param post_smoother_list  the list the post smoother is appended to,
      *                            unless the post smoother reuses the pre one
      * @param level_reuse  the reuse data of the level, or nullptr
+     * @param level_node  the workspace node of the level, under which the
+     *                    smoothers get their workspace nodes
      */
     void generate_smoothers(
         std::shared_ptr<const gko::multigrid::MultigridLevel> mg_level,
@@ -514,7 +516,7 @@ protected:
         std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
         std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
         std::vector<std::shared_ptr<const LinOp>>& post_smoother_list,
-        reuse_data_type::level_data* level_reuse);
+        reuse_data_type::level_data* level_reuse, Workspace* level_node);
 
     /**
      * Generates the solver for the coarsest level.
@@ -528,6 +530,7 @@ protected:
      * @param recorded_index  if given, the coarsest solver index to use
      *                        instead of asking the solver selector
      * @param selected_index  receives the coarsest solver index used
+     * @param coarse_ws_node  the workspace node of the coarsest solver
      *
      * @return the coarsest solver
      */
@@ -535,7 +538,8 @@ protected:
         std::shared_ptr<const gko::multigrid::MultigridLevel> last_mg_level,
         size_type level, std::shared_ptr<const LinOp> matrix,
         std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
-        const size_type* recorded_index, size_type* selected_index);
+        const size_type* recorded_index, size_type* selected_index,
+        Workspace* coarse_ws_node);
 
     explicit Multigrid(std::shared_ptr<const Executor> exec);
 
@@ -600,9 +604,19 @@ private:
 
         cache_struct(cache_struct&&) noexcept {}
 
-        cache_struct& operator=(const cache_struct&) { return *this; }
+        // the state refers to the workspace nodes of the hierarchy it was
+        // generated for, so assignments drop it; apply regenerates it
+        cache_struct& operator=(const cache_struct&)
+        {
+            state.reset();
+            return *this;
+        }
 
-        cache_struct& operator=(cache_struct&&) noexcept { return *this; }
+        cache_struct& operator=(cache_struct&&) noexcept
+        {
+            state.reset();
+            return *this;
+        }
 
         // unique_ptr with default destructor does not work with the incomplete
         // type.

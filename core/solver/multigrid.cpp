@@ -15,6 +15,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/base/utils_helper.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
@@ -87,14 +88,21 @@ casting(const T& x)
 
 /**
  * Generates a component of the hierarchy, through generate_reuse() if reuse
- * data is kept for it.
+ * data is kept for it. Otherwise, the component is generated into the given
+ * workspace node, if any. The levels of the hierarchy are generated without
+ * one.
  */
 std::unique_ptr<LinOp> generate_component(
     const LinOpFactory* factory, std::shared_ptr<const LinOp> matrix,
-    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data)
+    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
+    gko::Workspace* ws_node = nullptr)
 {
     if (!reuse_data) {
-        return factory->generate(std::move(matrix));
+        if (!ws_node) {
+            return factory->generate(std::move(matrix));
+        }
+        return gko::detail::generate_with_view(factory, std::move(matrix),
+                                               ws_node);
     }
     if (!*reuse_data) {
         *reuse_data = factory->create_empty_reuse_data();
@@ -114,7 +122,8 @@ void handle_list(
     std::vector<std::shared_ptr<const LinOpFactory>>& smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& smoother, size_type iteration,
     std::complex<double> relaxation_factor,
-    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data)
+    std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
+    gko::Workspace* ws_node)
 {
     auto list_size = smoother_list.size();
     auto gen_default_smoother = [&]() -> std::shared_ptr<const LinOp> {
@@ -138,7 +147,7 @@ void handle_list(
                                 .on(exec),
                             iteration, casting<ValueType>(relaxation_factor))
                             .get(),
-                        matrix, reuse_data);
+                        matrix, reuse_data, ws_node);
                 });
         }
 #endif
@@ -148,7 +157,7 @@ void handle_list(
                                .on(exec),
                            iteration, casting<ValueType>(relaxation_factor))
                 .get(),
-            matrix, reuse_data);
+            matrix, reuse_data, ws_node);
     };
     if (list_size != 0) {
         auto temp_index = list_size == 1 ? 0 : index;
@@ -158,19 +167,11 @@ void handle_list(
             smoother.emplace_back(nullptr);
         } else {
             smoother.emplace_back(
-                generate_component(item.get(), matrix, reuse_data));
+                generate_component(item.get(), matrix, reuse_data, ws_node));
         }
     } else {
         smoother.emplace_back(gen_default_smoother());
     }
-}
-
-
-template <typename Vec>
-void clear_and_reserve(Vec& vec, size_type size)
-{
-    vec.clear();
-    vec.reserve(size);
 }
 
 
@@ -233,9 +234,11 @@ public:
      * @param system_matrix_in  the system matrix
      * @param multigrid_in  the multigrid information
      * @param nrhs_in  the number of right hand side
+     * @param ws_node_in  the workspace node (may be nullptr)
      */
     void generate(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
-                  const size_type nrhs_in);
+                  const size_type nrhs_in,
+                  gko::Workspace* ws_node_in = nullptr);
 
     /**
      * allocate_memory is a helper function to allocate the memory of one level
@@ -303,24 +306,18 @@ public:
                    const std::shared_ptr<const LinOp>& matrix, const LinOp* b,
                    LinOp* x, cycle_mode mode);
 
-    // current level's nrows x nrhs
-    std::vector<std::shared_ptr<LinOp>> r_list;
-    // next level's nrows x nrhs
-    std::vector<std::shared_ptr<LinOp>> g_list;
-    std::vector<std::shared_ptr<LinOp>> e_list;
-    // constant 1 x 1
-    std::vector<std::shared_ptr<const LinOp>> one_list;
-    std::vector<std::shared_ptr<const LinOp>> next_one_list;
-    std::vector<std::shared_ptr<const LinOp>> neg_one_list;
     const LinOp* system_matrix;
     const Multigrid* multigrid;
     size_type nrhs;
+    gko::Workspace* ws_node = nullptr;
+    std::vector<gko::Workspace*> level_nodes;
 };
 
 
 void MultigridState::generate(const LinOp* system_matrix_in,
                               const gko::solver::Multigrid* multigrid_in,
-                              const size_type nrhs_in)
+                              const size_type nrhs_in,
+                              gko::Workspace* ws_node_in)
 {
     system_matrix = system_matrix_in;
     multigrid = multigrid_in;
@@ -329,12 +326,15 @@ void MultigridState::generate(const LinOp* system_matrix_in,
     auto mg_level_list = multigrid->get_mg_level_list();
     auto list_size = mg_level_list.size();
     auto cycle = multigrid->get_cycle();
-    clear_and_reserve(r_list, list_size);
-    clear_and_reserve(g_list, list_size);
-    clear_and_reserve(e_list, list_size);
-    clear_and_reserve(one_list, list_size);
-    clear_and_reserve(next_one_list, list_size);
-    clear_and_reserve(neg_one_list, list_size);
+    // Set up workspace level nodes for persistent storage across regeneration
+    ws_node = ws_node_in;
+    level_nodes.clear();
+    level_nodes.reserve(list_size);
+    GKO_ASSERT(ws_node);
+    for (size_type i = 0; i < list_size; i++) {
+        level_nodes.push_back(
+            ws_node->get_or_create_child("level_" + std::to_string(i)));
+    }
     // Allocate memory first such that reusing allocation in each iter.
     for (int i = 0; i < mg_level_list.size(); i++) {
         auto next_nrows = mg_level_list.at(i)->get_coarse_op()->get_size()[0];
@@ -407,21 +407,54 @@ void MultigridState::allocate_memory(int level, multigrid::cycle cycle,
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    r_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-    if (level != 0) {
-        // allocate the previous level
-        g_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, dim<2>{current_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
-    }
-    if (level + 1 == multigrid->get_mg_level_list().size()) {
-        // the last level allocate the g, e for coarsest solver
-        g_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, dim<2>{next_nrows, nrhs}));
-        next_one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
-    }
-    one_list.emplace_back(initialize<vec>({one<value_type>()}, exec));
-    neg_one_list.emplace_back(initialize<vec>({-one<value_type>()}, exec));
+
+    GKO_ASSERT(static_cast<size_type>(level) < level_nodes.size());
+    auto* lnode = level_nodes[level];
+    GKO_ASSERT(lnode);
+
+    auto& storage = *lnode;
+    storage.reset(exec);
+    gko::detail::claim_workspace(storage, typeid(MultigridState));
+    storage.set_size(6, 0);  // 6 operator slots, 0 arrays
+
+    // Slot 0: r (current level dimensions)
+    storage.template create_or_get_op<vec>(
+        0,
+        [&] {
+            return vec::create(exec, dim<2>{current_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{current_nrows, nrhs}, nrhs);
+
+    // Slot 1: g (next/coarse level dimensions)
+    storage.template create_or_get_op<vec>(
+        1,
+        [&] {
+            return vec::create(exec, dim<2>{next_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{next_nrows, nrhs}, nrhs);
+
+    // Slot 2: e (next/coarse level dimensions)
+    storage.template create_or_get_op<vec>(
+        2,
+        [&] {
+            return vec::create(exec, dim<2>{next_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{next_nrows, nrhs}, nrhs);
+
+    // Slot 3: one (scalar 1.0)
+    storage.template create_or_get_op<vec>(
+        3, [&] { return initialize<vec>({one<value_type>()}, exec); },
+        typeid(vec), dim<2>{1, 1}, 1);
+
+    // Slot 4: neg_one (scalar -1.0)
+    storage.template create_or_get_op<vec>(
+        4, [&] { return initialize<vec>({-one<value_type>()}, exec); },
+        typeid(vec), dim<2>{1, 1}, 1);
+
+    // Slot 5: next_one (scalar 1.0 for next level's value_type)
+    storage.template create_or_get_op<vec>(
+        5, [&] { return initialize<vec>({one<value_type>()}, exec); },
+        typeid(vec), dim<2>{1, 1}, 1);
 }
 
 
@@ -442,34 +475,57 @@ void MultigridState::allocate_memory(
 
     auto exec =
         as<LinOp>(multigrid->get_mg_level_list().at(level))->get_executor();
-    r_list.emplace_back(vec::create(exec, current_comm,
-                                    dim<2>{current_nrows, nrhs},
-                                    dim<2>{current_local_nrows, nrhs}));
-    if (level != 0) {
-        // allocate the previous level
-        g_list.emplace_back(vec::create(exec, current_comm,
-                                        dim<2>{current_nrows, nrhs},
-                                        dim<2>{current_local_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, current_comm,
-                                        dim<2>{current_nrows, nrhs},
-                                        dim<2>{current_local_nrows, nrhs}));
-        next_one_list.emplace_back(
-            initialize<dense_vec>({one<value_type>()}, exec));
-    }
-    if (level + 1 == multigrid->get_mg_level_list().size()) {
-        // the last level allocate the g, e for coarsest solver
-        g_list.emplace_back(vec::create(exec, next_comm,
-                                        dim<2>{next_nrows, nrhs},
-                                        dim<2>{next_local_nrows, nrhs}));
-        e_list.emplace_back(vec::create(exec, next_comm,
-                                        dim<2>{next_nrows, nrhs},
-                                        dim<2>{next_local_nrows, nrhs}));
-        next_one_list.emplace_back(
-            initialize<dense_vec>({one<value_type>()}, exec));
-    }
-    one_list.emplace_back(initialize<dense_vec>({one<value_type>()}, exec));
-    neg_one_list.emplace_back(
-        initialize<dense_vec>({-one<value_type>()}, exec));
+
+    GKO_ASSERT(static_cast<size_type>(level) < level_nodes.size());
+    auto* lnode = level_nodes[level];
+    GKO_ASSERT(lnode);
+
+    auto& storage = *lnode;
+    storage.reset(exec);
+    gko::detail::claim_workspace(storage, typeid(MultigridState));
+    storage.set_size(6, 0);  // 6 operator slots, 0 arrays
+
+    // Slot 0: r (current level dimensions, distributed)
+    storage.template create_or_get_op<vec>(
+        0,
+        [&] {
+            return vec::create(exec, current_comm, dim<2>{current_nrows, nrhs},
+                               dim<2>{current_local_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{current_nrows, nrhs}, nrhs);
+
+    // Slot 1: g (next/coarse level dimensions, distributed)
+    storage.template create_or_get_op<vec>(
+        1,
+        [&] {
+            return vec::create(exec, next_comm, dim<2>{next_nrows, nrhs},
+                               dim<2>{next_local_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{next_nrows, nrhs}, nrhs);
+
+    // Slot 2: e (next/coarse level dimensions, distributed)
+    storage.template create_or_get_op<vec>(
+        2,
+        [&] {
+            return vec::create(exec, next_comm, dim<2>{next_nrows, nrhs},
+                               dim<2>{next_local_nrows, nrhs});
+        },
+        typeid(vec), dim<2>{next_nrows, nrhs}, nrhs);
+
+    // Slot 3: one (scalar 1.0)
+    storage.template create_or_get_op<dense_vec>(
+        3, [&] { return initialize<dense_vec>({one<value_type>()}, exec); },
+        typeid(dense_vec), dim<2>{1, 1}, 1);
+
+    // Slot 4: neg_one (scalar -1.0)
+    storage.template create_or_get_op<dense_vec>(
+        4, [&] { return initialize<dense_vec>({-one<value_type>()}, exec); },
+        typeid(dense_vec), dim<2>{1, 1}, 1);
+
+    // Slot 5: next_one (scalar 1.0 for next level's value_type)
+    storage.template create_or_get_op<dense_vec>(
+        5, [&] { return initialize<dense_vec>({one<value_type>()}, exec); },
+        typeid(dense_vec), dim<2>{1, 1}, 1);
 }
 
 
@@ -521,9 +577,13 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     using value_type = typename VectorType::value_type;
     auto total_level = multigrid->get_mg_level_list().size();
 
-    auto r = r_list.at(level);
-    auto g = g_list.at(level);
-    auto e = e_list.at(level);
+    auto& level_storage = *level_nodes[level];
+    auto* r = level_storage.get_mutable_op(0);
+    auto* g = level_storage.get_mutable_op(1);
+    auto* e = level_storage.get_mutable_op(2);
+    auto* one = level_storage.get_const_op(3);
+    auto* neg_one = level_storage.get_const_op(4);
+    auto* next_one = level_storage.get_const_op(5);
     // get mg_level
     auto mg_level = multigrid->get_mg_level_list().at(level);
     // get the pre_smoother
@@ -536,9 +596,6 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
     }
     // get the post_smoother
     auto post_smoother = multigrid->get_post_smoother_list().at(level);
-    auto one = one_list.at(level).get();
-    auto next_one = next_one_list.at(level).get();
-    auto neg_one = neg_one_list.at(level).get();
     // origin or next or first
     bool use_pre = has_property(mode, cycle_mode::first_of_cycle) ||
                    mid_case == multigrid::mid_smooth_type::both ||
@@ -585,19 +642,18 @@ void MultigridState::run_cycle(multigrid::cycle cycle, size_type level,
         // v cycle only contains one step
         next_mode = next_mode | cycle_mode::end_of_cycle;
     }
-    this->run_mg_cycle(cycle, level + 1, next_level_matrix, g.get(), e.get(),
-                       next_mode);
+    this->run_mg_cycle(cycle, level + 1, next_level_matrix, g, e, next_mode);
     if (level < multigrid->get_mg_level_list().size() - 1) {
         // additional work for non-v_cycle
         // next level
         if (cycle == multigrid::cycle::f) {
             // f_cycle call v_cycle in the second cycle
             this->run_mg_cycle(multigrid::cycle::v, level + 1,
-                               next_level_matrix, g.get(), e.get(),
+                               next_level_matrix, g, e,
                                cycle_mode::end_of_cycle);
         } else if (cycle == multigrid::cycle::w) {
-            this->run_mg_cycle(cycle, level + 1, next_level_matrix, g.get(),
-                               e.get(), cycle_mode::end_of_cycle);
+            this->run_mg_cycle(cycle, level + 1, next_level_matrix, g, e,
+                               cycle_mode::end_of_cycle);
         }
     }
     // prolong
@@ -727,7 +783,7 @@ void Multigrid::generate_smoothers(
     std::vector<std::shared_ptr<const LinOp>>& pre_smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& mid_smoother_list,
     std::vector<std::shared_ptr<const LinOp>>& post_smoother_list,
-    reuse_data_type::level_data* level_reuse)
+    reuse_data_type::level_data* level_reuse, gko::Workspace* level_node)
 {
     run<gko::multigrid::EnableMultigridLevel, float, double,
 #if GINKGO_ENABLE_HALF
@@ -739,26 +795,29 @@ void Multigrid::generate_smoothers(
         std::complex<float>, std::complex<double>>(
         mg_level,
         [this, &pre_smoother_list, &mid_smoother_list, &post_smoother_list,
-         level_reuse](auto mg_level, auto index, auto matrix) {
+         level_reuse, level_node](auto mg_level, auto index, auto matrix) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             handle_list<value_type>(
                 index, matrix, parameters_.pre_smoother, pre_smoother_list,
                 parameters_.smoother_iters, parameters_.smoother_relax,
-                level_reuse ? &level_reuse->pre_smoother : nullptr);
+                level_reuse ? &level_reuse->pre_smoother : nullptr,
+                level_node->get_or_create_child("pre_smoother"));
             if (parameters_.mid_case ==
                 multigrid::mid_smooth_type::standalone) {
                 handle_list<value_type>(
                     index, matrix, parameters_.mid_smoother, mid_smoother_list,
                     parameters_.smoother_iters, parameters_.smoother_relax,
-                    level_reuse ? &level_reuse->mid_smoother : nullptr);
+                    level_reuse ? &level_reuse->mid_smoother : nullptr,
+                    level_node->get_or_create_child("mid_smoother"));
             }
             if (!parameters_.post_uses_pre) {
                 handle_list<value_type>(
                     index, matrix, parameters_.post_smoother,
                     post_smoother_list, parameters_.smoother_iters,
                     parameters_.smoother_relax,
-                    level_reuse ? &level_reuse->post_smoother : nullptr);
+                    level_reuse ? &level_reuse->post_smoother : nullptr,
+                    level_node->get_or_create_child("post_smoother"));
             }
         },
         index, mg_level->get_fine_op());
@@ -769,7 +828,8 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
     std::shared_ptr<const gko::multigrid::MultigridLevel> last_mg_level,
     size_type level, std::shared_ptr<const LinOp> matrix,
     std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
-    const size_type* recorded_index, size_type* selected_index)
+    const size_type* recorded_index, size_type* selected_index,
+    gko::Workspace* coarse_ws_node)
 {
     std::unique_ptr<LinOp> coarsest_solver;
     run<gko::multigrid::EnableMultigridLevel, float, double,
@@ -781,8 +841,8 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
 #endif
         std::complex<float>, std::complex<double>>(
         last_mg_level,
-        [this, &coarsest_solver, reuse_data, recorded_index, selected_index](
-            auto mg_level, auto level, auto matrix) {
+        [this, &coarsest_solver, reuse_data, recorded_index, selected_index,
+         coarse_ws_node](auto mg_level, auto level, auto matrix) {
             using value_type =
                 typename std::decay_t<decltype(*mg_level)>::value_type;
             auto exec = this->get_executor();
@@ -825,7 +885,7 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                                                     .with_max_block_size(1u)))
                                 .on(exec)
                                 .get(),
-                            matrix, reuse_data);
+                            matrix, reuse_data, coarse_ws_node);
                     });
                 }
 #endif
@@ -849,7 +909,7 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                                     .with_max_block_size(1u))
                             .on(exec)
                             .get(),
-                        matrix, reuse_data);
+                        matrix, reuse_data, coarse_ws_node);
                 } else {
                     return generate_component(
                         experimental::solver::Direct<value_type, int32>::build()
@@ -858,7 +918,7 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                                                                 int32>::build())
                             .on(exec)
                             .get(),
-                        matrix, reuse_data);
+                        matrix, reuse_data, coarse_ws_node);
                 }
             };
             if (parameters_.coarsest_solver.size() == 0) {
@@ -875,8 +935,8 @@ std::unique_ptr<LinOp> Multigrid::generate_coarsest_solver(
                 if (solver == nullptr) {
                     coarsest_solver = gen_default_solver();
                 } else {
-                    coarsest_solver =
-                        generate_component(solver.get(), matrix, reuse_data);
+                    coarsest_solver = generate_component(
+                        solver.get(), matrix, reuse_data, coarse_ws_node);
                 }
             }
         },
@@ -899,6 +959,7 @@ void Multigrid::generate(reuse_data_type* reuse_data)
     bool changed = false;
     std::vector<dim<2>> reused_coarse_sizes;
     std::vector<level_data> new_levels;
+    auto* mg_ws_node = this->get_workspace_node();
     // Always generate smoother with size = level.
     while (level < parameters_.max_levels &&
            num_rows > parameters_.min_coarse_rows) {
@@ -940,9 +1001,12 @@ void Multigrid::generate(reuse_data_type* reuse_data)
             entry->coarse_size = coarse_size;
         }
 
+        auto* level_node =
+            mg_ws_node->get_or_create_child("level_" + std::to_string(level));
+
         this->generate_smoothers(mg_level, index, pre_smoother_list_,
-                                 mid_smoother_list_, post_smoother_list_,
-                                 entry);
+                                 mid_smoother_list_, post_smoother_list_, entry,
+                                 level_node);
 
         mg_level_list_.emplace_back(mg_level);
         matrix = mg_level_list_.back()->get_coarse_op();
@@ -958,7 +1022,8 @@ void Multigrid::generate(reuse_data_type* reuse_data)
 
     this->setup_workspace();
     this->create_state();
-    cache_.state->generate(this->get_system_matrix().get(), this, 1);
+    cache_.state->generate(this->get_system_matrix().get(), this, 1,
+                           this->get_workspace_node());
 
     // the recorded coarsest solver data only fits an unchanged hierarchy
     changed = changed || level != num_recorded || !new_levels.empty();
@@ -973,9 +1038,10 @@ void Multigrid::generate(reuse_data_type* reuse_data)
             recorded_coarsest_index = &reuse_data->coarsest_index_;
         }
     }
+    auto* coarse_ws_node = mg_ws_node->get_or_create_child("coarse_solver");
     coarsest_solver_ = this->generate_coarsest_solver(
         last_mg_level, level, matrix, coarsest_reuse, recorded_coarsest_index,
-        &coarsest_index);
+        &coarsest_index, coarse_ws_node);
 
     // update the reuse data only once everything succeeded
     if (reuse_data) {
@@ -1100,14 +1166,13 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                                  initial_guess_mode guess) const
 {
     using ws = workspace_traits<Multigrid>;
-    if (cache_.state->nrhs != b->get_size()[1]) {
+    if (!cache_.state || cache_.state->nrhs != b->get_size()[1]) {
+        this->create_state();
         cache_.state->generate(this->get_system_matrix().get(), this,
-                               b->get_size()[1]);
+                               b->get_size()[1], this->get_workspace_node());
     }
     auto lambda = [&, this](auto mg_level, auto b, auto x) {
         auto exec = this->get_executor();
-        auto neg_one_op = cache_.state->neg_one_list.at(0);
-        auto one_op = cache_.state->one_list.at(0);
         constexpr uint8 RelativeStoppingId{1};
         auto& stop_status =
             this->template create_workspace_array<stopping_status>(
