@@ -540,9 +540,14 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             if (auto prec = dynamic_cast<const gko::Preconditionable*>(
                     detailed_solver.get())) {
                 solver_case["preconditioner"] = json::object();
-                write_precond_info(
-                    clone(exec->get_master(), prec->get_preconditioner()).get(),
-                    solver_case["preconditioner"]);
+                // only Jacobi has info to write, and Multigrid can't be cloned
+                if (dynamic_cast<const gko::preconditioner::Jacobi<etype>*>(
+                        prec->get_preconditioner().get())) {
+                    write_precond_info(
+                        clone(exec->get_master(), prec->get_preconditioner())
+                            .get(),
+                        solver_case["preconditioner"]);
+                }
             }
 
             {
