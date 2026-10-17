@@ -252,4 +252,18 @@ TEST_F(WorkspaceHolder, CreateIfRecreatesOnPredicate)
 }
 
 
+TEST_F(WorkspaceHolder, BorrowRebindsNodeToHolderExecutor)
+{
+    auto other = gko::ReferenceExecutor::create();
+    auto root = gko::Workspace::create(other);
+    auto* child = root->get_or_create_child("child");
+    auto holder = std::make_unique<DummyHolder>(exec);
+
+    gko::detail::attach_workspace(holder.get(), child);
+
+    ASSERT_EQ(child->get_executor(), exec);
+    ASSERT_EQ(holder->vector()->get_executor(), exec);
+}
+
+
 }  // namespace

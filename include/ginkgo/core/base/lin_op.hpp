@@ -29,6 +29,7 @@ namespace gko {
 class LinOp;
 class LinOpFactory;
 class Workspace;
+struct LinOpGenerateComponents;
 
 
 namespace detail {
@@ -45,6 +46,15 @@ namespace detail {
 std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
                                           std::shared_ptr<const LinOp> input,
                                           Workspace* view);
+
+
+/**
+ * Internal: generates a LinOp from `components` as they are, keeping the
+ * workspace they carry (owned, borrowed or none). Used by factories that
+ * delegate to another factory.
+ */
+std::unique_ptr<LinOp> generate_with_components(
+    const LinOpFactory* factory, LinOpGenerateComponents components);
 
 
 }  // namespace detail
@@ -439,6 +449,8 @@ public:
 
     friend std::unique_ptr<LinOp> gko::detail::generate_with_view(
         const LinOpFactory*, std::shared_ptr<const LinOp>, gko::Workspace*);
+    friend std::unique_ptr<LinOp> gko::detail::generate_with_components(
+        const LinOpFactory*, LinOpGenerateComponents);
 
     /**
      * Opaque base for the data a factory records in generate_reuse() to speed

@@ -192,7 +192,8 @@ void Composition<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
         [this](auto dense_b, auto dense_x) {
             if (operators_.size() > 1) {
                 operators_[0]->apply(
-                    apply_inner_operators(operators_, storage_, dense_b),
+                    apply_inner_operators(operators_, this->get_storage(),
+                                          dense_b),
                     dense_x);
             } else {
                 operators_[0]->apply(dense_b, dense_x);
@@ -211,7 +212,8 @@ void Composition<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
             if (operators_.size() > 1) {
                 operators_[0]->apply(
                     dense_alpha,
-                    apply_inner_operators(operators_, storage_, dense_b),
+                    apply_inner_operators(operators_, this->get_storage(),
+                                          dense_b),
                     dense_beta, dense_x);
             } else {
                 operators_[0]->apply(dense_alpha, dense_b, dense_beta, dense_x);
