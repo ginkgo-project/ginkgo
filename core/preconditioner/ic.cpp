@@ -131,12 +131,12 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     // take care of real-to-complex apply
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_b, auto dense_x) {
-            this->set_cache_to(dense_b);
-            l_solver_->apply(dense_b, cache_.intermediate);
+            auto intermediate = this->set_cache_to(dense_b);
+            l_solver_->apply(dense_b, intermediate);
             if (lh_solver_->apply_uses_initial_guess()) {
-                dense_x->copy_from(as<Cloneable>(cache_.intermediate.get()));
+                dense_x->copy_from(intermediate);
             }
-            lh_solver_->apply(cache_.intermediate, dense_x);
+            lh_solver_->apply(intermediate, dense_x);
         },
         b, x);
 }
@@ -149,10 +149,9 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 {
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->set_cache_to(dense_b);
-            l_solver_->apply(dense_b, cache_.intermediate);
-            lh_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
-                              dense_x);
+            auto intermediate = this->set_cache_to(dense_b);
+            l_solver_->apply(dense_b, intermediate);
+            lh_solver_->apply(dense_alpha, intermediate, dense_beta, dense_x);
         },
         alpha, b, beta, x);
 }
@@ -160,7 +159,7 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>::Ic(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
+    : LinOp(std::move(exec)), gko::detail::WorkspaceHolder(this->get_executor())
 {}
 
 
@@ -168,6 +167,7 @@ template <typename ValueType, typename IndexType>
 Ic<ValueType, IndexType>::Ic(const Factory* factory,
                              LinOpGenerateComponents components)
     : LinOp(factory->get_executor(), components.system_matrix->get_size()),
+      gko::detail::WorkspaceHolder(factory->get_executor(), components),
       parameters_{factory->get_parameters()}
 {
     auto lin_op = std::move(components.system_matrix);
@@ -199,12 +199,20 @@ Ic<ValueType, IndexType>::Ic(const Factory* factory,
 
     auto exec = this->get_executor();
 
+    auto generate_solver = [this](const LinOpFactory* factory,
+                                  std::shared_ptr<const LinOp> factor,
+                                  const char* tag) {
+        return gko::detail::generate_with_view(
+            factory, std::move(factor),
+            this->get_workspace_node()->get_or_create_child(tag));
+    };
+
     // If no factories are provided, generate default ones
     if (!parameters_.l_solver_factory) {
         // when not providing l_solver_factory, use LowerTrs as the default one
-        l_solver_ = solver::LowerTrs<value_type, index_type>::build()
-                        .on(exec)
-                        ->generate(l_factor);
+        l_solver_ = generate_solver(
+            solver::LowerTrs<value_type, index_type>::build().on(exec).get(),
+            l_factor, "l_solver");
         // If comp contains both factors: We only check the dimension from
         // the second factor. However, we still use the l_solver^H not
         // generate the solver on L^H to preserve the Hermitian property of
@@ -213,24 +221,27 @@ Ic<ValueType, IndexType>::Ic(const Factory* factory,
             auto lh_factor = comp->get_operators()[1];
             GKO_ASSERT_EQUAL_DIMENSIONS(l_factor, lh_factor);
         }
-        lh_solver_ = as<Transposable>(l_solver_)->conj_transpose();
     } else {
-        l_solver_ = parameters_.l_solver_factory->generate(l_factor);
-        lh_solver_ = as<Transposable>(l_solver_)->conj_transpose();
+        l_solver_ = generate_solver(parameters_.l_solver_factory.get(),
+                                    l_factor, "l_solver");
     }
+    auto lh_solver = as<Transposable>(l_solver_)->conj_transpose();
+    gko::detail::attach_workspace(
+        lh_solver.get(),
+        this->get_workspace_node()->get_or_create_child("lh_solver"));
+    lh_solver_ = std::move(lh_solver);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Ic<ValueType, IndexType>::set_cache_to(const LinOp* b) const
-
+matrix::Dense<ValueType>* Ic<ValueType, IndexType>::set_cache_to(
+    const matrix::Dense<value_type>* b) const
 {
-    if (cache_.intermediate == nullptr) {
-        cache_.intermediate =
-            matrix::Dense<value_type>::create(this->get_executor());
-    }
+    this->set_workspace_size(1, 0);
+    auto intermediate = this->create_workspace_op_with_config_of(0, b);
     // Use b as the initial guess for the first triangular solve
-    as<Cloneable>(cache_.intermediate.get())->copy_from(as<Cloneable>(b));
+    intermediate->copy_from(b);
+    return intermediate;
 }
 
 

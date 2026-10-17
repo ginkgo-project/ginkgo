@@ -160,21 +160,19 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* b,
     // take care of real-to-complex apply
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_b, auto dense_x) {
-            this->set_cache_to(dense_b);
+            auto intermediate = this->set_cache_to(dense_b);
             if (!ReverseApply) {
-                l_solver_->apply(dense_b, cache_.intermediate);
+                l_solver_->apply(dense_b, intermediate);
                 if (u_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(
-                        as<Cloneable>(cache_.intermediate.get()));
+                    dense_x->copy_from(intermediate);
                 }
-                u_solver_->apply(cache_.intermediate, dense_x);
+                u_solver_->apply(intermediate, dense_x);
             } else {
-                u_solver_->apply(dense_b, cache_.intermediate);
+                u_solver_->apply(dense_b, intermediate);
                 if (l_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(
-                        as<Cloneable>(cache_.intermediate.get()));
+                    dense_x->copy_from(intermediate);
                 }
-                l_solver_->apply(cache_.intermediate, dense_x);
+                l_solver_->apply(intermediate, dense_x);
             }
         },
         b, x);
@@ -189,14 +187,14 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* alpha,
 {
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->set_cache_to(dense_b);
+            auto intermediate = this->set_cache_to(dense_b);
             if (!ReverseApply) {
-                l_solver_->apply(dense_b, cache_.intermediate);
-                u_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
+                l_solver_->apply(dense_b, intermediate);
+                u_solver_->apply(dense_alpha, intermediate, dense_beta,
                                  dense_x);
             } else {
-                u_solver_->apply(dense_b, cache_.intermediate);
-                l_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
+                u_solver_->apply(dense_b, intermediate);
+                l_solver_->apply(dense_alpha, intermediate, dense_beta,
                                  dense_x);
             }
         },
@@ -207,7 +205,7 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* alpha,
 template <typename ValueType, bool ReverseApply, typename IndexType>
 Ilu<ValueType, ReverseApply, IndexType>::Ilu(
     std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
+    : LinOp(std::move(exec)), gko::detail::WorkspaceHolder(this->get_executor())
 {}
 
 
@@ -215,6 +213,7 @@ template <typename ValueType, bool ReverseApply, typename IndexType>
 Ilu<ValueType, ReverseApply, IndexType>::Ilu(const Factory* factory,
                                              LinOpGenerateComponents components)
     : LinOp(factory->get_executor(), components.system_matrix->get_size()),
+      gko::detail::WorkspaceHolder(factory->get_executor(), components),
       parameters_{factory->get_parameters()}
 {
     auto lin_op = std::move(components.system_matrix);
@@ -245,36 +244,45 @@ Ilu<ValueType, ReverseApply, IndexType>::Ilu(const Factory* factory,
 
     auto exec = this->get_executor();
 
+    auto generate_solver = [this](const LinOpFactory* factory,
+                                  std::shared_ptr<const LinOp> factor,
+                                  const char* tag) {
+        return gko::detail::generate_with_view(
+            factory, std::move(factor),
+            this->get_workspace_node()->get_or_create_child(tag));
+    };
+
     // If no factories are provided, generate default ones
     if (!parameters_.l_solver_factory) {
         // when not providing l_solver_factory, use LowerTrs as the default one
-        l_solver_ = solver::LowerTrs<value_type, index_type>::build()
-                        .on(exec)
-                        ->generate(l_factor);
+        l_solver_ = generate_solver(
+            solver::LowerTrs<value_type, index_type>::build().on(exec).get(),
+            l_factor, "l_solver");
     } else {
-        l_solver_ = parameters_.l_solver_factory->generate(l_factor);
+        l_solver_ = generate_solver(parameters_.l_solver_factory.get(),
+                                    l_factor, "l_solver");
     }
     if (!parameters_.u_solver_factory) {
         // when not providing u_solver_factory, use UpperTrs as the default one
-        u_solver_ = solver::UpperTrs<value_type, index_type>::build()
-                        .on(exec)
-                        ->generate(u_factor);
+        u_solver_ = generate_solver(
+            solver::UpperTrs<value_type, index_type>::build().on(exec).get(),
+            u_factor, "u_solver");
     } else {
-        u_solver_ = parameters_.u_solver_factory->generate(u_factor);
+        u_solver_ = generate_solver(parameters_.u_solver_factory.get(),
+                                    u_factor, "u_solver");
     }
 }
 
 
 template <typename ValueType, bool ReverseApply, typename IndexType>
-void Ilu<ValueType, ReverseApply, IndexType>::set_cache_to(const LinOp* b) const
-
+matrix::Dense<ValueType>* Ilu<ValueType, ReverseApply, IndexType>::set_cache_to(
+    const matrix::Dense<value_type>* b) const
 {
-    if (cache_.intermediate == nullptr) {
-        cache_.intermediate =
-            matrix::Dense<value_type>::create(this->get_executor());
-    }
+    this->set_workspace_size(1, 0);
+    auto intermediate = this->create_workspace_op_with_config_of(0, b);
     // Use b as the initial guess for the first triangular solve
-    as<Cloneable>(cache_.intermediate.get())->copy_from(as<Cloneable>(b));
+    intermediate->copy_from(b);
+    return intermediate;
 }
 
 

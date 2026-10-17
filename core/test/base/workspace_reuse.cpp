@@ -15,6 +15,8 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/gauss_seidel.hpp>
+#include <ginkgo/core/preconditioner/ic.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/sor.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -304,6 +306,74 @@ TEST_F(WorkspaceReuse, RegenerationWithLargerMatrixIsCorrect)
     x->fill(0.0);
 
     solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, expected, r<double>::value);
+}
+
+
+TEST_F(WorkspaceReuse, GmresWithIluReusesIntermediate)
+{
+    auto factory =
+        Gmres::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(
+                gko::preconditioner::Ilu<double, false, int>::build())
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+    auto tree = describe_after_apply(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=2)\n"
+              "    Workspace [l_solver] (children=0)\n"
+              "    Workspace [u_solver] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, CgWithIcReusesIntermediate)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(gko::preconditioner::Ic<double, int>::build())
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+    auto tree = describe_after_apply(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=2)\n"
+              "    Workspace [l_solver] (children=0)\n"
+              "    Workspace [lh_solver] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, TopLevelIluAdvancedApplyAfterRegeneration)
+{
+    auto factory =
+        gko::preconditioner::Ilu<double, false, int>::build().on(exec);
+    auto b = Vec::create(exec, gko::dim<2>{10, 1});
+    b->fill(1.0);
+    auto x0 = Vec::create(exec, b->get_size());
+    x0->fill(0.5);
+    auto alpha = gko::initialize<Vec>({2.0}, exec);
+    auto beta = gko::initialize<Vec>({-1.0}, exec);
+    // expected = 2 * Ilu(b) - x0
+    auto expected = gko::clone(x0);
+    factory->generate(mtx)->apply(alpha, b, beta, expected);
+    std::unique_ptr<gko::LinOp> precond =
+        factory->generate(mtx, gko::Workspace::create(exec));
+    auto x = gko::clone(x0);
+    precond->apply(alpha, b, beta, x);
+    auto ws = gko::invalidate_and_extract_workspace(std::move(precond));
+    precond = factory->generate(mtx, std::move(ws));
+    x = gko::clone(x0);
+
+    precond->apply(alpha, b, beta, x);
 
     GKO_ASSERT_MTX_NEAR(x, expected, r<double>::value);
 }
