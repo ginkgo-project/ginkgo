@@ -10,12 +10,15 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/factorization/lu.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
@@ -572,6 +575,47 @@ TEST_F(WorkspaceIntegration, BorrowingARootNodeThrows)
     ASSERT_THROW(
         gko::detail::generate_with_view(factory.get(), matrix, root.get()),
         gko::InvalidStateError);
+}
+
+
+TEST_F(WorkspaceIntegration, MoveAssignedMultigridIsCorrect)
+{
+    using Multigrid = gko::solver::Multigrid;
+    auto mtx = gko::share(gko::initialize<gko::matrix::Csr<double, int>>(
+        {{2.0, -1.0, 0.0, 0.0, 0.0, 0.0},
+         {-1.0, 2.0, -1.0, 0.0, 0.0, 0.0},
+         {0.0, -1.0, 2.0, -1.0, 0.0, 0.0},
+         {0.0, 0.0, -1.0, 2.0, -1.0, 0.0},
+         {0.0, 0.0, 0.0, -1.0, 2.0, -1.0},
+         {0.0, 0.0, 0.0, 0.0, -1.0, 2.0}},
+        exec));
+    auto rhs = gko::initialize<Mtx>({1.0, 2.0, 3.0, 4.0, 5.0, 6.0}, exec);
+    auto factory =
+        Multigrid::build()
+            .with_mg_level(gko::multigrid::Pgm<double, int>::build())
+            .with_min_coarse_rows(1u)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .on(exec);
+    auto expected = Mtx::create(exec, gko::dim<2>{6, 1});
+    expected->fill(0.0);
+    factory->generate(mtx)->apply(rhs, expected);
+    std::unique_ptr<gko::LinOp> target =
+        factory->generate(mtx, Workspace::create(exec));
+    std::unique_ptr<gko::LinOp> source =
+        factory->generate(mtx, Workspace::create(exec));
+    auto y = Mtx::create(exec, gko::dim<2>{6, 1});
+    y->fill(0.0);
+    target->apply(rhs, y);
+    source->apply(rhs, y);
+
+    *gko::as<Multigrid>(target.get()) =
+        std::move(*gko::as<Multigrid>(source.get()));
+    source.reset();
+    auto x6 = Mtx::create(exec, gko::dim<2>{6, 1});
+    x6->fill(0.0);
+    target->apply(rhs, x6);
+
+    GKO_ASSERT_MTX_NEAR(x6, expected, r<double>::value);
 }
 
 
