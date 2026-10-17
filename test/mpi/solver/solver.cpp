@@ -12,6 +12,7 @@
 
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
@@ -27,6 +28,7 @@
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/pipe_cg.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
@@ -617,3 +619,113 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
     });
 }
 #endif
+
+
+class WorkspaceRepartition : public CommonMpiTestFixture {
+protected:
+    using local_index_type = gko::int32;
+    using global_index_type = gko::int64;
+    using dist_mtx_type =
+        gko::experimental::distributed::Matrix<value_type, local_index_type,
+                                               global_index_type>;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
+    using part_type =
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
+
+    static constexpr global_index_type n = 12;
+
+    // contiguous partition with the range bounds `bounds`
+    std::shared_ptr<part_type> partition(std::vector<global_index_type> bounds)
+    {
+        return gko::share(part_type::build_from_contiguous(
+            exec,
+            gko::array<global_index_type>(exec, bounds.begin(), bounds.end())));
+    }
+
+    std::shared_ptr<dist_mtx_type> matrix(std::shared_ptr<part_type> part)
+    {
+        gko::matrix_data<value_type, global_index_type> data{gko::dim<2>(n, n)};
+        for (global_index_type i = 0; i < n; i++) {
+            if (i > 0) {
+                data.nonzeros.emplace_back(i, i - 1, -1.0);
+            }
+            data.nonzeros.emplace_back(i, i, 2.5);
+            if (i + 1 < n) {
+                data.nonzeros.emplace_back(i, i + 1, -1.0);
+            }
+        }
+        auto mtx = gko::share(dist_mtx_type::create(exec, comm));
+        mtx->read_distributed(data, part);
+        return mtx;
+    }
+
+    std::unique_ptr<dist_vec_type> vector(std::shared_ptr<part_type> part,
+                                          bool rhs)
+    {
+        gko::matrix_data<value_type, global_index_type> data{gko::dim<2>(n, 1)};
+        for (global_index_type i = 0; i < n; i++) {
+            data.nonzeros.emplace_back(i, 0,
+                                       rhs ? std::sin(0.3 * i + 0.1) : 0.5);
+        }
+        auto vec = dist_vec_type::create(exec, comm);
+        vec->read_distributed(data, part);
+        return vec;
+    }
+
+    // Generates from `factory` with a workspace on a matrix partitioned
+    // uniformly, applies it, extracts the workspace and regenerates on the
+    // same matrix partitioned differently, then compares with a solver
+    // generated without a workspace.
+    void check_regeneration_on_repartitioned_matrix(
+        const gko::LinOpFactory* factory)
+    {
+        const auto size = static_cast<global_index_type>(comm.size());
+        std::vector<global_index_type> uniform(size + 1);
+        std::vector<global_index_type> shifted(size + 1);
+        for (global_index_type i = 0; i <= size; i++) {
+            uniform[i] = i * n / size;
+            shifted[i] = (i == 0 || i == size) ? uniform[i] : uniform[i] - 1;
+        }
+        auto part1 = partition(uniform);
+        auto part2 = partition(shifted);
+        auto mtx1 = matrix(part1);
+        auto mtx2 = matrix(part2);
+        auto expected = vector(part2, false);
+        factory->generate(mtx2)->apply(vector(part2, true), expected);
+        std::unique_ptr<gko::LinOp> solver =
+            factory->generate(mtx1, gko::Workspace::create(exec));
+        auto x1 = vector(part1, false);
+        solver->apply(vector(part1, true), x1);
+        auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
+        solver = factory->generate(mtx2, std::move(ws));
+        auto x2 = vector(part2, false);
+
+        solver->apply(vector(part2, true), x2);
+
+        GKO_ASSERT_MTX_NEAR(x2->get_local_vector(),
+                            expected->get_local_vector(), r<value_type>::value);
+    }
+};
+
+
+TEST_F(WorkspaceRepartition, CgRegeneratesOnRepartitionedMatrix)
+{
+    auto factory =
+        gko::solver::Cg<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(5u))
+            .on(exec);
+
+    check_regeneration_on_repartitioned_matrix(factory.get());
+}
+
+
+TEST_F(WorkspaceRepartition, GmresRegeneratesOnRepartitionedMatrix)
+{
+    auto factory =
+        gko::solver::Gmres<value_type>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(5u))
+            .on(exec);
+
+    check_regeneration_on_repartitioned_matrix(factory.get());
+}
