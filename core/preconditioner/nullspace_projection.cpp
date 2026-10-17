@@ -244,6 +244,7 @@ NullspaceProjection<ValueType>& NullspaceProjection<ValueType>::operator=(
 {
     if (&other != this) {
         *this = static_cast<const NullspaceProjection&>(other);
+        gko::detail::WorkspaceHolder::operator=(std::move(other));
         other.preconditioner_ = nullptr;
         other.nullspace_ = nullptr;
         other.left_nullspace_ = nullptr;

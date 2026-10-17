@@ -605,9 +605,19 @@ private:
 
         cache_struct(cache_struct&&) noexcept {}
 
-        cache_struct& operator=(const cache_struct&) { return *this; }
+        // the state refers to the workspace nodes of the hierarchy it was
+        // generated for, so assignments drop it; apply regenerates it
+        cache_struct& operator=(const cache_struct&)
+        {
+            state.reset();
+            return *this;
+        }
 
-        cache_struct& operator=(cache_struct&&) noexcept { return *this; }
+        cache_struct& operator=(cache_struct&&) noexcept
+        {
+            state.reset();
+            return *this;
+        }
 
         // unique_ptr with default destructor does not work with the incomplete
         // type.

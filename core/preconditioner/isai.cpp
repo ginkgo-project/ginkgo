@@ -295,11 +295,12 @@ Isai<IsaiType, ValueType, IndexType>::operator=(Isai&& other)
 {
     if (&other != this) {
         LinOp::operator=(std::move(other));
+        gko::detail::WorkspaceHolder::operator=(std::move(other));
         auto exec = this->get_executor();
         approximate_inverse_ = std::move(other.approximate_inverse_);
         parameters_ = std::exchange(other.parameters_, parameters_type{});
         if (approximate_inverse_ &&
-            other.approximate_inverse_->get_executor() != exec) {
+            approximate_inverse_->get_executor() != exec) {
             approximate_inverse_ = gko::clone(exec, approximate_inverse_);
         }
     }

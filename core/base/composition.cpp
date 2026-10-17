@@ -124,6 +124,7 @@ Composition<ValueType>& Composition<ValueType>::operator=(Composition&& other)
 {
     if (&other != this) {
         LinOp::operator=(std::move(other));
+        gko::detail::WorkspaceHolder::operator=(std::move(other));
         auto exec = this->get_executor();
         operators_ = std::move(other.operators_);
         // if the operators are on the wrong executor, copy them over

@@ -1166,7 +1166,8 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                                  initial_guess_mode guess) const
 {
     using ws = workspace_traits<Multigrid>;
-    if (cache_.state->nrhs != b->get_size()[1]) {
+    if (!cache_.state || cache_.state->nrhs != b->get_size()[1]) {
+        this->create_state();
         cache_.state->generate(this->get_system_matrix().get(), this,
                                b->get_size()[1], this->get_workspace_node());
     }

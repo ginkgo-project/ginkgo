@@ -97,6 +97,7 @@ Ic<ValueType, IndexType>& Ic<ValueType, IndexType>::operator=(Ic&& other)
 {
     if (&other != this) {
         LinOp::operator=(other);
+        gko::detail::WorkspaceHolder::operator=(std::move(other));
         auto exec = this->get_executor();
         l_solver_ = std::move(other.l_solver_);
         lh_solver_ = std::move(other.lh_solver_);

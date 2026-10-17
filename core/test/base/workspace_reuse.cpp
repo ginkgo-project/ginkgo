@@ -160,6 +160,26 @@ std::string describe_after_apply(std::shared_ptr<const gko::Executor> exec,
 }
 
 
+// generates from `factory` with a workspace, applies, move-constructs a Type
+// from the result and extracts the workspace from the moved-to object
+template <typename Type>
+std::unique_ptr<gko::Workspace> extract_after_move(
+    std::shared_ptr<const gko::Executor> exec, const gko::LinOpFactory* factory,
+    std::shared_ptr<const gko::LinOp> matrix)
+{
+    std::unique_ptr<gko::LinOp> op =
+        factory->generate(matrix, gko::Workspace::create(exec));
+    auto b = Vec::create(exec, gko::dim<2>{matrix->get_size()[0], 1});
+    b->fill(1.0);
+    auto x = Vec::create(exec, b->get_size());
+    x->fill(0.0);
+    op->apply(b, x);
+    std::unique_ptr<gko::LinOp> moved =
+        std::make_unique<Type>(std::move(*gko::as<Type>(op.get())));
+    return gko::invalidate_and_extract_workspace(std::move(moved));
+}
+
+
 class WorkspaceReuse : public ::testing::Test {
 protected:
     WorkspaceReuse()
@@ -490,6 +510,121 @@ TEST_F(WorkspaceReuse, DirectGivesTriangularSolversNodes)
               "  Workspace [preconditioner] (children=2)\n"
               "    Workspace [lower_solver] (children=0)\n"
               "    Workspace [upper_solver] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, MovedIluKeepsWorkspace)
+{
+    using Ilu = gko::preconditioner::Ilu<double, false, int>;
+    auto factory = Ilu::build().on(exec);
+
+    auto ws = extract_after_move<Ilu>(exec, factory.get(), mtx);
+
+    ASSERT_FALSE(ws->empty());
+    ASSERT_TRUE(ws->has_child("l_solver"));
+}
+
+
+TEST_F(WorkspaceReuse, MovedIcKeepsWorkspace)
+{
+    using Ic = gko::preconditioner::Ic<double, int>;
+    auto factory = Ic::build().on(exec);
+
+    auto ws = extract_after_move<Ic>(exec, factory.get(), mtx);
+
+    ASSERT_FALSE(ws->empty());
+    ASSERT_TRUE(ws->has_child("lh_solver"));
+}
+
+
+TEST_F(WorkspaceReuse, MovedIsaiKeepsWorkspace)
+{
+    using Isai = gko::preconditioner::SpdIsai<double, int>;
+    auto factory = Isai::build().on(exec);
+
+    auto ws = extract_after_move<Isai>(exec, factory.get(), mtx);
+
+    ASSERT_TRUE(ws->has_child("approximate_inverse"));
+    ASSERT_FALSE(ws->get_child("approximate_inverse")->empty());
+}
+
+
+TEST_F(WorkspaceReuse, MovedNullspaceProjectionKeepsWorkspace)
+{
+    using Projection = gko::preconditioner::NullspaceProjection<double>;
+    auto singular = neumann_laplacian_1d(exec, 10);
+    auto ns = gko::share(gko::solver::Nullspace<double>::create_from_constant(
+        exec, singular->get_size()));
+    auto factory = Projection::build()
+                       .with_nullspace(ns)
+                       .with_left_nullspace(ns)
+                       .with_preconditioner(
+                           gko::preconditioner::Jacobi<double, int>::build()
+                               .with_max_block_size(1u))
+                       .on(exec);
+
+    auto ws = extract_after_move<Projection>(exec, factory.get(), singular);
+
+    ASSERT_FALSE(ws->empty());
+    ASSERT_TRUE(ws->has_child("nullspace"));
+}
+
+
+TEST_F(WorkspaceReuse, MoveAssignedCgTakesWorkspace)
+{
+    auto factory = Cg::build().with_criteria(iterations(2u)).on(exec);
+    auto source_root = gko::Workspace::create(exec);
+    auto* source_node = source_root.get();
+    std::unique_ptr<gko::LinOp> target =
+        factory->generate(mtx, gko::Workspace::create(exec));
+    std::unique_ptr<gko::LinOp> source =
+        factory->generate(mtx, std::move(source_root));
+
+    *gko::as<Cg>(target.get()) = std::move(*gko::as<Cg>(source.get()));
+
+    ASSERT_EQ(gko::invalidate_and_extract_workspace(std::move(target)).get(),
+              source_node);
+}
+
+
+TEST_F(WorkspaceReuse, MovedCompositionKeepsWorkspace)
+{
+    auto root = gko::Workspace::create(exec);
+    auto* node = root.get();
+    auto comp = gko::Composition<double>::create(mtx, mtx);
+    gko::detail::give_workspace(comp.get(), std::move(root));
+    auto b = Vec::create(exec, gko::dim<2>{10, 1});
+    b->fill(1.0);
+    auto x = Vec::create(exec, b->get_size());
+    comp->apply(b, x);
+    std::unique_ptr<gko::LinOp> moved =
+        std::make_unique<gko::Composition<double>>(std::move(*comp));
+
+    auto ws = gko::invalidate_and_extract_workspace(std::move(moved));
+
+    ASSERT_EQ(ws.get(), node);
+    ASSERT_FALSE(ws->empty());
+}
+
+
+TEST_F(WorkspaceReuse, MovedNullspaceKeepsWorkspace)
+{
+    auto root = gko::Workspace::create(exec);
+    auto* node = root.get();
+    auto ns = gko::solver::Nullspace<double>::create_from_constant(
+        exec, mtx->get_size());
+    gko::detail::give_workspace(ns.get(), std::move(root));
+    auto b = Vec::create(exec, gko::dim<2>{10, 1});
+    b->fill(1.0);
+    auto x = Vec::create(exec, b->get_size());
+    ns->apply(b, x);
+    std::unique_ptr<gko::LinOp> moved =
+        std::make_unique<gko::solver::Nullspace<double>>(std::move(*ns));
+
+    auto ws = gko::invalidate_and_extract_workspace(std::move(moved));
+
+    ASSERT_EQ(ws.get(), node);
+    ASSERT_FALSE(ws->empty());
 }
 
 

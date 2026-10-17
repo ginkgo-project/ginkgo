@@ -476,6 +476,7 @@ Nullspace<ValueType>& Nullspace<ValueType>::operator=(Nullspace&& other)
 {
     if (&other != this) {
         LinOp::operator=(std::move(other));
+        gko::detail::WorkspaceHolder::operator=(std::move(other));
         auto exec = this->get_executor();
         contains_constant_ = std::exchange(other.contains_constant_, false);
         basis_ = std::move(other.basis_);

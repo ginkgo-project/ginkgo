@@ -501,6 +501,8 @@ public:
         if (&other != this) {
             set_system_matrix(other.get_system_matrix());
             other.set_system_matrix(nullptr);
+            // transfers the workspace
+            SolverBase<MatrixType>::operator=(std::move(other));
         }
         return *this;
     }
