@@ -142,9 +142,10 @@ Cudss<ValueType, IndexType>& Cudss<ValueType, IndexType>::operator=(
 
 template <typename ValueType, typename IndexType>
 Cudss<ValueType, IndexType>::Cudss(const Factory* factory,
-                                   std::shared_ptr<const LinOp> system_matrix)
-    : LinOp{factory->get_executor(), system_matrix->get_size()}
+                                   LinOpGenerateComponents components)
+    : LinOp{factory->get_executor(), components.system_matrix->get_size()}
 {
+    auto system_matrix = std::move(components.system_matrix);
     const auto exec = this->get_executor();
     auto cuda_exec = std::dynamic_pointer_cast<const CudaExecutor>(exec);
     if (!cuda_exec) {

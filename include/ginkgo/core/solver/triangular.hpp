@@ -172,12 +172,12 @@ protected:
     {}
 
     explicit LowerTrs(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
+                      LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             system_matrix)},
+                                             components.system_matrix)},
           parameters_{factory->get_parameters()}
     {
         this->generate();
@@ -339,12 +339,12 @@ protected:
     {}
 
     explicit UpperTrs(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
+                      LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             system_matrix)},
+                                             components.system_matrix)},
           parameters_{factory->get_parameters()}
     {
         this->generate();

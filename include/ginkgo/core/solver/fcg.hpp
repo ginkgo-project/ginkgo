@@ -128,12 +128,11 @@ protected:
     explicit Fcg(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}
 
-    explicit Fcg(const Factory* factory,
-                 std::shared_ptr<const LinOp> system_matrix)
+    explicit Fcg(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Fcg<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+              std::move(components.system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };
