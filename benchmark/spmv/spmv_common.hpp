@@ -142,6 +142,11 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             }
         }
 
+        // CSR resolves its automatic strategy lazily, so describe the format
+        // only after the warm-up has applied it
+        format_case["format_parameters"] =
+            formats::describe_format(system_matrix.get());
+
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
         auto& format_case = spmv_case[format_name];
