@@ -8,6 +8,10 @@ set(config_source
     config/preconditioner_isai_config.cpp
     config/registry.cpp
     config/solver_config.cpp
+    config/write_config.cpp
+    config/write_preconditioner.cpp
+    config/write_solver.cpp
+    config/write_stop.cpp
 )
 if(GINKGO_BUILD_MPI)
     list(APPEND config_source config/schwarz_config.cpp)
