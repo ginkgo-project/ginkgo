@@ -132,8 +132,7 @@ protected:
 
     explicit Minres(std::shared_ptr<const Executor> exec);
 
-    explicit Minres(const Factory* factory,
-                    std::shared_ptr<const LinOp> system_matrix);
+    explicit Minres(const Factory* factory, LinOpGenerateComponents components);
 };
 
 

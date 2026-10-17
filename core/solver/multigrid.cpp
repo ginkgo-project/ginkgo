@@ -1214,23 +1214,25 @@ void Multigrid::create_state() const
 
 
 Multigrid::Multigrid(const Multigrid::Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix)
-    : Multigrid(factory, std::move(system_matrix), nullptr)
+                     LinOpGenerateComponents components)
+    : Multigrid(factory, std::move(components), nullptr)
 {}
 
 
 Multigrid::Multigrid(const Multigrid::Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix,
                      reuse_data_type& reuse_data)
-    : Multigrid(factory, std::move(system_matrix), &reuse_data)
+    : Multigrid(factory, LinOpGenerateComponents{std::move(system_matrix)},
+                &reuse_data)
 {}
 
 
 Multigrid::Multigrid(const Multigrid::Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix,
+                     LinOpGenerateComponents components,
                      reuse_data_type* reuse_data)
-    : LinOp(factory->get_executor(), transpose(system_matrix->get_size())),
-      EnableSolverBase<Multigrid>{std::move(system_matrix)},
+    : LinOp(factory->get_executor(),
+            transpose(components.system_matrix->get_size())),
+      EnableSolverBase<Multigrid>{std::move(components.system_matrix)},
       EnableIterativeBase<Multigrid>{
           stop::combine(factory->get_parameters().criteria)},
       parameters_{factory->get_parameters()}

@@ -150,12 +150,11 @@ protected:
         : LinOp(std::move(exec))
     {}
 
-    explicit PipeCg(const Factory* factory,
-                    std::shared_ptr<const LinOp> system_matrix)
+    explicit PipeCg(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, PipeCg<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+              std::move(components.system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

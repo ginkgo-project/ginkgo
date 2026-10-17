@@ -170,7 +170,7 @@ public:
 protected:
     explicit Cudss(std::shared_ptr<const Executor> exec);
 
-    Cudss(const Factory* factory, std::shared_ptr<const LinOp> system_matrix);
+    Cudss(const Factory* factory, LinOpGenerateComponents components);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
