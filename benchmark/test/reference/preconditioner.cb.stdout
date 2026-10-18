@@ -40,6 +40,7 @@
                         "free": 1.0,
                         "csr::sort_by_column_index": 1.0,
                         "factorization::add_diagonal_elements": 1.0,
+                        "components::compute_max_row_nnz": 1.0,
                         "csr::build_lookup_offsets": 1.0,
                         "csr::build_lookup": 1.0,
                         "lu_factorization::initialize": 1.0,
@@ -83,6 +84,7 @@
                         "free": 1.0,
                         "csr::sort_by_column_index": 1.0,
                         "factorization::add_diagonal_elements": 1.0,
+                        "components::compute_max_row_nnz": 1.0,
                         "elimination_forest::from_factor": 1.0,
                         "csr::build_lookup_offsets": 1.0,
                         "csr::build_lookup": 1.0,
@@ -129,6 +131,7 @@
                         "csr::sort_by_column_index": 1.0,
                         "components::outplace_absolute_array": 1.0,
                         "csr::transpose": 1.0,
+                        "components::compute_max_row_nnz": 1.0,
                         "advanced_apply(<typename>)": 1.0,
                         "copy(<typename>)": 1.0,
                         "csr::spgeam": 1.0,
@@ -161,7 +164,6 @@
                         "apply(<typename>)": 1.0,
                         "iteration": 1.0,
                         "dense::fill": 1.0,
-                        "free": 1.0,
                         "allocate": 1.0,
                         "ir::initialize": 1.0,
                         "check(<typename>)": 1.0,
@@ -188,13 +190,40 @@
                 "storage": 285948,
                 "levels": [
                     {
-                        "fine_rows": 1,
-                        "coarse_rows": 1,
-                        "coarse_nonzeros": 1,
+                        "fine_rows": 1000,
+                        "coarse_rows": 391,
+                        "coarse_nonzeros": 2523,
                         "restrict_type": "sparsity_csr",
-                        "restrict_nonzeros": 1,
+                        "restrict_nonzeros": 1000,
                         "prolong_type": "row_gatherer",
-                        "prolong_nonzeros": 1
+                        "prolong_nonzeros": 1000
+                    },
+                    {
+                        "fine_rows": 391,
+                        "coarse_rows": 192,
+                        "coarse_nonzeros": 1234,
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 391,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 391
+                    },
+                    {
+                        "fine_rows": 192,
+                        "coarse_rows": 94,
+                        "coarse_nonzeros": 592,
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 192,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 192
+                    },
+                    {
+                        "fine_rows": 94,
+                        "coarse_rows": 46,
+                        "coarse_nonzeros": 294,
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 94,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 94
                     }
                 ],
                 "completed": true
@@ -212,13 +241,20 @@
                         "pmis::compute_strong_dep_row": 1.0,
                         "components::prefix_sum_nonnegative": 1.0,
                         "pmis::compute_strong_dep": 1.0,
-                        "sparsity_csr::transpose": 1.0,
+                        "pmis::add_at_indices": 1.0,
+                        "components::fill_seq_array": 1.0,
                         "pmis::initialize_weight_and_status": 1.0,
-                        "pmis::count": 1.0,
-                        "pmis::classify": 1.0,
-                        "pmis::direct_interpolation_row_count": 1.0,
+                        "pmis::count_unassigned": 1.0,
+                        "pmis::classify_seed": 1.0,
+                        "pmis::classify_select": 1.0,
+                        "pmis::classify_mark_fine": 1.0,
                         "components::convert_precision": 1.0,
-                        "pmis::direct_interpolation_fill": 1.0,
+                        "pmis::direct_interpolation_row_count": 1.0,
+                        "pmis::direct_interpolation_fill_coarse_rows": 1.0,
+                        "pmis::direct_interpolation_accumulate": 1.0,
+                        "pmis::direct_interpolation_emit": 1.0,
+                        "components::gather": 1.0,
+                        "components::compute_max_row_nnz": 1.0,
                         "csr::transpose": 1.0,
                         "apply(<typename>)": 1.0,
                         "csr::spgemm": 1.0,
@@ -229,7 +265,7 @@
                         "overhead": 1.0
                     },
                     "time": 1.0,
-                    "repetitions": 1,
+                    "repetitions": 10,
                     "repetition_times": []
                 },
                 "apply": {
@@ -237,7 +273,6 @@
                         "apply(<typename>)": 1.0,
                         "iteration": 1.0,
                         "dense::fill": 1.0,
-                        "free": 1.0,
                         "allocate": 1.0,
                         "ir::initialize": 1.0,
                         "check(<typename>)": 1.0,
@@ -256,19 +291,28 @@
                         "overhead": 1.0
                     },
                     "time": 1.0,
-                    "repetitions": 1,
+                    "repetitions": 10,
                     "repetition_times": []
                 },
-                "storage": 1,
+                "storage": 360836,
                 "levels": [
                     {
-                        "fine_rows": 1,
-                        "coarse_rows": 1,
-                        "coarse_nonzeros": 1,
+                        "fine_rows": 1000,
+                        "coarse_rows": 352,
+                        "coarse_nonzeros": 5374,
                         "restrict_type": "csr",
-                        "restrict_nonzeros": 1,
+                        "restrict_nonzeros": 2233,
                         "prolong_type": "csr",
-                        "prolong_nonzeros": 1
+                        "prolong_nonzeros": 2233
+                    },
+                    {
+                        "fine_rows": 352,
+                        "coarse_rows": 61,
+                        "coarse_nonzeros": 1165,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 732,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 732
                     }
                 ],
                 "completed": true
@@ -283,6 +327,7 @@
                         "free": 1.0,
                         "csr::sort_by_column_index": 1.0,
                         "components::fill_seq_array": 1.0,
+                        "components::compute_max_row_nnz": 1.0,
                         "csr::transpose": 1.0,
                         "pgm::map_row": 1.0,
                         "pgm::map_col": 1.0,
@@ -306,7 +351,6 @@
                         "apply(<typename>)": 1.0,
                         "iteration": 1.0,
                         "dense::fill": 1.0,
-                        "free": 1.0,
                         "allocate": 1.0,
                         "ir::initialize": 1.0,
                         "check(<typename>)": 1.0,
@@ -331,13 +375,40 @@
                 "storage": 380824,
                 "levels": [
                     {
-                        "fine_rows": 1,
-                        "coarse_rows": 1,
-                        "coarse_nonzeros": 1,
+                        "fine_rows": 1000,
+                        "coarse_rows": 500,
+                        "coarse_nonzeros": 3100,
                         "restrict_type": "csr",
-                        "restrict_nonzeros": 1,
+                        "restrict_nonzeros": 1000,
                         "prolong_type": "csr",
-                        "prolong_nonzeros": 1
+                        "prolong_nonzeros": 1000
+                    },
+                    {
+                        "fine_rows": 500,
+                        "coarse_rows": 250,
+                        "coarse_nonzeros": 2000,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 500,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 500
+                    },
+                    {
+                        "fine_rows": 250,
+                        "coarse_rows": 125,
+                        "coarse_nonzeros": 1035,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 250,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 250
+                    },
+                    {
+                        "fine_rows": 125,
+                        "coarse_rows": 63,
+                        "coarse_nonzeros": 409,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 125,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 125
                     }
                 ],
                 "completed": true
