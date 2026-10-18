@@ -22,8 +22,15 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/config/write_config.hpp>
+#include <ginkgo/core/factorization/ic.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/factorization/par_ic.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/preconditioner/ic.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -296,6 +303,156 @@ struct write_case<gko::preconditioner::Jacobi<ValueType, IndexType>> {
 };
 
 
+template <typename ValueType, typename IndexType>
+struct write_case<gko::factorization::Ilu<ValueType, IndexType>> {
+    static constexpr const char* type = "factorization::Ilu";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::factorization::Ilu<ValueType, IndexType>::build()
+            .with_l_strategy(gko::matrix::csr::spmv_strategy::merge_path)
+            .with_u_strategy(gko::matrix::csr::spmv_strategy::load_balance)
+            .with_skip_sorting(true)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType, typename IndexType>
+struct write_case<gko::factorization::Ic<ValueType, IndexType>> {
+    static constexpr const char* type = "factorization::Ic";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::factorization::Ic<ValueType, IndexType>::build()
+            .with_l_strategy(gko::matrix::csr::spmv_strategy::merge_path)
+            .with_skip_sorting(true)
+            .with_both_factors(false)
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType, bool ReverseApply, typename IndexType>
+struct write_case<
+    gko::preconditioner::Ilu<ValueType, ReverseApply, IndexType>> {
+    static constexpr const char* type = "preconditioner::Ilu";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::preconditioner::Ilu<ValueType, ReverseApply,
+                                        IndexType>::build()
+            .with_factorization(
+                gko::factorization::Ilu<ValueType, IndexType>::build()
+                    .with_skip_sorting(true))
+            .with_l_solver(
+                gko::solver::LowerTrs<ValueType, IndexType>::build()
+                    .with_algorithm(gko::solver::trisolve_algorithm::syncfree))
+            .with_u_solver(
+                gko::solver::UpperTrs<ValueType, IndexType>::build()
+                    .with_algorithm(gko::solver::trisolve_algorithm::syncfree))
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType, typename IndexType>
+struct write_case<gko::preconditioner::Ic<ValueType, IndexType>> {
+    static constexpr const char* type = "preconditioner::Ic";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::preconditioner::Ic<ValueType, IndexType>::build()
+            .with_factorization(
+                gko::factorization::Ic<ValueType, IndexType>::build()
+                    .with_skip_sorting(true))
+            .with_l_solver(
+                gko::solver::LowerTrs<ValueType, IndexType>::build()
+                    .with_algorithm(gko::solver::trisolve_algorithm::syncfree))
+            .on(exec);
+    }
+};
+
+
+template <gko::preconditioner::isai_type IsaiType, typename ValueType,
+          typename IndexType>
+struct write_case<gko::preconditioner::Isai<IsaiType, ValueType, IndexType>> {
+    static constexpr const char* type = "preconditioner::Isai";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::preconditioner::Isai<IsaiType, ValueType,
+                                         IndexType>::build()
+            .with_skip_sorting(true)
+            .with_sparsity_power(2)
+            .with_excess_limit(32u)
+            .with_excess_solver_factory(
+                gko::solver::Gmres<ValueType>::build().with_krylov_dim(5u))
+            .with_excess_solver_reduction(gko::remove_complex<ValueType>{1e-4})
+            .on(exec);
+    }
+};
+
+
+/**
+ * The keys besides "type" with which parse selects the instantiation of `T`,
+ * e.g. preconditioner::Ilu's "reverse_apply". parse reads them without
+ * config_check_decorator, so record_requested_keys does not see them.
+ */
+template <typename T>
+struct selection_keys {
+    static pnode::map_type get() { return {}; }
+};
+
+
+template <typename ValueType, bool ReverseApply, typename IndexType>
+struct selection_keys<
+    gko::preconditioner::Ilu<ValueType, ReverseApply, IndexType>> {
+    static pnode::map_type get()
+    {
+        return {{"reverse_apply", pnode{ReverseApply}}};
+    }
+};
+
+
+template <gko::preconditioner::isai_type IsaiType, typename ValueType,
+          typename IndexType>
+struct selection_keys<
+    gko::preconditioner::Isai<IsaiType, ValueType, IndexType>> {
+    static pnode::map_type get()
+    {
+        using gko::preconditioner::isai_type;
+        const char* name = IsaiType == isai_type::lower     ? "lower"
+                           : IsaiType == isai_type::upper   ? "upper"
+                           : IsaiType == isai_type::general ? "general"
+                                                            : "spd";
+        return {{"isai_type", pnode{name}}};
+    }
+};
+
+
+// The configuration that selects T in parse and sets none of its parameters.
+template <typename T>
+pnode selecting_config()
+{
+    auto map = selection_keys<T>::get();
+    map["type"] = pnode{write_case<T>::type};
+    return pnode{map};
+}
+
+
 template <typename T>
 class WriteConfig : public ::testing::Test {
 protected:
@@ -337,7 +494,19 @@ using WriteConfigTypes = ::testing::Types<
     gko::solver::UpperTrs<double, gko::int32>,
     gko::solver::UpperTrs<float, gko::int64>,
     gko::preconditioner::Jacobi<double, gko::int32>,
-    gko::preconditioner::Jacobi<float, gko::int64>>;
+    gko::preconditioner::Jacobi<float, gko::int64>,
+    gko::factorization::Ilu<double, gko::int32>,
+    gko::factorization::Ilu<float, gko::int64>,
+    gko::factorization::Ic<double, gko::int32>,
+    gko::factorization::Ic<std::complex<float>, gko::int64>,
+    gko::preconditioner::Ilu<double, false, gko::int32>,
+    gko::preconditioner::Ilu<float, true, gko::int64>,
+    gko::preconditioner::Ic<double, gko::int32>,
+    gko::preconditioner::Ic<std::complex<float>, gko::int64>,
+    gko::preconditioner::LowerIsai<double, gko::int32>,
+    gko::preconditioner::UpperIsai<float, gko::int64>,
+    gko::preconditioner::GeneralIsai<double, gko::int32>,
+    gko::preconditioner::SpdIsai<std::complex<float>, gko::int32>>;
 
 TYPED_TEST_SUITE(WriteConfig, WriteConfigTypes, TypenameNameGenerator);
 
@@ -372,6 +541,25 @@ TYPED_TEST(WriteConfig, WritesTypeAndValueType)
 }
 
 
+TYPED_TEST(WriteConfig, WritesTheKeysThatSelectTheInstantiation)
+{
+    using linop_type = typename TestFixture::linop_type;
+    using write_case = typename TestFixture::write_case;
+
+    const auto selection = selecting_config<linop_type>();
+
+    auto written_default = write_config(*linop_type::build().on(this->exec));
+    auto written = write_config(*write_case::non_default(this->exec));
+
+    for (const auto& [key, value] : selection.get_map()) {
+        EXPECT_EQ(written_default.get(key), value)
+            << "write_config does not write the key " << key;
+        EXPECT_EQ(written.get(key), value)
+            << "write_config does not write the key " << key;
+    }
+}
+
+
 TYPED_TEST(WriteConfig, WritesEveryParsedKey)
 {
     using linop_type = typename TestFixture::linop_type;
@@ -379,8 +567,7 @@ TYPED_TEST(WriteConfig, WritesEveryParsedKey)
     std::set<std::string> parsed_keys;
     {
         record_requested_keys recorder;
-        parse(pnode{{{"type", pnode{write_case::type}}}}, registry{},
-              this->td());
+        parse(selecting_config<linop_type>(), registry{}, this->td());
         parsed_keys = recorder.keys();
     }
 
@@ -426,8 +613,7 @@ TYPED_TEST(WriteConfig, WritesTheValueOfEveryParsedKey)
     std::set<std::string> parsed_keys;
     {
         record_requested_keys recorder;
-        parse(pnode{{{"type", pnode{write_case::type}}}}, registry{},
-              this->td());
+        parse(selecting_config<linop_type>(), registry{}, this->td());
         parsed_keys = recorder.keys();
     }
 
@@ -588,12 +774,381 @@ TYPED_TEST(WriteCriterion, WritesEveryParsedKey)
 }
 
 
+/**
+ * Copies of the factories of the same names in
+ * benchmark/utils/preconditioners.hpp, with the benchmark's default types
+ * (etype double, itype int32) and flags (-isai_power 1). The core tests do not
+ * include the benchmark headers.
+ */
+namespace benchmark_precond {
+
+
+using etype = double;
+using itype = gko::int32;
+constexpr int isai_power = 1;
+
+
+std::unique_ptr<gko::LinOpFactory> ic(std::shared_ptr<const gko::Executor> exec)
+{
+    auto fact =
+        gko::share(gko::factorization::Ic<etype, itype>::build().on(exec));
+    return gko::preconditioner::Ic<etype, itype>::build()
+        .with_factorization(fact)
+        .on(exec);
+}
+
+
+std::unique_ptr<gko::LinOpFactory> ilu(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    auto fact =
+        gko::share(gko::factorization::Ilu<etype, itype>::build().on(exec));
+    return gko::preconditioner::Ilu<etype, false, itype>::build()
+        .with_factorization(fact)
+        .on(exec);
+}
+
+
+std::unique_ptr<gko::LinOpFactory> ic_isai(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    auto fact =
+        gko::share(gko::factorization::Ic<etype, itype>::build().on(exec));
+    auto lisai =
+        gko::share(gko::preconditioner::LowerIsai<etype, itype>::build()
+                       .with_sparsity_power(isai_power)
+                       .on(exec));
+    return gko::preconditioner::Ic<etype, itype>::build()
+        .with_factorization(fact)
+        .with_l_solver(lisai)
+        .on(exec);
+}
+
+
+std::unique_ptr<gko::LinOpFactory> ilu_isai(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    auto fact =
+        gko::share(gko::factorization::Ilu<etype, itype>::build().on(exec));
+    auto lisai =
+        gko::share(gko::preconditioner::LowerIsai<etype, itype>::build()
+                       .with_sparsity_power(isai_power)
+                       .on(exec));
+    auto uisai =
+        gko::share(gko::preconditioner::UpperIsai<etype, itype>::build()
+                       .with_sparsity_power(isai_power)
+                       .on(exec));
+    return gko::preconditioner::Ilu<etype, false, itype>::build()
+        .with_factorization(fact)
+        .with_l_solver(lisai)
+        .with_u_solver(uisai)
+        .on(exec);
+}
+
+
+std::unique_ptr<gko::LinOpFactory> ilu_syncfree(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    auto fact = gko::share(
+        gko::factorization::Ilu<etype, itype>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(exec));
+    return gko::preconditioner::Ilu<etype, false, itype>::build()
+        .with_factorization(fact)
+        .with_l_solver(
+            gko::solver::LowerTrs<etype, itype>::build().with_algorithm(
+                gko::solver::trisolve_algorithm::syncfree))
+        .with_u_solver(
+            gko::solver::UpperTrs<etype, itype>::build().with_algorithm(
+                gko::solver::trisolve_algorithm::syncfree))
+        .on(exec);
+}
+
+
+std::unique_ptr<gko::LinOpFactory> ic_syncfree(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    auto fact = gko::share(
+        gko::factorization::Ic<etype, itype>::build()
+            .with_algorithm(gko::factorization::incomplete_algorithm::syncfree)
+            .on(exec));
+    return gko::preconditioner::Ic<etype, itype>::build()
+        .with_factorization(fact)
+        .with_l_solver(
+            gko::solver::LowerTrs<etype, itype>::build().with_algorithm(
+                gko::solver::trisolve_algorithm::syncfree))
+        .on(exec);
+}
+
+
+std::unique_ptr<gko::LinOpFactory> general_isai(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    return gko::preconditioner::GeneralIsai<etype, itype>::build()
+        .with_sparsity_power(isai_power)
+        .on(exec);
+}
+
+
+std::unique_ptr<gko::LinOpFactory> spd_isai(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    return gko::preconditioner::SpdIsai<etype, itype>::build()
+        .with_sparsity_power(isai_power)
+        .on(exec);
+}
+
+
+// The written trees of the parts of these factories
+pnode::map_type factorization_ilu(const char* algorithm)
+{
+    return {{"type", pnode{"factorization::Ilu"}},
+            {"value_type", pnode{"float64"}},
+            {"l_strategy", pnode{"classical"}},
+            {"u_strategy", pnode{"classical"}},
+            {"skip_sorting", pnode{false}},
+            {"algorithm", pnode{algorithm}}};
+}
+
+
+pnode::map_type factorization_ic(const char* algorithm)
+{
+    return {
+        {"type", pnode{"factorization::Ic"}}, {"value_type", pnode{"float64"}},
+        {"l_strategy", pnode{"classical"}},   {"skip_sorting", pnode{false}},
+        {"both_factors", pnode{true}},        {"algorithm", pnode{algorithm}}};
+}
+
+
+pnode::map_type syncfree_trs(const char* type)
+{
+    return {{"type", pnode{type}},
+            {"value_type", pnode{"float64"}},
+            {"num_rhs", pnode{1}},
+            {"unit_diagonal", pnode{false}},
+            {"algorithm", pnode{"syncfree"}}};
+}
+
+
+pnode::map_type isai(const char* isai_type)
+{
+    return {{"type", pnode{"preconditioner::Isai"}},
+            {"value_type", pnode{"float64"}},
+            {"isai_type", pnode{isai_type}},
+            {"skip_sorting", pnode{false}},
+            {"sparsity_power", pnode{1}},
+            {"excess_limit", pnode{0}},
+            {"excess_solver_reduction", pnode{1e-6}}};
+}
+
+
+}  // namespace benchmark_precond
+
+
 class WriteConfigExamples : public ::testing::Test {
 protected:
     WriteConfigExamples() : exec(gko::ReferenceExecutor::create()) {}
 
+    // write, parse (with the default index type int32) and write again
+    template <typename FactoryType>
+    void assert_round_trip(const gko::LinOpFactory& factory)
+    {
+        auto written = write_config(factory);
+
+        auto parsed = parse(written, registry{}).on(exec);
+
+        ASSERT_NE(dynamic_cast<const FactoryType*>(parsed.get()), nullptr);
+        ASSERT_EQ(write_config(*parsed), written);
+    }
+
     std::shared_ptr<const gko::Executor> exec;
 };
+
+
+TEST_F(WriteConfigExamples, WritesBenchmarkIluSyncfree)
+{
+    using namespace benchmark_precond;
+    auto factory = ilu_syncfree(exec);
+
+    auto written = write_config(*factory);
+
+    pnode expected{{{"type", pnode{"preconditioner::Ilu"}},
+                    {"value_type", pnode{"float64"}},
+                    {"reverse_apply", pnode{false}},
+                    {"factorization", pnode{factorization_ilu("syncfree")}},
+                    {"l_solver", pnode{syncfree_trs("solver::LowerTrs")}},
+                    {"u_solver", pnode{syncfree_trs("solver::UpperTrs")}}}};
+    ASSERT_EQ(written, expected);
+    this->assert_round_trip<
+        gko::preconditioner::Ilu<etype, false, itype>::Factory>(*factory);
+}
+
+
+TEST_F(WriteConfigExamples, WritesBenchmarkIcSyncfree)
+{
+    using namespace benchmark_precond;
+    auto factory = ic_syncfree(exec);
+
+    auto written = write_config(*factory);
+
+    pnode expected{{{"type", pnode{"preconditioner::Ic"}},
+                    {"value_type", pnode{"float64"}},
+                    {"factorization", pnode{factorization_ic("syncfree")}},
+                    {"l_solver", pnode{syncfree_trs("solver::LowerTrs")}}}};
+    ASSERT_EQ(written, expected);
+    this->assert_round_trip<gko::preconditioner::Ic<etype, itype>::Factory>(
+        *factory);
+}
+
+
+TEST_F(WriteConfigExamples, WritesBenchmarkIlu)
+{
+    using namespace benchmark_precond;
+    auto factory = ilu(exec);
+
+    auto written = write_config(*factory);
+
+    // the unset solvers are the default triangular solvers
+    pnode expected{{{"type", pnode{"preconditioner::Ilu"}},
+                    {"value_type", pnode{"float64"}},
+                    {"reverse_apply", pnode{false}},
+                    {"factorization", pnode{factorization_ilu("sparselib")}}}};
+    ASSERT_EQ(written, expected);
+    this->assert_round_trip<
+        gko::preconditioner::Ilu<etype, false, itype>::Factory>(*factory);
+}
+
+
+TEST_F(WriteConfigExamples, WritesBenchmarkIc)
+{
+    using namespace benchmark_precond;
+    auto factory = ic(exec);
+
+    auto written = write_config(*factory);
+
+    pnode expected{{{"type", pnode{"preconditioner::Ic"}},
+                    {"value_type", pnode{"float64"}},
+                    {"factorization", pnode{factorization_ic("sparselib")}}}};
+    ASSERT_EQ(written, expected);
+    this->assert_round_trip<gko::preconditioner::Ic<etype, itype>::Factory>(
+        *factory);
+}
+
+
+TEST_F(WriteConfigExamples, WritesBenchmarkGeneralIsai)
+{
+    using namespace benchmark_precond;
+    auto factory = general_isai(exec);
+
+    auto written = write_config(*factory);
+
+    // the unset excess solver is the default one
+    ASSERT_EQ(written, pnode{isai("general")});
+    this->assert_round_trip<
+        gko::preconditioner::GeneralIsai<etype, itype>::Factory>(*factory);
+}
+
+
+TEST_F(WriteConfigExamples, WritesBenchmarkSpdIsai)
+{
+    using namespace benchmark_precond;
+    auto factory = spd_isai(exec);
+
+    auto written = write_config(*factory);
+
+    ASSERT_EQ(written, pnode{isai("spd")});
+    this->assert_round_trip<
+        gko::preconditioner::SpdIsai<etype, itype>::Factory>(*factory);
+}
+
+
+TEST_F(WriteConfigExamples, WritesBenchmarkIluIsaiAndIcIsai)
+{
+    using namespace benchmark_precond;
+    auto ilu_factory = ilu_isai(exec);
+    auto ic_factory = ic_isai(exec);
+
+    auto written_ilu = write_config(*ilu_factory);
+    auto written_ic = write_config(*ic_factory);
+
+    ASSERT_EQ(written_ilu.get("l_solver"), pnode{isai("lower")});
+    ASSERT_EQ(written_ilu.get("u_solver"), pnode{isai("upper")});
+    ASSERT_EQ(written_ilu.get("factorization"),
+              pnode{factorization_ilu("sparselib")});
+    ASSERT_EQ(written_ic.get("l_solver"), pnode{isai("lower")});
+    ASSERT_EQ(written_ic.get("factorization"),
+              pnode{factorization_ic("sparselib")});
+    this->assert_round_trip<
+        gko::preconditioner::Ilu<etype, false, itype>::Factory>(*ilu_factory);
+    this->assert_round_trip<gko::preconditioner::Ic<etype, itype>::Factory>(
+        *ic_factory);
+}
+
+
+TEST_F(WriteConfigExamples, WritesIluWithReverseApply)
+{
+    auto factory =
+        gko::preconditioner::Ilu<double, true, gko::int32>::build().on(exec);
+
+    auto written = write_config(*factory);
+
+    ASSERT_EQ(written, (pnode{{{"type", pnode{"preconditioner::Ilu"}},
+                               {"value_type", pnode{"float64"}},
+                               {"reverse_apply", pnode{true}}}}));
+    this->assert_round_trip<
+        gko::preconditioner::Ilu<double, true, gko::int32>::Factory>(*factory);
+}
+
+
+TEST_F(WriteConfigExamples, WritesFactorizationEnumsAsStrings)
+{
+    using gko::factorization::incomplete_algorithm;
+    using gko::matrix::csr::spmv_strategy;
+    using ilu_type = gko::factorization::Ilu<double, gko::int32>;
+    using ic_type = gko::factorization::Ic<double, gko::int32>;
+    for (auto [strategy, name] :
+         {std::make_pair(spmv_strategy::automatic, "automatic"),
+          std::make_pair(spmv_strategy::load_balance, "load_balance"),
+          std::make_pair(spmv_strategy::merge_path, "merge_path"),
+          std::make_pair(spmv_strategy::classical, "classical"),
+          std::make_pair(spmv_strategy::sparselib, "sparselib")}) {
+        auto ilu = ilu_type::build()
+                       .with_l_strategy(strategy)
+                       .with_u_strategy(strategy)
+                       .on(exec);
+        auto ic = ic_type::build().with_l_strategy(strategy).on(exec);
+
+        auto written_ilu = write_config(*ilu);
+        auto written_ic = write_config(*ic);
+
+        ASSERT_EQ(written_ilu.get("l_strategy"), pnode{name});
+        ASSERT_EQ(written_ilu.get("u_strategy"), pnode{name});
+        ASSERT_EQ(written_ic.get("l_strategy"), pnode{name});
+        auto parsed_ilu = parse(written_ilu, registry{}).on(exec);
+        auto parsed_ic = parse(written_ic, registry{}).on(exec);
+        ASSERT_EQ(gko::as<ilu_type::Factory>(parsed_ilu.get())
+                      ->get_parameters()
+                      .l_strategy,
+                  strategy);
+        ASSERT_EQ(gko::as<ilu_type::Factory>(parsed_ilu.get())
+                      ->get_parameters()
+                      .u_strategy,
+                  strategy);
+        ASSERT_EQ(gko::as<ic_type::Factory>(parsed_ic.get())
+                      ->get_parameters()
+                      .l_strategy,
+                  strategy);
+    }
+    for (auto [algorithm, name] :
+         {std::make_pair(incomplete_algorithm::sparselib, "sparselib"),
+          std::make_pair(incomplete_algorithm::syncfree, "syncfree")}) {
+        auto ilu = ilu_type::build().with_algorithm(algorithm).on(exec);
+        auto ic = ic_type::build().with_algorithm(algorithm).on(exec);
+
+        ASSERT_EQ(write_config(*ilu).get("algorithm"), pnode{name});
+        ASSERT_EQ(write_config(*ic).get("algorithm"), pnode{name});
+    }
+}
 
 
 TEST_F(WriteConfigExamples, WritesCgWithJacobiAndCombinedCriteria)
@@ -868,6 +1423,35 @@ TEST(WriteConfig, ThrowsForNestedTypesWithoutWriter)
                       .on(exec);
 
     EXPECT_THROW(write_config(*solver), gko::NotSupported);
+}
+
+
+TEST(WriteConfig, ThrowsForIcWithParIcFactorization)
+{
+    // the benchmark's paric: ParIc has no writer
+    auto exec = gko::ReferenceExecutor::create();
+    auto ic = gko::preconditioner::Ic<double, gko::int32>::build()
+                  .with_factorization(
+                      gko::factorization::ParIc<double, gko::int32>::build()
+                          .with_iterations(5u)
+                          .with_skip_sorting(true))
+                  .on(exec);
+
+    EXPECT_THROW(write_config(*ic), gko::NotSupported);
+}
+
+
+TEST(WriteConfig, ThrowsForIdentityIluSolver)
+{
+    // an unset l_solver is a LowerTrs, not the identity, so an IdentityFactory
+    // can not be written as an unset l_solver
+    auto exec = gko::ReferenceExecutor::create();
+    auto ilu =
+        gko::preconditioner::Ilu<double, false, gko::int32>::build()
+            .with_l_solver(gko::matrix::IdentityFactory<double>::create(exec))
+            .on(exec);
+
+    EXPECT_THROW(write_config(*ilu), gko::NotSupported);
 }
 
 

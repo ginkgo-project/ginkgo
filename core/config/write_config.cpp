@@ -7,7 +7,12 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/factorization/ic.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/preconditioner/ic.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -86,6 +91,16 @@ bool try_write_value_and_index_type(const AbstractFactoryType& factory,
 }
 
 
+// The ILU preconditioners with each reverse_apply, which the ILU parser (see
+// core/config/preconditioner_ilu_config.cpp) selects the class with. The ISAI
+// parser selects with isai_type, as preconditioner::LowerIsai etc.
+template <typename ValueType, typename IndexType>
+using forward_ilu = preconditioner::Ilu<ValueType, false, IndexType>;
+
+template <typename ValueType, typename IndexType>
+using reverse_ilu = preconditioner::Ilu<ValueType, true, IndexType>;
+
+
 template <typename... ValueTypes>
 bool is_identity_factory_of(const LinOpFactory& factory,
                             syn::type_list<ValueTypes...>)
@@ -124,6 +139,24 @@ pnode write_config(const LinOpFactory& factory)
         try_write_value_and_index_type<solver::UpperTrs>(
             factory, result, value_type_list(), index_type_list()) ||
         try_write_value_and_index_type<preconditioner::Jacobi>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<forward_ilu>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<reverse_ilu>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<preconditioner::Ic>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<preconditioner::LowerIsai>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<preconditioner::UpperIsai>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<preconditioner::GeneralIsai>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<preconditioner::SpdIsai>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<factorization::Ilu>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<factorization::Ic>(
             factory, result, value_type_list(), index_type_list())) {
         return result;
     }

@@ -15,6 +15,11 @@
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/write_config.hpp>
+#include <ginkgo/core/factorization/ic.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/preconditioner/ic.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -231,5 +236,59 @@ TEST(JsonConfig, ReadsBackAWrittenIrWithGmresAndTriangularSolvers)
     assert_json_round_trip(
         exec, *gko::solver::LowerTrs<double, gko::int32>::build()
                    .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+                   .on(exec));
+}
+
+
+TEST(JsonConfig, ReadsBackAWrittenIluIcAndIsai)
+{
+    using gko::factorization::incomplete_algorithm;
+    using gko::solver::trisolve_algorithm;
+    auto exec = gko::ReferenceExecutor::create();
+
+    // the benchmark's ilu-syncfree, ic-syncfree, general-isai and spd-isai
+    assert_json_round_trip(
+        exec,
+        *gko::preconditioner::Ilu<double, false, gko::int32>::build()
+             .with_factorization(
+                 gko::factorization::Ilu<double, gko::int32>::build()
+                     .with_algorithm(incomplete_algorithm::syncfree))
+             .with_l_solver(gko::solver::LowerTrs<double, gko::int32>::build()
+                                .with_algorithm(trisolve_algorithm::syncfree))
+             .with_u_solver(gko::solver::UpperTrs<double, gko::int32>::build()
+                                .with_algorithm(trisolve_algorithm::syncfree))
+             .on(exec));
+    assert_json_round_trip(
+        exec,
+        *gko::preconditioner::Ic<double, gko::int32>::build()
+             .with_factorization(
+                 gko::factorization::Ic<double, gko::int32>::build()
+                     .with_algorithm(incomplete_algorithm::syncfree))
+             .with_l_solver(gko::solver::LowerTrs<double, gko::int32>::build()
+                                .with_algorithm(trisolve_algorithm::syncfree))
+             .on(exec));
+    assert_json_round_trip(
+        exec, *gko::preconditioner::GeneralIsai<double, gko::int32>::build()
+                   .with_sparsity_power(1)
+                   .on(exec));
+    assert_json_round_trip(
+        exec, *gko::preconditioner::SpdIsai<double, gko::int32>::build()
+                   .with_sparsity_power(1)
+                   .on(exec));
+    // reverse_apply, the strategies and an excess solver
+    assert_json_round_trip(
+        exec, *gko::preconditioner::Ilu<float, true, gko::int32>::build()
+                   .with_factorization(
+                       gko::factorization::Ilu<float, gko::int32>::build()
+                           .with_l_strategy(
+                               gko::matrix::csr::spmv_strategy::sparselib)
+                           .with_skip_sorting(true))
+                   .on(exec));
+    assert_json_round_trip(
+        exec, *gko::preconditioner::LowerIsai<float, gko::int32>::build()
+                   .with_excess_limit(32u)
+                   .with_excess_solver_factory(
+                       gko::solver::Gmres<float>::build().with_krylov_dim(5u))
+                   .with_excess_solver_reduction(1e-4f)
                    .on(exec));
 }

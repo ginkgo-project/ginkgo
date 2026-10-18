@@ -24,6 +24,9 @@ namespace config {
  *   `"solver::Cg"` or `"preconditioner::Jacobi"`.
  * - `"value_type"`: the value type of the class, e.g. `"float64"`, if the class
  *   has one.
+ * - the other template parameters of the class, under the keys that parse
+ *   selects them with, e.g. `"reverse_apply"` of preconditioner::Ilu and
+ *   `"isai_type"` of preconditioner::Isai.
  * - every factory parameter that parse reads, in the same spelling and encoding
  *   that parse expects, including the parameters left at their default
  *   values:

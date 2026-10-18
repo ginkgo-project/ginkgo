@@ -20,6 +20,13 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/write_config.hpp>
+#include <ginkgo/core/factorization/ic.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/factorization/incomplete_factorization.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/preconditioner/ic.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -152,6 +159,65 @@ inline pnode write_value(solver::trisolve_algorithm algorithm)
         return pnode{"syncfree"};
     }
     GKO_NOT_SUPPORTED(algorithm);
+}
+
+
+/**
+ * write_value for the SpMV strategy of the factors of the factorizations,
+ * written as the strings get_strategy (see core/config/config_helper.hpp)
+ * reads
+ */
+inline pnode write_value(matrix::csr::spmv_strategy strategy)
+{
+    switch (strategy) {
+    case matrix::csr::spmv_strategy::automatic:
+        return pnode{"automatic"};
+    case matrix::csr::spmv_strategy::load_balance:
+        return pnode{"load_balance"};
+    case matrix::csr::spmv_strategy::merge_path:
+        return pnode{"merge_path"};
+    case matrix::csr::spmv_strategy::classical:
+        return pnode{"classical"};
+    case matrix::csr::spmv_strategy::sparselib:
+        return pnode{"sparselib"};
+    }
+    GKO_NOT_SUPPORTED(strategy);
+}
+
+
+/**
+ * write_value for the algorithm of the incomplete factorizations, written as
+ * the strings factorization::Ilu::parse and factorization::Ic::parse read
+ */
+inline pnode write_value(factorization::incomplete_algorithm algorithm)
+{
+    switch (algorithm) {
+    case factorization::incomplete_algorithm::sparselib:
+        return pnode{"sparselib"};
+    case factorization::incomplete_algorithm::syncfree:
+        return pnode{"syncfree"};
+    }
+    GKO_NOT_SUPPORTED(algorithm);
+}
+
+
+/**
+ * write_value for the kind of ISAI, written as the strings the ISAI parser
+ * (core/config/preconditioner_isai_config.cpp) selects the class with
+ */
+inline pnode write_value(preconditioner::isai_type type)
+{
+    switch (type) {
+    case preconditioner::isai_type::lower:
+        return pnode{"lower"};
+    case preconditioner::isai_type::upper:
+        return pnode{"upper"};
+    case preconditioner::isai_type::general:
+        return pnode{"general"};
+    case preconditioner::isai_type::spd:
+        return pnode{"spd"};
+    }
+    GKO_NOT_SUPPORTED(type);
 }
 
 
@@ -342,6 +408,9 @@ inline void write_common_trisolver(pnode::map_type& map,
  *    GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE where the parser uses
  *    GKO_PARSE_VALUE_TYPE);
  * 3. add it, with the same type lists, to the dispatch in write_config.cpp.
+ *    A class template with a non-type template parameter (e.g. the
+ *    ReverseApply of preconditioner::Ilu) gets one alias template for each
+ *    value that parse selects, and one dispatch line for each alias.
  *
  * @tparam T  the concrete class
  */
@@ -431,6 +500,48 @@ struct parameter_writer<solver::UpperTrs<ValueType, IndexType>> {
     static pnode write(
         const typename solver::UpperTrs<ValueType, IndexType>::parameters_type&
             params);
+};
+
+
+template <typename ValueType, typename IndexType>
+struct parameter_writer<factorization::Ilu<ValueType, IndexType>> {
+    static pnode write(const typename factorization::Ilu<
+                       ValueType, IndexType>::parameters_type& params);
+};
+
+
+template <typename ValueType, typename IndexType>
+struct parameter_writer<factorization::Ic<ValueType, IndexType>> {
+    static pnode write(
+        const typename factorization::Ic<ValueType, IndexType>::parameters_type&
+            params);
+};
+
+
+/** writes `"reverse_apply"`, with which parse selects the instantiation */
+template <typename ValueType, bool ReverseApply, typename IndexType>
+struct parameter_writer<
+    preconditioner::Ilu<ValueType, ReverseApply, IndexType>> {
+    static pnode write(
+        const typename preconditioner::Ilu<ValueType, ReverseApply,
+                                           IndexType>::parameters_type& params);
+};
+
+
+template <typename ValueType, typename IndexType>
+struct parameter_writer<preconditioner::Ic<ValueType, IndexType>> {
+    static pnode write(const typename preconditioner::Ic<
+                       ValueType, IndexType>::parameters_type& params);
+};
+
+
+/** writes `"isai_type"`, with which parse selects the instantiation */
+template <preconditioner::isai_type IsaiType, typename ValueType,
+          typename IndexType>
+struct parameter_writer<preconditioner::Isai<IsaiType, ValueType, IndexType>> {
+    static pnode write(
+        const typename preconditioner::Isai<
+            IsaiType, ValueType, IndexType>::parameters_type& params);
 };
 
 
