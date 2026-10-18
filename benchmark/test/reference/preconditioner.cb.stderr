@@ -1,10 +1,12 @@
 Running on ReferenceExecutor
 Running with 2 warm iterations and 10 running iterations
 The random seed for right hand sides is 42
-Running with preconditioners: jacobi,ilu-syncfree,ic-syncfree,mg-pgm,mg-pmis,mg-uniform
+Running with preconditioners: jacobi,ilu,ic,ilu-syncfree,ic-syncfree,mg-pgm,mg-pmis,mg-uniform
 Running test case stencil(1000, 7pt)
 Matrix is of size (1000, 1000), 6400
 	Running preconditioner: jacobi-32-0,0
+	Running preconditioner: ilu
+	Running preconditioner: ic
 	Running preconditioner: ilu-syncfree
 	Running preconditioner: ic-syncfree
 	Running preconditioner: mg-pgm

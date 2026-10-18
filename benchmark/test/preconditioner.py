@@ -75,11 +75,11 @@ test_framework.compare_output(
     use_complex=True
 )
 
-# syncfree and amg preconditioners
+# ilu/ic, syncfree ilu/ic and amg preconditioners
 test_framework.compare_output(
     [
         "-preconditioners",
-        "jacobi,ilu-syncfree,ic-syncfree,mg-pgm,mg-pmis,mg-uniform",
+        "jacobi,ilu,ic,ilu-syncfree,ic-syncfree,mg-pgm,mg-pmis,mg-uniform",
         "-input",
         '[{"size": 1000, "stencil": "7pt"}]',
     ],

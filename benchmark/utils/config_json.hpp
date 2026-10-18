@@ -8,7 +8,9 @@
 
 #include <cmath>
 #include <complex>
+#include <exception>
 #include <iostream>
+#include <string>
 #include <typeinfo>
 
 #include <ginkgo/ginkgo.hpp>
@@ -82,12 +84,17 @@ inline json parameters_json(const gko::LinOpFactory& factory)
         detail::is_identity_factory<std::complex<double>>(factory)) {
         return nullptr;
     }
+    const auto warning = [&] {
+        return "No config writer for " +
+               gko::name_demangling::get_type_name(typeid(factory));
+    };
     try {
         return pnode_to_json(gko::config::write_config(factory));
     } catch (const gko::NotSupported&) {
-        std::cerr << "No config writer for "
-                  << gko::name_demangling::get_type_name(typeid(factory))
-                  << std::endl;
+        std::cerr << warning() << std::endl;
+        return nullptr;
+    } catch (const std::exception& e) {
+        std::cerr << warning() << ": " << e.what() << std::endl;
         return nullptr;
     }
 }

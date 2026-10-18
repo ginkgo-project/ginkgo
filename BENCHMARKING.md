@@ -390,7 +390,9 @@ The supported environment variables are described in the following list:
     the preconditioners to use for either `solver` or `preconditioner` benchmarks.
     The `mg-*` names are one V-cycle of AMG with the PGM, PMIS or uniform
     coarsening; their coarse solver is a CG with Jacobi running a fixed number
-    of iterations, set with `--mg_coarse_iters` (default 20).
+    of iterations. That number is the `--mg_coarse_iters` flag (default 20) of
+    the `solver` and `preconditioner` binaries. This script does not forward
+    it, so it always uses 20.
     Multiple options can be passed to this variable. Default is `none`.
 * `FORMATS={csr,coo,ell,hybrid,sellp,hybridxx,cusparse_xx,hipsparse_xx}` the matrix
     formats to benchmark for the `spmv` phase of the benchmark. Run

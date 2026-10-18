@@ -134,7 +134,31 @@ private:
 };
 
 
-// Logs true and recurrent residuals of the solver
+/**
+ * Adds a logger to an executor for the lifetime of this object.
+ */
+class scoped_logger {
+public:
+    scoped_logger(std::shared_ptr<gko::Executor> exec,
+                  std::shared_ptr<const gko::log::Logger> logger)
+        : exec_{std::move(exec)}, logger_{std::move(logger)}
+    {
+        exec_->add_logger(logger_);
+    }
+
+    ~scoped_logger() { exec_->remove_logger(logger_); }
+
+    scoped_logger(const scoped_logger&) = delete;
+
+    scoped_logger& operator=(const scoped_logger&) = delete;
+
+private:
+    std::shared_ptr<gko::Executor> exec_;
+    std::shared_ptr<const gko::log::Logger> logger_;
+};
+
+
+// Logs true and recurrent residuals, -1.0 where an iteration has none.
 template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
     using rc_vtype = gko::remove_complex<ValueType>;
@@ -156,7 +180,7 @@ struct ResidualLogger : gko::log::Logger {
             rec_res_norms->push_back(
                 get_norm(gko::as<vec<rc_vtype>>(residual_norm)));
         } else if (!residual) {
-            // no residual, e.g. IR stopped on its iteration cap
+            // -1.0: e.g. IR stopped on its iteration cap
             rec_res_norms->push_back(-1.0);
         } else {
             gko::detail::vector_dispatch<ValueType>(

@@ -186,12 +186,14 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_factorization(fact)
                  .on(exec);
          }},
+        // explicit default trisolvers, so that "parameters" records them
         {"ic",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(
                  gko::factorization::Ic<etype, itype>::build().on(exec));
              return gko::preconditioner::Ic<etype, itype>::build()
                  .with_factorization(fact)
+                 .with_l_solver(gko::solver::LowerTrs<etype, itype>::build())
                  .on(exec);
          }},
         {"ilu",
@@ -200,6 +202,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::factorization::Ilu<etype, itype>::build().on(exec));
              return gko::preconditioner::Ilu<etype, false, itype>::build()
                  .with_factorization(fact)
+                 .with_l_solver(gko::solver::LowerTrs<etype, itype>::build())
+                 .with_u_solver(gko::solver::UpperTrs<etype, itype>::build())
                  .on(exec);
          }},
         {"paric-isai",
