@@ -17,11 +17,16 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -125,7 +130,12 @@ pnode write_config(const LinOpFactory& factory)
 {
     pnode result;
     if (try_write_value_type<solver::Cg>(factory, result) ||
+        try_write_value_type<solver::Bicg>(factory, result) ||
         try_write_value_type<solver::Bicgstab>(factory, result) ||
+        try_write_value_type<solver::Cgs>(factory, result) ||
+        try_write_value_type<solver::Fcg>(factory, result) ||
+        try_write_value_type<solver::PipeCg>(factory, result) ||
+        try_write_value_type<solver::Minres>(factory, result) ||
         try_write_value_type<solver::Gmres>(factory, result) ||
         try_write_value_type<solver::Ir>(factory, result) ||
         try_write<solver::Multigrid>(factory, result) ||
