@@ -7,7 +7,12 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/factorization/ic.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/preconditioner/ic.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -122,7 +127,20 @@ pnode write_config(const LinOpFactory& factory)
         try_write_value_and_index_type<solver::LowerTrs>(factory, result) ||
         try_write_value_and_index_type<solver::UpperTrs>(factory, result) ||
         try_write_value_and_index_type<preconditioner::Jacobi>(factory,
-                                                               result)) {
+                                                               result) ||
+        try_write_value_and_index_type<forward_ilu>(factory, result) ||
+        try_write_value_and_index_type<reverse_ilu>(factory, result) ||
+        try_write_value_and_index_type<preconditioner::Ic>(factory, result) ||
+        try_write_value_and_index_type<preconditioner::LowerIsai>(factory,
+                                                                  result) ||
+        try_write_value_and_index_type<preconditioner::UpperIsai>(factory,
+                                                                  result) ||
+        try_write_value_and_index_type<preconditioner::GeneralIsai>(factory,
+                                                                    result) ||
+        try_write_value_and_index_type<preconditioner::SpdIsai>(factory,
+                                                                result) ||
+        try_write_value_and_index_type<factorization::Ilu>(factory, result) ||
+        try_write_value_and_index_type<factorization::Ic>(factory, result)) {
         return result;
     }
     GKO_NOT_SUPPORTED(factory);
