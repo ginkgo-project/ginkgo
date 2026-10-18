@@ -27,6 +27,19 @@
                     "repetitions": 10,
                     "repetition_times": []
                 },
+                "parameters": {
+                    "accuracy": 0.1,
+                    "aggregate_l1": false,
+                    "max_block_size": 32,
+                    "max_block_stride": 0,
+                    "skip_sorting": true,
+                    "storage_optimization": [
+                        0,
+                        0
+                    ],
+                    "type": "preconditioner::Jacobi",
+                    "value_type": "float64"
+                },
                 "storage": 266148,
                 "completed": true
             },
@@ -69,6 +82,33 @@
                     "time": 1.0,
                     "repetitions": 10,
                     "repetition_times": []
+                },
+                "parameters": {
+                    "factorization": {
+                        "algorithm": "syncfree",
+                        "l_strategy": "classical",
+                        "skip_sorting": false,
+                        "type": "factorization::Ilu",
+                        "u_strategy": "classical",
+                        "value_type": "float64"
+                    },
+                    "l_solver": {
+                        "algorithm": "syncfree",
+                        "num_rhs": 1,
+                        "type": "solver::LowerTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "reverse_apply": false,
+                    "type": "preconditioner::Ilu",
+                    "u_solver": {
+                        "algorithm": "syncfree",
+                        "num_rhs": 1,
+                        "type": "solver::UpperTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "value_type": "float64"
                 },
                 "storage": 96808,
                 "completed": true
@@ -114,6 +154,25 @@
                     "time": 1.0,
                     "repetitions": 10,
                     "repetition_times": []
+                },
+                "parameters": {
+                    "factorization": {
+                        "algorithm": "syncfree",
+                        "both_factors": true,
+                        "l_strategy": "classical",
+                        "skip_sorting": false,
+                        "type": "factorization::Ic",
+                        "value_type": "float64"
+                    },
+                    "l_solver": {
+                        "algorithm": "syncfree",
+                        "num_rhs": 1,
+                        "type": "solver::LowerTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "type": "preconditioner::Ic",
+                    "value_type": "float64"
                 },
                 "storage": 96808,
                 "completed": true
@@ -183,6 +242,63 @@
                     "time": 1.0,
                     "repetitions": 10,
                     "repetition_times": []
+                },
+                "parameters": {
+                    "coarsest_solver": [
+                        {
+                            "criteria": [
+                                {
+                                    "max_iters": 20,
+                                    "type": "Iteration"
+                                }
+                            ],
+                            "preconditioner": {
+                                "accuracy": 0.1,
+                                "aggregate_l1": false,
+                                "max_block_size": 32,
+                                "max_block_stride": 0,
+                                "skip_sorting": false,
+                                "storage_optimization": [
+                                    0,
+                                    0
+                                ],
+                                "type": "preconditioner::Jacobi",
+                                "value_type": "float64"
+                            },
+                            "type": "solver::Cg",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "criteria": [
+                        {
+                            "max_iters": 1,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "cycle": "v",
+                    "default_initial_guess": "zero",
+                    "kcycle_base": 1,
+                    "kcycle_rel_tol": 0.25,
+                    "max_levels": 10,
+                    "mg_level": [
+                        {
+                            "deterministic": false,
+                            "max_iterations": 15,
+                            "max_unassigned_ratio": 0.05,
+                            "skip_sorting": false,
+                            "type": "multigrid::Pgm",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "mid_case": "standalone",
+                    "min_coarse_rows": 64,
+                    "post_uses_pre": true,
+                    "smoother_iters": 1,
+                    "smoother_relax": [
+                        0.9,
+                        0.0
+                    ],
+                    "type": "solver::Multigrid"
                 },
                 "storage": 285948,
                 "levels": [
@@ -257,6 +373,59 @@
                     "repetitions": 1,
                     "repetition_times": []
                 },
+                "parameters": {
+                    "coarsest_solver": [
+                        {
+                            "criteria": [
+                                {
+                                    "max_iters": 1,
+                                    "type": "Iteration"
+                                }
+                            ],
+                            "preconditioner": {
+                                "accuracy": 1.0,
+                                "aggregate_l1": false,
+                                "max_block_size": 1,
+                                "max_block_stride": 1,
+                                "skip_sorting": false,
+                                "storage_optimization": [
+                                    1
+                                ],
+                                "type": "preconditioner::Jacobi",
+                                "value_type": "float64"
+                            },
+                            "type": "solver::Cg",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "criteria": [
+                        {
+                            "max_iters": 1,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "cycle": "v",
+                    "default_initial_guess": "zero",
+                    "kcycle_base": 1,
+                    "kcycle_rel_tol": 1.0,
+                    "max_levels": 1,
+                    "mg_level": [
+                        {
+                            "skip_sorting": false,
+                            "strength_threshold": 1.0,
+                            "type": "multigrid::Pmis",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "mid_case": "standalone",
+                    "min_coarse_rows": 1,
+                    "post_uses_pre": true,
+                    "smoother_iters": 1,
+                    "smoother_relax": [
+                        1.0
+                    ],
+                    "type": "solver::Multigrid"
+                },
                 "storage": 1,
                 "levels": [
                     {
@@ -324,6 +493,62 @@
                     "time": 1.0,
                     "repetitions": 10,
                     "repetition_times": []
+                },
+                "parameters": {
+                    "coarsest_solver": [
+                        {
+                            "criteria": [
+                                {
+                                    "max_iters": 20,
+                                    "type": "Iteration"
+                                }
+                            ],
+                            "preconditioner": {
+                                "accuracy": 0.1,
+                                "aggregate_l1": false,
+                                "max_block_size": 32,
+                                "max_block_stride": 0,
+                                "skip_sorting": false,
+                                "storage_optimization": [
+                                    0,
+                                    0
+                                ],
+                                "type": "preconditioner::Jacobi",
+                                "value_type": "float64"
+                            },
+                            "type": "solver::Cg",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "criteria": [
+                        {
+                            "max_iters": 1,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "cycle": "v",
+                    "default_initial_guess": "zero",
+                    "kcycle_base": 1,
+                    "kcycle_rel_tol": 0.25,
+                    "max_levels": 10,
+                    "mg_level": [
+                        {
+                            "aggregation": true,
+                            "coarse_skip": 2,
+                            "skip_sorting": false,
+                            "type": "multigrid::UniformCoarsening",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "mid_case": "standalone",
+                    "min_coarse_rows": 64,
+                    "post_uses_pre": true,
+                    "smoother_iters": 1,
+                    "smoother_relax": [
+                        0.9,
+                        0.0
+                    ],
+                    "type": "solver::Multigrid"
                 },
                 "storage": 380824,
                 "levels": [

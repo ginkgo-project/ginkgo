@@ -6,6 +6,7 @@
 #define GINKGO_BENCHMARK_SOLVER_SOLVER_COMMON_HPP
 
 
+#include "benchmark/utils/config_json.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
@@ -583,6 +584,13 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 }
             }
             exec->synchronize();
+        }
+
+        // the parameters of the factory used for the timed run
+        {
+            auto precond = precond_factory.at(precond_name)(exec);
+            solver_case["parameters"] = parameters_json(*generate_solver(
+                exec, give(precond), solver_name, FLAGS_max_iters));
         }
 
         // timed run

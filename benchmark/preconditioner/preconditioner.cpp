@@ -10,6 +10,7 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include "benchmark/utils/config_json.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
@@ -182,6 +183,9 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
             precond_case[stage] = json::object();
             precond_case[stage]["components"] = json::object();
         }
+
+        precond_case["parameters"] =
+            parameters_json(*precond_factory.at(decoded_precond_name)(exec));
 
         IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
         IterationControl ic_apply{get_timer(exec, FLAGS_gpu_timer)};
