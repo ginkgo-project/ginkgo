@@ -9,6 +9,7 @@ set(config_source
     config/registry.cpp
     config/solver_config.cpp
     config/write_config.cpp
+    config/write_factorization.cpp
     config/write_preconditioner.cpp
     config/write_solver.cpp
     config/write_stop.cpp
