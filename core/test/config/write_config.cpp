@@ -35,12 +35,17 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -48,6 +53,7 @@
 #include <ginkgo/core/stop/time.hpp>
 
 #include "core/config/config_helper.hpp"
+#include "core/config/registry_accessor.hpp"
 #include "core/config/write_helper.hpp"
 #include "core/test/utils.hpp"
 
@@ -243,6 +249,11 @@ struct common_solver_write_case {
     }
 
 GKO_COMMON_SOLVER_WRITE_CASE(Bicgstab);
+GKO_COMMON_SOLVER_WRITE_CASE(Bicg);
+GKO_COMMON_SOLVER_WRITE_CASE(Cgs);
+GKO_COMMON_SOLVER_WRITE_CASE(Fcg);
+GKO_COMMON_SOLVER_WRITE_CASE(PipeCg);
+GKO_COMMON_SOLVER_WRITE_CASE(Minres);
 
 
 template <typename ValueType>
@@ -614,7 +625,12 @@ protected:
 using WriteConfigTypes = ::testing::Types<
     gko::solver::Cg<double>, gko::solver::Cg<float>,
     gko::solver::Cg<std::complex<float>>, gko::solver::Bicgstab<double>,
-    gko::solver::Bicgstab<std::complex<float>>, gko::solver::Gmres<double>,
+    gko::solver::Bicgstab<std::complex<float>>, gko::solver::Bicg<double>,
+    gko::solver::Bicg<std::complex<float>>, gko::solver::Cgs<double>,
+    gko::solver::Cgs<float>, gko::solver::Fcg<double>,
+    gko::solver::Fcg<std::complex<float>>, gko::solver::PipeCg<double>,
+    gko::solver::PipeCg<float>, gko::solver::Minres<double>,
+    gko::solver::Minres<std::complex<float>>, gko::solver::Gmres<double>,
     gko::solver::Gmres<float>, gko::solver::Gmres<std::complex<float>>,
     gko::solver::Ir<double>, gko::solver::Ir<float>,
     gko::solver::Ir<std::complex<float>>,
@@ -1182,12 +1198,46 @@ TEST_F(WriteConfigExamples, WritesObjectParametersAsPlaceholder)
 }
 
 
-TEST(WriteConfig, ThrowsForTypesWithoutWriter)
+TEST(WriteConfig, WritesOrThrowsForEveryRegistryType)
 {
+    // a type added to the registry fails here until it gets a writer or is
+    // listed here
+    const std::set<std::string> without_writer{
+        "solver::CbGmres",
+        "solver::Chebyshev",
+        "solver::Direct",
+        "solver::Gcr",
+        "solver::Idr",
+        "factorization::Cholesky",
+        "factorization::Lu",
+        "factorization::ParIc",
+        "factorization::ParIct",
+        "factorization::ParIlu",
+        "factorization::ParIlut",
+        "preconditioner::GaussSeidel",
+        "preconditioner::NullspaceProjection",
+        "preconditioner::Schwarz",
+        "preconditioner::Sor",
+        "multigrid::Rs"};
     auto exec = gko::ReferenceExecutor::create();
+    registry reg;
+    for (const auto& entry : detail::registry_accessor::get_build_map(reg)) {
+        const auto& type = entry.first;
+        // Isai is the only type that requires a key
+        auto config =
+            type == "preconditioner::Isai"
+                ? pnode{{{"type", pnode{type}}, {"isai_type", pnode{"lower"}}}}
+                : pnode{{{"type", pnode{type}}}};
+        auto factory = parse(config, reg).on(exec);
 
-    EXPECT_THROW(write_config(*gko::solver::Idr<double>::build().on(exec)),
-                 gko::NotSupported);
+        if (without_writer.count(type)) {
+            EXPECT_THROW(write_config(*factory), gko::NotSupported) << type;
+        } else {
+            auto written = write_config(*factory);
+            EXPECT_EQ(write_config(*parse(written, reg).on(exec)), written)
+                << type;
+        }
+    }
 }
 
 
