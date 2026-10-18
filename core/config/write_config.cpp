@@ -9,7 +9,11 @@
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -110,6 +114,15 @@ pnode write_config(const LinOpFactory& factory)
 {
     pnode result;
     if (try_write_value_type<solver::Cg>(factory, result, value_type_list()) ||
+        try_write_value_type<solver::Bicgstab>(factory, result,
+                                               value_type_list()) ||
+        try_write_value_type<solver::Gmres>(factory, result,
+                                            value_type_list()) ||
+        try_write_value_type<solver::Ir>(factory, result, value_type_list()) ||
+        try_write_value_and_index_type<solver::LowerTrs>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<solver::UpperTrs>(
+            factory, result, value_type_list(), index_type_list()) ||
         try_write_value_and_index_type<preconditioner::Jacobi>(
             factory, result, value_type_list(), index_type_list())) {
         return result;

@@ -21,8 +21,12 @@
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/write_config.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -114,6 +118,40 @@ inline pnode write_value(solver::initial_guess_mode mode)
         return pnode{"provided"};
     }
     GKO_NOT_SUPPORTED(mode);
+}
+
+
+/**
+ * write_value for the orthogonalization method of Gmres, written as the
+ * strings Gmres::parse reads
+ */
+inline pnode write_value(solver::gmres::ortho_method method)
+{
+    switch (method) {
+    case solver::gmres::ortho_method::mgs:
+        return pnode{"mgs"};
+    case solver::gmres::ortho_method::cgs:
+        return pnode{"cgs"};
+    case solver::gmres::ortho_method::cgs2:
+        return pnode{"cgs2"};
+    }
+    GKO_NOT_SUPPORTED(method);
+}
+
+
+/**
+ * write_value for the algorithm of the triangular solvers, written as the
+ * strings common_trisolver_parse reads
+ */
+inline pnode write_value(solver::trisolve_algorithm algorithm)
+{
+    switch (algorithm) {
+    case solver::trisolve_algorithm::sparselib:
+        return pnode{"sparselib"};
+    case solver::trisolve_algorithm::syncfree:
+        return pnode{"syncfree"};
+    }
+    GKO_NOT_SUPPORTED(algorithm);
 }
 
 
@@ -279,6 +317,20 @@ inline void write_common_solver(pnode::map_type& map, const SolverParam& params)
 
 
 /**
+ * Writes the parameters that common_trisolver_parse (see
+ * core/config/trisolver_config.hpp) reads.
+ */
+template <typename SolverParam>
+inline void write_common_trisolver(pnode::map_type& map,
+                                   const SolverParam& params)
+{
+    map["num_rhs"] = write_value(params.num_rhs);
+    map["unit_diagonal"] = write_value(params.unit_diagonal);
+    map["algorithm"] = write_value(params.algorithm);
+}
+
+
+/**
  * parameter_writer<T>::write writes the parameters of the factory of the
  * concrete class `T` (e.g. solver::Cg<double>) as the configuration that parse
  * reads for `T`: the keys `T::parse` reads, plus `"type"` and `"value_type"`.
@@ -342,6 +394,43 @@ template <typename ValueType>
 struct parameter_writer<solver::Cg<ValueType>> {
     static pnode write(
         const typename solver::Cg<ValueType>::parameters_type& params);
+};
+
+
+template <typename ValueType>
+struct parameter_writer<solver::Bicgstab<ValueType>> {
+    static pnode write(
+        const typename solver::Bicgstab<ValueType>::parameters_type& params);
+};
+
+
+template <typename ValueType>
+struct parameter_writer<solver::Gmres<ValueType>> {
+    static pnode write(
+        const typename solver::Gmres<ValueType>::parameters_type& params);
+};
+
+
+template <typename ValueType>
+struct parameter_writer<solver::Ir<ValueType>> {
+    static pnode write(
+        const typename solver::Ir<ValueType>::parameters_type& params);
+};
+
+
+template <typename ValueType, typename IndexType>
+struct parameter_writer<solver::LowerTrs<ValueType, IndexType>> {
+    static pnode write(
+        const typename solver::LowerTrs<ValueType, IndexType>::parameters_type&
+            params);
+};
+
+
+template <typename ValueType, typename IndexType>
+struct parameter_writer<solver::UpperTrs<ValueType, IndexType>> {
+    static pnode write(
+        const typename solver::UpperTrs<ValueType, IndexType>::parameters_type&
+            params);
 };
 
 

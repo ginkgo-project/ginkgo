@@ -25,8 +25,12 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
+#include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -107,9 +111,13 @@ using criterion_vector =
 // The keys that parse reads but write_config does not write: the class and
 // template selection, which write_config writes separately or not at all, and
 // the object-valued parameters, which it omits when they are null.
-const std::set<std::string> not_written_by_default{
-    "type",      "value_type",    "index_type", "generated_preconditioner",
-    "nullspace", "left_nullspace"};
+const std::set<std::string> not_written_by_default{"type",
+                                                   "value_type",
+                                                   "index_type",
+                                                   "generated_preconditioner",
+                                                   "nullspace",
+                                                   "left_nullspace",
+                                                   "generated_solver"};
 
 
 // An empty node would be null in JSON or YAML, which their readers reject.
@@ -173,6 +181,101 @@ struct write_case<gko::solver::Cg<ValueType>> {
 };
 
 
+template <typename ValueType>
+struct write_case<gko::solver::Bicgstab<ValueType>> {
+    static constexpr const char* type = "solver::Bicgstab";
+    using index_type = gko::int32;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::solver::Bicgstab<ValueType>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(7u))
+            .with_preconditioner(
+                gko::preconditioner::Jacobi<ValueType, index_type>::build()
+                    .with_max_block_size(16u))
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType>
+struct write_case<gko::solver::Gmres<ValueType>> {
+    static constexpr const char* type = "solver::Gmres";
+    using index_type = gko::int32;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::solver::Gmres<ValueType>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(7u))
+            .with_preconditioner(
+                gko::preconditioner::Jacobi<ValueType, index_type>::build()
+                    .with_max_block_size(16u))
+            .with_krylov_dim(20u)
+            .with_restart_ratio(gko::remove_complex<ValueType>{0.5})
+            .with_flexible(true)
+            .with_ortho_method(gko::solver::gmres::ortho_method::cgs2)
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType>
+struct write_case<gko::solver::Ir<ValueType>> {
+    static constexpr const char* type = "solver::Ir";
+    using index_type = gko::int32;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::solver::Ir<ValueType>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(7u))
+            .with_solver(
+                gko::preconditioner::Jacobi<ValueType, index_type>::build()
+                    .with_max_block_size(1u))
+            .with_relaxation_factor(ValueType{0.5})
+            .with_default_initial_guess(gko::solver::initial_guess_mode::zero)
+            .with_inner_initial_guess(gko::solver::initial_guess_mode::rhs)
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType, typename IndexType>
+struct write_case<gko::solver::LowerTrs<ValueType, IndexType>> {
+    static constexpr const char* type = "solver::LowerTrs";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::solver::LowerTrs<ValueType, IndexType>::build()
+            .with_num_rhs(3u)
+            .with_unit_diagonal(true)
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType, typename IndexType>
+struct write_case<gko::solver::UpperTrs<ValueType, IndexType>> {
+    static constexpr const char* type = "solver::UpperTrs";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::solver::UpperTrs<ValueType, IndexType>::build()
+            .with_num_rhs(3u)
+            .with_unit_diagonal(true)
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .on(exec);
+    }
+};
+
+
 template <typename ValueType, typename IndexType>
 struct write_case<gko::preconditioner::Jacobi<ValueType, IndexType>> {
     static constexpr const char* type = "preconditioner::Jacobi";
@@ -222,11 +325,19 @@ protected:
     std::shared_ptr<const gko::Executor> exec;
 };
 
-using WriteConfigTypes =
-    ::testing::Types<gko::solver::Cg<double>, gko::solver::Cg<float>,
-                     gko::solver::Cg<std::complex<float>>,
-                     gko::preconditioner::Jacobi<double, gko::int32>,
-                     gko::preconditioner::Jacobi<float, gko::int64>>;
+using WriteConfigTypes = ::testing::Types<
+    gko::solver::Cg<double>, gko::solver::Cg<float>,
+    gko::solver::Cg<std::complex<float>>, gko::solver::Bicgstab<double>,
+    gko::solver::Bicgstab<std::complex<float>>, gko::solver::Gmres<double>,
+    gko::solver::Gmres<float>, gko::solver::Gmres<std::complex<float>>,
+    gko::solver::Ir<double>, gko::solver::Ir<float>,
+    gko::solver::Ir<std::complex<float>>,
+    gko::solver::LowerTrs<double, gko::int32>,
+    gko::solver::LowerTrs<float, gko::int64>,
+    gko::solver::UpperTrs<double, gko::int32>,
+    gko::solver::UpperTrs<float, gko::int64>,
+    gko::preconditioner::Jacobi<double, gko::int32>,
+    gko::preconditioner::Jacobi<float, gko::int64>>;
 
 TYPED_TEST_SUITE(WriteConfig, WriteConfigTypes, TypenameNameGenerator);
 
@@ -559,6 +670,96 @@ TEST_F(WriteConfigExamples, WritesCriteriaAsArrayForASingleCriterion)
 
     ASSERT_EQ(written.get("criteria"),
               pnode{pnode::array_type{write_config(*iteration)}});
+}
+
+
+TEST_F(WriteConfigExamples, WritesIrWithScalarJacobiSolver)
+{
+    auto factory =
+        gko::solver::Ir<double>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(7u))
+            .with_solver(
+                gko::preconditioner::Jacobi<double, gko::int32>::build()
+                    .with_max_block_size(1u))
+            .on(exec);
+
+    auto written = write_config(*factory);
+
+    ASSERT_EQ(written.get("type"), pnode{"solver::Ir"});
+    ASSERT_EQ(written.get("solver").get("type"),
+              pnode{"preconditioner::Jacobi"});
+    ASSERT_EQ(written.get("solver").get("max_block_size"), pnode{1});
+    ASSERT_EQ(written.get("relaxation_factor"), pnode{1.0});
+    ASSERT_EQ(written.get("default_initial_guess"), pnode{"provided"});
+    ASSERT_EQ(written.get("inner_initial_guess"), pnode{"zero"});
+}
+
+
+TEST_F(WriteConfigExamples, OmitsIdentityIrSolver)
+{
+    // an unset Ir solver is the identity
+    auto unset = gko::solver::Ir<double>::build().on(exec);
+    auto identity =
+        gko::solver::Ir<double>::build()
+            .with_solver(gko::matrix::IdentityFactory<double>::create(exec))
+            .on(exec);
+
+    ASSERT_EQ(write_config(*unset).get_map().count("solver"), 0);
+    ASSERT_EQ(write_config(*identity), write_config(*unset));
+}
+
+
+TEST_F(WriteConfigExamples, WritesIrGeneratedSolverAsPlaceholder)
+{
+    std::shared_ptr<gko::LinOp> linop =
+        gko::matrix::Dense<double>::create(exec);
+    auto factory =
+        gko::solver::Ir<double>::build().with_generated_solver(linop).on(exec);
+
+    auto written = write_config(*factory);
+
+    ASSERT_EQ(written.get("generated_solver"), pnode{"<object>"});
+    registry reg;
+    reg.emplace("<object>", linop);
+    auto parsed = parse(written, reg).on(exec);
+    ASSERT_EQ(write_config(*parsed), written);
+    ASSERT_EQ(gko::as<gko::solver::Ir<double>::Factory>(parsed.get())
+                  ->get_parameters()
+                  .generated_solver,
+              linop);
+    ASSERT_EQ(write_config(*gko::solver::Ir<double>::build().on(exec))
+                  .get_map()
+                  .count("generated_solver"),
+              0);
+}
+
+
+TEST_F(WriteConfigExamples, WritesGmresAndTriangularEnumsAsStrings)
+{
+    using gko::solver::trisolve_algorithm;
+    using gko::solver::gmres::ortho_method;
+    for (auto [method, name] : {std::make_pair(ortho_method::mgs, "mgs"),
+                                std::make_pair(ortho_method::cgs, "cgs"),
+                                std::make_pair(ortho_method::cgs2, "cgs2")}) {
+        auto gmres =
+            gko::solver::Gmres<double>::build().with_ortho_method(method).on(
+                exec);
+
+        ASSERT_EQ(write_config(*gmres).get("ortho_method"), pnode{name});
+    }
+    for (auto [algorithm, name] :
+         {std::make_pair(trisolve_algorithm::sparselib, "sparselib"),
+          std::make_pair(trisolve_algorithm::syncfree, "syncfree")}) {
+        auto lower = gko::solver::LowerTrs<double, gko::int32>::build()
+                         .with_algorithm(algorithm)
+                         .on(exec);
+        auto upper = gko::solver::UpperTrs<double, gko::int32>::build()
+                         .with_algorithm(algorithm)
+                         .on(exec);
+
+        ASSERT_EQ(write_config(*lower).get("algorithm"), pnode{name});
+        ASSERT_EQ(write_config(*upper).get("algorithm"), pnode{name});
+    }
 }
 
 

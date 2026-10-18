@@ -16,7 +16,11 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/write_config.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
@@ -201,4 +205,31 @@ TEST(JsonConfig, ReadsBackAWrittenConfig)
             .on(exec);
 
     assert_json_round_trip(exec, *factory);
+}
+
+
+TEST(JsonConfig, ReadsBackAWrittenIrWithGmresAndTriangularSolvers)
+{
+    auto exec = gko::ReferenceExecutor::create();
+
+    assert_json_round_trip(
+        exec,
+        *gko::solver::Ir<double>::build()
+             .with_criteria(gko::stop::Iteration::build().with_max_iters(7u))
+             .with_solver(
+                 gko::preconditioner::Jacobi<double, gko::int32>::build()
+                     .with_max_block_size(1u))
+             .with_inner_initial_guess(gko::solver::initial_guess_mode::rhs)
+             .on(exec));
+    assert_json_round_trip(
+        exec, *gko::solver::Gmres<double>::build()
+                   .with_krylov_dim(20u)
+                   .with_ortho_method(gko::solver::gmres::ortho_method::cgs2)
+                   .on(exec));
+    assert_json_round_trip(exec,
+                           *gko::solver::Bicgstab<float>::build().on(exec));
+    assert_json_round_trip(
+        exec, *gko::solver::LowerTrs<double, gko::int32>::build()
+                   .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+                   .on(exec));
 }
