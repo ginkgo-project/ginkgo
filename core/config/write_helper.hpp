@@ -21,8 +21,12 @@
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/write_config.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
+#include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -100,6 +104,27 @@ inline pnode write_value(solver::initial_guess_mode mode)
         GKO_WRITE_ENUM_CASE(solver::initial_guess_mode, provided);
     }
     GKO_NOT_SUPPORTED(mode);
+}
+
+
+inline pnode write_value(solver::gmres::ortho_method method)
+{
+    switch (method) {
+        GKO_WRITE_ENUM_CASE(solver::gmres::ortho_method, mgs);
+        GKO_WRITE_ENUM_CASE(solver::gmres::ortho_method, cgs);
+        GKO_WRITE_ENUM_CASE(solver::gmres::ortho_method, cgs2);
+    }
+    GKO_NOT_SUPPORTED(method);
+}
+
+
+inline pnode write_value(solver::trisolve_algorithm algorithm)
+{
+    switch (algorithm) {
+        GKO_WRITE_ENUM_CASE(solver::trisolve_algorithm, sparselib);
+        GKO_WRITE_ENUM_CASE(solver::trisolve_algorithm, syncfree);
+    }
+    GKO_NOT_SUPPORTED(algorithm);
 }
 
 
@@ -231,6 +256,19 @@ inline void write_common_solver(pnode::map_type& map, const SolverParam& params)
 
 
 /**
+ * Writes the parameters that common_trisolver_parse reads.
+ */
+template <typename SolverParam>
+inline void write_common_trisolver(pnode::map_type& map,
+                                   const SolverParam& params)
+{
+    map["num_rhs"] = write_value(params.num_rhs);
+    map["unit_diagonal"] = write_value(params.unit_diagonal);
+    map["algorithm"] = write_value(params.algorithm);
+}
+
+
+/**
  * parameter_writer<T>::write writes the parameters of a T::Factory as the
  * configuration that T::parse reads. To add a class, declare its specialization
  * below with GKO_DECLARE_WRITER*, define write in the write_*.cpp of its group
@@ -292,6 +330,11 @@ GKO_DECLARE_WRITER_VALUE_TYPE(stop::ResidualNorm);
 GKO_DECLARE_WRITER_VALUE_TYPE(stop::ImplicitResidualNorm);
 GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(preconditioner::Jacobi);
 GKO_DECLARE_WRITER_VALUE_TYPE(solver::Cg);
+GKO_DECLARE_WRITER_VALUE_TYPE(solver::Bicgstab);
+GKO_DECLARE_WRITER_VALUE_TYPE(solver::Gmres);
+GKO_DECLARE_WRITER_VALUE_TYPE(solver::Ir);
+GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(solver::LowerTrs);
+GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(solver::UpperTrs);
 
 
 }  // namespace config
