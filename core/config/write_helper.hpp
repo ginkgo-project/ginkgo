@@ -24,6 +24,9 @@
 #include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/factorization/incomplete_factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/pmis.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
@@ -32,6 +35,7 @@
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -170,6 +174,29 @@ inline pnode write_value(preconditioner::isai_type type)
 }
 
 
+inline pnode write_value(solver::multigrid::cycle cycle)
+{
+    switch (cycle) {
+        GKO_WRITE_ENUM_CASE(solver::multigrid::cycle, v);
+        GKO_WRITE_ENUM_CASE(solver::multigrid::cycle, f);
+        GKO_WRITE_ENUM_CASE(solver::multigrid::cycle, w);
+    }
+    GKO_NOT_SUPPORTED(cycle);
+}
+
+
+inline pnode write_value(solver::multigrid::mid_smooth_type type)
+{
+    switch (type) {
+        GKO_WRITE_ENUM_CASE(solver::multigrid::mid_smooth_type, both);
+        GKO_WRITE_ENUM_CASE(solver::multigrid::mid_smooth_type, post_smoother);
+        GKO_WRITE_ENUM_CASE(solver::multigrid::mid_smooth_type, pre_smoother);
+        GKO_WRITE_ENUM_CASE(solver::multigrid::mid_smooth_type, standalone);
+    }
+    GKO_NOT_SUPPORTED(type);
+}
+
+
 inline pnode write_value(precision_reduction value)
 {
     return pnode{pnode::array_type{write_value(value.get_preserving()),
@@ -236,6 +263,31 @@ inline void write_factory(pnode::map_type& map, const std::string& key,
     if (factory) {
         map[key] = write_config(*factory);
     }
+}
+
+
+/**
+ * Writes a list of nested factories as an array under `key`, and leaves the
+ * key out if the list is empty.
+ *
+ * @throw NotSupported  if an entry is null, which parse can not read
+ */
+inline void write_factory_list(
+    pnode::map_type& map, const std::string& key,
+    const std::vector<std::shared_ptr<const LinOpFactory>>& factories)
+{
+    if (factories.empty()) {
+        return;
+    }
+    pnode::array_type result;
+    for (const auto& factory : factories) {
+        if (!factory) {
+            throw NotSupported(__FILE__, __LINE__, __func__,
+                               "a null entry of " + key);
+        }
+        result.push_back(write_config(*factory));
+    }
+    map[key] = pnode{result};
 }
 
 
@@ -408,6 +460,12 @@ struct parameter_writer<preconditioner::Isai<IsaiType, ValueType, IndexType>> {
         const typename preconditioner::Isai<
             IsaiType, ValueType, IndexType>::parameters_type& params);
 };
+
+
+GKO_DECLARE_WRITER(solver::Multigrid);
+GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(multigrid::Pgm);
+GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(multigrid::Pmis);
+GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(multigrid::UniformCoarsening);
 
 
 }  // namespace config
