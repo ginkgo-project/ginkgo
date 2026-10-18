@@ -159,10 +159,34 @@ inline void write_object(pnode::map_type& map, const std::string& key,
 }
 
 
-template <typename FactoryType>
-inline pnode write_factory(const std::shared_ptr<FactoryType>& factory)
+/**
+ * Writes a nested factory under `key`, and leaves the key out if it is not
+ * set: an empty node would be null in JSON or YAML, which the readers reject.
+ */
+inline void write_factory(pnode::map_type& map, const std::string& key,
+                          const std::shared_ptr<const LinOpFactory>& factory)
 {
-    return factory ? write_config(*factory) : pnode{};
+    if (factory) {
+        map[key] = write_config(*factory);
+    }
+}
+
+
+bool is_identity_factory(const LinOpFactory& factory);
+
+
+/**
+ * write_factory for a parameter whose default is the identity (e.g. a
+ * solver's `preconditioner`), which also leaves out a matrix::IdentityFactory.
+ */
+inline void write_factory_with_identity_default(
+    pnode::map_type& map, const std::string& key,
+    const std::shared_ptr<const LinOpFactory>& factory)
+{
+    if (factory && is_identity_factory(*factory)) {
+        return;
+    }
+    write_factory(map, key, factory);
 }
 
 
@@ -199,7 +223,8 @@ inline void write_common_solver(pnode::map_type& map, const SolverParam& params)
     write_object(map, "generated_preconditioner",
                  params.generated_preconditioner);
     map["criteria"] = write_criteria(params.criteria);
-    map["preconditioner"] = write_factory(params.preconditioner);
+    write_factory_with_identity_default(map, "preconditioner",
+                                        params.preconditioner);
     write_object(map, "nullspace", params.nullspace);
     write_object(map, "left_nullspace", params.left_nullspace);
 }
