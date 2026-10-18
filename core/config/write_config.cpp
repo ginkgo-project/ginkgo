@@ -10,6 +10,9 @@
 #include <ginkgo/core/factorization/ic.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/pmis.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
@@ -18,6 +21,7 @@
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -134,6 +138,7 @@ pnode write_config(const LinOpFactory& factory)
         try_write_value_type<solver::Gmres>(factory, result,
                                             value_type_list()) ||
         try_write_value_type<solver::Ir>(factory, result, value_type_list()) ||
+        try_write<solver::Multigrid>(factory, result) ||
         try_write_value_and_index_type<solver::LowerTrs>(
             factory, result, value_type_list(), index_type_list()) ||
         try_write_value_and_index_type<solver::UpperTrs>(
@@ -157,6 +162,12 @@ pnode write_config(const LinOpFactory& factory)
         try_write_value_and_index_type<factorization::Ilu>(
             factory, result, value_type_list(), index_type_list()) ||
         try_write_value_and_index_type<factorization::Ic>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<multigrid::Pgm>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<multigrid::Pmis>(
+            factory, result, value_type_list(), index_type_list()) ||
+        try_write_value_and_index_type<multigrid::UniformCoarsening>(
             factory, result, value_type_list(), index_type_list())) {
         return result;
     }

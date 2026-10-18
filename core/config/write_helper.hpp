@@ -24,6 +24,9 @@
 #include <ginkgo/core/factorization/ilu.hpp>
 #include <ginkgo/core/factorization/incomplete_factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/pmis.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
@@ -32,6 +35,7 @@
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -222,6 +226,44 @@ inline pnode write_value(preconditioner::isai_type type)
 
 
 /**
+ * write_value for the cycle of Multigrid, written as the strings
+ * Multigrid::parse reads
+ */
+inline pnode write_value(solver::multigrid::cycle cycle)
+{
+    switch (cycle) {
+    case solver::multigrid::cycle::v:
+        return pnode{"v"};
+    case solver::multigrid::cycle::f:
+        return pnode{"f"};
+    case solver::multigrid::cycle::w:
+        return pnode{"w"};
+    }
+    GKO_NOT_SUPPORTED(cycle);
+}
+
+
+/**
+ * write_value for the mid smoother handling (`mid_case`) of Multigrid, written
+ * as the strings Multigrid::parse reads
+ */
+inline pnode write_value(solver::multigrid::mid_smooth_type type)
+{
+    switch (type) {
+    case solver::multigrid::mid_smooth_type::both:
+        return pnode{"both"};
+    case solver::multigrid::mid_smooth_type::post_smoother:
+        return pnode{"post_smoother"};
+    case solver::multigrid::mid_smooth_type::pre_smoother:
+        return pnode{"pre_smoother"};
+    case solver::multigrid::mid_smooth_type::standalone:
+        return pnode{"standalone"};
+    }
+    GKO_NOT_SUPPORTED(type);
+}
+
+
+/**
  * write_value for precision_reduction, written as the array
  * [preserving, nonpreserving]
  */
@@ -308,6 +350,37 @@ inline void write_factory(pnode::map_type& map, const std::string& key,
     if (factory) {
         map[key] = write_config(*factory);
     }
+}
+
+
+/**
+ * Writes a list of nested factories (e.g. Multigrid's `mg_level`) as the array
+ * of the factories' configurations under `key`, in the order of the list, and
+ * leaves the key out if the list is empty. parse leaves a parameter whose key
+ * is missing at its default, the empty list, and reads an empty array as the
+ * empty list too. The empty list is not the identity, e.g. Multigrid then
+ * uses its default smoother or coarsest solver.
+ *
+ * @throw NotSupported  if an entry is null, which parse can not read. Multigrid
+ *                      skips a null smoother and uses its default for a null
+ *                      coarsest solver.
+ */
+inline void write_factory_list(
+    pnode::map_type& map, const std::string& key,
+    const std::vector<std::shared_ptr<const LinOpFactory>>& factories)
+{
+    if (factories.empty()) {
+        return;
+    }
+    pnode::array_type result;
+    for (const auto& factory : factories) {
+        if (!factory) {
+            throw NotSupported(__FILE__, __LINE__, __func__,
+                               "a null entry of " + key);
+        }
+        result.push_back(write_config(*factory));
+    }
+    map[key] = pnode{result};
 }
 
 
@@ -542,6 +615,39 @@ struct parameter_writer<preconditioner::Isai<IsaiType, ValueType, IndexType>> {
     static pnode write(
         const typename preconditioner::Isai<
             IsaiType, ValueType, IndexType>::parameters_type& params);
+};
+
+
+/**
+ * Multigrid has no value type, so it writes no `"value_type"`. Its function-
+ * valued parameters (`level_selector`, `solver_selector`) are not written.
+ */
+template <>
+struct parameter_writer<solver::Multigrid> {
+    static pnode write(const solver::Multigrid::parameters_type& params);
+};
+
+
+template <typename ValueType, typename IndexType>
+struct parameter_writer<multigrid::Pgm<ValueType, IndexType>> {
+    static pnode write(
+        const typename multigrid::Pgm<ValueType, IndexType>::parameters_type&
+            params);
+};
+
+
+template <typename ValueType, typename IndexType>
+struct parameter_writer<multigrid::Pmis<ValueType, IndexType>> {
+    static pnode write(
+        const typename multigrid::Pmis<ValueType, IndexType>::parameters_type&
+            params);
+};
+
+
+template <typename ValueType, typename IndexType>
+struct parameter_writer<multigrid::UniformCoarsening<ValueType, IndexType>> {
+    static pnode write(const typename multigrid::UniformCoarsening<
+                       ValueType, IndexType>::parameters_type& params);
 };
 
 

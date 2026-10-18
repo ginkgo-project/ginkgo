@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <complex>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -17,6 +18,9 @@
 #include <ginkgo/core/config/write_config.hpp>
 #include <ginkgo/core/factorization/ic.hpp>
 #include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/pmis.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
@@ -25,6 +29,7 @@
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -291,4 +296,66 @@ TEST(JsonConfig, ReadsBackAWrittenIluIcAndIsai)
                        gko::solver::Gmres<float>::build().with_krylov_dim(5u))
                    .with_excess_solver_reduction(1e-4f)
                    .on(exec));
+}
+
+
+TEST(JsonConfig, ReadsBackAWrittenMultigrid)
+{
+    using gko::solver::Multigrid;
+    auto exec = gko::ReferenceExecutor::create();
+    auto coarse_cg =
+        gko::solver::Cg<double>::build()
+            .with_preconditioner(
+                gko::preconditioner::Jacobi<double, gko::int32>::build())
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(20u));
+    auto one_cycle = gko::stop::Iteration::build().with_max_iters(1u);
+
+    // the benchmark's mg-pgm, mg-pmis and mg-uniform
+    assert_json_round_trip(
+        exec,
+        *Multigrid::build()
+             .with_mg_level(gko::multigrid::Pgm<double, gko::int32>::build())
+             .with_coarsest_solver(coarse_cg)
+             .with_criteria(one_cycle)
+             .on(exec));
+    assert_json_round_trip(
+        exec,
+        *Multigrid::build()
+             .with_mg_level(gko::multigrid::Pmis<double, gko::int32>::build())
+             .with_coarsest_solver(coarse_cg)
+             .with_criteria(one_cycle)
+             .on(exec));
+    assert_json_round_trip(
+        exec,
+        *Multigrid::build()
+             .with_mg_level(
+                 gko::multigrid::UniformCoarsening<double, gko::int32>::build())
+             .with_coarsest_solver(coarse_cg)
+             .with_criteria(one_cycle)
+             .on(exec));
+    // two levels of different value types, the smoother lists, the enums and
+    // a complex smoother_relax
+    assert_json_round_trip(
+        exec,
+        *Multigrid::build()
+             .with_mg_level(gko::multigrid::Pgm<double, gko::int32>::build()
+                                .with_deterministic(true),
+                            gko::multigrid::Pmis<float, gko::int32>::build()
+                                .with_strength_threshold(0.5f))
+             .with_pre_smoother(
+                 gko::preconditioner::Jacobi<double, gko::int32>::build()
+                     .with_max_block_size(1u),
+                 gko::preconditioner::Jacobi<float, gko::int32>::build()
+                     .with_max_block_size(1u))
+             .with_post_uses_pre(false)
+             .with_post_smoother(
+                 gko::preconditioner::Jacobi<double, gko::int32>::build()
+                     .with_max_block_size(2u))
+             .with_mid_case(gko::solver::multigrid::mid_smooth_type::both)
+             .with_cycle(gko::solver::multigrid::cycle::w)
+             .with_kcycle_rel_tol(0.5)
+             .with_smoother_relax(std::complex<double>{0.5, 0.25})
+             .with_default_initial_guess(
+                 gko::solver::initial_guess_mode::provided)
+             .on(exec));
 }
