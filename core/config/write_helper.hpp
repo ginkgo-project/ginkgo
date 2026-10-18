@@ -193,14 +193,44 @@ inline void write_object(pnode::map_type& map, const std::string& key,
 
 
 /**
- * Writes a nested factory parameter (e.g. `preconditioner`) as the factory's
- * configuration, or as an empty node if it is not set. parse leaves a
- * parameter given as an empty node at its default.
+ * Writes a nested factory parameter as the factory's configuration under
+ * `key`, and leaves the key out if the factory is not set. parse leaves a
+ * parameter whose key is missing at its default. An empty node instead would
+ * be `null` in a JSON or YAML record, which their readers reject.
  */
-template <typename FactoryType>
-inline pnode write_factory(const std::shared_ptr<FactoryType>& factory)
+inline void write_factory(pnode::map_type& map, const std::string& key,
+                          const std::shared_ptr<const LinOpFactory>& factory)
 {
-    return factory ? write_config(*factory) : pnode{};
+    if (factory) {
+        map[key] = write_config(*factory);
+    }
+}
+
+
+/**
+ * Returns whether `factory` is a matrix::IdentityFactory, of any value type.
+ * It has no writer of its own.
+ */
+bool is_identity_factory(const LinOpFactory& factory);
+
+
+/**
+ * write_factory for a parameter whose default, when it is not set, acts as the
+ * identity, e.g. a solver's `preconditioner`. A matrix::IdentityFactory is
+ * then left out too, since parse's default gives an equivalent object.
+ *
+ * Only use it where the default is the identity. Elsewhere (e.g. ILU's
+ * `l_solver`, whose default is a triangular solver), use write_factory, which
+ * throws NotSupported for an IdentityFactory.
+ */
+inline void write_factory_with_identity_default(
+    pnode::map_type& map, const std::string& key,
+    const std::shared_ptr<const LinOpFactory>& factory)
+{
+    if (factory && is_identity_factory(*factory)) {
+        return;
+    }
+    write_factory(map, key, factory);
 }
 
 
@@ -239,7 +269,10 @@ inline void write_common_solver(pnode::map_type& map, const SolverParam& params)
     write_object(map, "generated_preconditioner",
                  params.generated_preconditioner);
     map["criteria"] = write_criteria(params.criteria);
-    map["preconditioner"] = write_factory(params.preconditioner);
+    // an unset preconditioner is the identity (see
+    // EnablePreconditionedIterativeSolver::generate_preconditioner)
+    write_factory_with_identity_default(map, "preconditioner",
+                                        params.preconditioner);
     write_object(map, "nullspace", params.nullspace);
     write_object(map, "left_nullspace", params.left_nullspace);
 }

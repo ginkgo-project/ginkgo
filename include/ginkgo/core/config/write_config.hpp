@@ -29,14 +29,19 @@ namespace config {
  *   values:
  *   - booleans, integers and floating point values as such, enums as the
  *     strings parse accepts for them, complex values as a `[real, imag]` array;
- *   - nested factories as nested maps; a factory parameter that is not set is
- *     written as an empty node;
+ *   - nested factories as nested maps. A factory parameter that is not set is
+ *     left out, so parse leaves it at its default. A matrix::IdentityFactory
+ *     given as a solver's `preconditioner` is left out as well, since the
+ *     default preconditioner is the identity;
  *   - the stopping criteria (`"criteria"`) always as an array of criterion
  *     maps. A combined criterion (see gko::stop::combine) is written as the
  *     criteria it combines;
  *   - LinOp parameters (e.g. `generated_preconditioner`) as the string
  *     `"<object>"`, a placeholder for the object, which a configuration
  *     cannot contain. They are left out when they are not set.
+ *
+ * The result contains no empty node, so it can be stored as JSON or YAML and
+ * read back with the readers in extensions/config.
  *
  * The index type is not written, because parse does not accept it in the
  * configuration: it takes the index type from its type_descriptor argument.
@@ -51,8 +56,10 @@ namespace config {
  * @return the configuration of the factory
  *
  * @throw NotSupported  if the type of the factory, or of one of its nested
- *                      factories, has no writer, or if it has a parameter value
- *                      that parse can not read, e.g. Jacobi's block_pointers.
+ *                      factories, has no writer (e.g. an IdentityFactory
+ *                      outside of a solver's `preconditioner`), or if it has a
+ *                      parameter value that parse can not read, e.g. Jacobi's
+ *                      block_pointers.
  */
 pnode write_config(const LinOpFactory& factory);
 

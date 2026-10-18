@@ -23,6 +23,7 @@
 #include <ginkgo/core/config/type_descriptor.hpp>
 #include <ginkgo/core/config/write_config.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/idr.hpp>
@@ -109,6 +110,32 @@ using criterion_vector =
 const std::set<std::string> not_written_by_default{
     "type",      "value_type",    "index_type", "generated_preconditioner",
     "nullspace", "left_nullspace"};
+
+
+// An empty node would be null in JSON or YAML, which their readers reject.
+bool contains_empty_node(const pnode& node)
+{
+    switch (node.get_tag()) {
+    case pnode::tag_t::empty:
+        return true;
+    case pnode::tag_t::array:
+        for (const auto& item : node.get_array()) {
+            if (contains_empty_node(item)) {
+                return true;
+            }
+        }
+        return false;
+    case pnode::tag_t::map:
+        for (const auto& item : node.get_map()) {
+            if (contains_empty_node(item.second)) {
+                return true;
+            }
+        }
+        return false;
+    default:
+        return false;
+    }
+}
 
 
 /**
@@ -246,15 +273,38 @@ TYPED_TEST(WriteConfig, WritesEveryParsedKey)
         parsed_keys = recorder.keys();
     }
 
-    auto written = write_config(*linop_type::build().on(this->exec));
+    // non_default sets every parameter, the default leaves the nested
+    // factories unset
+    auto written = write_config(*write_case::non_default(this->exec));
+    auto written_default = write_config(*linop_type::build().on(this->exec));
 
     ASSERT_FALSE(parsed_keys.empty());
     for (const auto& key : parsed_keys) {
         if (not_written_by_default.count(key) == 0) {
             EXPECT_EQ(written.get_map().count(key), 1)
                 << "write_config does not write the key " << key;
+            // only an unset nested factory may be left out of the default
+            if (written_default.get_map().count(key) == 0) {
+                EXPECT_EQ(written.get(key).get_tag(), pnode::tag_t::map)
+                    << "write_config leaves out the default of the key " << key;
+            }
         }
     }
+}
+
+
+TYPED_TEST(WriteConfig, WritesNoEmptyNode)
+{
+    using linop_type = typename TestFixture::linop_type;
+    using write_case = typename TestFixture::write_case;
+
+    auto written_default = write_config(*linop_type::build().on(this->exec));
+    auto written = write_config(*write_case::non_default(this->exec));
+
+    ASSERT_FALSE(contains_empty_node(written_default))
+        << ::testing::PrintToString(written_default);
+    ASSERT_FALSE(contains_empty_node(written))
+        << ::testing::PrintToString(written);
 }
 
 
@@ -512,15 +562,41 @@ TEST_F(WriteConfigExamples, WritesCriteriaAsArrayForASingleCriterion)
 }
 
 
-TEST_F(WriteConfigExamples, WritesNullFactoryAsEmptyNode)
+TEST_F(WriteConfigExamples, OmitsNullFactory)
 {
     auto solver = gko::solver::Cg<double>::build().on(exec);
 
     auto written = write_config(*solver);
 
-    ASSERT_EQ(written.get_map().count("preconditioner"), 1);
-    ASSERT_EQ(written.get("preconditioner"), pnode{});
+    ASSERT_EQ(written.get_map().count("preconditioner"), 0);
     ASSERT_EQ(written.get("criteria"), pnode{pnode::array_type{}});
+    ASSERT_FALSE(contains_empty_node(written));
+}
+
+
+TEST_F(WriteConfigExamples, OmitsIdentityPreconditioner)
+{
+    // an unset preconditioner is the identity, of the solver's value type
+    for (std::shared_ptr<const gko::LinOpFactory> identity :
+         {std::shared_ptr<const gko::LinOpFactory>{
+              gko::matrix::IdentityFactory<double>::create(exec)},
+          std::shared_ptr<const gko::LinOpFactory>{
+              gko::matrix::IdentityFactory<float>::create(exec)}}) {
+        auto solver =
+            gko::solver::Cg<double>::build().with_preconditioner(identity).on(
+                exec);
+
+        auto written = write_config(*solver);
+
+        ASSERT_EQ(written.get_map().count("preconditioner"), 0);
+        ASSERT_EQ(written,
+                  write_config(*gko::solver::Cg<double>::build().on(exec)));
+        auto parsed = parse(written, registry{}).on(exec);
+        ASSERT_NE(
+            dynamic_cast<const gko::solver::Cg<double>::Factory*>(parsed.get()),
+            nullptr);
+        ASSERT_EQ(write_config(*parsed), written);
+    }
 }
 
 
@@ -570,6 +646,16 @@ TEST(WriteConfig, ThrowsForTypesWithoutWriter)
 
     EXPECT_THROW(write_config(*gko::solver::Idr<double>::build().on(exec)),
                  gko::NotSupported);
+}
+
+
+TEST(WriteConfig, ThrowsForIdentityFactory)
+{
+    auto exec = gko::ReferenceExecutor::create();
+
+    EXPECT_THROW(
+        write_config(*gko::matrix::IdentityFactory<double>::create(exec)),
+        gko::NotSupported);
 }
 
 

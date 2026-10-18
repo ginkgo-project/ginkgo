@@ -1,14 +1,25 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <memory>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/config/registry.hpp>
+#include <ginkgo/core/config/write_config.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/stop/combined.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+#include <ginkgo/core/stop/residual_norm.hpp>
 #include <ginkgo/extensions/config/json_config.hpp>
 
 #include "core/test/utils.hpp"
@@ -107,4 +118,87 @@ TEST(JsonConfig, ReadInputFromFile)
     ASSERT_EQ(child_array.at(1).get_real(), 4.5);
     ASSERT_EQ(child_map.size(), 1);
     ASSERT_EQ(child_map.at("bool").get_boolean(), false);
+}
+
+
+namespace {
+
+
+// The inverse of parse_json, to store a written configuration as JSON text.
+// An empty node becomes null, which parse_json rejects.
+nlohmann::json to_json(const gko::config::pnode& node)
+{
+    using tag_t = gko::config::pnode::tag_t;
+    switch (node.get_tag()) {
+    case tag_t::boolean:
+        return node.get_boolean();
+    case tag_t::integer:
+        return node.get_integer();
+    case tag_t::real:
+        return node.get_real();
+    case tag_t::string:
+        return node.get_string();
+    case tag_t::array: {
+        auto result = nlohmann::json::array();
+        for (const auto& item : node.get_array()) {
+            result.push_back(to_json(item));
+        }
+        return result;
+    }
+    case tag_t::map: {
+        auto result = nlohmann::json::object();
+        for (const auto& item : node.get_map()) {
+            result[item.first] = to_json(item.second);
+        }
+        return result;
+    }
+    default:
+        return nullptr;
+    }
+}
+
+
+void assert_json_round_trip(std::shared_ptr<const gko::Executor> exec,
+                            const gko::LinOpFactory& factory)
+{
+    auto written = gko::config::write_config(factory);
+
+    auto read = gko::ext::config::parse_json_string(to_json(written).dump());
+
+    ASSERT_TRUE(read == written);
+    auto parsed =
+        gko::config::parse(read, gko::config::registry{}).on(std::move(exec));
+    ASSERT_TRUE(gko::config::write_config(*parsed) == written);
+}
+
+
+}  // namespace
+
+
+TEST(JsonConfig, ReadsBackAWrittenDefaultConfig)
+{
+    auto exec = gko::ReferenceExecutor::create();
+
+    assert_json_round_trip(exec, *gko::solver::Cg<double>::build().on(exec));
+}
+
+
+TEST(JsonConfig, ReadsBackAWrittenConfig)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto factory =
+        gko::solver::Cg<float>::build()
+            .with_criteria(gko::stop::combine(
+                std::vector<std::shared_ptr<const gko::stop::CriterionFactory>>{
+                    gko::stop::Iteration::build().with_max_iters(7u).on(exec),
+                    gko::stop::ResidualNorm<float>::build()
+                        .with_reduction_factor(1e-5f)
+                        .on(exec)}))
+            .with_preconditioner(
+                gko::preconditioner::Jacobi<float, gko::int32>::build()
+                    .with_max_block_size(1u)
+                    .with_accuracy(1e-2f))
+            .on(exec);
+
+    assert_json_round_trip(exec, *factory);
 }
