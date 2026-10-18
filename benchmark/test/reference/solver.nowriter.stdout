@@ -1,0 +1,66 @@
+[
+    {
+        "size": 100,
+        "stencil": "7pt",
+        "optimal": {
+            "spmv": "csr"
+        },
+        "solver": {
+            "idr": {
+                "recurrent_residuals": [],
+                "true_residuals": [],
+                "iteration_timestamps": [],
+                "rhs_norm": 1.0,
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "allocate": 1.0,
+                        "dense::fill": 1.0,
+                        "idr::initialize": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "dense::compute_norm2_dispatch": 1.0,
+                        "check(<typename>)": 1.0,
+                        "residual_norm::residual_norm": 1.0,
+                        "dense::simple_apply": 1.0,
+                        "idr::step_1": 1.0,
+                        "idr::step_2": 1.0,
+                        "csr::spmv": 1.0,
+                        "idr::step_3": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "idr::compute_omega": 1.0,
+                        "dense::scale": 1.0,
+                        "dense::add_scaled": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "iterations": 4,
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "preconditioner": {},
+                "parameters": null,
+                "residual_norm": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        },
+        "rows": 125,
+        "cols": 125
+    }
+]

@@ -91,3 +91,17 @@ test_framework.compare_output(
     expected_stdout="solver.amg.stdout",
     expected_stderr="solver.amg.stderr",
 )
+
+# solver without a config writer
+test_framework.compare_output(
+    [
+        "-solvers",
+        "idr",
+        "-max_iters",
+        "5",
+        "-input",
+        '[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]',
+    ],
+    expected_stdout="solver.nowriter.stdout",
+    expected_stderr="solver.nowriter.stderr",
+)
