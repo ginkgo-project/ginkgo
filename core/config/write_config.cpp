@@ -7,6 +7,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -87,7 +88,24 @@ bool try_write_value_and_index_type(const AbstractFactoryType& factory,
 }
 
 
+template <typename... ValueTypes>
+bool is_identity_factory_of(const LinOpFactory& factory,
+                            syn::type_list<ValueTypes...>)
+{
+    return ((dynamic_cast<const matrix::IdentityFactory<ValueTypes>*>(
+                 &factory) != nullptr) ||
+            ...);
+}
+
+
 }  // namespace
+
+
+// IdentityFactory is instantiated with GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE
+bool is_identity_factory(const LinOpFactory& factory)
+{
+    return is_identity_factory_of(factory, value_type_list());
+}
 
 
 pnode write_config(const LinOpFactory& factory)
