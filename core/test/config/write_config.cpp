@@ -10,6 +10,7 @@
 #include <ostream>
 #include <set>
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -27,6 +28,9 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/pmis.hpp>
+#include <ginkgo/core/multigrid/uniform_coarsening.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
@@ -36,6 +40,7 @@
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -148,6 +153,38 @@ bool contains_empty_node(const pnode& node)
         return false;
     }
 }
+
+
+// how write_config writes a nested factory or a list of them
+bool is_written_factory(const pnode& node)
+{
+    if (node.get_tag() == pnode::tag_t::map) {
+        return true;
+    }
+    if (node.get_tag() != pnode::tag_t::array || node.get_array().empty()) {
+        return false;
+    }
+    for (const auto& item : node.get_array()) {
+        if (item.get_tag() != pnode::tag_t::map) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+template <typename T, typename = void>
+struct written_value_type {
+    static pnode get() { return pnode{}; }
+};
+
+template <typename T>
+struct written_value_type<T, std::void_t<typename T::value_type>> {
+    static pnode get()
+    {
+        return pnode{type_string<typename T::value_type>::str()};
+    }
+};
 
 
 /**
@@ -401,6 +438,104 @@ struct write_case<gko::preconditioner::Isai<IsaiType, ValueType, IndexType>> {
 };
 
 
+template <typename ValueType, typename IndexType>
+struct write_case<gko::multigrid::Pgm<ValueType, IndexType>> {
+    static constexpr const char* type = "multigrid::Pgm";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::multigrid::Pgm<ValueType, IndexType>::build()
+            .with_max_iterations(5u)
+            .with_max_unassigned_ratio(0.1)
+            .with_deterministic(true)
+            .with_skip_sorting(true)
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType, typename IndexType>
+struct write_case<gko::multigrid::Pmis<ValueType, IndexType>> {
+    static constexpr const char* type = "multigrid::Pmis";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::multigrid::Pmis<ValueType, IndexType>::build()
+            .with_strength_threshold(gko::remove_complex<ValueType>{0.5})
+            .with_skip_sorting(true)
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType, typename IndexType>
+struct write_case<gko::multigrid::UniformCoarsening<ValueType, IndexType>> {
+    static constexpr const char* type = "multigrid::UniformCoarsening";
+    using index_type = IndexType;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        return gko::multigrid::UniformCoarsening<ValueType, IndexType>::build()
+            .with_coarse_skip(3)
+            .with_aggregation(false)
+            .with_skip_sorting(true)
+            .on(exec);
+    }
+};
+
+
+template <>
+struct write_case<gko::solver::Multigrid> {
+    static constexpr const char* type = "solver::Multigrid";
+    // the nested factories use int64, which parse takes from the td
+    using index_type = gko::int64;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        using gko::solver::multigrid::cycle;
+        using gko::solver::multigrid::mid_smooth_type;
+        using jacobi = gko::preconditioner::Jacobi<double, index_type>;
+        // different levels and smoothers, so that the order matters
+        return gko::solver::Multigrid::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(7u))
+            .with_mg_level(gko::multigrid::Pgm<double, index_type>::build()
+                               .with_deterministic(true),
+                           gko::multigrid::Pmis<float, index_type>::build()
+                               .with_strength_threshold(0.5f))
+            .with_pre_smoother(
+                gko::solver::Ir<double>::build()
+                    .with_solver(jacobi::build().with_max_block_size(1u))
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(2u)),
+                gko::preconditioner::Jacobi<float, index_type>::build()
+                    .with_max_block_size(1u))
+            .with_post_smoother(jacobi::build().with_max_block_size(2u))
+            .with_mid_smoother(jacobi::build().with_max_block_size(4u))
+            .with_post_uses_pre(false)
+            .with_mid_case(mid_smooth_type::both)
+            .with_max_levels(5u)
+            .with_min_coarse_rows(16u)
+            .with_coarsest_solver(
+                gko::solver::Cg<double>::build().with_criteria(
+                    gko::stop::Iteration::build().with_max_iters(20u)))
+            .with_cycle(cycle::w)
+            .with_kcycle_base(2u)
+            .with_kcycle_rel_tol(0.5)
+            .with_smoother_relax(std::complex<double>{0.5, 0.25})
+            .with_smoother_iters(3u)
+            .with_default_initial_guess(
+                gko::solver::initial_guess_mode::provided)
+            .on(exec);
+    }
+};
+
+
 /**
  * The keys besides "type" that select the instantiation of T in parse, e.g.
  * Ilu's "reverse_apply", which record_requested_keys does not see.
@@ -499,7 +634,14 @@ using WriteConfigTypes = ::testing::Types<
     gko::preconditioner::LowerIsai<double, gko::int32>,
     gko::preconditioner::UpperIsai<float, gko::int64>,
     gko::preconditioner::GeneralIsai<double, gko::int32>,
-    gko::preconditioner::SpdIsai<std::complex<float>, gko::int32>>;
+    gko::preconditioner::SpdIsai<std::complex<float>, gko::int32>,
+    gko::multigrid::Pgm<double, gko::int32>,
+    gko::multigrid::Pgm<float, gko::int64>,
+    gko::multigrid::Pmis<double, gko::int32>,
+    gko::multigrid::Pmis<std::complex<float>, gko::int64>,
+    gko::multigrid::UniformCoarsening<double, gko::int32>,
+    gko::multigrid::UniformCoarsening<float, gko::int64>,
+    gko::solver::Multigrid>;
 
 TYPED_TEST_SUITE(WriteConfig, WriteConfigTypes, TypenameNameGenerator);
 
@@ -523,13 +665,12 @@ TYPED_TEST(WriteConfig, RoundTripsDefaults)
 TYPED_TEST(WriteConfig, WritesTypeAndValueType)
 {
     using linop_type = typename TestFixture::linop_type;
-    using value_type = typename linop_type::value_type;
     using write_case = typename TestFixture::write_case;
 
     auto written = write_config(*linop_type::build().on(this->exec));
 
     ASSERT_EQ(written.get("type"), pnode{write_case::type});
-    ASSERT_EQ(written.get("value_type"), pnode{type_string<value_type>::str()});
+    ASSERT_EQ(written.get("value_type"), written_value_type<linop_type>::get());
     ASSERT_FALSE(written.get("index_type"));
 }
 
@@ -572,9 +713,9 @@ TYPED_TEST(WriteConfig, WritesEveryParsedKey)
         if (not_written_by_default.count(key) == 0) {
             EXPECT_EQ(written.get_map().count(key), 1)
                 << "write_config does not write the key " << key;
-            // only unset nested factories may be left out of the default
+            // only unset nested factories or empty lists may be left out
             if (written_default.get_map().count(key) == 0) {
-                EXPECT_EQ(written.get(key).get_tag(), pnode::tag_t::map)
+                EXPECT_TRUE(is_written_factory(written.get(key)))
                     << "write_config leaves out the default of the key " << key;
             }
         }
@@ -766,6 +907,66 @@ protected:
 
     std::shared_ptr<const gko::Executor> exec;
 };
+
+
+TEST_F(WriteConfigExamples, WritesMultigridEnumsAsStrings)
+{
+    using gko::solver::multigrid::cycle;
+    using gko::solver::multigrid::mid_smooth_type;
+    using multigrid = gko::solver::Multigrid;
+    for (auto [value, name] :
+         {std::make_pair(cycle::v, "v"), std::make_pair(cycle::w, "w"),
+          std::make_pair(cycle::f, "f")}) {
+        auto factory = multigrid::build().with_cycle(value).on(exec);
+
+        auto written = write_config(*factory);
+
+        ASSERT_EQ(written.get("cycle"), pnode{name});
+        auto parsed = parse(written, registry{}).on(exec);
+        ASSERT_EQ(
+            gko::as<multigrid::Factory>(parsed.get())->get_parameters().cycle,
+            value);
+    }
+    for (auto [value, name] :
+         {std::make_pair(mid_smooth_type::both, "both"),
+          std::make_pair(mid_smooth_type::post_smoother, "post_smoother"),
+          std::make_pair(mid_smooth_type::pre_smoother, "pre_smoother"),
+          std::make_pair(mid_smooth_type::standalone, "standalone")}) {
+        auto factory = multigrid::build().with_mid_case(value).on(exec);
+
+        auto written = write_config(*factory);
+
+        ASSERT_EQ(written.get("mid_case"), pnode{name});
+        auto parsed = parse(written, registry{}).on(exec);
+        ASSERT_EQ(gko::as<multigrid::Factory>(parsed.get())
+                      ->get_parameters()
+                      .mid_case,
+                  value);
+    }
+}
+
+
+TEST_F(WriteConfigExamples, DoesNotWriteMultigridSelectors)
+{
+    // parse can not read function-valued parameters
+    auto selector = [](gko::size_type, const gko::LinOp*) {
+        return gko::size_type{0};
+    };
+    auto pgm = gko::multigrid::Pgm<double, gko::int32>::build();
+    auto with_selectors = gko::solver::Multigrid::build()
+                              .with_mg_level(pgm)
+                              .with_level_selector(selector)
+                              .with_solver_selector(selector)
+                              .on(exec);
+    auto without_selectors =
+        gko::solver::Multigrid::build().with_mg_level(pgm).on(exec);
+
+    auto written = write_config(*with_selectors);
+
+    ASSERT_EQ(written.get_map().count("level_selector"), 0);
+    ASSERT_EQ(written.get_map().count("solver_selector"), 0);
+    ASSERT_EQ(written, write_config(*without_selectors));
+}
 
 
 TEST_F(WriteConfigExamples, WritesFactorizationEnumsAsStrings)
@@ -1020,6 +1221,41 @@ TEST(WriteConfig, ThrowsForIdentityIluSolver)
             .on(exec);
 
     EXPECT_THROW(write_config(*ilu), gko::NotSupported);
+}
+
+
+TEST(WriteConfig, ThrowsForNullEntryOfMultigridList)
+{
+    // parse can not read a null entry
+    auto exec = gko::ReferenceExecutor::create();
+    auto pgm =
+        gko::share(gko::multigrid::Pgm<double, gko::int32>::build().on(exec));
+    using multigrid = gko::solver::Multigrid;
+
+    EXPECT_THROW(
+        write_config(*multigrid::build().with_mg_level(pgm, nullptr).on(exec)),
+        gko::NotSupported);
+    EXPECT_THROW(write_config(*multigrid::build()
+                                   .with_mg_level(pgm)
+                                   .with_pre_smoother(nullptr)
+                                   .on(exec)),
+                 gko::NotSupported);
+    EXPECT_THROW(write_config(*multigrid::build()
+                                   .with_mg_level(pgm)
+                                   .with_post_uses_pre(false)
+                                   .with_post_smoother(nullptr)
+                                   .on(exec)),
+                 gko::NotSupported);
+    EXPECT_THROW(write_config(*multigrid::build()
+                                   .with_mg_level(pgm)
+                                   .with_mid_smoother(nullptr)
+                                   .on(exec)),
+                 gko::NotSupported);
+    EXPECT_THROW(write_config(*multigrid::build()
+                                   .with_mg_level(pgm)
+                                   .with_coarsest_solver(nullptr)
+                                   .on(exec)),
+                 gko::NotSupported);
 }
 
 
