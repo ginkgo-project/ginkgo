@@ -188,6 +188,7 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
 
         IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
         IterationControl ic_apply{get_timer(exec, FLAGS_gpu_timer)};
+        json levels;
 
         {
             // fast run, gets total time
@@ -217,22 +218,30 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
             }
 
             write_times(precond_case["apply"], ic_apply);
+
+            // the levels of the timed AMG, since its coarsening may differ
+            // between generates (e.g. PGM's aggregation on GPUs)
+            levels = describe_levels(precond_op.get());
         }
 
         {
             // one extra, untimed generate: its live allocations are the
             // storage of the preconditioner. It is kept alive until the
-            // logger has been read.
+            // logger has been read. The logger is removed even if generate
+            // throws.
             auto storage_logger = std::make_shared<StorageLogger>();
-            exec->add_logger(storage_logger);
-            auto precond = precond_factory.at(decoded_precond_name)(exec);
-            auto precond_op = precond->generate(state.system_matrix);
-            exec->remove_logger(storage_logger);
-            storage_logger->write_data(precond_case);
-            auto levels = describe_levels(precond_op.get());
-            if (!levels.is_null()) {
-                precond_case["levels"] = levels;
+            std::unique_ptr<gko::LinOpFactory> precond;
+            std::unique_ptr<gko::LinOp> precond_op;
+            {
+                auto range = annotate("storage generate");
+                scoped_logger logged{exec, storage_logger};
+                precond = precond_factory.at(decoded_precond_name)(exec);
+                precond_op = precond->generate(state.system_matrix);
             }
+            storage_logger->write_data(precond_case);
+        }
+        if (!levels.is_null()) {
+            precond_case["levels"] = levels;
         }
 
         if (FLAGS_detailed) {

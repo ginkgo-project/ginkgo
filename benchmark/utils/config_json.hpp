@@ -8,7 +8,9 @@
 
 #include <cmath>
 #include <complex>
+#include <exception>
 #include <iostream>
+#include <string>
 #include <typeinfo>
 
 #include <ginkgo/ginkgo.hpp>
@@ -74,7 +76,9 @@ bool is_identity_factory(const gko::LinOpFactory& factory)
 /**
  * Writes the parameters of a factory as json. Returns null for factories
  * without parameters (identity) silently, and for factories without a config
- * writer with a warning on stderr.
+ * writer with a warning on stderr. Any other error of write_config also gives
+ * null and the warning, with the error message, so that a failure to record
+ * the parameters never fails the benchmark case.
  */
 inline json parameters_json(const gko::LinOpFactory& factory)
 {
@@ -84,12 +88,17 @@ inline json parameters_json(const gko::LinOpFactory& factory)
         detail::is_identity_factory<std::complex<double>>(factory)) {
         return nullptr;
     }
+    const auto warning = [&] {
+        return "No config writer for " +
+               gko::name_demangling::get_type_name(typeid(factory));
+    };
     try {
         return pnode_to_json(gko::config::write_config(factory));
     } catch (const gko::NotSupported&) {
-        std::cerr << "No config writer for "
-                  << gko::name_demangling::get_type_name(typeid(factory))
-                  << std::endl;
+        std::cerr << warning() << std::endl;
+        return nullptr;
+    } catch (const std::exception& e) {
+        std::cerr << warning() << ": " << e.what() << std::endl;
         return nullptr;
     }
 }

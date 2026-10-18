@@ -1008,6 +1008,7 @@ std::unique_ptr<gko::LinOpFactory> ic(std::shared_ptr<const gko::Executor> exec)
         gko::share(gko::factorization::Ic<etype, itype>::build().on(exec));
     return gko::preconditioner::Ic<etype, itype>::build()
         .with_factorization(fact)
+        .with_l_solver(gko::solver::LowerTrs<etype, itype>::build())
         .on(exec);
 }
 
@@ -1019,6 +1020,8 @@ std::unique_ptr<gko::LinOpFactory> ilu(
         gko::share(gko::factorization::Ilu<etype, itype>::build().on(exec));
     return gko::preconditioner::Ilu<etype, false, itype>::build()
         .with_factorization(fact)
+        .with_l_solver(gko::solver::LowerTrs<etype, itype>::build())
+        .with_u_solver(gko::solver::UpperTrs<etype, itype>::build())
         .on(exec);
 }
 
@@ -1182,13 +1185,13 @@ pnode::map_type factorization_ic(const char* algorithm)
 }
 
 
-pnode::map_type syncfree_trs(const char* type)
+pnode::map_type trs(const char* type, const char* algorithm)
 {
     return {{"type", pnode{type}},
             {"value_type", pnode{"float64"}},
             {"num_rhs", pnode{1}},
             {"unit_diagonal", pnode{false}},
-            {"algorithm", pnode{"syncfree"}}};
+            {"algorithm", pnode{algorithm}}};
 }
 
 
@@ -1313,8 +1316,8 @@ TEST_F(WriteConfigExamples, WritesBenchmarkIluSyncfree)
                     {"value_type", pnode{"float64"}},
                     {"reverse_apply", pnode{false}},
                     {"factorization", pnode{factorization_ilu("syncfree")}},
-                    {"l_solver", pnode{syncfree_trs("solver::LowerTrs")}},
-                    {"u_solver", pnode{syncfree_trs("solver::UpperTrs")}}}};
+                    {"l_solver", pnode{trs("solver::LowerTrs", "syncfree")}},
+                    {"u_solver", pnode{trs("solver::UpperTrs", "syncfree")}}}};
     ASSERT_EQ(written, expected);
     this->assert_round_trip<
         gko::preconditioner::Ilu<etype, false, itype>::Factory>(*factory);
@@ -1331,7 +1334,7 @@ TEST_F(WriteConfigExamples, WritesBenchmarkIcSyncfree)
     pnode expected{{{"type", pnode{"preconditioner::Ic"}},
                     {"value_type", pnode{"float64"}},
                     {"factorization", pnode{factorization_ic("syncfree")}},
-                    {"l_solver", pnode{syncfree_trs("solver::LowerTrs")}}}};
+                    {"l_solver", pnode{trs("solver::LowerTrs", "syncfree")}}}};
     ASSERT_EQ(written, expected);
     this->assert_round_trip<gko::preconditioner::Ic<etype, itype>::Factory>(
         *factory);
@@ -1345,11 +1348,14 @@ TEST_F(WriteConfigExamples, WritesBenchmarkIlu)
 
     auto written = write_config(*factory);
 
-    // the unset solvers are the default triangular solvers
+    // the solvers are set to the default triangular solvers that generate
+    // would build, so that their algorithm is written
     pnode expected{{{"type", pnode{"preconditioner::Ilu"}},
                     {"value_type", pnode{"float64"}},
                     {"reverse_apply", pnode{false}},
-                    {"factorization", pnode{factorization_ilu("sparselib")}}}};
+                    {"factorization", pnode{factorization_ilu("sparselib")}},
+                    {"l_solver", pnode{trs("solver::LowerTrs", "sparselib")}},
+                    {"u_solver", pnode{trs("solver::UpperTrs", "sparselib")}}}};
     ASSERT_EQ(written, expected);
     this->assert_round_trip<
         gko::preconditioner::Ilu<etype, false, itype>::Factory>(*factory);
@@ -1365,7 +1371,8 @@ TEST_F(WriteConfigExamples, WritesBenchmarkIc)
 
     pnode expected{{{"type", pnode{"preconditioner::Ic"}},
                     {"value_type", pnode{"float64"}},
-                    {"factorization", pnode{factorization_ic("sparselib")}}}};
+                    {"factorization", pnode{factorization_ic("sparselib")}},
+                    {"l_solver", pnode{trs("solver::LowerTrs", "sparselib")}}}};
     ASSERT_EQ(written, expected);
     this->assert_round_trip<gko::preconditioner::Ic<etype, itype>::Factory>(
         *factory);

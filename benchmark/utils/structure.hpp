@@ -6,8 +6,10 @@
 #define GINKGO_BENCHMARK_UTILS_STRUCTURE_HPP
 
 
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -38,10 +40,35 @@ inline std::pair<std::string, json> describe_operator(const gko::LinOp* op)
 
 
 /**
+ * Describes the smoother at index `level` of a list of generated smoothers of
+ * a multigrid solver, as {type, solver type}: the demangled type of the
+ * smoother, and for an IR smoother of the value type etype (e.g. Multigrid's
+ * default smoother) the type of its inner solver. Each is null if there is
+ * none, e.g. for a level without a smoother.
+ */
+inline std::pair<json, json> describe_smoother(
+    const std::vector<std::shared_ptr<const gko::LinOp>>& smoothers,
+    gko::size_type level)
+{
+    if (level >= smoothers.size() || !smoothers[level]) {
+        return {nullptr, nullptr};
+    }
+    const auto& smoother = smoothers[level];
+    json solver = nullptr;
+    if (auto ir = dynamic_cast<const gko::solver::Ir<etype>*>(smoother.get());
+        ir && ir->get_solver()) {
+        solver = gko::name_demangling::get_dynamic_type(*ir->get_solver());
+    }
+    return {gko::name_demangling::get_dynamic_type(*smoother), solver};
+}
+
+
+/**
  * Describes the levels of a multigrid solver, one object per level, with the
- * rows of the fine and coarse operators and the nonzeros of the coarse,
- * restriction and prolongation operators. A multigrid that did not coarsen
- * gives an empty array. Any other operator gives a null json.
+ * rows of the fine and coarse operators, the nonzeros of the coarse,
+ * restriction and prolongation operators, and the types of the generated pre-,
+ * mid- and post-smoothers (see describe_smoother). A multigrid that did not
+ * coarsen gives an empty array. Any other operator gives a null json.
  */
 inline json describe_levels(const gko::LinOp* op)
 {
@@ -49,8 +76,14 @@ inline json describe_levels(const gko::LinOp* op)
     if (!mg) {
         return nullptr;
     }
+    const auto smoothers = {
+        std::make_pair("pre_smoother", mg->get_pre_smoother_list()),
+        std::make_pair("mid_smoother", mg->get_mid_smoother_list()),
+        std::make_pair("post_smoother", mg->get_post_smoother_list())};
     auto levels = json::array();
-    for (const auto& level : mg->get_mg_level_list()) {
+    const auto& level_list = mg->get_mg_level_list();
+    for (gko::size_type i = 0; i < level_list.size(); ++i) {
+        const auto& level = level_list[i];
         json entry;
         entry["fine_rows"] = level->get_fine_op()->get_size()[0];
         entry["coarse_rows"] = level->get_coarse_op()->get_size()[0];
@@ -62,6 +95,11 @@ inline json describe_levels(const gko::LinOp* op)
         entry["restrict_nonzeros"] = restrict_op.second;
         entry["prolong_type"] = prolong_op.first;
         entry["prolong_nonzeros"] = prolong_op.second;
+        for (const auto& [name, list] : smoothers) {
+            auto [type, solver] = describe_smoother(list, i);
+            entry[name] = type;
+            entry[std::string{name} + "_solver"] = solver;
+        }
         levels.push_back(entry);
     }
     return levels;

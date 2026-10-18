@@ -142,8 +142,10 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             }
         }
 
-        // CSR resolves its automatic strategy lazily, so describe the format
-        // only after the warm-up has applied it
+        // the effective format parameters, e.g. CSR's actual strategy. The
+        // matrix fixes it when it is created (make_srow sets
+        // max_nnz_per_row_), not at the first apply, so reading it after the
+        // warm-up is fine too.
         format_case["format_parameters"] =
             formats::describe_format(system_matrix.get());
 

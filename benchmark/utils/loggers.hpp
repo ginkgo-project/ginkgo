@@ -134,7 +134,35 @@ private:
 };
 
 
-// Logs true and recurrent residuals of the solver
+/**
+ * Adds a logger to an executor and removes it again when it goes out of scope,
+ * also when an exception leaves the scope. A logger left on the executor
+ * after a failed case would distort the timings of the later cases.
+ */
+class scoped_logger {
+public:
+    scoped_logger(std::shared_ptr<gko::Executor> exec,
+                  std::shared_ptr<const gko::log::Logger> logger)
+        : exec_{std::move(exec)}, logger_{std::move(logger)}
+    {
+        exec_->add_logger(logger_);
+    }
+
+    ~scoped_logger() { exec_->remove_logger(logger_); }
+
+    scoped_logger(const scoped_logger&) = delete;
+
+    scoped_logger& operator=(const scoped_logger&) = delete;
+
+private:
+    std::shared_ptr<gko::Executor> exec_;
+    std::shared_ptr<const gko::log::Logger> logger_;
+};
+
+
+// Logs true and recurrent residuals of the solver. A value that is not
+// available for an iteration is written as the sentinel -1.0, which no norm
+// can take, so that the arrays stay aligned with the iterations.
 template <typename ValueType>
 struct ResidualLogger : gko::log::Logger {
     using rc_vtype = gko::remove_complex<ValueType>;
@@ -156,8 +184,8 @@ struct ResidualLogger : gko::log::Logger {
             rec_res_norms->push_back(
                 get_norm(gko::as<vec<rc_vtype>>(residual_norm)));
         } else if (!residual) {
-            // e.g. IR stops on its iteration cap before recomputing the
-            // residual of the final iterate
+            // not available (-1.0): e.g. IR stops on its iteration cap before
+            // recomputing the residual of the final iterate
             rec_res_norms->push_back(-1.0);
         } else {
             gko::detail::vector_dispatch<ValueType>(
@@ -174,6 +202,7 @@ struct ResidualLogger : gko::log::Logger {
                     matrix, gko::as<concrete_type>(b), v_solution));
             });
         } else {
+            // not available (-1.0): the solver did not log its solution
             true_res_norms->push_back(-1.0);
         }
         if (implicit_sq_residual_norm) {
@@ -183,6 +212,7 @@ struct ResidualLogger : gko::log::Logger {
                              .get())));
             has_implicit_res_norm = true;
         } else {
+            // not available (-1.0): the solver has no implicit residual norm
             implicit_res_norms->push_back(-1.0);
         }
     }

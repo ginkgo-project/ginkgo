@@ -286,6 +286,22 @@ TEST(JsonConfig, ReadsBackAWrittenIluIcAndIsai)
     using gko::solver::trisolve_algorithm;
     auto exec = gko::ReferenceExecutor::create();
 
+    // the benchmark's ilu and ic, with the default triangular solvers set
+    assert_json_round_trip(
+        exec,
+        *gko::preconditioner::Ilu<double, false, gko::int32>::build()
+             .with_factorization(
+                 gko::factorization::Ilu<double, gko::int32>::build())
+             .with_l_solver(gko::solver::LowerTrs<double, gko::int32>::build())
+             .with_u_solver(gko::solver::UpperTrs<double, gko::int32>::build())
+             .on(exec));
+    assert_json_round_trip(
+        exec,
+        *gko::preconditioner::Ic<double, gko::int32>::build()
+             .with_factorization(
+                 gko::factorization::Ic<double, gko::int32>::build())
+             .with_l_solver(gko::solver::LowerTrs<double, gko::int32>::build())
+             .on(exec));
     // the benchmark's ilu-syncfree, ic-syncfree, general-isai and spd-isai
     assert_json_round_trip(
         exec,
