@@ -4,10 +4,15 @@
 
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
 #include "core/config/write_helper.hpp"
@@ -45,6 +50,11 @@ namespace config {
 
 
 GKO_WRITE_COMMON_SOLVER(Cg);
+GKO_WRITE_COMMON_SOLVER(Bicg);
+GKO_WRITE_COMMON_SOLVER(Cgs);
+GKO_WRITE_COMMON_SOLVER(Fcg);
+GKO_WRITE_COMMON_SOLVER(PipeCg);
+GKO_WRITE_COMMON_SOLVER(Minres);
 GKO_WRITE_COMMON_SOLVER(Bicgstab);
 
 

@@ -31,11 +31,16 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -73,7 +78,7 @@ write_value(IndexType value)
         throw NotSupported(__FILE__, __LINE__, __func__,
                            "an integer above the int64 range");
     }
-    return pnode{value};
+    return pnode{static_cast<std::int64_t>(value)};
 }
 
 
@@ -424,6 +429,11 @@ GKO_DECLARE_WRITER_VALUE_TYPE(stop::ResidualNorm);
 GKO_DECLARE_WRITER_VALUE_TYPE(stop::ImplicitResidualNorm);
 GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(preconditioner::Jacobi);
 GKO_DECLARE_WRITER_VALUE_TYPE(solver::Cg);
+GKO_DECLARE_WRITER_VALUE_TYPE(solver::Bicg);
+GKO_DECLARE_WRITER_VALUE_TYPE(solver::Cgs);
+GKO_DECLARE_WRITER_VALUE_TYPE(solver::Fcg);
+GKO_DECLARE_WRITER_VALUE_TYPE(solver::PipeCg);
+GKO_DECLARE_WRITER_VALUE_TYPE(solver::Minres);
 GKO_DECLARE_WRITER_VALUE_TYPE(solver::Bicgstab);
 GKO_DECLARE_WRITER_VALUE_TYPE(solver::Gmres);
 GKO_DECLARE_WRITER_VALUE_TYPE(solver::Ir);
