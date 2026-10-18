@@ -43,6 +43,133 @@
                 "storage": 266148,
                 "completed": true
             },
+            "ilu": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "factorization::add_diagonal_elements": 1.0,
+                        "ilu_factorization::sparselib_ilu": 1.0,
+                        "factorization::initialize_row_ptrs_l_u": 1.0,
+                        "factorization::initialize_l_u": 1.0,
+                        "lower_trs::generate": 1.0,
+                        "upper_trs::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "dense::copy": 1.0,
+                        "lower_trs::should_perform_transpose": 1.0,
+                        "lower_trs::solve": 1.0,
+                        "upper_trs::should_perform_transpose": 1.0,
+                        "upper_trs::solve": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "factorization": {
+                        "algorithm": "sparselib",
+                        "l_strategy": "classical",
+                        "skip_sorting": false,
+                        "type": "factorization::Ilu",
+                        "u_strategy": "classical",
+                        "value_type": "float64"
+                    },
+                    "l_solver": {
+                        "algorithm": "sparselib",
+                        "num_rhs": 1,
+                        "type": "solver::LowerTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "reverse_apply": false,
+                    "type": "preconditioner::Ilu",
+                    "u_solver": {
+                        "algorithm": "sparselib",
+                        "num_rhs": 1,
+                        "type": "solver::UpperTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "value_type": "float64"
+                },
+                "storage": 96808,
+                "completed": true
+            },
+            "ic": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "factorization::add_diagonal_elements": 1.0,
+                        "ic_factorization::sparselib_ic": 1.0,
+                        "factorization::initialize_row_ptrs_l": 1.0,
+                        "factorization::initialize_l": 1.0,
+                        "csr::conj_transpose": 1.0,
+                        "lower_trs::generate": 1.0,
+                        "upper_trs::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "dense::copy": 1.0,
+                        "lower_trs::should_perform_transpose": 1.0,
+                        "lower_trs::solve": 1.0,
+                        "upper_trs::should_perform_transpose": 1.0,
+                        "upper_trs::solve": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "factorization": {
+                        "algorithm": "sparselib",
+                        "both_factors": true,
+                        "l_strategy": "classical",
+                        "skip_sorting": false,
+                        "type": "factorization::Ic",
+                        "value_type": "float64"
+                    },
+                    "l_solver": {
+                        "algorithm": "sparselib",
+                        "num_rhs": 1,
+                        "type": "solver::LowerTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "type": "preconditioner::Ic",
+                    "value_type": "float64"
+                },
+                "storage": 96808,
+                "completed": true
+            },
             "ilu-syncfree": {
                 "generate": {
                     "components": {
@@ -309,7 +436,13 @@
                         "restrict_type": "sparsity_csr",
                         "restrict_nonzeros": 1,
                         "prolong_type": "row_gatherer",
-                        "prolong_nonzeros": 1
+                        "prolong_nonzeros": 1,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
                     }
                 ],
                 "completed": true
@@ -435,7 +568,13 @@
                         "restrict_type": "csr",
                         "restrict_nonzeros": 1,
                         "prolong_type": "csr",
-                        "prolong_nonzeros": 1
+                        "prolong_nonzeros": 1,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
                     }
                 ],
                 "completed": true
@@ -559,7 +698,13 @@
                         "restrict_type": "csr",
                         "restrict_nonzeros": 1,
                         "prolong_type": "csr",
-                        "prolong_nonzeros": 1
+                        "prolong_nonzeros": 1,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
                     }
                 ],
                 "completed": true

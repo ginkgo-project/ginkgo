@@ -108,6 +108,8 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
         return [sanitize_json(e, sanitize_all) for e in parsed_input]
     elif sanitize_all and isinstance(parsed_input, float):
         return 1.0
+    elif isinstance(parsed_input, str) and "gko::" in parsed_input:
+        return sanitize_typename(parsed_input)
     else:
         return parsed_input
 
