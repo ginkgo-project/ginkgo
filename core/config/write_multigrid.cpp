@@ -25,9 +25,10 @@ pnode parameter_writer<solver::Multigrid>::write(
     auto map = make_config_map("solver::Multigrid");
     map["criteria"] = write_criteria(params.criteria);
     // An empty list is left out. It is not the identity: Multigrid fails to
-    // generate without an mg_level, uses one IR step with a scalar Jacobi
-    // without a smoother, and a direct LU without a coarsest_solver (see
-    // handle_list and generate_coarsest_solver).
+    // generate without an mg_level, uses IR with scalar Jacobi,
+    // smoother_iters steps with smoother_relax, without a smoother, and a
+    // direct LU without a coarsest_solver (see handle_list and
+    // generate_coarsest_solver).
     write_factory_list(map, "mg_level", params.mg_level);
     write_factory_list(map, "pre_smoother", params.pre_smoother);
     write_factory_list(map, "post_smoother", params.post_smoother);

@@ -25,11 +25,16 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -242,6 +247,36 @@ TEST(JsonConfig, ReadsBackAWrittenIrWithGmresAndTriangularSolvers)
         exec, *gko::solver::LowerTrs<double, gko::int32>::build()
                    .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
                    .on(exec));
+}
+
+
+TEST(JsonConfig, ReadsBackWrittenSolversWithCommonParameters)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto jacobi = gko::preconditioner::Jacobi<double, gko::int32>::build()
+                      .with_max_block_size(1u);
+    auto criteria = gko::stop::Iteration::build().with_max_iters(7u);
+
+    assert_json_round_trip(exec, *gko::solver::Bicg<double>::build()
+                                      .with_criteria(criteria)
+                                      .with_preconditioner(jacobi)
+                                      .on(exec));
+    assert_json_round_trip(exec, *gko::solver::Cgs<double>::build()
+                                      .with_criteria(criteria)
+                                      .with_preconditioner(jacobi)
+                                      .on(exec));
+    assert_json_round_trip(exec, *gko::solver::Fcg<double>::build()
+                                      .with_criteria(criteria)
+                                      .with_preconditioner(jacobi)
+                                      .on(exec));
+    assert_json_round_trip(exec, *gko::solver::PipeCg<double>::build()
+                                      .with_criteria(criteria)
+                                      .with_preconditioner(jacobi)
+                                      .on(exec));
+    assert_json_round_trip(exec, *gko::solver::Minres<double>::build()
+                                      .with_criteria(criteria)
+                                      .with_preconditioner(jacobi)
+                                      .on(exec));
 }
 
 

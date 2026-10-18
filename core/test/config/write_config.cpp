@@ -36,12 +36,17 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/idr.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -243,6 +248,61 @@ struct write_case<gko::solver::Bicgstab<ValueType>> {
                     .with_max_block_size(16u))
             .on(exec);
     }
+};
+
+
+// A solver that only reads the parameters of common_solver_parse (see
+// core/config/solver_config.hpp)
+template <typename SolverType>
+struct common_solver_write_case {
+    using index_type = gko::int32;
+
+    static std::unique_ptr<gko::LinOpFactory> non_default(
+        std::shared_ptr<const gko::Executor> exec)
+    {
+        using value_type = typename SolverType::value_type;
+        return SolverType::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(7u))
+            .with_preconditioner(
+                gko::preconditioner::Jacobi<value_type, index_type>::build()
+                    .with_max_block_size(16u))
+            .on(exec);
+    }
+};
+
+
+template <typename ValueType>
+struct write_case<gko::solver::Bicg<ValueType>>
+    : common_solver_write_case<gko::solver::Bicg<ValueType>> {
+    static constexpr const char* type = "solver::Bicg";
+};
+
+
+template <typename ValueType>
+struct write_case<gko::solver::Cgs<ValueType>>
+    : common_solver_write_case<gko::solver::Cgs<ValueType>> {
+    static constexpr const char* type = "solver::Cgs";
+};
+
+
+template <typename ValueType>
+struct write_case<gko::solver::Fcg<ValueType>>
+    : common_solver_write_case<gko::solver::Fcg<ValueType>> {
+    static constexpr const char* type = "solver::Fcg";
+};
+
+
+template <typename ValueType>
+struct write_case<gko::solver::PipeCg<ValueType>>
+    : common_solver_write_case<gko::solver::PipeCg<ValueType>> {
+    static constexpr const char* type = "solver::PipeCg";
+};
+
+
+template <typename ValueType>
+struct write_case<gko::solver::Minres<ValueType>>
+    : common_solver_write_case<gko::solver::Minres<ValueType>> {
+    static constexpr const char* type = "solver::Minres";
 };
 
 
@@ -626,7 +686,12 @@ protected:
 using WriteConfigTypes = ::testing::Types<
     gko::solver::Cg<double>, gko::solver::Cg<float>,
     gko::solver::Cg<std::complex<float>>, gko::solver::Bicgstab<double>,
-    gko::solver::Bicgstab<std::complex<float>>, gko::solver::Gmres<double>,
+    gko::solver::Bicgstab<std::complex<float>>, gko::solver::Bicg<double>,
+    gko::solver::Bicg<std::complex<float>>, gko::solver::Cgs<double>,
+    gko::solver::Cgs<float>, gko::solver::Fcg<double>,
+    gko::solver::Fcg<std::complex<float>>, gko::solver::PipeCg<double>,
+    gko::solver::PipeCg<float>, gko::solver::Minres<double>,
+    gko::solver::Minres<std::complex<float>>, gko::solver::Gmres<double>,
     gko::solver::Gmres<float>, gko::solver::Gmres<std::complex<float>>,
     gko::solver::Ir<double>, gko::solver::Ir<float>,
     gko::solver::Ir<std::complex<float>>,
@@ -1443,8 +1508,9 @@ TEST_F(WriteConfigExamples, WritesCgWithBenchmarkMgPgmPreconditioner)
 TEST_F(WriteConfigExamples, OmitsEmptyMultigridFactoryLists)
 {
     // An empty list means a default that is not the identity: no pre_smoother
-    // is one IR step with a scalar Jacobi, no coarsest_solver a direct LU. So
-    // the empty lists are left out, and parse leaves them at that default.
+    // is IR with scalar Jacobi, smoother_iters steps with smoother_relax, no
+    // coarsest_solver a direct LU. So the empty lists are left out, and parse
+    // leaves them at that default.
     auto factory = gko::solver::Multigrid::build().on(exec);
 
     auto written = write_config(*factory);
@@ -1909,6 +1975,26 @@ TEST(WriteConfig, ThrowsForTypesWithoutWriter)
 
     EXPECT_THROW(write_config(*gko::solver::Idr<double>::build().on(exec)),
                  gko::NotSupported);
+}
+
+
+TEST(WriteConfig, ThrowsForEveryOtherRegistryType)
+{
+    // the registry types that the documentation of write_config lists as
+    // unsupported, except the MPI-only preconditioner::Schwarz
+    auto exec = gko::ReferenceExecutor::create();
+    for (const auto type :
+         {"solver::CbGmres", "solver::Chebyshev", "solver::Direct",
+          "solver::Gcr", "solver::Idr", "factorization::Cholesky",
+          "factorization::Lu", "factorization::ParIc", "factorization::ParIct",
+          "factorization::ParIlu", "factorization::ParIlut",
+          "preconditioner::GaussSeidel", "preconditioner::NullspaceProjection",
+          "preconditioner::Sor", "multigrid::Rs"}) {
+        auto factory =
+            parse(pnode{{{"type", pnode{type}}}}, registry{}).on(exec);
+
+        EXPECT_THROW(write_config(*factory), gko::NotSupported) << type;
+    }
 }
 
 

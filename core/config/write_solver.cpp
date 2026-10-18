@@ -4,10 +4,15 @@
 
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
 #include "core/config/write_helper.hpp"
@@ -30,6 +35,81 @@ pnode parameter_writer<solver::Cg<ValueType>>::write(
 #define GKO_DECLARE_CG_WRITER(ValueType) \
     struct parameter_writer<solver::Cg<ValueType>>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_WRITER);
+
+
+// mirrors Bicg::parse in core/solver/bicg.cpp
+template <typename ValueType>
+pnode parameter_writer<solver::Bicg<ValueType>>::write(
+    const typename solver::Bicg<ValueType>::parameters_type& params)
+{
+    auto map = make_config_map<ValueType>("solver::Bicg");
+    write_common_solver(map, params);
+    return pnode{map};
+}
+
+#define GKO_DECLARE_BICG_WRITER(ValueType) \
+    struct parameter_writer<solver::Bicg<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BICG_WRITER);
+
+
+// mirrors Cgs::parse in core/solver/cgs.cpp
+template <typename ValueType>
+pnode parameter_writer<solver::Cgs<ValueType>>::write(
+    const typename solver::Cgs<ValueType>::parameters_type& params)
+{
+    auto map = make_config_map<ValueType>("solver::Cgs");
+    write_common_solver(map, params);
+    return pnode{map};
+}
+
+#define GKO_DECLARE_CGS_WRITER(ValueType) \
+    struct parameter_writer<solver::Cgs<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_WRITER);
+
+
+// mirrors Fcg::parse in core/solver/fcg.cpp
+template <typename ValueType>
+pnode parameter_writer<solver::Fcg<ValueType>>::write(
+    const typename solver::Fcg<ValueType>::parameters_type& params)
+{
+    auto map = make_config_map<ValueType>("solver::Fcg");
+    write_common_solver(map, params);
+    return pnode{map};
+}
+
+#define GKO_DECLARE_FCG_WRITER(ValueType) \
+    struct parameter_writer<solver::Fcg<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_WRITER);
+
+
+// mirrors PipeCg::parse in core/solver/pipe_cg.cpp
+template <typename ValueType>
+pnode parameter_writer<solver::PipeCg<ValueType>>::write(
+    const typename solver::PipeCg<ValueType>::parameters_type& params)
+{
+    auto map = make_config_map<ValueType>("solver::PipeCg");
+    write_common_solver(map, params);
+    return pnode{map};
+}
+
+#define GKO_DECLARE_PIPE_CG_WRITER(ValueType) \
+    struct parameter_writer<solver::PipeCg<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_WRITER);
+
+
+// mirrors Minres::parse in core/solver/minres.cpp
+template <typename ValueType>
+pnode parameter_writer<solver::Minres<ValueType>>::write(
+    const typename solver::Minres<ValueType>::parameters_type& params)
+{
+    auto map = make_config_map<ValueType>("solver::Minres");
+    write_common_solver(map, params);
+    return pnode{map};
+}
+
+#define GKO_DECLARE_MINRES_WRITER(ValueType) \
+    struct parameter_writer<solver::Minres<ValueType>>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MINRES_WRITER);
 
 
 // mirrors Bicgstab::parse in core/solver/bicgstab.cpp

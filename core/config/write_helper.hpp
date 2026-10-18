@@ -31,11 +31,16 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/cgs.hpp>
+#include <ginkgo/core/solver/fcg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -80,7 +85,8 @@ write_value(IndexType value)
         throw NotSupported(__FILE__, __LINE__, __func__,
                            "an integer above the int64 range");
     }
-    return pnode{value};
+    // in range after the check above; pnode stores an int64 either way
+    return pnode{static_cast<std::int64_t>(value)};
 }
 
 
@@ -536,6 +542,41 @@ template <typename ValueType>
 struct parameter_writer<solver::Cg<ValueType>> {
     static pnode write(
         const typename solver::Cg<ValueType>::parameters_type& params);
+};
+
+
+template <typename ValueType>
+struct parameter_writer<solver::Bicg<ValueType>> {
+    static pnode write(
+        const typename solver::Bicg<ValueType>::parameters_type& params);
+};
+
+
+template <typename ValueType>
+struct parameter_writer<solver::Cgs<ValueType>> {
+    static pnode write(
+        const typename solver::Cgs<ValueType>::parameters_type& params);
+};
+
+
+template <typename ValueType>
+struct parameter_writer<solver::Fcg<ValueType>> {
+    static pnode write(
+        const typename solver::Fcg<ValueType>::parameters_type& params);
+};
+
+
+template <typename ValueType>
+struct parameter_writer<solver::PipeCg<ValueType>> {
+    static pnode write(
+        const typename solver::PipeCg<ValueType>::parameters_type& params);
+};
+
+
+template <typename ValueType>
+struct parameter_writer<solver::Minres<ValueType>> {
+    static pnode write(
+        const typename solver::Minres<ValueType>::parameters_type& params);
 };
 
 
