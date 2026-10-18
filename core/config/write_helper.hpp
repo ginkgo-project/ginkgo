@@ -20,6 +20,13 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/write_config.hpp>
+#include <ginkgo/core/factorization/ic.hpp>
+#include <ginkgo/core/factorization/ilu.hpp>
+#include <ginkgo/core/factorization/incomplete_factorization.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/preconditioner/ic.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -125,6 +132,41 @@ inline pnode write_value(solver::trisolve_algorithm algorithm)
         GKO_WRITE_ENUM_CASE(solver::trisolve_algorithm, syncfree);
     }
     GKO_NOT_SUPPORTED(algorithm);
+}
+
+
+inline pnode write_value(matrix::csr::spmv_strategy strategy)
+{
+    switch (strategy) {
+        GKO_WRITE_ENUM_CASE(matrix::csr::spmv_strategy, automatic);
+        GKO_WRITE_ENUM_CASE(matrix::csr::spmv_strategy, load_balance);
+        GKO_WRITE_ENUM_CASE(matrix::csr::spmv_strategy, merge_path);
+        GKO_WRITE_ENUM_CASE(matrix::csr::spmv_strategy, classical);
+        GKO_WRITE_ENUM_CASE(matrix::csr::spmv_strategy, sparselib);
+    }
+    GKO_NOT_SUPPORTED(strategy);
+}
+
+
+inline pnode write_value(factorization::incomplete_algorithm algorithm)
+{
+    switch (algorithm) {
+        GKO_WRITE_ENUM_CASE(factorization::incomplete_algorithm, sparselib);
+        GKO_WRITE_ENUM_CASE(factorization::incomplete_algorithm, syncfree);
+    }
+    GKO_NOT_SUPPORTED(algorithm);
+}
+
+
+inline pnode write_value(preconditioner::isai_type type)
+{
+    switch (type) {
+        GKO_WRITE_ENUM_CASE(preconditioner::isai_type, lower);
+        GKO_WRITE_ENUM_CASE(preconditioner::isai_type, upper);
+        GKO_WRITE_ENUM_CASE(preconditioner::isai_type, general);
+        GKO_WRITE_ENUM_CASE(preconditioner::isai_type, spd);
+    }
+    GKO_NOT_SUPPORTED(type);
 }
 
 
@@ -335,6 +377,37 @@ GKO_DECLARE_WRITER_VALUE_TYPE(solver::Gmres);
 GKO_DECLARE_WRITER_VALUE_TYPE(solver::Ir);
 GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(solver::LowerTrs);
 GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(solver::UpperTrs);
+GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(factorization::Ilu);
+GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(factorization::Ic);
+
+
+template <typename ValueType, bool ReverseApply, typename IndexType>
+struct parameter_writer<
+    preconditioner::Ilu<ValueType, ReverseApply, IndexType>> {
+    static pnode write(
+        const typename preconditioner::Ilu<ValueType, ReverseApply,
+                                           IndexType>::parameters_type& params);
+};
+
+
+// Ilu with each reverse_apply, as its parser selects them
+template <typename ValueType, typename IndexType>
+using forward_ilu = preconditioner::Ilu<ValueType, false, IndexType>;
+
+template <typename ValueType, typename IndexType>
+using reverse_ilu = preconditioner::Ilu<ValueType, true, IndexType>;
+
+
+GKO_DECLARE_WRITER_VALUE_AND_INDEX_TYPE(preconditioner::Ic);
+
+
+template <preconditioner::isai_type IsaiType, typename ValueType,
+          typename IndexType>
+struct parameter_writer<preconditioner::Isai<IsaiType, ValueType, IndexType>> {
+    static pnode write(
+        const typename preconditioner::Isai<
+            IsaiType, ValueType, IndexType>::parameters_type& params);
+};
 
 
 }  // namespace config
