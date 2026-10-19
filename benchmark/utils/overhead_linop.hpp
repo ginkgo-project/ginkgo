@@ -12,6 +12,10 @@
 
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/solver/solver_base.hpp>
+#include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
 #include "core/base/kernel_declaration.hpp"

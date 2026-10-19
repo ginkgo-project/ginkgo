@@ -24,7 +24,8 @@
     "A comma-separated list of preconditioners to use. "              \
     "Supported values are: none, jacobi, mg, paric, parict, parilu, " \
     "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "        \
-    "parilut-isai, ic-isai, ilu-isai, sor, overhead"
+    "parilut-isai, ic-isai, ilu-isai, ilu-syncfree, ic-syncfree, "    \
+    "mg-pgm, mg-pmis, mg-uniform, sor, overhead"
 #if GINKGO_BUILD_MPI
 DEFINE_string(preconditioners, "none",
               PRECONDITIONERS_COMMON
@@ -78,6 +79,10 @@ DEFINE_double(mg_tolerance, false, "The tolerance for the coarse solver");
 DEFINE_uint32(mg_max_iters, false,
               "The max number of iterations for the coarse solver");
 
+DEFINE_uint32(mg_coarse_iters, 20,
+              "The fixed number of iterations of the coarse CG solver of the "
+              "mg-pgm, mg-pmis and mg-uniform preconditioners");
+
 
 // parses the Jacobi storage optimization command line argument
 gko::precision_reduction parse_storage_optimization(const std::string& flag)
@@ -91,6 +96,29 @@ gko::precision_reduction parse_storage_optimization(const std::string& flag)
             "storage_optimization has to be a list of two integers");
     }
     return gko::precision_reduction(std::stoi(parts[0]), std::stoi(parts[1]));
+}
+
+
+/**
+ * The AMG of mg-pgm, mg-pmis and mg-uniform with the coarsening Level at its
+ * defaults: one V-cycle per apply, Multigrid's default smoother and levels,
+ * and a coarse CG with a default Jacobi running a fixed number of iterations
+ * (-mg_coarse_iters).
+ */
+template <typename Level>
+std::unique_ptr<gko::LinOpFactory> make_amg(
+    std::shared_ptr<const gko::Executor> exec)
+{
+    return gko::solver::Multigrid::build()
+        .with_mg_level(Level::build())
+        .with_coarsest_solver(
+            gko::solver::Cg<etype>::build()
+                .with_preconditioner(
+                    gko::preconditioner::Jacobi<etype, itype>::build())
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(
+                    FLAGS_mg_coarse_iters)))
+        .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+        .on(exec);
 }
 
 
@@ -159,12 +187,16 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_factorization(fact)
                  .on(exec);
          }},
+        // ic and ilu set their triangular solvers to the defaults that
+        // generate would build without them (see core/preconditioner/ic.cpp
+        // and ilu.cpp), so that "parameters" records their algorithm
         {"ic",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(
                  gko::factorization::Ic<etype, itype>::build().on(exec));
              return gko::preconditioner::Ic<etype, itype>::build()
                  .with_factorization(fact)
+                 .with_l_solver(gko::solver::LowerTrs<etype, itype>::build())
                  .on(exec);
          }},
         {"ilu",
@@ -173,6 +205,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::factorization::Ilu<etype, itype>::build().on(exec));
              return gko::preconditioner::Ilu<etype, false, itype>::build()
                  .with_factorization(fact)
+                 .with_l_solver(gko::solver::LowerTrs<etype, itype>::build())
+                 .with_u_solver(gko::solver::UpperTrs<etype, itype>::build())
                  .on(exec);
          }},
         {"paric-isai",
@@ -284,6 +318,44 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_u_solver(uisai)
                  .on(exec);
          }},
+        {"ilu-syncfree",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = gko::share(
+                 gko::factorization::Ilu<etype, itype>::build()
+                     .with_algorithm(
+                         gko::factorization::incomplete_algorithm::syncfree)
+                     .on(exec));
+             return gko::preconditioner::Ilu<etype, false, itype>::build()
+                 .with_factorization(fact)
+                 .with_l_solver(
+                     gko::solver::LowerTrs<etype, itype>::build()
+                         .with_algorithm(
+                             gko::solver::trisolve_algorithm::syncfree))
+                 .with_u_solver(
+                     gko::solver::UpperTrs<etype, itype>::build()
+                         .with_algorithm(
+                             gko::solver::trisolve_algorithm::syncfree))
+                 .on(exec);
+         }},
+        {"ic-syncfree",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = gko::share(
+                 gko::factorization::Ic<etype, itype>::build()
+                     .with_algorithm(
+                         gko::factorization::incomplete_algorithm::syncfree)
+                     .on(exec));
+             return gko::preconditioner::Ic<etype, itype>::build()
+                 .with_factorization(fact)
+                 .with_l_solver(
+                     gko::solver::LowerTrs<etype, itype>::build()
+                         .with_algorithm(
+                             gko::solver::trisolve_algorithm::syncfree))
+                 .on(exec);
+         }},
+        {"mg-pgm", make_amg<gko::multigrid::Pgm<etype, itype>>},
+        {"mg-pmis", make_amg<gko::multigrid::Pmis<etype, itype>>},
+        {"mg-uniform",
+         make_amg<gko::multigrid::UniformCoarsening<etype, itype>>},
         {"general-isai",
          [](std::shared_ptr<const gko::Executor> exec) {
              return gko::preconditioner::GeneralIsai<etype, itype>::build()
@@ -314,7 +386,6 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
          }},
         {"mg",
          [](std::shared_ptr<const gko::Executor> exec) {
-             using ir = gko::solver::Ir<etype>;
              auto iter_stop = gko::share(gko::stop::Iteration::build()
                                              .with_max_iters(FLAGS_mg_max_iters)
                                              .on(exec));

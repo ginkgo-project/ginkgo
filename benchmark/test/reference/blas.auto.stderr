@@ -1,0 +1,8 @@
+Running on ReferenceExecutor
+Running with 2 warm iterations and adaptively determined repetititions with 10 <= rep <= 20 and a minimal runtime of 0.05s
+The random seed for right hand sides is 42
+The operations are copy,axpy,scal
+Running test case n = 100 
+	Running blas: copy
+	Running blas: axpy
+	Running blas: scal

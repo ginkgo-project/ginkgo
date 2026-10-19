@@ -6,66 +6,79 @@
             "coo-read": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "coo-csr": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "csr-read": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "csr-coo": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "csr-ell": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "csr-sellp": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "csr-hybrid": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "ell-read": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "ell-csr": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "sellp-read": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "sellp-csr": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "hybrid-read": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             },
             "hybrid-csr": {
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             }
         },

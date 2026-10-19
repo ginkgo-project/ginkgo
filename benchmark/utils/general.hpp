@@ -103,7 +103,9 @@ DEFINE_uint32(max_repetitions, std::numeric_limits<unsigned int>::max(),
 DEFINE_double(
     repetition_growth_factor, 1.5,
     "The factor with which the repetitions between two timings increase. If it "
-    "is lower than or equal to 1, the timing region is always 1 repetition.");
+    "is lower than or equal to 1, the timing region is always 1 repetition. "
+    "With a factor above 1, repetitions are timed in groups, and "
+    "repetition_times is then empty.");
 
 
 std::unique_ptr<std::istream> input_stream;
@@ -167,9 +169,10 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
 /**
  * Writes a diagnostic message to stderr in a single write().
  *
- * std::cerr is unit-buffered, so each `<<` becomes its own write(). MPI
- * launchers forward stderr through pipes and can misroute such fragments onto
- * their stdout, corrupting the JSON that the benchmark tests parse from there.
+ * std::cerr is unit-buffered, so each `<<` becomes its own write(), and other
+ * output can end up between the pieces of a line. This does not keep MPI
+ * launchers from splitting lines when they forward the output, which is dealt
+ * with in benchmark/test/test_framework.py.in.
  *
  * @param line  the message to print, without the trailing newline
  */
