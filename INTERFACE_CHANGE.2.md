@@ -69,10 +69,10 @@ We use `automatic` in enum not `automatical` like old shared_ptr usage.
 ## Solver mixins take the executor in their constructors [#2127](https://github.com/ginkgo-project/ginkgo/pull/2127)
 The constructors of the solver mixins used to take the executor and size from the derived solver, which is not constructed yet at that point ([#2135](https://github.com/ginkgo-project/ginkgo/issues/2135)).
 They now take the executor of the solver as their first argument:
-- `EnableSolverBase()` and `EnableSolverBase(system_matrix)` are replaced by `EnableSolverBase(exec)` and `EnableSolverBase(exec, system_matrix)`.
+- `EnableSolverBase()` and `EnableSolverBase(system_matrix)` are replaced by `EnableSolverBase(exec)` and `EnableSolverBase(exec, system_matrix)`. `EnableSolverBase(exec, system_matrix, components)` additionally takes over the workspace carried by `components`.
 - `EnableIterativeBase(stop_factory)` is replaced by `EnableIterativeBase(exec, stop_factory)`.
 - `EnablePreconditionable(preconditioner)` is replaced by `EnablePreconditionable(exec, size, preconditioner)`, where `size` is the size of the solver.
-- `EnablePreconditionedIterativeSolver()`, `EnablePreconditionedIterativeSolver(system_matrix, stop_factory, preconditioner)` and `EnablePreconditionedIterativeSolver(system_matrix, params)` are replaced by the same constructors with `exec` as first argument.
+- `EnablePreconditionedIterativeSolver()` and `EnablePreconditionedIterativeSolver(system_matrix, params)` are replaced by `EnablePreconditionedIterativeSolver(exec)` and `EnablePreconditionedIterativeSolver(exec, components, params)`, which takes the system matrix and the workspace from `components`. `EnablePreconditionedIterativeSolver(system_matrix, stop_factory, preconditioner)` is removed.
 
 A custom solver using these mixins passes its executor, e.g.
 ```c++
@@ -83,6 +83,6 @@ explicit MySolver(std::shared_ptr<const Executor> exec)
 MySolver(const Factory* factory, LinOpGenerateComponents components)
     : LinOp(factory->get_executor(), gko::transpose(components.system_matrix->get_size())),
       EnablePreconditionedIterativeSolver<ValueType, MySolver>{
-          factory->get_executor(), std::move(components.system_matrix), factory->get_parameters()}
+          factory->get_executor(), components, factory->get_parameters()}
 {}
 ```
