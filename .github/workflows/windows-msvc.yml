@@ -44,4 +44,4 @@ jobs:
         cd build
         cmake -DGINKGO_BUILD_OMP=OFF -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF ..
         cmake --build . -j4 --config Release
-        ctest . -C Release
+        ctest . -C Release --output-on-failure
