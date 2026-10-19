@@ -52,7 +52,7 @@ function(ginkgo_benchmark_hipsparse_linops type def)
         utils/hip_linops.hip.cpp
         PROPERTIES LANGUAGE HIP
     )
-    if(GINKGO_CUDA_CUSTOM_THRUST_NAMESPACE)
+    if(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE)
         target_compile_definitions(
             hipsparse_linops_${type}
             PRIVATE THRUST_CUB_WRAPPED_NAMESPACE=gko

@@ -1,0 +1,571 @@
+[
+    {
+        "size": 1000,
+        "stencil": "7pt",
+        "optimal": {
+            "spmv": "csr"
+        },
+        "solver": {
+            "cg-jacobi": {
+                "recurrent_residuals": [],
+                "true_residuals": [],
+                "implicit_residuals": [],
+                "iteration_timestamps": [],
+                "rhs_norm": 1.0,
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "allocate": 1.0,
+                        "dense::fill": 1.0,
+                        "cg::initialize": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "dense::compute_norm2_dispatch": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "check(<typename>)": 1.0,
+                        "residual_norm::residual_norm": 1.0,
+                        "cg::step_1": 1.0,
+                        "csr::spmv": 1.0,
+                        "cg::step_2": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "iterations": 22,
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "preconditioner": {
+                    "block_sizes": [
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        32,
+                        8
+                    ]
+                },
+                "parameters": {
+                    "criteria": [
+                        {
+                            "baseline": "rhs_norm",
+                            "reduction_factor": 1e-06,
+                            "type": "ResidualNorm",
+                            "value_type": "float64"
+                        },
+                        {
+                            "max_iters": 1000,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "preconditioner": {
+                        "accuracy": 0.1,
+                        "aggregate_l1": false,
+                        "max_block_size": 32,
+                        "max_block_stride": 0,
+                        "skip_sorting": true,
+                        "storage_optimization": [
+                            0,
+                            0
+                        ],
+                        "type": "preconditioner::Jacobi",
+                        "value_type": "float64"
+                    },
+                    "type": "solver::Cg",
+                    "value_type": "float64"
+                },
+                "residual_norm": 1.0,
+                "repetitions": 1,
+                "completed": true
+            },
+            "cg-mg-pgm": {
+                "recurrent_residuals": [],
+                "true_residuals": [],
+                "implicit_residuals": [],
+                "iteration_timestamps": [],
+                "rhs_norm": 1.0,
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "components::outplace_absolute_array": 1.0,
+                        "csr::transpose": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "csr::spgeam": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "pgm::find_strongest_neighbor": 1.0,
+                        "pgm::match_edge": 1.0,
+                        "pgm::count_unagg": 1.0,
+                        "pgm::assign_to_exist_agg": 1.0,
+                        "pgm::renumber": 1.0,
+                        "components::fill_seq_array": 1.0,
+                        "pgm::sort_agg": 1.0,
+                        "components::convert_idxs_to_ptrs": 1.0,
+                        "pgm::map_row": 1.0,
+                        "pgm::map_col": 1.0,
+                        "components::sort_row_major": 1.0,
+                        "pgm::count_unrepeated_nnz": 1.0,
+                        "pgm::compute_coarse_coo": 1.0,
+                        "move(gko::matrix::Coo<double, int>,gko::matrix::Csr<double, int>)": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "allocate": 1.0,
+                        "dense::fill": 1.0,
+                        "cg::initialize": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "dense::compute_norm2_dispatch": 1.0,
+                        "ir::initialize": 1.0,
+                        "check(<typename>)": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "sparsity_csr::spmv": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "cg::step_1": 1.0,
+                        "csr::spmv": 1.0,
+                        "cg::step_2": 1.0,
+                        "dense::advanced_row_gather": 1.0,
+                        "residual_norm::residual_norm": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "iterations": 12,
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "preconditioner": {},
+                "parameters": {
+                    "criteria": [
+                        {
+                            "baseline": "rhs_norm",
+                            "reduction_factor": 1e-06,
+                            "type": "ResidualNorm",
+                            "value_type": "float64"
+                        },
+                        {
+                            "max_iters": 1000,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "preconditioner": {
+                        "coarsest_solver": [
+                            {
+                                "criteria": [
+                                    {
+                                        "max_iters": 20,
+                                        "type": "Iteration"
+                                    }
+                                ],
+                                "preconditioner": {
+                                    "accuracy": 0.1,
+                                    "aggregate_l1": false,
+                                    "max_block_size": 32,
+                                    "max_block_stride": 0,
+                                    "skip_sorting": false,
+                                    "storage_optimization": [
+                                        0,
+                                        0
+                                    ],
+                                    "type": "preconditioner::Jacobi",
+                                    "value_type": "float64"
+                                },
+                                "type": "solver::Cg",
+                                "value_type": "float64"
+                            }
+                        ],
+                        "criteria": [
+                            {
+                                "max_iters": 1,
+                                "type": "Iteration"
+                            }
+                        ],
+                        "cycle": "v",
+                        "default_initial_guess": "zero",
+                        "kcycle_base": 1,
+                        "kcycle_rel_tol": 0.25,
+                        "max_levels": 10,
+                        "mg_level": [
+                            {
+                                "deterministic": false,
+                                "max_iterations": 15,
+                                "max_unassigned_ratio": 0.05,
+                                "skip_sorting": false,
+                                "type": "multigrid::Pgm",
+                                "value_type": "float64"
+                            }
+                        ],
+                        "mid_case": "standalone",
+                        "min_coarse_rows": 64,
+                        "post_uses_pre": true,
+                        "smoother_iters": 1,
+                        "smoother_relax": [
+                            0.9,
+                            0.0
+                        ],
+                        "type": "solver::Multigrid"
+                    },
+                    "type": "solver::Cg",
+                    "value_type": "float64"
+                },
+                "residual_norm": 1.0,
+                "repetitions": 1,
+                "completed": true
+            },
+            "cg-mg-pmis": {
+                "recurrent_residuals": [],
+                "true_residuals": [],
+                "implicit_residuals": [],
+                "iteration_timestamps": [],
+                "rhs_norm": 1.0,
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "pmis::compute_row_maxabs": 1.0,
+                        "pmis::compute_strong_dep_row": 1.0,
+                        "components::prefix_sum_nonnegative": 1.0,
+                        "pmis::compute_strong_dep": 1.0,
+                        "sparsity_csr::transpose": 1.0,
+                        "pmis::initialize_weight_and_status": 1.0,
+                        "pmis::count": 1.0,
+                        "pmis::classify": 1.0,
+                        "pmis::direct_interpolation_row_count": 1.0,
+                        "components::convert_precision": 1.0,
+                        "pmis::direct_interpolation_fill": 1.0,
+                        "csr::transpose": 1.0,
+                        "apply(<typename>)": 1.0,
+                        "csr::spgemm": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "allocate": 1.0,
+                        "dense::fill": 1.0,
+                        "cg::initialize": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "dense::compute_norm2_dispatch": 1.0,
+                        "ir::initialize": 1.0,
+                        "check(<typename>)": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "csr::spmv": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "cg::step_1": 1.0,
+                        "cg::step_2": 1.0,
+                        "residual_norm::residual_norm": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "iterations": 10,
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "preconditioner": {},
+                "parameters": {
+                    "criteria": [
+                        {
+                            "baseline": "rhs_norm",
+                            "reduction_factor": 1e-06,
+                            "type": "ResidualNorm",
+                            "value_type": "float64"
+                        },
+                        {
+                            "max_iters": 1000,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "preconditioner": {
+                        "coarsest_solver": [
+                            {
+                                "criteria": [
+                                    {
+                                        "max_iters": 20,
+                                        "type": "Iteration"
+                                    }
+                                ],
+                                "preconditioner": {
+                                    "accuracy": 0.1,
+                                    "aggregate_l1": false,
+                                    "max_block_size": 32,
+                                    "max_block_stride": 0,
+                                    "skip_sorting": false,
+                                    "storage_optimization": [
+                                        0,
+                                        0
+                                    ],
+                                    "type": "preconditioner::Jacobi",
+                                    "value_type": "float64"
+                                },
+                                "type": "solver::Cg",
+                                "value_type": "float64"
+                            }
+                        ],
+                        "criteria": [
+                            {
+                                "max_iters": 1,
+                                "type": "Iteration"
+                            }
+                        ],
+                        "cycle": "v",
+                        "default_initial_guess": "zero",
+                        "kcycle_base": 1,
+                        "kcycle_rel_tol": 0.25,
+                        "max_levels": 10,
+                        "mg_level": [
+                            {
+                                "skip_sorting": false,
+                                "strength_threshold": 0.25,
+                                "type": "multigrid::Pmis",
+                                "value_type": "float64"
+                            }
+                        ],
+                        "mid_case": "standalone",
+                        "min_coarse_rows": 64,
+                        "post_uses_pre": true,
+                        "smoother_iters": 1,
+                        "smoother_relax": [
+                            0.9,
+                            0.0
+                        ],
+                        "type": "solver::Multigrid"
+                    },
+                    "type": "solver::Cg",
+                    "value_type": "float64"
+                },
+                "residual_norm": 1.0,
+                "repetitions": 1,
+                "completed": true
+            },
+            "cg-mg-uniform": {
+                "recurrent_residuals": [],
+                "true_residuals": [],
+                "implicit_residuals": [],
+                "iteration_timestamps": [],
+                "rhs_norm": 1.0,
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "components::fill_seq_array": 1.0,
+                        "csr::transpose": 1.0,
+                        "pgm::map_row": 1.0,
+                        "pgm::map_col": 1.0,
+                        "components::sort_row_major": 1.0,
+                        "pgm::count_unrepeated_nnz": 1.0,
+                        "pgm::compute_coarse_coo": 1.0,
+                        "move(gko::matrix::Coo<double, int>,gko::matrix::Csr<double, int>)": 1.0,
+                        "components::convert_idxs_to_ptrs": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "allocate": 1.0,
+                        "dense::fill": 1.0,
+                        "cg::initialize": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "dense::compute_norm2_dispatch": 1.0,
+                        "ir::initialize": 1.0,
+                        "check(<typename>)": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "csr::spmv": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "cg::step_1": 1.0,
+                        "cg::step_2": 1.0,
+                        "residual_norm::residual_norm": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "iterations": 9,
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "preconditioner": {},
+                "parameters": {
+                    "criteria": [
+                        {
+                            "baseline": "rhs_norm",
+                            "reduction_factor": 1e-06,
+                            "type": "ResidualNorm",
+                            "value_type": "float64"
+                        },
+                        {
+                            "max_iters": 1000,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "preconditioner": {
+                        "coarsest_solver": [
+                            {
+                                "criteria": [
+                                    {
+                                        "max_iters": 20,
+                                        "type": "Iteration"
+                                    }
+                                ],
+                                "preconditioner": {
+                                    "accuracy": 0.1,
+                                    "aggregate_l1": false,
+                                    "max_block_size": 32,
+                                    "max_block_stride": 0,
+                                    "skip_sorting": false,
+                                    "storage_optimization": [
+                                        0,
+                                        0
+                                    ],
+                                    "type": "preconditioner::Jacobi",
+                                    "value_type": "float64"
+                                },
+                                "type": "solver::Cg",
+                                "value_type": "float64"
+                            }
+                        ],
+                        "criteria": [
+                            {
+                                "max_iters": 1,
+                                "type": "Iteration"
+                            }
+                        ],
+                        "cycle": "v",
+                        "default_initial_guess": "zero",
+                        "kcycle_base": 1,
+                        "kcycle_rel_tol": 0.25,
+                        "max_levels": 10,
+                        "mg_level": [
+                            {
+                                "aggregation": true,
+                                "coarse_skip": 2,
+                                "skip_sorting": false,
+                                "type": "multigrid::UniformCoarsening",
+                                "value_type": "float64"
+                            }
+                        ],
+                        "mid_case": "standalone",
+                        "min_coarse_rows": 64,
+                        "post_uses_pre": true,
+                        "smoother_iters": 1,
+                        "smoother_relax": [
+                            0.9,
+                            0.0
+                        ],
+                        "type": "solver::Multigrid"
+                    },
+                    "type": "solver::Cg",
+                    "value_type": "float64"
+                },
+                "residual_norm": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        },
+        "rows": 1000,
+        "cols": 1000
+    }
+]
