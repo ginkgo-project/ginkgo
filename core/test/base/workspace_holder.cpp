@@ -61,6 +61,8 @@ public:
           gko::detail::WorkspaceHolder(std::move(other))
     {}
 
+    DummyHolder& operator=(DummyHolder&&) = default;
+
     using gko::detail::WorkspaceHolder::get_workspace_node;
 
     // the holder's only workspace vector
@@ -135,6 +137,21 @@ TEST_F(WorkspaceHolder, MoveTransfersWorkspace)
     ASSERT_EQ(moved.get_workspace_node(), node);
     // the moved-from holder stays usable with a new workspace
     ASSERT_NE(holder.get_workspace_node(), node);
+    ASSERT_EQ(holder.vector()->get_executor(), exec);
+}
+
+
+TEST_F(WorkspaceHolder, MoveAssignmentKeepsExecutor)
+{
+    auto other = gko::ReferenceExecutor::create();
+    DummyHolder holder{exec};
+    DummyHolder source{other};
+    auto* node = source.get_workspace_node();
+
+    holder = std::move(source);
+
+    ASSERT_EQ(holder.get_workspace_node(), node);
+    ASSERT_EQ(holder.vector()->get_executor(), exec);
 }
 
 

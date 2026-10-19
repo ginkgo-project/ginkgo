@@ -166,12 +166,10 @@ WorkspaceHolder::WorkspaceHolder(const WorkspaceHolder& other)
 
 
 WorkspaceHolder::WorkspaceHolder(WorkspaceHolder&& other) noexcept
-    : exec_{other.exec_},
-      owned_{std::move(other.owned_)},
-      borrowed_{std::move(other.borrowed_)},
-      node_{std::exchange(other.node_, nullptr)},
-      extracted_{std::exchange(other.extracted_, false)}
-{}
+    : WorkspaceHolder(other.exec_)
+{
+    *this = std::move(other);
+}
 
 
 WorkspaceHolder& WorkspaceHolder::operator=(const WorkspaceHolder&)
@@ -182,6 +180,7 @@ WorkspaceHolder& WorkspaceHolder::operator=(const WorkspaceHolder&)
 
 WorkspaceHolder& WorkspaceHolder::operator=(WorkspaceHolder&& other) noexcept
 {
+    // exec_ is the executor of this LinOp, which assignment doesn't change
     if (this != &other) {
         owned_ = std::move(other.owned_);
         borrowed_ = std::move(other.borrowed_);
