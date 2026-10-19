@@ -14,7 +14,8 @@
                         "overhead": 1.0
                     },
                     "time": 1.0,
-                    "repetitions": 10
+                    "repetitions": 10,
+                    "repetition_times": []
                 },
                 "apply": {
                     "components": {
@@ -23,8 +24,23 @@
                         "overhead": 1.0
                     },
                     "time": 1.0,
-                    "repetitions": 10
+                    "repetitions": 10,
+                    "repetition_times": []
                 },
+                "parameters": {
+                    "accuracy": 0.1,
+                    "aggregate_l1": false,
+                    "max_block_size": 32,
+                    "max_block_stride": 0,
+                    "skip_sorting": true,
+                    "storage_optimization": [
+                        0,
+                        0
+                    ],
+                    "type": "preconditioner::Jacobi",
+                    "value_type": "float64"
+                },
+                "storage": 33272,
                 "completed": true
             }
         },

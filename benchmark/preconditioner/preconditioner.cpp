@@ -10,6 +10,7 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include "benchmark/utils/config_json.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
@@ -18,6 +19,7 @@
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/runner.hpp"
+#include "benchmark/utils/structure.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -156,10 +158,11 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
 
         state.system_matrix =
             formats::matrix_factory(FLAGS_formats, exec, data);
+        // one column: gko::dim<2>{n} alone is n x n
         state.b = Generator::create_multi_vector_random(
-            exec, gko::dim<2>{data.size[0]}, local_size);
+            exec, gko::dim<2>{data.size[0], 1}, local_size);
         state.x = Generator::create_multi_vector(
-            exec, gko::dim<2>{data.size[0]}, local_size, gko::zero<etype>());
+            exec, gko::dim<2>{data.size[0], 1}, local_size, gko::zero<etype>());
 
         std::cerr << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
@@ -181,8 +184,12 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
             precond_case[stage]["components"] = json::object();
         }
 
+        precond_case["parameters"] =
+            parameters_json(*precond_factory.at(decoded_precond_name)(exec));
+
         IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
         IterationControl ic_apply{get_timer(exec, FLAGS_gpu_timer)};
+        json levels;
 
         {
             // fast run, gets total time
@@ -204,20 +211,38 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
                 precond_op = precond->generate(state.system_matrix);
             }
 
-            precond_case["generate"]["time"] =
-                ic_gen.compute_time(FLAGS_timer_method);
-            precond_case["generate"]["repetitions"] =
-                ic_gen.get_num_repetitions();
+            write_times(precond_case["generate"], ic_gen);
 
             for (auto _ : ic_apply.run()) {
                 auto range = annotate("repetition apply");
                 precond_op->apply(state.b, x_clone);
             }
 
-            precond_case["apply"]["time"] =
-                ic_apply.compute_time(FLAGS_timer_method);
-            precond_case["apply"]["repetitions"] =
-                ic_apply.get_num_repetitions();
+            write_times(precond_case["apply"], ic_apply);
+
+            // the levels of the timed AMG, since its coarsening may differ
+            // between generates (e.g. PGM's aggregation on GPUs)
+            levels = describe_levels(precond_op.get());
+        }
+
+        {
+            // one extra, untimed generate: its live allocations are the
+            // storage of the preconditioner. It is kept alive until the
+            // logger has been read. The logger is removed even if generate
+            // throws.
+            auto storage_logger = std::make_shared<StorageLogger>();
+            std::unique_ptr<gko::LinOpFactory> precond;
+            std::unique_ptr<gko::LinOp> precond_op;
+            {
+                auto range = annotate("storage generate");
+                scoped_logger logged{exec, storage_logger};
+                precond = precond_factory.at(decoded_precond_name)(exec);
+                precond_op = precond->generate(state.system_matrix);
+            }
+            storage_logger->write_data(precond_case);
+        }
+        if (!levels.is_null()) {
+            precond_case["levels"] = levels;
         }
 
         if (FLAGS_detailed) {

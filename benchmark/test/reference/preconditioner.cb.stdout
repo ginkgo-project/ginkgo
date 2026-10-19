@@ -1,0 +1,827 @@
+[
+    {
+        "size": 1000,
+        "stencil": "7pt",
+        "preconditioner": {
+            "jacobi-32-0,0": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "accuracy": 0.1,
+                    "aggregate_l1": false,
+                    "max_block_size": 32,
+                    "max_block_stride": 0,
+                    "skip_sorting": true,
+                    "storage_optimization": [
+                        0,
+                        0
+                    ],
+                    "type": "preconditioner::Jacobi",
+                    "value_type": "float64"
+                },
+                "storage": 266148,
+                "completed": true
+            },
+            "ilu": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "factorization::add_diagonal_elements": 1.0,
+                        "ilu_factorization::sparselib_ilu": 1.0,
+                        "factorization::initialize_row_ptrs_l_u": 1.0,
+                        "factorization::initialize_l_u": 1.0,
+                        "lower_trs::generate": 1.0,
+                        "upper_trs::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "dense::copy": 1.0,
+                        "lower_trs::should_perform_transpose": 1.0,
+                        "lower_trs::solve": 1.0,
+                        "upper_trs::should_perform_transpose": 1.0,
+                        "upper_trs::solve": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "factorization": {
+                        "algorithm": "sparselib",
+                        "l_strategy": "classical",
+                        "skip_sorting": false,
+                        "type": "factorization::Ilu",
+                        "u_strategy": "classical",
+                        "value_type": "float64"
+                    },
+                    "l_solver": {
+                        "algorithm": "sparselib",
+                        "num_rhs": 1,
+                        "type": "solver::LowerTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "reverse_apply": false,
+                    "type": "preconditioner::Ilu",
+                    "u_solver": {
+                        "algorithm": "sparselib",
+                        "num_rhs": 1,
+                        "type": "solver::UpperTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "value_type": "float64"
+                },
+                "storage": 96808,
+                "completed": true
+            },
+            "ic": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "factorization::add_diagonal_elements": 1.0,
+                        "ic_factorization::sparselib_ic": 1.0,
+                        "factorization::initialize_row_ptrs_l": 1.0,
+                        "factorization::initialize_l": 1.0,
+                        "csr::conj_transpose": 1.0,
+                        "lower_trs::generate": 1.0,
+                        "upper_trs::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "dense::copy": 1.0,
+                        "lower_trs::should_perform_transpose": 1.0,
+                        "lower_trs::solve": 1.0,
+                        "upper_trs::should_perform_transpose": 1.0,
+                        "upper_trs::solve": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "factorization": {
+                        "algorithm": "sparselib",
+                        "both_factors": true,
+                        "l_strategy": "classical",
+                        "skip_sorting": false,
+                        "type": "factorization::Ic",
+                        "value_type": "float64"
+                    },
+                    "l_solver": {
+                        "algorithm": "sparselib",
+                        "num_rhs": 1,
+                        "type": "solver::LowerTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "type": "preconditioner::Ic",
+                    "value_type": "float64"
+                },
+                "storage": 96808,
+                "completed": true
+            },
+            "ilu-syncfree": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "factorization::add_diagonal_elements": 1.0,
+                        "csr::build_lookup_offsets": 1.0,
+                        "csr::build_lookup": 1.0,
+                        "lu_factorization::initialize": 1.0,
+                        "lu_factorization::factorize": 1.0,
+                        "factorization::initialize_row_ptrs_l_u": 1.0,
+                        "factorization::initialize_l_u": 1.0,
+                        "lower_trs::generate": 1.0,
+                        "upper_trs::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "dense::copy": 1.0,
+                        "lower_trs::should_perform_transpose": 1.0,
+                        "lower_trs::solve": 1.0,
+                        "upper_trs::should_perform_transpose": 1.0,
+                        "upper_trs::solve": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "factorization": {
+                        "algorithm": "syncfree",
+                        "l_strategy": "classical",
+                        "skip_sorting": false,
+                        "type": "factorization::Ilu",
+                        "u_strategy": "classical",
+                        "value_type": "float64"
+                    },
+                    "l_solver": {
+                        "algorithm": "syncfree",
+                        "num_rhs": 1,
+                        "type": "solver::LowerTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "reverse_apply": false,
+                    "type": "preconditioner::Ilu",
+                    "u_solver": {
+                        "algorithm": "syncfree",
+                        "num_rhs": 1,
+                        "type": "solver::UpperTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "value_type": "float64"
+                },
+                "storage": 96808,
+                "completed": true
+            },
+            "ic-syncfree": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "factorization::add_diagonal_elements": 1.0,
+                        "elimination_forest::from_factor": 1.0,
+                        "csr::build_lookup_offsets": 1.0,
+                        "csr::build_lookup": 1.0,
+                        "cholesky::initialize": 1.0,
+                        "cholesky::factorize": 1.0,
+                        "factorization::initialize_row_ptrs_l": 1.0,
+                        "factorization::initialize_l": 1.0,
+                        "csr::conj_transpose": 1.0,
+                        "lower_trs::generate": 1.0,
+                        "upper_trs::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "dense::copy": 1.0,
+                        "lower_trs::should_perform_transpose": 1.0,
+                        "lower_trs::solve": 1.0,
+                        "upper_trs::should_perform_transpose": 1.0,
+                        "upper_trs::solve": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "factorization": {
+                        "algorithm": "syncfree",
+                        "both_factors": true,
+                        "l_strategy": "classical",
+                        "skip_sorting": false,
+                        "type": "factorization::Ic",
+                        "value_type": "float64"
+                    },
+                    "l_solver": {
+                        "algorithm": "syncfree",
+                        "num_rhs": 1,
+                        "type": "solver::LowerTrs",
+                        "unit_diagonal": false,
+                        "value_type": "float64"
+                    },
+                    "type": "preconditioner::Ic",
+                    "value_type": "float64"
+                },
+                "storage": 96808,
+                "completed": true
+            },
+            "mg-pgm": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "components::outplace_absolute_array": 1.0,
+                        "csr::transpose": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "csr::spgeam": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "pgm::find_strongest_neighbor": 1.0,
+                        "pgm::match_edge": 1.0,
+                        "pgm::count_unagg": 1.0,
+                        "pgm::assign_to_exist_agg": 1.0,
+                        "pgm::renumber": 1.0,
+                        "components::fill_seq_array": 1.0,
+                        "pgm::sort_agg": 1.0,
+                        "components::convert_idxs_to_ptrs": 1.0,
+                        "pgm::map_row": 1.0,
+                        "pgm::map_col": 1.0,
+                        "components::sort_row_major": 1.0,
+                        "pgm::count_unrepeated_nnz": 1.0,
+                        "pgm::compute_coarse_coo": 1.0,
+                        "move(gko::matrix::Coo<double, int>,gko::matrix::Csr<double, int>)": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "dense::fill": 1.0,
+                        "free": 1.0,
+                        "allocate": 1.0,
+                        "ir::initialize": 1.0,
+                        "check(<typename>)": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "sparsity_csr::spmv": 1.0,
+                        "cg::initialize": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "cg::step_1": 1.0,
+                        "csr::spmv": 1.0,
+                        "cg::step_2": 1.0,
+                        "dense::advanced_row_gather": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "coarsest_solver": [
+                        {
+                            "criteria": [
+                                {
+                                    "max_iters": 20,
+                                    "type": "Iteration"
+                                }
+                            ],
+                            "preconditioner": {
+                                "accuracy": 0.1,
+                                "aggregate_l1": false,
+                                "max_block_size": 32,
+                                "max_block_stride": 0,
+                                "skip_sorting": false,
+                                "storage_optimization": [
+                                    0,
+                                    0
+                                ],
+                                "type": "preconditioner::Jacobi",
+                                "value_type": "float64"
+                            },
+                            "type": "solver::Cg",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "criteria": [
+                        {
+                            "max_iters": 1,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "cycle": "v",
+                    "default_initial_guess": "zero",
+                    "kcycle_base": 1,
+                    "kcycle_rel_tol": 0.25,
+                    "max_levels": 10,
+                    "mg_level": [
+                        {
+                            "deterministic": false,
+                            "max_iterations": 15,
+                            "max_unassigned_ratio": 0.05,
+                            "skip_sorting": false,
+                            "type": "multigrid::Pgm",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "mid_case": "standalone",
+                    "min_coarse_rows": 64,
+                    "post_uses_pre": true,
+                    "smoother_iters": 1,
+                    "smoother_relax": [
+                        0.9,
+                        0.0
+                    ],
+                    "type": "solver::Multigrid"
+                },
+                "storage": 285948,
+                "levels": [
+                    {
+                        "fine_rows": 1000,
+                        "coarse_rows": 391,
+                        "coarse_nonzeros": 2523,
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 1000,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 1000,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    },
+                    {
+                        "fine_rows": 391,
+                        "coarse_rows": 192,
+                        "coarse_nonzeros": 1234,
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 391,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 391,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    },
+                    {
+                        "fine_rows": 192,
+                        "coarse_rows": 94,
+                        "coarse_nonzeros": 592,
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 192,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 192,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    },
+                    {
+                        "fine_rows": 94,
+                        "coarse_rows": 46,
+                        "coarse_nonzeros": 294,
+                        "restrict_type": "sparsity_csr",
+                        "restrict_nonzeros": 94,
+                        "prolong_type": "row_gatherer",
+                        "prolong_nonzeros": 94,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    }
+                ],
+                "completed": true
+            },
+            "mg-pmis": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "pmis::compute_row_maxabs": 1.0,
+                        "pmis::compute_strong_dep_row": 1.0,
+                        "components::prefix_sum_nonnegative": 1.0,
+                        "pmis::compute_strong_dep": 1.0,
+                        "sparsity_csr::transpose": 1.0,
+                        "pmis::initialize_weight_and_status": 1.0,
+                        "pmis::count": 1.0,
+                        "pmis::classify": 1.0,
+                        "pmis::direct_interpolation_row_count": 1.0,
+                        "components::convert_precision": 1.0,
+                        "pmis::direct_interpolation_fill": 1.0,
+                        "csr::transpose": 1.0,
+                        "apply(<typename>)": 1.0,
+                        "csr::spgemm": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "dense::fill": 1.0,
+                        "free": 1.0,
+                        "allocate": 1.0,
+                        "ir::initialize": 1.0,
+                        "check(<typename>)": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "csr::spmv": 1.0,
+                        "cg::initialize": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "cg::step_1": 1.0,
+                        "cg::step_2": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "coarsest_solver": [
+                        {
+                            "criteria": [
+                                {
+                                    "max_iters": 20,
+                                    "type": "Iteration"
+                                }
+                            ],
+                            "preconditioner": {
+                                "accuracy": 0.1,
+                                "aggregate_l1": false,
+                                "max_block_size": 32,
+                                "max_block_stride": 0,
+                                "skip_sorting": false,
+                                "storage_optimization": [
+                                    0,
+                                    0
+                                ],
+                                "type": "preconditioner::Jacobi",
+                                "value_type": "float64"
+                            },
+                            "type": "solver::Cg",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "criteria": [
+                        {
+                            "max_iters": 1,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "cycle": "v",
+                    "default_initial_guess": "zero",
+                    "kcycle_base": 1,
+                    "kcycle_rel_tol": 0.25,
+                    "max_levels": 10,
+                    "mg_level": [
+                        {
+                            "skip_sorting": false,
+                            "strength_threshold": 0.25,
+                            "type": "multigrid::Pmis",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "mid_case": "standalone",
+                    "min_coarse_rows": 64,
+                    "post_uses_pre": true,
+                    "smoother_iters": 1,
+                    "smoother_relax": [
+                        0.9,
+                        0.0
+                    ],
+                    "type": "solver::Multigrid"
+                },
+                "storage": 357268,
+                "levels": [
+                    {
+                        "fine_rows": 1000,
+                        "coarse_rows": 344,
+                        "coarse_nonzeros": 5250,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 2179,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 2179,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    },
+                    {
+                        "fine_rows": 344,
+                        "coarse_rows": 64,
+                        "coarse_nonzeros": 1282,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 718,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 718,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    }
+                ],
+                "completed": true
+            },
+            "mg-uniform": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "copy": 1.0,
+                        "free": 1.0,
+                        "csr::sort_by_column_index": 1.0,
+                        "components::fill_seq_array": 1.0,
+                        "csr::transpose": 1.0,
+                        "pgm::map_row": 1.0,
+                        "pgm::map_col": 1.0,
+                        "components::sort_row_major": 1.0,
+                        "pgm::count_unrepeated_nnz": 1.0,
+                        "pgm::compute_coarse_coo": 1.0,
+                        "move(gko::matrix::Coo<double, int>,gko::matrix::Csr<double, int>)": 1.0,
+                        "components::convert_idxs_to_ptrs": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "dense::fill": 1.0,
+                        "free": 1.0,
+                        "allocate": 1.0,
+                        "ir::initialize": 1.0,
+                        "check(<typename>)": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "csr::spmv": 1.0,
+                        "cg::initialize": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "dense::compute_conj_dot_dispatch": 1.0,
+                        "cg::step_1": 1.0,
+                        "cg::step_2": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": []
+                },
+                "parameters": {
+                    "coarsest_solver": [
+                        {
+                            "criteria": [
+                                {
+                                    "max_iters": 20,
+                                    "type": "Iteration"
+                                }
+                            ],
+                            "preconditioner": {
+                                "accuracy": 0.1,
+                                "aggregate_l1": false,
+                                "max_block_size": 32,
+                                "max_block_stride": 0,
+                                "skip_sorting": false,
+                                "storage_optimization": [
+                                    0,
+                                    0
+                                ],
+                                "type": "preconditioner::Jacobi",
+                                "value_type": "float64"
+                            },
+                            "type": "solver::Cg",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "criteria": [
+                        {
+                            "max_iters": 1,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "cycle": "v",
+                    "default_initial_guess": "zero",
+                    "kcycle_base": 1,
+                    "kcycle_rel_tol": 0.25,
+                    "max_levels": 10,
+                    "mg_level": [
+                        {
+                            "aggregation": true,
+                            "coarse_skip": 2,
+                            "skip_sorting": false,
+                            "type": "multigrid::UniformCoarsening",
+                            "value_type": "float64"
+                        }
+                    ],
+                    "mid_case": "standalone",
+                    "min_coarse_rows": 64,
+                    "post_uses_pre": true,
+                    "smoother_iters": 1,
+                    "smoother_relax": [
+                        0.9,
+                        0.0
+                    ],
+                    "type": "solver::Multigrid"
+                },
+                "storage": 380824,
+                "levels": [
+                    {
+                        "fine_rows": 1000,
+                        "coarse_rows": 500,
+                        "coarse_nonzeros": 3100,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 1000,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 1000,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    },
+                    {
+                        "fine_rows": 500,
+                        "coarse_rows": 250,
+                        "coarse_nonzeros": 2000,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 500,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 500,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    },
+                    {
+                        "fine_rows": 250,
+                        "coarse_rows": 125,
+                        "coarse_nonzeros": 1035,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 250,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 250,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    },
+                    {
+                        "fine_rows": 125,
+                        "coarse_rows": 63,
+                        "coarse_nonzeros": 409,
+                        "restrict_type": "csr",
+                        "restrict_nonzeros": 125,
+                        "prolong_type": "csr",
+                        "prolong_nonzeros": 125,
+                        "pre_smoother": "gko::solver::Ir<double>",
+                        "pre_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "mid_smoother": "gko::solver::Ir<double>",
+                        "mid_smoother_solver": "gko::preconditioner::Jacobi<double, int>",
+                        "post_smoother": "gko::solver::Ir<double>",
+                        "post_smoother_solver": "gko::preconditioner::Jacobi<double, int>"
+                    }
+                ],
+                "completed": true
+            }
+        },
+        "rows": 1000,
+        "cols": 1000,
+        "nonzeros": 6400
+    }
+]

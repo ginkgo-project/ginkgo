@@ -142,6 +142,13 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             }
         }
 
+        // the effective format parameters, e.g. CSR's actual strategy. The
+        // matrix fixes it when it is created (make_srow sets
+        // max_nnz_per_row_), not at the first apply, so reading it after the
+        // warm-up is fine too.
+        format_case["format_parameters"] =
+            formats::describe_format(system_matrix.get());
+
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
         auto& format_case = spmv_case[format_name];
@@ -181,8 +188,7 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             auto range = annotate("repetition");
             system_matrix->apply(state.b, x_clone);
         }
-        format_case["time"] = ic.compute_time(FLAGS_timer_method);
-        format_case["repetitions"] = ic.get_num_repetitions();
+        write_times(format_case, ic);
     }
 
     void postprocess(json& test_case) const override
