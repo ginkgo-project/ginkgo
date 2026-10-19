@@ -629,6 +629,8 @@ addresssanitizer:
     - .deploy_condition
     - .before_script_template
     - .use_gko-rocm514-nompi-gnu11-llvm11
+  variables:
+    CCACHE_DISABLE: "1"
   script:
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=ASAN
       -DCTEST_MEMORYCHECK_TYPE=AddressSanitizer
@@ -641,6 +643,8 @@ undefinedsanitizer:
     - .deploy_condition
     - .before_script_template
     - .use_gko-rocm514-nompi-gnu11-llvm11
+  variables:
+    CCACHE_DISABLE: "1"
   script:
     # the Gold linker is required because of a linker flag issues given by UBsan
     # in the Ubuntu setup we are using.
