@@ -1,0 +1,31 @@
+[
+    {
+        "n": 100,
+        "blas": {
+            "copy": {
+                "time": 1.0,
+                "repetitions": 20,
+                "repetition_times": [],
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "completed": true
+            },
+            "axpy": {
+                "time": 1.0,
+                "repetitions": 20,
+                "repetition_times": [],
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "completed": true
+            },
+            "scal": {
+                "time": 1.0,
+                "repetitions": 20,
+                "repetition_times": [],
+                "flops": 1.0,
+                "bandwidth": 1.0,
+                "completed": true
+            }
+        }
+    }
+]

@@ -59,3 +59,10 @@ test_framework.compare_output(
     expected_stderr="spmv_dcomplex.simple.stderr",
     use_complex=True
 )
+
+# format parameters
+test_framework.compare_output(
+    ["-formats", "csr,coo,hybrid,sellp", "-input", '[{"size": 100, "stencil": "7pt"}]'],
+    expected_stdout="spmv.formats.stdout",
+    expected_stderr="spmv.formats.stderr",
+)

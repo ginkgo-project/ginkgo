@@ -6,8 +6,12 @@
         "spmv": {
             "csr-csr": {
                 "storage": 11452,
+                "format_parameters": {},
                 "time": 1.0,
                 "repetitions": 1,
+                "repetition_times": [
+                    1.0
+                ],
                 "completed": true
             }
         },

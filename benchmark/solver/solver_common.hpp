@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 #define GINKGO_BENCHMARK_SOLVER_SOLVER_COMMON_HPP
 
 
+#include "benchmark/utils/config_json.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
@@ -44,7 +45,7 @@ DEFINE_string(solvers, "cg",
               "Supported values are: bicgstab, bicg, cb_gmres_keep, "
               "cb_gmres_reduce1, cb_gmres_reduce2, cb_gmres_integer, "
               "cb_gmres_ireduce1, cb_gmres_ireduce2, cg, cgs, direct, fcg, "
-              "pipe_cg, gmres, idr, lower_trs, minres, near_symm_direct, "
+              "pipe_cg, gmres, idr, ir, lower_trs, minres, near_symm_direct, "
               "upper_trs, spd_direct, symm_direct, "
               "overhead");
 
@@ -207,6 +208,11 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
                 .with_subspace_dim(FLAGS_idr_subspace_dim)
                 .with_kappa(static_cast<rc_etype>(FLAGS_idr_kappa)),
             exec, precond, max_iters);
+    } else if (description == "ir") {
+        return gko::solver::Ir<etype>::build()
+            .with_solver(precond)
+            .with_criteria(create_criterion(exec, max_iters))
+            .on(exec);
     } else if (description == "gmres") {
         gko::solver::gmres::ortho_method ortho_method;
         if (FLAGS_gmres_ortho_method == "mgs") {
@@ -271,10 +277,15 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
 }
 
 
+// Writes the block sizes, precisions and conditioning of a Jacobi
+// preconditioner. Other preconditioners write nothing; not every one of them
+// (e.g. Multigrid) can be cloned.
 void write_precond_info(const gko::LinOp* precond, json& precond_info)
 {
-    if (const auto jacobi =
+    if (const auto device_jacobi =
             dynamic_cast<const gko::preconditioner::Jacobi<etype>*>(precond)) {
+        const auto jacobi = gko::clone(
+            device_jacobi->get_executor()->get_master(), device_jacobi);
         // extract block sizes
         const auto bdata =
             jacobi->get_parameters().block_pointers.get_const_data();
@@ -535,9 +546,8 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             if (auto prec = dynamic_cast<const gko::Preconditionable*>(
                     detailed_solver.get())) {
                 solver_case["preconditioner"] = json::object();
-                write_precond_info(
-                    clone(exec->get_master(), prec->get_preconditioner()).get(),
-                    solver_case["preconditioner"]);
+                write_precond_info(prec->get_preconditioner().get(),
+                                   solver_case["preconditioner"]);
             }
 
             {
@@ -573,6 +583,13 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 }
             }
             exec->synchronize();
+        }
+
+        // the parameters of the factory used for the timed run
+        {
+            auto precond = precond_factory.at(precond_name)(exec);
+            solver_case["parameters"] = parameters_json(*generate_solver(
+                exec, give(precond), solver_name, FLAGS_max_iters));
         }
 
         // timed run
@@ -635,10 +652,8 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                                                   state.b.get(), x_clone.get());
             solver_case["residual_norm"] = residual;
         }
-        solver_case["generate"]["time"] =
-            generate_timer->compute_time(FLAGS_timer_method);
-        solver_case["apply"]["time"] =
-            apply_timer->compute_time(FLAGS_timer_method);
+        write_times(solver_case["generate"], *generate_timer);
+        write_times(solver_case["apply"], *apply_timer);
         solver_case["repetitions"] = apply_timer->get_num_repetitions();
     }
 };

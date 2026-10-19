@@ -14,6 +14,7 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include "benchmark/utils/json.hpp"
 #include "benchmark/utils/sparselib_linops.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -167,7 +168,7 @@ void check_ell_admissibility(const gko::matrix_data<etype, itype>& data)
         return;
     }
     std::vector<gko::size_type> row_lengths(data.size[0]);
-    for (auto nz : data.nonzeros) {
+    for (const auto& nz : data.nonzeros) {
         row_lengths[nz.row]++;
     }
     auto max_len = *std::max_element(row_lengths.begin(), row_lengths.end());
@@ -292,6 +293,37 @@ std::unique_ptr<gko::LinOp> matrix_factory(
             data);
     }
     return mat;
+}
+
+
+/**
+ * Describes the parameters a sparse format effectively chose for the given
+ * matrix, e.g. the number of stored elements per row of ELL. Formats without
+ * such parameters yield an empty object. Call this after a first apply,
+ * since CSR resolves its automatic strategy lazily.
+ */
+inline json describe_format(const gko::LinOp* mtx)
+{
+    json result = json::object();
+    if (auto p = dynamic_cast<const csr*>(mtx)) {
+        result["strategy"] = p->get_strategy()->get_name();
+    } else if (auto p = dynamic_cast<const hybrid*>(mtx)) {
+        result["ell_num_stored_elements_per_row"] =
+            p->get_ell_num_stored_elements_per_row();
+        result["coo_num_stored_elements"] = p->get_coo_num_stored_elements();
+    } else if (auto p =
+                   dynamic_cast<const gko::matrix::Sellp<etype, itype>*>(mtx)) {
+        result["slice_size"] = p->get_slice_size();
+        result["stride_factor"] = p->get_stride_factor();
+        result["total_cols"] = p->get_total_cols();
+    } else if (auto p = dynamic_cast<const ell*>(mtx)) {
+        result["num_stored_elements_per_row"] =
+            p->get_num_stored_elements_per_row();
+    } else if (auto p = dynamic_cast<const ell_mixed*>(mtx)) {
+        result["num_stored_elements_per_row"] =
+            p->get_num_stored_elements_per_row();
+    }
+    return result;
 }
 
 

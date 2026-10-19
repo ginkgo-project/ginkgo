@@ -1,10 +1,12 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GINKGO_BENCHMARK_SPMV_SPMV_COMMON_HPP
 #define GINKGO_BENCHMARK_SPMV_SPMV_COMMON_HPP
 
+
+#include <sstream>
 
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
@@ -89,9 +91,11 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             exec, gko::dim<2>{state.data.first.size[0], nrhs},
             gko::dim<2>{state.data.second[0], nrhs});
         if (do_print) {
-            std::cerr << "Matrix is of size (" << state.data.first.size[0]
-                      << ", " << state.data.first.size[1] << "), "
-                      << state.data.first.nonzeros.size() << std::endl;
+            std::ostringstream ss;
+            ss << "Matrix is of size (" << state.data.first.size[0] << ", "
+               << state.data.first.size[1] << "), "
+               << state.data.first.nonzeros.size();
+            print_line(ss.str());
         }
         test_case["rows"] = state.data.first.size[0];
         test_case["cols"] = state.data.first.size[1];
@@ -138,6 +142,13 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             }
         }
 
+        // the effective format parameters, e.g. CSR's actual strategy. The
+        // matrix fixes it when it is created (make_srow sets
+        // max_nnz_per_row_), not at the first apply, so reading it after the
+        // warm-up is fine too.
+        format_case["format_parameters"] =
+            formats::describe_format(system_matrix.get());
+
         // tuning run
 #ifdef GINKGO_BENCHMARK_ENABLE_TUNING
         auto& format_case = spmv_case[format_name];
@@ -177,8 +188,7 @@ struct SpmvBenchmark : Benchmark<spmv_benchmark_state<Generator>> {
             auto range = annotate("repetition");
             system_matrix->apply(state.b, x_clone);
         }
-        format_case["time"] = ic.compute_time(FLAGS_timer_method);
-        format_case["repetitions"] = ic.get_num_repetitions();
+        write_times(format_case, ic);
     }
 
     void postprocess(json& test_case) const override

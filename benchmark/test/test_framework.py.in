@@ -15,6 +15,7 @@ if len(sys.argv) > 2 and sys.argv[2] == "--generate":
     generate = True
 denumberify_paths = [
     "time",
+    "repetition_times",
     "bandwidth",
     "flops",
     "components",
@@ -61,6 +62,12 @@ def sanitize_json_value(key: str, value, sanitize_all: bool):
         return ""
     if key in denumberify_paths and isinstance(value, float):
         return 1.0
+    if key in denumberify_paths and isinstance(value, list):
+        return [
+            1.0 if isinstance(e, (int, float)) and not isinstance(e, bool)
+            else sanitize_json(e, True)
+            for e in value
+        ]
     if key in denumberify_paths and isinstance(value, dict):
         return sanitize_json(value, True)
     if key in empty_array_paths and isinstance(value, list):
@@ -87,6 +94,43 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
         return 1.0
     else:
         return parsed_input
+
+
+def is_number(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def check_repetition_times(obj, path: str = "$", in_components: bool = False):
+    """Checks that every numeric "time" is accompanied by "repetition_times".
+
+    The list must contain non-negative numbers. If the same object has
+    "repetitions", the list must have this length, unless it is empty (when
+    repetitions are grouped into a single timing, e.g. repetitions=auto).
+    Objects below a "components" key and tuning entries, where "time" is a
+    list, are exempt.
+    """
+
+    if isinstance(obj, dict):
+        if not in_components and is_number(obj.get("time")):
+            assert "repetition_times" in obj, (
+                f"{path}: numeric 'time' without 'repetition_times'"
+            )
+            times = obj["repetition_times"]
+            assert isinstance(times, list) and all(
+                is_number(t) and t >= 0 for t in times
+            ), f"{path}.repetition_times: not a list of non-negative numbers"
+            if "repetitions" in obj and len(times) != 0:
+                assert len(times) == obj["repetitions"], (
+                    f"{path}.repetition_times: has {len(times)} entries, "
+                    f"but repetitions is {obj['repetitions']}"
+                )
+        for key, value in obj.items():
+            check_repetition_times(
+                value, f"{path}.{key}", in_components or key == "components"
+            )
+    elif isinstance(obj, list):
+        for i, value in enumerate(obj):
+            check_repetition_times(value, f"{path}[{i}]", in_components)
 
 
 def sanitize_json_text(input: str) -> List[str]:
@@ -169,15 +213,15 @@ def compare_output_impl(
         "DEBUG: (begin|end  ) (allocate|free)",  # allocations
     ]
     typename_patterns = [
-        ("(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
+        (r"(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
         ("what\\(\\): .*", "what(): <removed>"),
         (re.escape(str(matrixpath)), "<filename>"),
     ]
     if generate:
-        open(expected_stdout, "w").write(
+        pathlib.Path(expected_stdout).write_text(
             "\n".join(sanitize_json_text(result.stdout.decode()))
         )
-        open(expected_stderr, "w").write(
+        pathlib.Path(expected_stderr).write_text(
             "\n".join(
                 sanitize_text(
                     result.stderr.decode(),
@@ -188,15 +232,16 @@ def compare_output_impl(
         )
         print("GENERATED")
         return
+    check_repetition_times(json.loads(result.stdout.decode()))
     result_stdout_processed = sanitize_json_text(result.stdout.decode())
     result_stderr_processed = sanitize_text(
         result.stderr.decode(),
         ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
-    expected_stdout_processed = sanitize_json_text(open(expected_stdout).read())
+    expected_stdout_processed = sanitize_json_text(pathlib.Path(expected_stdout).read_text())
     expected_stderr_processed = sanitize_text(
-        open(expected_stderr).read(),
+        pathlib.Path(expected_stderr).read_text(),
         ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
@@ -239,6 +284,28 @@ def compare_output(
     )
 
 
+def mpiexec_output_flags() -> List[str]:
+    """Returns the launcher flags needed to keep stdout and stderr separate.
+
+    Open MPI 5 (PMIx 5.x/6.0) caches an incomplete line of a rank's output
+    until the rest of it arrives, but looks the cache up by rank *or* stream
+    (pmix_iof_write_output). If a read of the rank's stderr pipe ends
+    mid-line and its stdout arrives before the next stderr read, the partial
+    stderr line gets prepended to stdout, breaking the JSON output.
+    The raw qualifier disables this line caching.
+    """
+
+    version = subprocess.run(
+        args=["@MPIEXEC_EXECUTABLE@", "--version"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    ).stdout.decode()
+    match = re.search(r"\(Open MPI\) (\d+)\.", version)
+    if match and int(match.group(1)) >= 5:
+        return ["--output", ":raw"]
+    return []
+
+
 def compare_output_distributed(
     args: List[str], *, expected_stdout: str, expected_stderr: str, num_procs: int, stdin: str = "", use_complex: bool = False
 ):
@@ -247,6 +314,8 @@ def compare_output_distributed(
         expected_stdout=expected_stdout,
         expected_stderr=expected_stderr,
         stdin=stdin,
-        launcher_flags=["@MPIEXEC_EXECUTABLE@", "@MPIEXEC_NUMPROC_FLAG@", str(num_procs)],
+        launcher_flags=["@MPIEXEC_EXECUTABLE@"]
+        + mpiexec_output_flags()
+        + ["@MPIEXEC_NUMPROC_FLAG@", str(num_procs)],
         use_complex=use_complex
     )
