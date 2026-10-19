@@ -342,8 +342,11 @@ TEST_F(WorkspaceIntegration, CrossFactoryReusePreservesTree)
             .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
             .on(exec);
     solver = gmres_factory->generate(matrix, std::move(ws));
+    ws = gko::invalidate_and_extract_workspace(std::move(solver));
 
-    ASSERT_NE(solver, nullptr);
+    std::ostringstream oss2;
+    ws->describe(oss2);
+    ASSERT_EQ(oss2.str(), oss1.str());
 }
 
 
