@@ -201,7 +201,8 @@ void convert_to_hybrid(
                 const bool use = i < row_size;
                 ell_cols[out_idx] =
                     use ? cols[in_idx] : invalid_index<IndexType>();
-                ell_vals[out_idx] = use ? vals[in_idx] : zero(vals[in_idx]);
+                ell_vals[out_idx] =
+                    use ? vals[in_idx] : zero(ell_vals[out_idx]);
             }
             const auto coo_begin = coo_row_ptrs[row];
             for (int64 i = ell_max_nnz; i < row_size; i++) {
