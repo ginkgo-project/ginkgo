@@ -128,6 +128,12 @@ if(CTEST_MEMORYCHECK_TYPE STREQUAL "CudaMemcheck")
     set(CTEST_BUILD_NAME "CudaMemcheck")
 endif()
 
+if(CTEST_MEMORYCHECK_TYPE STREQUAL "UndefinedBehaviorSanitizer")
+    set(CTEST_MEMORYCHECK_SUPPRESSIONS_FILE
+        "${CTEST_SOURCE_DIRECTORY}/dev_tools/ubsan/suppressions.supp"
+    )
+endif()
+
 if(CTEST_BUILD_CONFIGURATION STREQUAL "COVERAGE")
     find_program(CTEST_COVERAGE_COMMAND gcov)
 endif()
