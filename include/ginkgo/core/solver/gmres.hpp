@@ -223,14 +223,17 @@ protected:
                     LinOp* x) const override;
 
     explicit Gmres(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
+        : LinOp(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
+              std::move(exec)}
     {}
 
     explicit Gmres(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
-              std::move(components.system_matrix), factory->get_parameters()},
+              factory->get_executor(), std::move(components.system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {
         if (!parameters_.krylov_dim) {

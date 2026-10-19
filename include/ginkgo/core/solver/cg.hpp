@@ -123,14 +123,18 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Cg(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
+    explicit Cg(std::shared_ptr<const Executor> exec)
+        : LinOp(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>{
+              std::move(exec)}
     {}
 
     explicit Cg(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Cg<ValueType>>{
-              std::move(components.system_matrix), factory->get_parameters()},
+              factory->get_executor(), std::move(components.system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

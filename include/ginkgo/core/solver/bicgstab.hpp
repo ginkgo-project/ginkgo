@@ -118,7 +118,9 @@ protected:
                     LinOp* x) const override;
 
     explicit Bicgstab(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
+        : LinOp(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Bicgstab<ValueType>>{
+              std::move(exec)}
     {}
 
     explicit Bicgstab(const Factory* factory,
@@ -126,7 +128,8 @@ protected:
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Bicgstab<ValueType>>{
-              std::move(components.system_matrix), factory->get_parameters()},
+              factory->get_executor(), std::move(components.system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };

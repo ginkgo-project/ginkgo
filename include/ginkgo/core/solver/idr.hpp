@@ -248,14 +248,18 @@ protected:
     template <typename VectorType>
     void iterate(const VectorType* dense_b, VectorType* dense_x) const;
 
-    explicit Idr(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
+    explicit Idr(std::shared_ptr<const Executor> exec)
+        : LinOp(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
+              std::move(exec)}
     {}
 
     explicit Idr(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
-              std::move(components.system_matrix), factory->get_parameters()},
+              factory->get_executor(), std::move(components.system_matrix),
+              factory->get_parameters()},
           parameters_{factory->get_parameters()}
     {}
 };
