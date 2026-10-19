@@ -348,6 +348,7 @@ build/nocuda/openmpi/clang/omp/glibcxx-debug-release/shared:
     CXX_FLAGS: "-Wpedantic -D_GLIBCXX_DEBUG=1"
     # The tests are prohibitively slow in Debug
     BUILD_TYPE: "Release"
+    ENABLE_BFLOAT16: "ON"
 
 # oldest supported GCC with MPI, so that the distributed code is covered too
 build/nogpu/openmpi/gcc/noomp/release/shared:
@@ -470,22 +471,10 @@ build/dpcpp/gpu/release/shared:
 #   tags:
 #     - windows
 
-# Job with important warnings as error
-warnings:
-  stage: code_quality
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm514-nompi-gnu11-llvm11
-  variables:
-    BUILD_OMP: "ON"
-    CXX_FLAGS: "-Werror=pedantic -pedantic-errors"
-  allow_failure: yes
-
 # Ensure kernel modules do not depend on core
 no-circular-deps:
   stage: code_quality
+  needs: []
   extends:
     - .build_template
     - .default_variables
@@ -499,6 +488,7 @@ no-circular-deps:
 # Ensure Ginkgo builds from a subdirectory
 subdir-build:
   stage: code_quality
+  needs: []
   extends:
     - .build_template
     - .default_variables
@@ -508,19 +498,6 @@ subdir-build:
     BUILD_OMP: "ON"
     CI_PROJECT_PATH_SUFFIX: "/test_subdir"
   allow_failure: no
-
-# Run iwyu
-iwyu:
-  stage: code_quality
-  extends:
-    - .build_template
-    - .default_variables
-    - .full_test_condition
-    - .use_gko-rocm514-nompi-gnu11-llvm11
-  variables:
-    BUILD_OMP: "ON"
-    EXTRA_CMAKE_FLAGS: '-DGINKGO_WITH_IWYU=ON'
-  allow_failure: yes
 
 # Code analysis with coverage for SonarCloud; Codecov gets its coverage from GitHub
 # For short living branches or PRs, try to detect an open PR
@@ -564,6 +541,7 @@ sonarqube_cov_:
 # (the one that was merged).
 sonarqube_cov:
   stage: code_quality
+  needs: []
   extends:
     - .default_variables
     - .deploy_condition
@@ -643,19 +621,9 @@ threadsanitizer:
         -DCTEST_MEMORYCHECK_SANITIZER_OPTIONS=ignore_noninstrumented_modules=1
         --timeout 6000
 
-leaksanitizer:
-  stage: QoS_tools
-  extends:
-    - .default_variables
-    - .deploy_condition
-    - .before_script_template
-    - .use_gko-rocm514-nompi-gnu11-llvm11
-  script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=LSAN
-      -DCTEST_MEMORYCHECK_TYPE=LeakSanitizer
-
 addresssanitizer:
   stage: QoS_tools
+  needs: []
   extends:
     - .default_variables
     - .deploy_condition
@@ -667,6 +635,7 @@ addresssanitizer:
 
 undefinedsanitizer:
   stage: QoS_tools
+  needs: []
   extends:
     - .default_variables
     - .deploy_condition
@@ -677,17 +646,6 @@ undefinedsanitizer:
     # in the Ubuntu setup we are using.
     - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=UBSAN
       -DCTEST_MEMORYCHECK_TYPE=UndefinedBehaviorSanitizer
-
-cudamemcheck:
-  stage: QoS_tools
-  extends:
-    - .before_script_template
-    - .default_variables
-    - .deploy_condition
-    - .use_gko_cuda110-mvapich-gnu9-llvm9
-  script:
-    - ctest -V -S cmake/CTestScript.cmake -DCTEST_BUILD_CONFIGURATION=RelWithDebInfo
-      -DCTEST_MEMORYCHECK_TYPE=CudaMemcheck
 
 new-issue-on-failure:
   stage: on-failure

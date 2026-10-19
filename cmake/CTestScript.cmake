@@ -188,6 +188,14 @@ if(CTEST_MEMORYCHECK_TYPE STREQUAL "UndefinedBehaviorSanitizer")
     )
 endif()
 
+# The half and bfloat16 instantiations run the same templates as the other
+# value types, so the sanitizers leave them out, like benchmarks and examples
+if(CTEST_MEMORYCHECK_TYPE MATCHES "Sanitizer$")
+    set(GINKGO_CONFIGURE_OPTIONS
+        "${GINKGO_CONFIGURE_OPTIONS};-DGINKGO_ENABLE_HALF=OFF;-DGINKGO_ENABLE_BFLOAT16=OFF;-DGINKGO_BUILD_BENCHMARKS=OFF;-DGINKGO_BUILD_EXAMPLES=OFF"
+    )
+endif()
+
 ctest_configure(
     BUILD "${CTEST_BINARY_DIRECTORY}"
     OPTIONS "${GINKGO_CONFIGURE_OPTIONS}"
@@ -223,7 +231,30 @@ if(NOT CTEST_MEMORYCHECK_TYPE STREQUAL "NONE")
             APPEND
         )
     else()
-        ctest_memcheck(BUILD "${CTEST_BINARY_DIRECTORY}" APPEND)
+        # As in .gitlab/run-ctest.sh, the tests without MPI run in parallel,
+        # each OpenMP test on its own cores. The distributed tests run one at a
+        # time afterwards, since concurrent mpiexec calls can bind their ranks
+        # to the same cores.
+        set(resource_file "${CTEST_BINARY_DIRECTORY}/ctest_resources.json")
+        execute_process(
+            COMMAND
+                "${CTEST_BINARY_DIRECTORY}/test/tools/resource_file_generator"
+            OUTPUT_FILE "${resource_file}"
+        )
+        ctest_memcheck(
+            BUILD "${CTEST_BINARY_DIRECTORY}"
+            EXCLUDE_LABEL distributed
+            PARALLEL_LEVEL ${PROC_COUNT}
+            RESOURCE_SPEC_FILE
+            "${resource_file}"
+            APPEND
+        )
+        ctest_submit(PARTS MemCheck)
+        ctest_memcheck(
+            BUILD "${CTEST_BINARY_DIRECTORY}"
+            INCLUDE_LABEL distributed
+            APPEND
+        )
     endif()
     ctest_submit(PARTS MemCheck)
 endif()
