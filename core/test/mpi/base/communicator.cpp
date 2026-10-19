@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -108,6 +108,19 @@ TEST_F(Communicator, CanSetCustomCommunicator)
     for (auto i = 0; i < world_size; ++i) {
         EXPECT_LT(row_comm.rank(), 4);
     }
+}
+
+
+TEST_F(Communicator, SplitCommunicatorsSetForceHostBuffer)
+{
+    gko::experimental::mpi::communicator host_comm(MPI_COMM_WORLD, true);
+
+    gko::experimental::mpi::communicator from_comm(host_comm, rank / 4, rank);
+    gko::experimental::mpi::communicator from_mpi_comm(MPI_COMM_WORLD, rank / 4,
+                                                       rank);
+
+    EXPECT_TRUE(from_comm.force_host_buffer());
+    EXPECT_FALSE(from_mpi_comm.force_host_buffer());
 }
 
 
