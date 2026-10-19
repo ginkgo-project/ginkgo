@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -24,11 +24,11 @@
 #include "benchmark/utils/types.hpp"
 
 
-DEFINE_string(local_formats, "csr",
-              "A comma-separated list of formats for the local matrix to run. "
+DEFINE_string(diag_formats, "csr",
+              "A comma-separated list of formats for the diag matrix to run. "
               "See the 'formats' option for a list of supported versions");
-DEFINE_string(non_local_formats, "csr",
-              "A comma-separated list of formats for the non-local matrix to "
+DEFINE_string(off_diag_formats, "csr",
+              "A comma-separated list of formats for the off-diag matrix to "
               "run. See the 'formats' option for a list of supported versions");
 
 
@@ -53,18 +53,18 @@ int main(int argc, char* argv[])
 
     if (do_print) {
         std::string extra_information =
-            "The formats are [" + FLAGS_local_formats + "]x[" +
-            FLAGS_non_local_formats + "]\n" +
+            "The formats are [" + FLAGS_diag_formats + "]x[" +
+            FLAGS_off_diag_formats + "]\n" +
             "The number of right hand sides is " + std::to_string(FLAGS_nrhs);
         print_general_information(extra_information, exec);
     }
 
-    auto local_formats = split(FLAGS_local_formats, ',');
-    auto non_local_formats = split(FLAGS_non_local_formats, ',');
+    auto diag_formats = split(FLAGS_diag_formats, ',');
+    auto off_diag_formats = split(FLAGS_off_diag_formats, ',');
     std::vector<std::string> formats;
-    for (const auto& local_fmt : local_formats) {
-        for (const auto& non_local_fmt : non_local_formats) {
-            formats.push_back(local_fmt + "-" + non_local_fmt);
+    for (const auto& diag_fmt : diag_formats) {
+        for (const auto& off_diag_fmt : off_diag_formats) {
+            formats.push_back(diag_fmt + "-" + off_diag_fmt);
         }
     }
 

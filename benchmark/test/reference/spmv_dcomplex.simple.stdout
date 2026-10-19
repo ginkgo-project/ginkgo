@@ -6,8 +6,10 @@
             "coo": {
                 "storage": 17400,
                 "max_relative_norm2": 1.0,
+                "format_parameters": {},
                 "time": 1.0,
                 "repetitions": 10,
+                "repetition_times": [],
                 "completed": true
             }
         },

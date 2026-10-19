@@ -53,7 +53,8 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
                 try {
                     to_mtx->copy_from(from_mtx);
                     operations.push_back(from_format + "-" + to_format);
-                } catch (const std::exception& e) {
+                    // NOLINTNEXTLINE(bugprone-empty-catch)
+                } catch (const std::exception&) {
                 }
             }
         }
@@ -147,8 +148,7 @@ struct ConversionBenchmark : Benchmark<gko::device_matrix_data<etype, itype>> {
                 mtx_to->copy_from(mtx_from);
             }
         }
-        operation_case["time"] = ic.compute_time(FLAGS_timer_method);
-        operation_case["repetitions"] = ic.get_num_repetitions();
+        write_times(operation_case, ic);
     }
 };
 
