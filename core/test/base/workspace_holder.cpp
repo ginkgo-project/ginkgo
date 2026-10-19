@@ -264,7 +264,9 @@ TEST_F(WorkspaceHolder, CreateIfRecreatesOnPredicate)
 
     auto* large = holder.vector_if(gko::dim<2>{3, 1});
 
+    ASSERT_NE(small, nullptr);
     ASSERT_EQ(small, same);
+    ASSERT_NE(large, small);
     ASSERT_EQ(large->get_size(), (gko::dim<2>{3, 1}));
 }
 
@@ -300,6 +302,8 @@ TEST_F(WorkspaceHolder, NodeFollowsTheExecutorOfItsUser)
 
     ASSERT_EQ(vec->get_executor(), exec);
     ASSERT_EQ(child->get_executor(), exec);
+    ASSERT_EQ(second->vector()->get_executor(), other);
+    ASSERT_EQ(child->get_executor(), other);
 }
 
 
