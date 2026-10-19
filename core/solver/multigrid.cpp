@@ -1232,8 +1232,10 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
                      reuse_data_type* reuse_data)
     : LinOp(factory->get_executor(),
             transpose(components.system_matrix->get_size())),
-      EnableSolverBase<Multigrid>{std::move(components.system_matrix)},
+      EnableSolverBase<Multigrid>{factory->get_executor(),
+                                  std::move(components.system_matrix)},
       EnableIterativeBase<Multigrid>{
+          factory->get_executor(),
           stop::combine(factory->get_parameters().criteria)},
       parameters_{factory->get_parameters()}
 {
@@ -1265,7 +1267,9 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
 }
 
 
-Multigrid::Multigrid(std::shared_ptr<const Executor> exec) : LinOp(exec) {}
+Multigrid::Multigrid(std::shared_ptr<const Executor> exec)
+    : LinOp(exec), EnableSolverBase<Multigrid>{std::move(exec)}
+{}
 
 
 int workspace_traits<Multigrid>::num_arrays(const Solver&) { return 1; }

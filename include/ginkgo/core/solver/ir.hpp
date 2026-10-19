@@ -243,14 +243,17 @@ protected:
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
 
-    explicit Ir(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
+    explicit Ir(std::shared_ptr<const Executor> exec)
+        : LinOp(exec), EnableSolverBase<Ir>{std::move(exec)}
     {}
 
     explicit Ir(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
-          EnableSolverBase<Ir>{std::move(components.system_matrix)},
+          EnableSolverBase<Ir>{factory->get_executor(),
+                               std::move(components.system_matrix)},
           EnableIterativeBase<Ir>{
+              factory->get_executor(),
               stop::combine(factory->get_parameters().criteria)},
           parameters_{factory->get_parameters()}
     {
