@@ -184,12 +184,10 @@ void Pmis<ValueType, IndexType>::generate()
                 typename std::decay_t<decltype(*matrix)>::global_index_type;
             auto exec = matrix->get_executor();
             auto comm = matrix->get_communicator();
-            // the transpose below requires both partitions, and only
-            // read_distributed sets the row partition
             GKO_THROW_IF_INVALID(
                 matrix->get_row_partition() != nullptr,
-                "distributed Pmis requires a matrix filled by "
-                "read_distributed, which is what sets the row partition");
+                "distributed Pmis requires a row partition, which is set by "
+                "read_distributed and by the index_map constructor");
             // every rank holds the whole partition, so all ranks throw
             const auto col_partition = matrix->imap_.get_partition();
             GKO_THROW_IF_INVALID(
@@ -451,19 +449,19 @@ void Pmis<ValueType, IndexType>::generate()
                 dim<2>{matrix->get_size()[0], coarse_partition->get_size()},
                 std::move(p_rows), std::move(p_cols),
                 std::move(prolong_values)};
-            auto prolong_op = share(dist_mtx_type::create(exec, comm));
+            auto prolong_op = share(dist_mtx_type::create(exec, row_gatherer));
             // local_only: every rank emits only the rows it owns
             prolong_op->read_distributed(
                 p_data, matrix->get_row_partition(), coarse_partition,
                 experimental::distributed::assembly_mode::local_only);
 
             // restriction and Galerkin coarse operator
-            auto restrict_op = share(dist_mtx_type::create(exec, comm));
+            auto restrict_op = share(dist_mtx_type::create(exec, row_gatherer));
             prolong_op->transpose(restrict_op);
             // input and output must not alias, hence the separate tmp
-            auto tmp = dist_mtx_type::create(exec, comm);
+            auto tmp = dist_mtx_type::create(exec, row_gatherer);
             matrix->multiply(prolong_op, tmp);
-            auto coarse_op = share(dist_mtx_type::create(exec, comm));
+            auto coarse_op = share(dist_mtx_type::create(exec, row_gatherer));
             restrict_op->multiply(tmp, coarse_op);
             this->set_multigrid_level(prolong_op, coarse_op, restrict_op);
         };

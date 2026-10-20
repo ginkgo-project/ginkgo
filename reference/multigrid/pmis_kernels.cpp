@@ -370,8 +370,8 @@ void direct_interpolation_emit(
         if (!ws.enable_pos[row] && !ws.enable_neg[row]) {
             continue;
         }
-        const auto alpha = safe_divide(ws.pos[row], ws.pos_divisor[row]);
-        const auto beta = safe_divide(ws.neg[row], ws.neg_divisor[row]);
+        const auto alpha = safe_divide(ws.neg[row], ws.neg_divisor[row]);
+        const auto beta = safe_divide(ws.pos[row], ws.pos_divisor[row]);
         for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
             const auto val = values[idx];
             const auto col = col_idxs[idx];
@@ -382,12 +382,12 @@ void direct_interpolation_emit(
             }
             if (real(val) >= 0 && ws.enable_pos[row]) {
                 prolong_col_idxs[ws.cursor[row]] = col_offset + col;
-                prolong_values[ws.cursor[row]] = -alpha * val / ws.diag[row];
+                prolong_values[ws.cursor[row]] = -beta * val / ws.diag[row];
                 ws.cursor[row]++;
             }
             if (real(val) < 0 && ws.enable_neg[row]) {
                 prolong_col_idxs[ws.cursor[row]] = col_offset + col;
-                prolong_values[ws.cursor[row]] = -beta * val / ws.diag[row];
+                prolong_values[ws.cursor[row]] = -alpha * val / ws.diag[row];
                 ws.cursor[row]++;
             }
         }
