@@ -9,6 +9,8 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 
+#include "core/test/mpi/base/node_local_rank.hpp"
+
 
 namespace {
 
@@ -48,11 +50,8 @@ TEST_F(Communicator, CommKnowsItsRank)
 
 TEST_F(Communicator, CommKnowsItsLocalRank)
 {
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    // Expect local rank to be same as rank when on one node
-    EXPECT_EQ(comm.node_local_rank(), rank);
+    EXPECT_EQ(comm.node_local_rank(),
+              node_local_rank_from_names(MPI_COMM_WORLD));
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/mpi.hpp>
 
+#include "core/test/mpi/base/node_local_rank.hpp"
 #include "core/test/utils.hpp"
 
 
@@ -60,17 +61,15 @@ TEST_F(MapRankToDevice, EqualDevicesAndRanks)
 {
     auto id = gko::experimental::mpi::map_rank_to_device_id(comm, size);
 
-    ASSERT_EQ(id, rank);
+    ASSERT_EQ(id, node_local_rank_from_names(comm));
 }
 
 
 TEST_F(MapRankToDevice, LessDevicesThanRanks)
 {
-    int target_id[] = {0, 1, 2, 0};
-
     auto id = gko::experimental::mpi::map_rank_to_device_id(comm, 3);
 
-    ASSERT_EQ(id, target_id[rank]);
+    ASSERT_EQ(id, node_local_rank_from_names(comm) % 3);
 }
 
 
@@ -94,9 +93,7 @@ TEST_F(MapRankToDevice, NonCommWorld)
 {
     MPI_Comm split;
     MPI_Comm_split(comm, static_cast<int>(rank < 3), rank, &split);
-    int target_id[] = {0, 1, 0, 0};
-
     auto id = gko::experimental::mpi::map_rank_to_device_id(split, 2);
 
-    ASSERT_EQ(id, target_id[rank]);
+    ASSERT_EQ(id, node_local_rank_from_names(split) % 2);
 }
