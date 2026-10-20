@@ -1,7 +1,6 @@
 # Templates with reasonable defaults for builds and tests
 .default_variables:
   variables:
-    BENCHMARK_SERVER: "FINECI"
     CXX_COMPILER: "g++"
     CUDA_COMPILER: "nvcc"
     BUILD_TYPE: "Debug"

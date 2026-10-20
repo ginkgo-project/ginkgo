@@ -396,7 +396,7 @@ Please note that this only applies to implementation files, so files ending in `
 1. Private headers of Ginkgo should not be included within the public Ginkgo header.
 2. It is a good idea to keep the headers self-sufficient, See [Google Style guide for reasoning](https://google.github.io/styleguide/cppguide.html#Self_contained_Headers).
 When compiling with `GINKGO_CHECK_CIRCULAR_DEPS` enabled, this property is explicitly checked.
-3. The recommendations of the `iwyu` (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( `.cu`, `.cpp`, `.hip.cpp` ) include only what they use. A [CI pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/jobs/584358356) is available that runs with the `iwyu` tool. Please be aware that this tool can be incorrect in some cases.
+3. The recommendations of the `iwyu` (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( `.cu`, `.cpp`, `.hip.cpp` ) include only what they use. Please be aware that this tool can be incorrect in some cases.
 
 
 ### Other Code Formatting not handled by ClangFormat

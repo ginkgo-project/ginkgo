@@ -62,3 +62,11 @@ jobs:
     if: *run
     uses: ./.github/workflows/windows-msvc-mpi.yml
     with: *with
+
+  # pushes get coverage in CI
+  coverage:
+    if: *run
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/coverage.yml
