@@ -140,6 +140,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
               ->create_with_same_type(comm, &imap),
           imap)),
       imap_(std::move(imap)),
+      row_partition_(imap_.get_partition()),
       one_scalar_{exec, 1.0}
 {
     this->set_size({imap_.get_global_size(), imap_.get_global_size()});
