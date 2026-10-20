@@ -24,6 +24,8 @@ variables:
 .daint_build_and_test:
   extends: .baremetal-runner-daint-gh200
   stage: test
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "develop"
   variables:
     GIT_STRATEGY: fetch
     SLURM_JOB_NUM_NODES: 1
@@ -67,10 +69,7 @@ variables:
     reports:
       junit: test-results/*.xml
 
-# Multi-GPU tests with GPU-aware Cray MPICH. The uenv links Cray MPICH to its
-# GTL library, which additionally needs MPICH_GPU_SUPPORT_ENABLED=1 at runtime.
-# The MPI tests use up to 8 processes. Without MPIEXEC_MAX_NUMPROCS, CMake
-# detects only 1 and disables all MPI tests.
+# GPU-aware Cray MPICH, with up to 8 ranks per MPI test
 .daint_mpi:
   variables:
     SLURM_NTASKS: 8
@@ -86,8 +85,7 @@ daint/cuda131/cray-mpich/gcc/omp/debug/shared:
     SLURM_TIMELIMIT: "02:00:00"
     EXTRA_CMAKE_FLAGS: ${MPI_CMAKE_FLAGS}
 
-# The previous uenv version, for a second toolchain (CUDA 12.9, GCC 14.2,
-# Cray MPICH 8.1.32), combined with static libraries and GPU-aware MPI.
+# the previous uenv: CUDA 12.9, GCC 14.2, Cray MPICH 8.1.32
 daint/cuda129/cray-mpich/gcc/omp/release/static:
   extends: [.daint_build_and_test, .daint_mpi]
   variables:
@@ -95,13 +93,12 @@ daint/cuda129/cray-mpich/gcc/omp/release/static:
     SLURM_TIMELIMIT: "02:00:00"
     EXTRA_CMAKE_FLAGS: -DBUILD_SHARED_LIBS=OFF ${MPI_CMAKE_FLAGS}
 
-# Jobs on Beverin's AMD GPUs (https://docs.cscs.ch/clusters/beverin/), with
-# GPU-aware Cray MPICH. A mi300 node has 4 MI300A APUs (gfx942) and 96 cores,
-# a mi200 node 4 MI250X with 8 GCDs (gfx90a) and 64 cores. Each job extends
-# the CSCS runner of its partition first, so that the settings here take
-# precedence over the runner's defaults (e.g. its 15 min time limit).
+# Beverin: mi300 nodes have 4 MI300A and 96 cores, mi200 nodes 8 MI250X GCDs
+# and 64 cores. Jobs extend the runner first, so these override its defaults.
 .beverin_build_and_test:
   stage: test
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "develop"
   variables:
     GIT_STRATEGY: fetch
     # ROCm 6.3.3, GCC 13.4 and Cray MPICH, with all ROCm libraries Ginkgo uses
@@ -138,7 +135,7 @@ daint/cuda129/cray-mpich/gcc/omp/release/static:
         -DMPIEXEC_EXECUTABLE="$(command -v srun)"
         -DGINKGO_BUILD_HIP=ON -DGINKGO_BUILD_OMP=ON
         -DGINKGO_BUILD_MPI=ON -DGINKGO_FORCE_GPU_AWARE_MPI=ON
-        -DMPIEXEC_MAX_NUMPROCS=8 -DGINKGO_DEVEL_TOOLS=OFF
+        -DMPIEXEC_MAX_NUMPROCS=${SLURM_NTASKS} -DGINKGO_DEVEL_TOOLS=OFF
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=OFF
         -DGINKGO_BUILD_BENCHMARKS=OFF
         -DCMAKE_DISABLE_FIND_PACKAGE_Kokkos=ON
@@ -165,3 +162,16 @@ beverin/mi250x/rocm633/cray-mpich/gcc/omp/release/static:
     # fewer cores than on the mi300 nodes, and static linking
     SLURM_TIMELIMIT: "02:00:00"
     EXTRA_CMAKE_FLAGS: -DCMAKE_HIP_ARCHITECTURES=gfx90a -DBUILD_SHARED_LIBS=OFF
+
+# develop only: the distributed tests on 2 nodes, one GCD per rank
+beverin/mi250x/rocm633/cray-mpich/gcc/omp/release/shared/2-nodes:
+  extends: [.baremetal-runner-beverin-mi200, .beverin_build_and_test]
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "develop"
+  variables:
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 8
+    SLURM_NTASKS_PER_NODE: 4
+    SLURM_CPUS_PER_TASK: 16
+    CTEST_ONLY_DISTRIBUTED: 1
+    EXTRA_CMAKE_FLAGS: -DCMAKE_HIP_ARCHITECTURES=gfx90a

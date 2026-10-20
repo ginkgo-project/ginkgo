@@ -17,6 +17,7 @@
 # - CTEST_TIMEOUT: timeout per test in seconds (default: 6000)
 # - CTEST_JUNIT_DIR: directory for JUnit test reports (requires CTest 3.21+)
 # - CTEST_EXTRA_ARGS: additional arguments passed to all ctest calls
+# - CTEST_ONLY_DISTRIBUTED: if set, only the distributed tests run
 
 set -o pipefail
 
@@ -51,9 +52,11 @@ fi
 read -r -a extra_args <<< "${CTEST_EXTRA_ARGS}"
 
 status=0
-ctest --output-on-failure --timeout "${timeout}" --parallel "${jobs}" \
-  --resource-spec-file ctest_resources.json --label-exclude distributed \
-  "${parallel_junit[@]}" "${extra_args[@]}" || status=1
+if [[ -z "${CTEST_ONLY_DISTRIBUTED}" ]]; then
+  ctest --output-on-failure --timeout "${timeout}" --parallel "${jobs}" \
+    --resource-spec-file ctest_resources.json --label-exclude distributed \
+    "${parallel_junit[@]}" "${extra_args[@]}" || status=1
+fi
 OMP_NUM_THREADS="${mpi_omp_threads}" \
   ctest --output-on-failure --timeout "${timeout}" --label-regex distributed \
   "${distributed_junit[@]}" "${extra_args[@]}" || status=1
