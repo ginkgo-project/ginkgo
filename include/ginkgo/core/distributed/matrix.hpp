@@ -493,8 +493,9 @@ public:
     }
 
     /**
-     * Get the row partition this matrix was constructed with via
-     * read_distributed. May be null if the matrix was not read.
+     * Get the row partition of this matrix. It is set by read_distributed,
+     * and by the index_map constructor to the partition of the index_map.
+     * May be null otherwise.
      */
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
     get_row_partition() const;

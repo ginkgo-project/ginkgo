@@ -15,7 +15,9 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
+#include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
+#include <ginkgo/core/distributed/row_gatherer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
@@ -528,6 +530,117 @@ TYPED_TEST(Pmis, CanGenerateFromNonCsrLocalMatrices)
     this->assert_coarse_matches_serial(dist_level->get_coarse_op().get(),
                                        serial_level->get_coarse_op().get());
 }
+
+
+TYPED_TEST(Pmis, CanGenerateFromIndexMapConstructedMatrix)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using pmis = typename TestFixture::pmis;
+    using map_type =
+        gko::experimental::distributed::index_map<local_index_type,
+                                                  global_index_type>;
+    const auto rank = this->comm.rank();
+    const auto data = TestFixture::template laplace_data<global_index_type>(
+        static_cast<int>(this->size[0]));
+    const auto bounds = this->row_part->get_range_bounds();
+    const auto begin = this->exec->copy_val_to_host(bounds + rank);
+    const auto end = this->exec->copy_val_to_host(bounds + rank + 1);
+    const auto is_local = [&](global_index_type idx) {
+        return idx >= begin && idx < end;
+    };
+    std::vector<global_index_type> remote;
+    for (const auto& nz : data.nonzeros) {
+        if (is_local(nz.row) && !is_local(nz.column)) {
+            remote.push_back(nz.column);
+        }
+    }
+    std::sort(remote.begin(), remote.end());
+    remote.erase(std::unique(remote.begin(), remote.end()), remote.end());
+    const auto n_loc = static_cast<gko::size_type>(end - begin);
+    gko::matrix_data<value_type, local_index_type> diag_data{
+        gko::dim<2>{n_loc, n_loc}};
+    gko::matrix_data<value_type, local_index_type> off_diag_data{
+        gko::dim<2>{n_loc, remote.size()}};
+    for (const auto& nz : data.nonzeros) {
+        if (!is_local(nz.row)) {
+            continue;
+        }
+        const auto row = static_cast<local_index_type>(nz.row - begin);
+        if (is_local(nz.column)) {
+            diag_data.nonzeros.emplace_back(
+                row, static_cast<local_index_type>(nz.column - begin),
+                nz.value);
+        } else {
+            // the index map orders remote indices by owner, then global index
+            off_diag_data.nonzeros.emplace_back(
+                row,
+                static_cast<local_index_type>(
+                    std::lower_bound(remote.begin(), remote.end(), nz.column) -
+                    remote.begin()),
+                nz.value);
+        }
+    }
+    auto diag = gko::share(local_matrix_type::create(this->exec));
+    diag->read(diag_data);
+    auto off_diag = gko::share(
+        gko::matrix::Coo<value_type, local_index_type>::create(this->exec));
+    off_diag->read(off_diag_data);
+    auto mat = gko::share(dist_mtx_type::create(
+        this->exec, this->comm,
+        map_type{this->exec, this->row_part, rank,
+                 gko::array<global_index_type>{this->exec, remote.begin(),
+                                               remote.end()}},
+        diag, off_diag));
+
+    auto dist_level = pmis::build().on(this->exec)->generate(mat);
+    auto serial_level =
+        pmis::build().on(this->exec)->generate(this->serial_mat);
+
+    this->assert_coarse_matches_serial(dist_level->get_coarse_op().get(),
+                                       serial_level->get_coarse_op().get());
+}
+
+
+#if !GINKGO_HAVE_OPENMPI_PRE_4_1_X
+TYPED_TEST(Pmis, KeepsCollectiveCommunicatorType)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    SKIP_IF_DEVICE_NO_16BIT_SPGEMM(typename TestFixture::value_type);
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using pmis = typename TestFixture::pmis;
+    using row_gatherer_type =
+        gko::experimental::distributed::RowGatherer<local_index_type>;
+    using neighborhood_type = gko::experimental::mpi::NeighborhoodCommunicator;
+    const int n = static_cast<int>(this->size[0]);
+    auto mat = gko::share(dist_mtx_type::create(
+        this->exec,
+        gko::share(row_gatherer_type::create(
+            this->exec, std::make_shared<neighborhood_type>(this->comm)))));
+    mat->read_distributed(
+        TestFixture::template laplace_data<global_index_type>(n),
+        this->row_part);
+
+    auto level = pmis::build().on(this->exec)->generate(mat);
+
+    for (auto op : {level->get_prolong_op(), level->get_restrict_op(),
+                    level->get_coarse_op()}) {
+        ASSERT_NE(dynamic_cast<const neighborhood_type*>(
+                      gko::as<dist_mtx_type>(op)
+                          ->get_row_gatherer()
+                          ->get_collective_communicator()
+                          .get()),
+                  nullptr);
+    }
+}
+#endif
 
 
 TYPED_TEST(Pmis, DistributedMultigridPreconditionedCgConverges)
