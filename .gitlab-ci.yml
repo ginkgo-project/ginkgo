@@ -512,7 +512,9 @@ sonarqube:
     - cmake -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       -DGINKGO_DEVEL_TOOLS=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF
       -DGINKGO_BUILD_SYCL=OFF
+    # the TUM containers have no home directory, only a small writable tmpfs
     - sonar-scanner -Dsonar.token=${SONARQUBE_LOGIN}
+      -Dsonar.userHome=${CI_PROJECT_DIR}/build/.sonar
       -Dsonar.projectKey="ginkgo-project_ginkgo"
       -Dsonar.organization="ginkgo-project"
       -Dsonar.host.url="https://sonarcloud.io"
