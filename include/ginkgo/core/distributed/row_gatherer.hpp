@@ -65,6 +65,10 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
  * The distributed::RowGatherer gathers the rows of distributed::Vector that
  * are located on other processes.
  *
+ * This is the transpose of the RowScatterer operation:
+ * - RowGatherer does:  y_local = R * x_distributed  (gather remote values)
+ * - RowScatterer does: x_distributed += R^T * y_local (scatter and accumulate)
+ *
  * Example usage:
  * ```c++
  * auto coll_comm = std::make_shared<mpi::neighborhood_communicator>(comm,
@@ -72,7 +76,7 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
  * auto rg = distributed::RowGatherer<int32>::create(exec, coll_comm, imap);
  *
  * auto b = distributed::Vector<double>::create(...);
- * auto x = matrix::Dense<double>::create(...);
+ * auto x = distributed::Vector<double>::create(...);
  *
  * auto req = rg->apply_async(b, x);
  * // users can do some computation that doesn't modify b, or access x
@@ -205,13 +209,13 @@ public:
             new RowGatherer(std::move(exec), std::move(coll_comm), imap));
     }
 
-    /*
+    /**
      * Create method for an empty RowGatherer.
      */
     static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm);
 
-    /*
+    /**
      * Create method for an empty RowGatherer with an template for the
      * collective communicator.
      *
@@ -233,7 +237,7 @@ public:
 
     RowGatherer(const RowGatherer& o);
 
-    RowGatherer(RowGatherer&& o) noexcept;
+    RowGatherer(RowGatherer&& o);
 
     RowGatherer& operator=(const RowGatherer& o);
 

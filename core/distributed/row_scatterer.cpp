@@ -5,14 +5,12 @@
 #include "ginkgo/core/distributed/row_scatterer.hpp"
 
 #include <ginkgo/core/base/dense_cache.hpp>
-#include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
-#include "core/base/event_kernels.hpp"
 #include "core/distributed/helpers.hpp"
 
 namespace gko {
@@ -20,18 +18,13 @@ namespace experimental {
 namespace distributed {
 
 
-namespace event {
-namespace {
-GKO_REGISTER_OPERATION(record_event, event::record_event);
-}
-}  // namespace event
-
-
 template <typename LocalIndexType>
-mpi::request RowScatterer<LocalIndexType>::apply_async(
+void RowScatterer<LocalIndexType>::apply_async(
     ptr_param<const LinOp> local_values) const
 {
-    mpi::request req;
+    GKO_THROW_IF_INVALID(recv_buffer_ == nullptr,
+                         "apply_async requires the previous scatter to be "
+                         "finished by wait_and_accumulate.");
     auto exec = this->get_executor();
     auto use_host_buffer =
         mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
@@ -75,31 +68,27 @@ mpi::request RowScatterer<LocalIndexType>::apply_async(
             auto recv_buffer = recv_cache_.get<ValueType>(mpi_exec, recv_size);
 
             // the send data has to be ready before MPI accesses it
-            std::shared_ptr<const gko::detail::Event> ev = nullptr;
-            lv_local->get_executor()->run(event::make_record_event(ev));
-            ev->synchronize();
+            lv_local->get_executor()->synchronize();
 
             // Start async MPI communication
             mpi::contiguous_type type(ncols,
                                       mpi::type_impl<ValueType>::get_type());
-            req = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
-                                             recv_buffer->get_values(),
-                                             type.get());
+            req_ = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
+                                              recv_buffer->get_values(),
+                                              type.get());
             recv_buffer_ = recv_buffer;
         });
-    return req;
 }
 
 
 template <typename LocalIndexType>
 void RowScatterer<LocalIndexType>::wait_and_accumulate(
-    mpi::request& req, ptr_param<LinOp> distributed_target) const
+    ptr_param<LinOp> distributed_target) const
 {
-    req.wait();
-
     GKO_THROW_IF_INVALID(recv_buffer_ != nullptr,
                          "wait_and_accumulate requires a preceding "
                          "apply_async.");
+    req_.wait();
     auto recv_buffer_op = std::exchange(recv_buffer_, nullptr);
 
     // Dispatch on the distributed target to get ValueType
@@ -115,9 +104,7 @@ void RowScatterer<LocalIndexType>::wait_and_accumulate(
             using ValueType =
                 typename std::decay_t<decltype(*target_global)>::value_type;
 
-            auto target_local = target_global->get_local_vector();
-            auto target_dense =
-                const_cast<matrix::Dense<ValueType>*>(target_local);
+            auto target_dense = gko::detail::get_local(target_global);
             // throws if apply_async used a different value type
             auto recv_buffer =
                 gko::as<matrix::Dense<ValueType>>(recv_buffer_op);
@@ -177,7 +164,8 @@ RowScatterer<LocalIndexType>::RowScatterer(
     recv_idxs_.set_executor(mpi_exec);
     recv_idxs_.resize_and_reset(coll_comm_->get_send_size());
     inverse_comm
-        ->i_all_to_all_v(exec, temp_remote_local_idxs->get_const_flat_data(),
+        ->i_all_to_all_v(mpi_exec,
+                         temp_remote_local_idxs->get_const_flat_data(),
                          recv_idxs_.get_data())
         .wait();
     recv_idxs_.set_executor(exec);
@@ -247,7 +235,7 @@ RowScatterer<LocalIndexType>::RowScatterer(
 
 
 template <typename LocalIndexType>
-RowScatterer<LocalIndexType>::RowScatterer(RowScatterer&& o) noexcept
+RowScatterer<LocalIndexType>::RowScatterer(RowScatterer&& o)
     : PolymorphicObject(o.get_executor()),
       DistributedBase(o.get_communicator()),
       recv_idxs_(o.get_executor())

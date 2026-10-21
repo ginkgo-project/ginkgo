@@ -600,7 +600,8 @@ void scatter_add(std::shared_ptr<const DpcppExecutor> exec,
             });
         });
     } else {
-        GKO_NOT_IMPLEMENTED;
+        // no 16-bit atomic_add support
+        GKO_NOT_SUPPORTED(target);
     }
 }
 
