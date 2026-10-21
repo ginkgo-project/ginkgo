@@ -743,14 +743,17 @@ public:
      *                         (contributions are summed).
      * @param source  the source matrix whose rows are scattered into this.
      *                Must have the same number of columns as this matrix
-     *                and `scatter_indices->get_size()` rows.
+     *                and `scatter_indices->get_size()` rows. If its value
+     *                type differs from this matrix, it is converted first.
      */
-    void scatter_add(const array<int32>* scatter_indices, const Dense* source);
+    void scatter_add(const array<int32>* scatter_indices,
+                     ptr_param<const LinOp> source);
 
     /**
-     * @copydoc scatter_add(const array<int32>*, const Dense*)
+     * @copydoc scatter_add(const array<int32>*, ptr_param<const LinOp>)
      */
-    void scatter_add(const array<int64>* scatter_indices, const Dense* source);
+    void scatter_add(const array<int64>* scatter_indices,
+                     ptr_param<const LinOp> source);
 
     std::unique_ptr<LinOp> column_permute(
         const array<int32>* permutation_indices) const override;
@@ -1543,7 +1546,7 @@ protected:
 
     template <typename IndexType>
     void scatter_add_impl(const array<IndexType>* scatter_indices,
-                          const Dense* source);
+                          const LinOp* source);
 
 private:
     size_type stride_;

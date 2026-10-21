@@ -2777,6 +2777,30 @@ TYPED_TEST(DenseWithIndexType, ScatterAddWithEmptySourceIsNoOp)
 }
 
 
+TYPED_TEST(DenseWithIndexType, ScatterAddFromMixedPrecisionSource)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using MixedMtx = typename TestFixture::MixedMtx;
+    using MixedT = typename MixedMtx::value_type;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto exec = this->mtx5->get_executor();
+    auto source = gko::initialize<MixedMtx>(
+        {I<MixedT>{1.0, 2.0}, I<MixedT>{4.0, 5.0}}, exec);
+    gko::array<index_type> scatter_idxs{exec, {2, 0}};
+    auto target = Mtx::create(exec, gko::dim<2>{3, 2});
+    target->fill(value_type{10.0});
+
+    target->scatter_add(&scatter_idxs, source);
+
+    auto expected = gko::initialize<Mtx>(
+        {I<value_type>{14.0, 15.0}, I<value_type>{10.0, 10.0},
+         I<value_type>{11.0, 12.0}},
+        exec);
+    GKO_ASSERT_MTX_NEAR(target, expected, 0.0);
+}
+
+
 TYPED_TEST(DenseWithIndexType, SquareMatrixIsPermutable)
 {
     using Mtx = typename TestFixture::Mtx;

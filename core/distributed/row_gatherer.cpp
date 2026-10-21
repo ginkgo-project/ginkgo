@@ -115,7 +115,8 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
         "Please provide a host buffer or enable MPI support for device "
         "memory.");
 
-    // dispatch global vector
+    // dispatch global vector. b is only used for its value type and size, so
+    // it doesn't need to be cloned to exec
     run<Vector,
 #if GINKGO_ENABLE_HALF
         half, std::complex<half>,
@@ -124,7 +125,7 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
         bfloat16, std::complex<bfloat16>,
 #endif
         double, float, std::complex<double>, std::complex<float>>(
-        make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
+        b.get(), [&](const auto* b_global) {
             using ValueType =
                 typename std::decay_t<decltype(*b_global)>::value_type;
             // x is not converted to the precision of b, since a temporary
@@ -271,7 +272,8 @@ RowGatherer<LocalIndexType>::RowGatherer(
     send_idxs_.set_executor(mpi_exec);
     send_idxs_.resize_and_reset(coll_comm_->get_send_size());
     inverse_comm
-        ->i_all_to_all_v(exec, temp_remote_local_idxs->get_const_flat_data(),
+        ->i_all_to_all_v(mpi_exec,
+                         temp_remote_local_idxs->get_const_flat_data(),
                          send_idxs_.get_data())
         .wait();
     send_idxs_.set_executor(exec);
@@ -334,7 +336,7 @@ RowGatherer<LocalIndexType>::RowGatherer(
 
 
 template <typename LocalIndexType>
-RowGatherer<LocalIndexType>::RowGatherer(RowGatherer&& o) noexcept
+RowGatherer<LocalIndexType>::RowGatherer(RowGatherer&& o)
     : PolymorphicObject(o.get_executor()),
       DistributedBase(o.get_communicator()),
       send_idxs_(o.get_executor())

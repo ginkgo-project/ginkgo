@@ -38,17 +38,20 @@ namespace distributed {
  * with communication:
  *
  * 1. `apply_async` packs the send buffer and initiates the MPI
- *    communication. It returns a live `mpi::request`.
+ *    communication.
  * 2. `wait_and_accumulate` waits for the communication to complete, then
  *    accumulates the received values into the target vector.
+ *
+ * The scatterer keeps track of the in-flight communication, so only one
+ * scatter can be active at any given time.
  *
  * Example usage:
  * ```c++
  * auto rs = distributed::RowScatterer<int32>::create_from_gatherer(exec, rg);
  *
- * auto req = rs->apply_async(local_vals);
+ * rs->apply_async(local_vals);
  * // ... overlap other work while communication is in flight ...
- * rs->wait_and_accumulate(req, target);
+ * rs->wait_and_accumulate(target);
  * // target now has accumulated the scattered values
  * ```
  *
@@ -65,37 +68,30 @@ public:
      * Start scattering local values to their owning ranks.
      *
      * Packs the local values into a send buffer and initiates the MPI
-     * communication. The returned request can be waited on to ensure the
-     * communication completes before calling wait_and_accumulate.
-     *
-     * @warning Only one scatter can be active at any given time. Calling this
-     *          function again before wait_and_accumulate will lead to
-     *          undefined behavior.
+     * communication. The scatter is finished by calling wait_and_accumulate.
      *
      * @param local_values  the local values to scatter (distributed::Vector).
      *                      Its local vector must have as many rows as this
      *                      process sends. It might not be modified before
      *                      wait_and_accumulate is called.
      *
-     * @return  a live mpi::request for the in-flight communication
+     * @throws InvalidStateError  if a previous scatter has not been finished
+     *                            by wait_and_accumulate.
      */
-    [[nodiscard]] mpi::request apply_async(
-        ptr_param<const LinOp> local_values) const;
+    void apply_async(ptr_param<const LinOp> local_values) const;
 
     /**
      * Wait for the scatter communication to complete and accumulate received
      * values into the target: target += received_contributions.
      *
-     * Must be called after apply_async. The request must be the one returned
-     * by apply_async.
-     *
-     * @param req  the mpi::request from apply_async (will be waited on)
      * @param distributed_target  the target vector to accumulate into. It must
      *                            have the same value type and number of
      *                            columns as the local_values of apply_async.
+     *
+     * @throws InvalidStateError  if there is no scatter started by
+     *                            apply_async.
      */
-    void wait_and_accumulate(mpi::request& req,
-                             ptr_param<LinOp> distributed_target) const;
+    void wait_and_accumulate(ptr_param<LinOp> distributed_target) const;
 
     /**
      * Returns the size of the row scatterer.
@@ -115,7 +111,10 @@ public:
      * @tparam GlobalIndexType  the global index type of the index map
      *
      * @param exec  the executor
-     * @param coll_comm  the collective communicator
+     * @param coll_comm  the collective communicator in the gather direction,
+     *                   i.e. the one that would be used to create the
+     *                   corresponding RowGatherer. It receives the non-local
+     *                   rows of imap. The scatterer uses its inverse.
      * @param imap  the index map defining the scatter pattern
      *
      * @return  a unique_ptr to the created distributed::RowScatterer
@@ -156,7 +155,7 @@ public:
 
     RowScatterer(const RowScatterer& o);
 
-    RowScatterer(RowScatterer&& o) noexcept;
+    RowScatterer(RowScatterer&& o);
 
     RowScatterer& operator=(const RowScatterer& o);
 
@@ -178,7 +177,9 @@ private:
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;
     array<LocalIndexType> recv_idxs_;  // local indices to accumulate into
     mutable gko::detail::GenericDenseCache send_cache_;
-    // receive buffer of the active apply_async, consumed by wait_and_accumulate
+    // request and receive buffer of the active apply_async, consumed by
+    // wait_and_accumulate
+    mutable mpi::request req_;
     mutable std::shared_ptr<LinOp> recv_buffer_;
     mutable gko::detail::GenericDenseCache recv_cache_;
 };

@@ -1739,7 +1739,7 @@ void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
 template <typename ValueType>
 template <typename IndexType>
 void Dense<ValueType>::scatter_add_impl(const array<IndexType>* scatter_indices,
-                                        const Dense* source)
+                                        const LinOp* source)
 {
     auto exec = this->get_executor();
     GKO_ASSERT_EQ(source->get_size()[1], this->get_size()[1]);
@@ -1747,24 +1747,26 @@ void Dense<ValueType>::scatter_add_impl(const array<IndexType>* scatter_indices,
 
     exec->run(dense::make_scatter_add(
         make_temporary_clone(exec, scatter_indices)->get_const_data(),
-        make_temporary_clone(exec, source)->get_const_device_view(),
+        make_temporary_conversion<ValueType>(
+            make_temporary_clone(exec, source).get())
+            ->get_const_device_view(),
         this->get_device_view()));
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::scatter_add(const array<int32>* scatter_indices,
-                                   const Dense* source)
+                                   ptr_param<const LinOp> source)
 {
-    scatter_add_impl(scatter_indices, source);
+    scatter_add_impl(scatter_indices, source.get());
 }
 
 
 template <typename ValueType>
 void Dense<ValueType>::scatter_add(const array<int64>* scatter_indices,
-                                   const Dense* source)
+                                   ptr_param<const LinOp> source)
 {
-    scatter_add_impl(scatter_indices, source);
+    scatter_add_impl(scatter_indices, source.get());
 }
 
 
