@@ -120,16 +120,6 @@ public:
      */
     std::shared_ptr<const matrix_type> get_combined() const;
 
-    /** Creates a deep copy of the factorization. */
-    Factorization(const Factorization&);
-
-    /** Moves from the given factorization, leaving it empty. */
-    Factorization(Factorization&&);
-
-    Factorization& operator=(const Factorization&);
-
-    Factorization& operator=(Factorization&&);
-
     /**
      * Creates a Factorization from an existing composition.
      * @param composition  the composition consisting of 2 or 3 elements.
@@ -179,8 +169,6 @@ public:
         std::unique_ptr<matrix_type> matrix);
 
 protected:
-    explicit Factorization(std::shared_ptr<const Executor> exec);
-
     Factorization(std::unique_ptr<Composition<ValueType>> factors,
                   storage_type type);
 
