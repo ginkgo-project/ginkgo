@@ -137,24 +137,12 @@ dim<2> compute_global_size(
 
 
 std::unique_ptr<BlockOperator> BlockOperator::create(
-    std::shared_ptr<const Executor> exec)
-{
-    return std::unique_ptr<BlockOperator>(new BlockOperator(std::move(exec)));
-}
-
-
-std::unique_ptr<BlockOperator> BlockOperator::create(
     std::shared_ptr<const Executor> exec,
     std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks)
 {
     return std::unique_ptr<BlockOperator>(
         new BlockOperator(std::move(exec), std::move(blocks)));
 }
-
-
-BlockOperator::BlockOperator(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
-{}
 
 
 BlockOperator::BlockOperator(

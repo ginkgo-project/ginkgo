@@ -73,10 +73,7 @@ struct value_span {
  * BlockOperator, which will requires copying any block that is associated with
  * a different executor.
  */
-class BlockOperator final : public LinOp,
-                            public EnableCloneable<BlockOperator> {
-    friend class EnableCloneable<BlockOperator>;
-
+class BlockOperator final : public LinOp {
 public:
     /**
      * Get the block dimension of this, i.e. the number of blocks per row and
@@ -99,16 +96,6 @@ public:
         GKO_ENSURE_IN_DIMENSION_BOUNDS(i, j, block_size_);
         return blocks_[i * block_size_[1] + j].get();
     }
-
-    /**
-     * Create empty BlockOperator.
-     *
-     * @param exec  the executor of this.
-     *
-     * @return  empty BlockOperator.
-     */
-    static std::unique_ptr<BlockOperator> create(
-        std::shared_ptr<const Executor> exec);
 
     /**
      * Create BlockOperator from the given blocks.
@@ -151,8 +138,6 @@ public:
     BlockOperator& operator=(BlockOperator&& other);
 
 private:
-    explicit BlockOperator(std::shared_ptr<const Executor> exec);
-
     BlockOperator(
         std::shared_ptr<const Executor> exec,
         std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks);
