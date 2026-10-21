@@ -45,15 +45,6 @@ protected:
 TYPED_TEST_SUITE(Composition, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(Composition, CanBeEmpty)
-{
-    auto cmp = gko::Composition<TypeParam>::create(this->exec);
-
-    ASSERT_EQ(cmp->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(cmp->get_operators().size(), 0);
-}
-
-
 TYPED_TEST(Composition, CanCreateFromIterators)
 {
     auto cmp = gko::Composition<TypeParam>::create(begin(this->operators),

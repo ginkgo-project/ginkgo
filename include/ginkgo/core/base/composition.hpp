@@ -36,9 +36,7 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Composition : public LinOp,
-                    public EnableCreateMethod<Composition<ValueType>>,
-                    public Transposable {
+class Composition : public LinOp, public Transposable {
     friend class EnableCreateMethod<Composition>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -61,32 +59,43 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    /**
-     * Copy-assigns a Composition. The executor is not modified, and the
-     * wrapped LinOps are only being cloned if they are on a different executor.
-     */
-    Composition& operator=(const Composition&);
 
     /**
-     * Move-assigns a Composition. The executor is not modified, and the
-     * wrapped LinOps are only being cloned if they are on a different executor,
-     * otherwise they share ownership. The moved-from object is empty (0x0 LinOp
-     * without operators) afterwards.
+     * Creates a composition of operators using the operators in a range.
+     *
+     * @tparam Iterator  a class representing iterators over the
+     *                   operators of the composition
+     *
+     * @param begin  iterator pointing to the first operator
+     * @param end  iterator pointing behind the last operator
+     *
+     * @return a unique pointer to the created composition
      */
-    Composition& operator=(Composition&&);
+    template <typename Iterator,
+              typename = std::void_t<
+                  typename std::iterator_traits<Iterator>::iterator_category>>
+    static std::unique_ptr<Composition> create(Iterator begin, Iterator end)
+    {
+        return std::unique_ptr<Composition>(new Composition(begin, end));
+    }
 
     /**
-     * Copy-constructs a Composition. This inherits the executor of the input
-     * Composition and all of its operators with shared ownership.
+     * Creates a composition of operators using the specified list of operators.
+     *
+     * @tparam Rest  types of trailing parameters
+     *
+     * @param oper  the first operator
+     * @param rest  remaining operators
+     *
+     * @return a unique pointer to the created composition
      */
-    Composition(const Composition&);
-
-    /**
-     * Move-constructs a Composition. This inherits the executor of the input
-     * Composition and all of its operators. The moved-from object is empty (0x0
-     * LinOp without operators) afterwards.
-     */
-    Composition(Composition&&);
+    template <typename... Rest>
+    static std::unique_ptr<Composition> create(
+        std::shared_ptr<const LinOp> oper, Rest&&... rest)
+    {
+        return std::unique_ptr<Composition>(
+            new Composition(oper, std::forward<Rest>(rest)...));
+    }
 
 protected:
     void add_operators() {}
@@ -107,24 +116,6 @@ protected:
         add_operators(std::forward<Rest>(rest)...);
     }
 
-    /**
-     * Creates an empty operator composition (0x0 operator).
-     *
-     * @param exec  Executor associated to the composition
-     */
-    explicit Composition(std::shared_ptr<const Executor> exec)
-        : LinOp(exec), storage_{exec}
-    {}
-
-    /**
-     * Creates a composition of operators using the operators in a range.
-     *
-     * @tparam Iterator  a class representing iterators over the
-     *                   operators of the composition
-     *
-     * @param begin  iterator pointing to the first operator
-     * @param end  iterator pointing behind the last operator
-     */
     template <typename Iterator,
               typename = std::void_t<
                   typename std::iterator_traits<Iterator>::iterator_category>>
@@ -142,17 +133,10 @@ protected:
         }
     }
 
-    /**
-     * Creates a composition of operators using the specified list of operators.
-     *
-     * @tparam Rest  types of trailing parameters
-     *
-     * @param oper  the first operator
-     * @param rest  remaining operators
-     */
     template <typename... Rest>
     explicit Composition(std::shared_ptr<const LinOp> oper, Rest&&... rest)
-        : Composition(oper->get_executor())
+        : LinOp(oper->get_executor(), oper->get_size()),
+          storage_{this->get_executor()}
     {
         add_operators(std::move(oper), std::forward<Rest>(rest)...);
     }
