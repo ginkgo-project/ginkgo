@@ -316,10 +316,26 @@ run_preconditioner_benchmarks() {
 SSGET=ssget
 NUM_PROBLEMS="$(${SSGET} -n)"
 
-# Each run uses its own matrix directory, so that concurrent runs don't
-# overwrite or delete the matrices of each other
+# Set by CMake
+GINKGO_HAVE_ZLIB="@GINKGO_HAVE_ZLIB@"
+# ssget -v starts with the path of ssstats.csv
+SSGET_ARCHIVE_LOCATION="$(dirname "$(${SSGET} -v | cut -d ' ' -f 1)")"
+
+# With zlib, all runs share one gzip-compressed copy of each matrix, otherwise
+# each run extracts its own copy
 MATRIX_DIR=""
-trap 'rm -rf "${MATRIX_DIR}"' EXIT
+PARTIAL_FILE=""
+trap 'rm -rf "${MATRIX_DIR}" "${PARTIAL_FILE}"' EXIT
+
+# Compresses the matrix $2 of the archive $1 into $3 via a temporary file
+compress_matrix() {
+    PARTIAL_FILE="$3.${HOSTNAME}.$$"
+    if (set -o pipefail; tar -xzOf "$1" "$2/$2.mtx" | gzip >"${PARTIAL_FILE}"); then
+        mv "${PARTIAL_FILE}" "$3"
+    fi
+    rm -f "${PARTIAL_FILE}"
+    PARTIAL_FILE=""
+}
 
 # Creates an input file for $1-th problem in the SuiteSparse collection, stored
 # in the file $2
@@ -380,10 +396,19 @@ for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
     RESULT_FILE="${RESULT_DIR}/${GROUP}/${NAME}.json"
     PREFIX="($i/${NUM_PROBLEMS}):\t"
     mkdir -p "$(dirname "${RESULT_FILE}")"
-    ARCHIVE=$(${SSGET} -i "$i" -f)
-    MATRIX_DIR=$(mktemp -d "${ARCHIVE%.tar.gz}.XXXXXX")
-    [ "${DRY_RUN}" != "true" ] && tar -xzf "${ARCHIVE}" -C "${MATRIX_DIR}" --strip-components=1
-    generate_suite_sparse_input "$i" "${MATRIX_DIR}/${NAME}.mtx" >"${RESULT_FILE}"
+    if [ "${GINKGO_HAVE_ZLIB}" == "1" ]; then
+        MATRIX_FILE="${SSGET_ARCHIVE_LOCATION}/MM/${GROUP}/${NAME}.mtx.gz"
+        if [ ! -f "${MATRIX_FILE}" ]; then
+            ARCHIVE=$(${SSGET} -i "$i" -f)
+            [ "${DRY_RUN}" != "true" ] && compress_matrix "${ARCHIVE}" "${NAME}" "${MATRIX_FILE}"
+        fi
+    else
+        ARCHIVE=$(${SSGET} -i "$i" -f)
+        MATRIX_DIR=$(mktemp -d "${ARCHIVE%.tar.gz}.XXXXXX")
+        [ "${DRY_RUN}" != "true" ] && tar -xzf "${ARCHIVE}" -C "${MATRIX_DIR}" --strip-components=1
+        MATRIX_FILE="${MATRIX_DIR}/${NAME}.mtx"
+    fi
+    generate_suite_sparse_input "$i" "${MATRIX_FILE}" >"${RESULT_FILE}"
 
     echo -e "${PREFIX}Extracting statistics for ${GROUP}/${NAME}" 1>&2
     compute_matrix_statistics "${RESULT_FILE}"
