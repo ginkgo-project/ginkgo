@@ -32,80 +32,19 @@ inline void initialize_scalars(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
-Combination<ValueType>& Combination<ValueType>::operator=(
-    const Combination& other)
-{
-    if (&other != this) {
-        LinOp::operator=(other);
-        auto exec = this->get_executor();
-        coefficients_ = other.coefficients_;
-        operators_ = other.operators_;
-        // if the operators are on the wrong executor, copy them over
-        if (other.get_executor() != exec) {
-            for (auto& coef : coefficients_) {
-                coef = gko::clone(exec, coef);
-            }
-            for (auto& op : operators_) {
-                op = gko::clone(exec, op);
-            }
-        }
-    }
-    return *this;
-}
-
-
-template <typename ValueType>
-Combination<ValueType>& Combination<ValueType>::operator=(Combination&& other)
-{
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        auto exec = this->get_executor();
-        coefficients_ = std::move(other.coefficients_);
-        operators_ = std::move(other.operators_);
-        // if the operators are on the wrong executor, copy them over
-        if (other.get_executor() != exec) {
-            for (auto& coef : coefficients_) {
-                coef = gko::clone(exec, coef);
-            }
-            for (auto& op : operators_) {
-                op = gko::clone(exec, op);
-            }
-        }
-    }
-    return *this;
-}
-
-
-template <typename ValueType>
-Combination<ValueType>::Combination(const Combination& other)
-    : Combination(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType>
-Combination<ValueType>::Combination(Combination&& other)
-    : Combination(other.get_executor())
-{
-    *this = std::move(other);
-}
-
-
-template <typename ValueType>
 std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
 {
-    auto transposed = Combination<ValueType>::create(this->get_executor());
+    auto transposed = Combination<ValueType>::create(
+        coefficients_.begin(), coefficients_.end(), operators_.begin(),
+        operators_.end());
     transposed->set_size(gko::transpose(this->get_size()));
     // copy coefficients
-    for (auto& coef : get_coefficients()) {
-        transposed->coefficients_.push_back(
-            share(as<LinOp>(as<Cloneable>(coef)->clone())));
+    for (auto& coef : transposed->coefficients_) {
+        coef = clone(coef);
     }
     // transpose operators
-    for (auto& op : get_operators()) {
-        transposed->operators_.push_back(
-            share(as<Transposable>(op)->transpose()));
+    for (auto& op : transposed->operators_) {
+        op = as<Transposable>(op)->transpose();
     }
 
     return std::move(transposed);
@@ -115,17 +54,17 @@ std::unique_ptr<LinOp> Combination<ValueType>::transpose() const
 template <typename ValueType>
 std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
 {
-    auto transposed = Combination<ValueType>::create(this->get_executor());
+    auto transposed = Combination<ValueType>::create(
+        coefficients_.begin(), coefficients_.end(), operators_.begin(),
+        operators_.end());
     transposed->set_size(gko::transpose(this->get_size()));
-    // conjugate coefficients!
-    for (auto& coef : get_coefficients()) {
-        transposed->coefficients_.push_back(
-            share(as<Transposable>(coef)->conj_transpose()));
+    // copy coefficients
+    for (auto& coef : transposed->coefficients_) {
+        coef = clone(coef);
     }
-    // conjugate-transpose operators
-    for (auto& op : get_operators()) {
-        transposed->operators_.push_back(
-            share(as<Transposable>(op)->conj_transpose()));
+    // transpose operators
+    for (auto& op : transposed->operators_) {
+        op = as<Transposable>(op)->conj_transpose();
     }
 
     return std::move(transposed);
