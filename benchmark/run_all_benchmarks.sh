@@ -316,12 +316,17 @@ run_preconditioner_benchmarks() {
 SSGET=ssget
 NUM_PROBLEMS="$(${SSGET} -n)"
 
-# Creates an input file for $1-th problem in the SuiteSparse collection
+# Each run uses its own matrix directory, so that concurrent runs don't
+# overwrite or delete the matrices of each other
+MATRIX_DIR=""
+trap 'rm -rf "${MATRIX_DIR}"' EXIT
+
+# Creates an input file for $1-th problem in the SuiteSparse collection, stored
+# in the file $2
 generate_suite_sparse_input() {
-    INPUT=$(${SSGET} -i "$1" -e)
     cat << EOT
 [{
-    "filename": "${INPUT}",
+    "filename": "$2",
     "problem": $(${SSGET} -i "$1" -j)
 }]
 EOT
@@ -367,7 +372,6 @@ for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
         break
     fi
     if [ "$(${SSGET} -i "$i" -preal)" = "0" ]; then
-        [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
         continue
     fi
     RESULT_DIR="results/${SYSTEM_NAME}/${EXECUTOR}/SuiteSparse"
@@ -376,7 +380,10 @@ for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
     RESULT_FILE="${RESULT_DIR}/${GROUP}/${NAME}.json"
     PREFIX="($i/${NUM_PROBLEMS}):\t"
     mkdir -p "$(dirname "${RESULT_FILE}")"
-    generate_suite_sparse_input "$i" >"${RESULT_FILE}"
+    ARCHIVE=$(${SSGET} -i "$i" -f)
+    MATRIX_DIR=$(mktemp -d "${ARCHIVE%.tar.gz}.XXXXXX")
+    [ "${DRY_RUN}" != "true" ] && tar -xzf "${ARCHIVE}" -C "${MATRIX_DIR}" --strip-components=1
+    generate_suite_sparse_input "$i" "${MATRIX_DIR}/${NAME}.mtx" >"${RESULT_FILE}"
 
     echo -e "${PREFIX}Extracting statistics for ${GROUP}/${NAME}" 1>&2
     compute_matrix_statistics "${RESULT_FILE}"
@@ -392,7 +399,7 @@ for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
 
     if [ "${BENCHMARK}" != "solver" -o \
          "$(${SSGET} -i "$i" -prows)" != "$(${SSGET} -i "$i" -pcols)" ]; then
-        [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
+        rm -rf "${MATRIX_DIR}"
         continue
     fi
 
@@ -400,7 +407,7 @@ for (( p=${LOOP_START}; p < ${LOOP_END}; ++p )); do
     run_solver_benchmarks "${RESULT_FILE}"
 
     echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2
-    [ "${DRY_RUN}" != "true" ] && ${SSGET} -i "$i" -c >/dev/null
+    rm -rf "${MATRIX_DIR}"
 done
 
 
@@ -473,9 +480,9 @@ for bsize in ${BLOCK_SIZES}; do
         RESULT_FILE="${RESULT_DIR}/${GROUP}/${NAME}.json"
         PREFIX="(${ID}/${NUM_PROBLEMS}):\t"
         mkdir -p "$(dirname "${RESULT_FILE}")"
-        mkdir -p "/tmp/${GROUP}"
+        MATRIX_DIR=$(mktemp -d)
         generate_block_diagonal_input \
-            "${bsize}" "${nblocks}" "/tmp/${GROUP}/${NAME}.mtx" \
+            "${bsize}" "${nblocks}" "${MATRIX_DIR}/${NAME}.mtx" \
                 >"${RESULT_FILE}"
 
         echo -e "${PREFIX}Generating problem ${GROUP}/${NAME}" 1>&2
@@ -489,7 +496,7 @@ for bsize in ${BLOCK_SIZES}; do
         run_preconditioner_benchmarks "${RESULT_FILE}"
 
         echo -e "${PREFIX}Cleaning up problem ${GROUP}/${NAME}" 1>&2
-        [ "${DRY_RUN}" != "true" ] && rm -r "/tmp/${GROUP}/${NAME}.mtx"
+        rm -rf "${MATRIX_DIR}"
     done
     if [ "${ID}" -ge "${LOOP_END}" ]; then
         break
