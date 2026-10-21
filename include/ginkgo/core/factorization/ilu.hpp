@@ -183,14 +183,10 @@ public:
 
 protected:
     Ilu(const Factory* factory, std::shared_ptr<const gko::LinOp> system_matrix)
-        : Composition<ValueType>{factory->get_executor()},
+        : Composition<ValueType>{generate_l_u(system_matrix,
+                                              parameters_.skip_sorting)},
           parameters_{factory->get_parameters()}
-    {
-        auto comp = generate_l_u(system_matrix, parameters_.skip_sorting);
-        for (auto& op : comp->get_operators()) {
-            this->add_operators(op);
-        }
-    }
+    {}
 
     /**
      * Generates the incomplete LU factors, which will be returned as a

@@ -273,14 +273,9 @@ public:
 protected:
     explicit ParIlut(const Factory* factory,
                      std::shared_ptr<const LinOp> system_matrix)
-        : Composition<ValueType>(factory->get_executor()),
+        : Composition<ValueType>(generate_l_u(std::move(system_matrix))),
           parameters_{factory->get_parameters()}
-    {
-        auto comp = generate_l_u(std::move(system_matrix));
-        for (auto& op : comp->get_operators()) {
-            this->add_operators(op);
-        }
-    }
+    {}
 
     /**
      * Generates the incomplete LU factors, which will be returned as a
