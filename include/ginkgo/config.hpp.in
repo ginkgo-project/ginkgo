@@ -98,6 +98,11 @@
 // clang-format on
 #endif
 
+/* Is zlib available for reading gzip-compressed matrices? */
+// clang-format off
+#define GKO_HAVE_ZLIB @GINKGO_HAVE_ZLIB@
+// clang-format on
+
 /* Is ROCTX available for Profiling? */
 // clang-format off
 #define GKO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@
