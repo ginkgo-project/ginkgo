@@ -214,16 +214,11 @@ public:
 protected:
     explicit ParIlu(const Factory* factory,
                     std::shared_ptr<const LinOp> system_matrix)
-        : Composition<ValueType>(factory->get_executor()),
+        : Composition<ValueType>(
+              generate_l_u(system_matrix, parameters_.skip_sorting,
+                           parameters_.l_strategy, parameters_.u_strategy)),
           parameters_{factory->get_parameters()}
-    {
-        auto comp =
-            generate_l_u(system_matrix, parameters_.skip_sorting,
-                         parameters_.l_strategy, parameters_.u_strategy);
-        for (auto& op : comp->get_operators()) {
-            this->add_operators(op);
-        }
-    }
+    {}
 
     /**
      * Generates the incomplete LU factors, which will be returned as a
