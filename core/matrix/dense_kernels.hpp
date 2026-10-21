@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/device_views.hpp>
+#include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -96,8 +97,31 @@ namespace kernels {
         matrix::view::dense<const ValueType> source, int block_size,     \
         IndexType* result)
 
+#define GKO_DECLARE_DENSE_EXTRACT_DIAGONAL_KERNEL(ValueType)           \
+    void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec, \
+                          matrix::view::dense<const ValueType> orig,   \
+                          matrix::Diagonal<ValueType>* diag)
+
 #define GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL_SIZE_T(ValueType) \
     GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, ::gko::size_type)
+
+#define GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType)           \
+    void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
+                         matrix::view::dense<const ValueType> alpha,  \
+                         const matrix::Diagonal<ValueType>* x,        \
+                         matrix::view::dense<ValueType> y)
+
+#define GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL(ValueType)           \
+    void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
+                         matrix::view::dense<const ValueType> alpha,  \
+                         const matrix::Diagonal<ValueType>* x,        \
+                         matrix::view::dense<ValueType> y)
+
+#define GKO_DECLARE_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType, ScalarType) \
+    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,   \
+                             matrix::view::dense<const ScalarType> alpha,   \
+                             matrix::view::dense<const ScalarType> beta,    \
+                             matrix::view::dense<ValueType> mtx)
 
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
@@ -127,7 +151,15 @@ namespace kernels {
     GKO_DECLARE_DENSE_COUNT_NONZEROS_PER_ROW_KERNEL(ValueType, IndexType);  \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_DENSE_COUNT_NONZERO_BLOCKS_PER_ROW_KERNEL(ValueType,        \
-                                                          IndexType)
+                                                          IndexType);       \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_EXTRACT_DIAGONAL_KERNEL(ValueType);                   \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_ADD_SCALED_DIAG_KERNEL(ValueType);                    \
+    template <typename ValueType>                                           \
+    GKO_DECLARE_DENSE_SUB_SCALED_DIAG_KERNEL(ValueType);                    \
+    template <typename ValueType, typename ScalarType>                      \
+    GKO_DECLARE_DENSE_ADD_SCALED_IDENTITY_KERNEL(ValueType, ScalarType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(dense, GKO_DECLARE_ALL_AS_TEMPLATES);
