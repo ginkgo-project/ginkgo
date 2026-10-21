@@ -7,11 +7,14 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <istream>
 #include <limits>
 #include <map>
 #include <regex>
+#include <streambuf>
 #include <string>
 #include <type_traits>
+#include <vector>
 
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/bfloat16.hpp>
@@ -22,6 +25,10 @@
 #include <ginkgo/core/base/utils.hpp>
 
 #include "core/base/dispatch_helper.hpp"
+
+#if GKO_HAVE_ZLIB
+#include <zlib.h>
+#endif
 
 
 namespace gko {
@@ -881,6 +888,107 @@ matrix_data<ValueType, IndexType> read_binary_convert(std::istream& is,
 }
 
 
+#if GKO_HAVE_ZLIB
+
+
+/**
+ * A stream buffer that decompresses the gzip data it reads from another stream.
+ */
+class gzip_streambuf : public std::streambuf {
+public:
+    explicit gzip_streambuf(std::istream& source)
+        : source_{source}, in_(buffer_size), out_(buffer_size), stream_{}
+    {
+        // 16 + MAX_WBITS only accepts data with a gzip header
+        if (inflateInit2(&stream_, 16 + MAX_WBITS) != Z_OK) {
+            throw GKO_STREAM_ERROR(
+                "failed initializing the gzip decompression");
+        }
+        setg(out_.data(), out_.data(), out_.data());
+    }
+
+    gzip_streambuf(const gzip_streambuf&) = delete;
+
+    gzip_streambuf& operator=(const gzip_streambuf&) = delete;
+
+    ~gzip_streambuf() override { inflateEnd(&stream_); }
+
+protected:
+    int_type underflow() override
+    {
+        while (gptr() == egptr()) {
+            if (stream_.avail_in == 0) {
+                source_.read(in_.data(),
+                             static_cast<std::streamsize>(in_.size()));
+                stream_.next_in = reinterpret_cast<Bytef*>(in_.data());
+                stream_.avail_in = static_cast<uInt>(source_.gcount());
+                if (stream_.avail_in == 0) {
+                    if (member_finished_) {
+                        return traits_type::eof();
+                    }
+                    throw GKO_STREAM_ERROR("unexpected end of gzip data");
+                }
+            }
+            if (member_finished_) {
+                // concatenated gzip files are read as a single one
+                inflateReset(&stream_);
+                member_finished_ = false;
+            }
+            stream_.next_out = reinterpret_cast<Bytef*>(out_.data());
+            stream_.avail_out = static_cast<uInt>(out_.size());
+            auto status = inflate(&stream_, Z_NO_FLUSH);
+            if (status == Z_STREAM_END) {
+                member_finished_ = true;
+            } else if (status != Z_OK) {
+                throw GKO_STREAM_ERROR(
+                    std::string{"failed decompressing gzip data: "} +
+                    (stream_.msg ? stream_.msg : "unknown error"));
+            }
+            setg(out_.data(), out_.data(),
+                 out_.data() + (out_.size() - stream_.avail_out));
+        }
+        return traits_type::to_int_type(*gptr());
+    }
+
+private:
+    static constexpr size_type buffer_size = 1 << 16;
+
+    std::istream& source_;
+    std::vector<char> in_;
+    std::vector<char> out_;
+    z_stream stream_;
+    bool member_finished_ = false;
+};
+
+
+#endif
+
+
+/**
+ * The first byte of gzip data, which is followed by 0x8b.
+ */
+constexpr int gzip_magic_first_byte = 0x1f;
+
+
+/**
+ * Reads a matrix stored in gzip-compressed binary or matrix market format.
+ */
+template <typename ValueType, typename IndexType>
+matrix_data<ValueType, IndexType> read_gzip_raw(std::istream& is)
+{
+#if GKO_HAVE_ZLIB
+    gzip_streambuf buffer{is};
+    std::istream decompressed{&buffer};
+    // rethrow the decompression errors instead of only setting badbit
+    decompressed.exceptions(std::ios::badbit);
+    return read_generic_raw<ValueType, IndexType>(decompressed);
+#else
+    throw GKO_STREAM_ERROR(
+        "reading gzip-compressed data requires Ginkgo to be built with zlib");
+#endif
+}
+
+
 }  // namespace
 
 
@@ -939,6 +1047,8 @@ matrix_data<ValueType, IndexType> read_generic_raw(std::istream& is)
     GKO_CHECK_STREAM(is, "failed reading from stream");
     if (first_char == '%') {
         return read_raw<ValueType, IndexType>(is);
+    } else if (first_char == gzip_magic_first_byte) {
+        return read_gzip_raw<ValueType, IndexType>(is);
     } else {
         return read_binary_raw<ValueType, IndexType>(is);
     }
