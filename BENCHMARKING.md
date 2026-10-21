@@ -88,9 +88,14 @@ The Ginkgo benchmark can be set to run on only a portion of the SuiteSparse
 matrix collection as we will see in the following section. Please note that the
 entire collection requires roughly 100GB of disk storage in its compressed
 format, and roughly 25GB of additional disk space for intermediate data (such us
-uncompressing the archive). Additionally, the benchmark runs usually take a long
-time (SpMV benchmarks on the complete collection take roughly 24h using the K20
-GPU), and will stress the system.
+uncompressing the archive). If Ginkgo was built with zlib, `run_all_benchmarks.sh`
+instead stores each matrix once as a gzip-compressed `<name>.mtx.gz` file next to
+its archive and reads it directly. This takes about as much space as the
+archives, but the script no longer needs an archive once its `.mtx.gz` file
+exists, so the archives can then be removed with `ssget -r -i <id>`.
+Additionally, the benchmark runs usually take a long time (SpMV benchmarks on the
+complete collection take roughly 24h using the K20 GPU), and will stress the
+system.
 
 Before proceeding, it can be useful in order to save time to download the
 matrices as preparation. This can be done by using the `ssget -f -i i` command
