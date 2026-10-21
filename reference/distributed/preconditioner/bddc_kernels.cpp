@@ -518,9 +518,9 @@ void classify_dofs_2(
         // classify_dofs sends these to all ranks sharing the interface, which
         // apply the same keep rule (see classify_dofs_3), so the resulting
         // graph is identical on all of them and its connected components
-        // define globally consistent coarse dofs. We attach, per edge, the number of ranks
-        // sharing it (popcount of the shared label) as the agreement
-        // threshold, which the unanimous keep rule compares against.
+        // define globally consistent coarse dofs. We attach, per edge, the
+        // number of ranks sharing it (popcount of the shared label) as the
+        // agreement threshold, which the unanimous keep rule compares against.
         std::vector<GlobalIndexType> src;
         std::vector<GlobalIndexType> dst;
         std::vector<IndexType> expected;

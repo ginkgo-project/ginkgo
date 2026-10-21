@@ -250,7 +250,8 @@ std::shared_ptr<Vector<remove_complex<ValueType>>> classify_dofs(
         };
         std::vector<int> send_counts(num_parts, 0);
         for (size_type e = 0; e < n_local_edges; e++) {
-            for_each_sharing_rank(e, [&](comm_index_type p) { send_counts[p]++; });
+            for_each_sharing_rank(e,
+                                  [&](comm_index_type p) { send_counts[p]++; });
         }
         std::vector<int> send_offsets(num_parts + 1, 0);
         std::partial_sum(send_counts.begin(), send_counts.end(),
@@ -661,8 +662,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         }
         i = 0;
         for (auto entry : parameters_.tags) {
-            auto active_idx = map_to_active.get_const_data()
-                                  [local_idxs.get_const_data()[i]];
+            auto active_idx =
+                map_to_active.get_const_data()[local_idxs.get_const_data()[i]];
             if (active_idx != invalid_index<LocalIndexType>()) {
                 tags.get_data()[active_idx] = entry.second;
             }
@@ -914,7 +915,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             II_nsp_1->fill(one<ValueType>());
             A_II->apply(II_nsp_1, II_nsp_2);
             II_nsp_1->compute_dot(II_nsp_2, II_scal_1);
-            std::cout << "RANK " << comm.rank() << ", II NSP: " << II_scal_1->at(0,0) << std::endl;
+            std::cout << "RANK " << comm.rank()
+                      << ", II NSP: " << II_scal_1->at(0, 0) << std::endl;
             if (parameters_.reordering) {
                 inner_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
                     exec, inner_solver_, II_nsp_1, II_nsp_2, II_scal_1,
@@ -941,7 +943,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
             LL_nsp_1->fill(one<ValueType>());
             A_LL->apply(LL_nsp_1, LL_nsp_2);
             LL_nsp_1->compute_dot(LL_nsp_2, LL_scal_1);
-            std::cout << "RANK " << comm.rank() << ", LL NSP: " << LL_scal_1->at(0,0) << std::endl;
+            std::cout << "RANK " << comm.rank()
+                      << ", LL NSP: " << LL_scal_1->at(0, 0) << std::endl;
             if (parameters_.reordering) {
                 local_solver_ = NSPSolver<ValueType, LocalIndexType>::create(
                     exec, local_solver_, LL_nsp_1, LL_nsp_2, LL_scal_1,
@@ -1277,8 +1280,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         }
         int nparts = 1;
         if (parameters_.distributed_coarse) {
-            const auto ratio = static_cast<size_type>(ceildiv(
-                n_global_interfaces, std::max<size_type>(min_size, 1)));
+            const auto ratio = static_cast<size_type>(
+                ceildiv(n_global_interfaces, std::max<size_type>(min_size, 1)));
             while (static_cast<size_type>(nparts) < ratio &&
                    nparts < comm.size()) {
                 nparts *= 2;
@@ -1292,8 +1295,8 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         int new_part =
             static_cast<int>(ceildiv(block * comm.size(), int64{nparts}));
         if (comm.rank() == 0) {
-            std::cout << "COARSE RANKS: " << nparts << " (" << n_global_interfaces
-                      << " coarse dofs)" << std::endl;
+            std::cout << "COARSE RANKS: " << nparts << " ("
+                      << n_global_interfaces << " coarse dofs)" << std::endl;
         }
         // std::vector<float> tpwgts(ncon * nparts, 1. / nparts);
         // std::vector<float> ubvec(ncon, 1.05);
@@ -1303,9 +1306,9 @@ void Bddc<ValueType, LocalIndexType, GlobalIndexType>::generate(
         // MPI_Comm commptr = comm.get();
 
         // int ret = ParMETIS_V3_PartMeshKway(
-        //     elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt, &numflag,
-        //     &ncon, &ncommonnodes, &nparts, tpwgts.data(), ubvec.data(),
-        //     &options, &edgecut, &new_part, &commptr);
+        //     elmdist.data(), eptr.data(), eind.data(), NULL, &elmwgt,
+        //     &numflag, &ncon, &ncommonnodes, &nparts, tpwgts.data(),
+        //     ubvec.data(), &options, &edgecut, &new_part, &commptr);
 
         // Gather mapping of coarse elements (contributions of original ranks)
         // to assigned ranks

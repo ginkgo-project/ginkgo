@@ -205,10 +205,10 @@ struct Mumps<ValueType, IndexType>::mumps_state {
     {
         data.job = job;
         traits::mumps_c(&data);
-        GKO_THROW_IF_INVALID(data.infog[0] >= 0,
-                             std::string("MUMPS ") + phase +
-                                 " failed with INFOG(1) = " +
-                                 std::to_string(data.infog[0]));
+        GKO_THROW_IF_INVALID(
+            data.infog[0] >= 0,
+            std::string("MUMPS ") + phase +
+                " failed with INFOG(1) = " + std::to_string(data.infog[0]));
     }
 
     void analyze() { run(mumps_job_analyze, "analysis"); }
@@ -237,8 +237,7 @@ struct Mumps<ValueType, IndexType>::mumps_state {
     {
         int rank;
         MPI_Comm_rank(comm, &rank);
-        const auto type =
-            experimental::mpi::type_impl<ValueType>::get_type();
+        const auto type = experimental::mpi::type_impl<ValueType>::get_type();
         const auto n = data.n;
         if (rank == 0) {
             host_rhs.resize(static_cast<size_type>(n) * nrhs);
@@ -398,8 +397,8 @@ bool setup_distributed(const LinOp* system_matrix, bool lower_only,
     if (sub_rank == 0) {
         state.host_counts.resize(sub_size);
     }
-    MPI_Gather(&state.n_local, 1, MPI_INT, state.host_counts.data(), 1,
-               MPI_INT, 0, state.comm);
+    MPI_Gather(&state.n_local, 1, MPI_INT, state.host_counts.data(), 1, MPI_INT,
+               0, state.comm);
     if (sub_rank == 0) {
         state.host_offsets.assign(sub_size + 1, 0);
         std::partial_sum(state.host_counts.begin(), state.host_counts.end(),
@@ -457,8 +456,8 @@ void Mumps<ValueType, IndexType>::generate()
     // Convert to CSR on host
     if (!dynamic_cast<const matrix_type*>(system_matrix_.get()) ||
         system_matrix_->get_executor() != host_exec) {
-        system_matrix_ = copy_and_convert_to<matrix_type>(host_exec,
-                                                          system_matrix_);
+        system_matrix_ =
+            copy_and_convert_to<matrix_type>(host_exec, system_matrix_);
     }
     const auto csr = as<matrix_type>(system_matrix_.get());
     const auto num_rows = static_cast<int>(csr->get_size()[0]);

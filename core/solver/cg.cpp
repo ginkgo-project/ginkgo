@@ -304,23 +304,30 @@ void Cg<ValueType>::condest_impl(const VectorType* dense_b,
             // (est_beta) define the Lanczos/Jacobi tridiagonal matrix T whose
             // eigenvalues (the Ritz values) approximate the spectrum of the
             // (preconditioned) operator:
+            //   T_00      = 1/alpha_0
             //   T_ii      = 1/alpha_i + beta_{i-1}/alpha_{i-1}
-            //   T_{i,i-1} = sqrt(beta_i)/alpha_i
-            // We skip the very first Ritz index and the last few iterations,
-            // whose Ritz values are the least converged.
-            constexpr size_type num_skipped = 4;
-            if (n <= num_skipped) {
+            //   T_{i,i+1} = sqrt(beta_i)/alpha_i
+            // est_alpha[0] is a placeholder, so est_alpha[i + 1] is alpha_i
+            // and est_beta[i + 1] is beta_i. T is built from every completed
+            // step: dropping a row and column of T can only raise its smallest
+            // eigenvalue and lower its largest (Cauchy interlacing), so
+            // skipping the first or the last steps biases kappa low, by a
+            // margin no number of iterations removes. The extreme eigenvalues
+            // of the full T always lie inside the operator's spectrum.
+            const auto m = n - 1;  // completed CG steps = size of T
+            if (m < 2) {
                 dense_eigs->fill(one<ValueType>());
             } else {
-                const auto m = n - num_skipped;  // size of T
                 std::vector<real_type> t_diag(m);
-                std::vector<real_type> t_off(m > 0 ? m - 1 : 0);
+                std::vector<real_type> t_off(m - 1);
                 for (size_type i = 0; i < m; i++) {
-                    t_diag[i] = real(one<ValueType>() / est_alpha[i + 2] +
-                                     est_beta[i + 1] / est_alpha[i + 1]);
+                    t_diag[i] = real(one<ValueType>() / est_alpha[i + 1]);
+                    if (i > 0) {
+                        t_diag[i] += real(est_beta[i] / est_alpha[i]);
+                    }
                 }
                 for (size_type i = 0; i + 1 < m; i++) {
-                    t_off[i] = real(sqrt(est_beta[i + 2]) / est_alpha[i + 2]);
+                    t_off[i] = real(sqrt(est_beta[i + 1]) / est_alpha[i + 1]);
                 }
                 constexpr auto tiny = std::numeric_limits<real_type>::min();
                 // Number of eigenvalues of T strictly below sigma, via the
