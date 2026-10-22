@@ -294,9 +294,10 @@ protected:
     {}
 
     ReuseRecordingLinOp(const Factory* factory,
-                        std::shared_ptr<const gko::LinOp> op,
+                        gko::LinOpGenerateComponents components,
                         reuse_data_type& reuse_data)
-        : gko::LinOp(factory->get_executor(), op->get_size()),
+        : gko::LinOp(factory->get_executor(),
+                     components.system_matrix->get_size()),
           parameters_{factory->get_parameters()},
           reused{reuse_data.initialized}
     {

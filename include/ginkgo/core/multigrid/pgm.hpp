@@ -195,9 +195,9 @@ protected:
         : Pgm(factory, std::move(components.system_matrix), nullptr)
     {}
 
-    Pgm(const Factory* factory, std::shared_ptr<const LinOp> system_matrix,
+    Pgm(const Factory* factory, LinOpGenerateComponents components,
         reuse_data_type& reuse_data)
-        : Pgm(factory, std::move(system_matrix), &reuse_data)
+        : Pgm(factory, std::move(components.system_matrix), &reuse_data)
     {}
 
     Pgm(const Factory* factory, std::shared_ptr<const LinOp> system_matrix,

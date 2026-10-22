@@ -461,9 +461,9 @@ public:
 
 protected:
     /**
-     * Implements generate_reuse(); `input` is on this factory's executor and
-     * has passed check_reuse_consistent(). The default implementation ignores
-     * `reuse_data` and calls generate_impl().
+     * Implements generate_reuse(); the system matrix of `components` is on
+     * this factory's executor and has passed check_reuse_consistent(). The
+     * default implementation ignores `reuse_data` and calls generate_impl().
      *
      * Overrides have to keep the guarantees of generate_reuse(): on throwing,
      * leave an empty `reuse_data` empty and an initialized one usable (e.g.
@@ -472,7 +472,7 @@ protected:
      * data with it only through shared ownership).
      */
     virtual std::unique_ptr<LinOp> generate_reuse_impl(
-        std::shared_ptr<const LinOp> input, ReuseData& reuse_data) const;
+        LinOpGenerateComponents components, ReuseData& reuse_data) const;
 };
 
 
@@ -959,7 +959,7 @@ using EnableDefaultLinOpFactory =
  * usually used through #GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE. ReuseDataType
  * has to be default-constructible and derived from LinOpFactory::ReuseData,
  * and ConcreteLinOp has to provide
- * - a constructor `(const ConcreteFactory*, std::shared_ptr<const LinOp>,
+ * - a constructor `(const ConcreteFactory*, LinOpGenerateComponents,
  *   ReuseDataType&)` keeping the guarantees of
  *   LinOpFactory::generate_reuse_impl();
  * - `static void check_reuse_consistent(const ConcreteFactory*,
@@ -1018,11 +1018,11 @@ protected:
     {}
 
     std::unique_ptr<LinOp> generate_reuse_impl(
-        std::shared_ptr<const LinOp> input,
+        LinOpGenerateComponents components,
         LinOpFactory::ReuseData& reuse_data) const override
     {
         return std::unique_ptr<LinOp>(new ConcreteLinOp(
-            static_cast<const ConcreteFactory*>(this), std::move(input),
+            static_cast<const ConcreteFactory*>(this), std::move(components),
             *as<ReuseDataType>(&reuse_data)));
     }
 };
@@ -1162,7 +1162,7 @@ public:                                                                      \
  * private:
  *     // used by generate() and generate_reuse()
  *     MyLinOp(const Factory*, LinOpGenerateComponents);
- *     MyLinOp(const Factory*, std::shared_ptr<const LinOp>, reuse_data_type&);
+ *     MyLinOp(const Factory*, LinOpGenerateComponents, reuse_data_type&);
  *     static void check_reuse_consistent(const Factory*, const LinOp*,
  *                                        const reuse_data_type&);
  * };
