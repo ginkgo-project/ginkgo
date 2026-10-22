@@ -213,34 +213,7 @@ public:
 
 protected:
     explicit ParIlu(const Factory* factory,
-                    std::shared_ptr<const LinOp> system_matrix)
-        : Composition<ValueType>(
-              generate_l_u(system_matrix, parameters_.skip_sorting,
-                           parameters_.l_strategy, parameters_.u_strategy)),
-          parameters_{factory->get_parameters()}
-    {}
-
-    /**
-     * Generates the incomplete LU factors, which will be returned as a
-     * composition of the lower (first element of the composition) and the
-     * upper factor (second element). The dynamic type of L is l_matrix_type,
-     * while the dynamic type of U is u_matrix_type.
-     *
-     * @param system_matrix  the source matrix used to generate the factors.
-     *                       @note: system_matrix must be convertible to a Csr
-     *                              Matrix, otherwise, an exception is thrown.
-     * @param skip_sorting  if set to `true`, the sorting will be skipped.
-     *                      @note: If the matrix is not sorted, the
-     *                             factorization fails.
-     * @param l_strategy  Strategy, which will be used by the L matrix.
-     * @param u_strategy  Strategy, which will be used by the U matrix.
-     * @return  A Composition, containing the incomplete LU factors for the
-     *          given system_matrix (first element is L, then U)
-     */
-    std::unique_ptr<Composition<ValueType>> generate_l_u(
-        const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
-        matrix::csr::spmv_strategy l_strategy,
-        matrix::csr::spmv_strategy u_strategy) const;
+                    std::shared_ptr<const LinOp> system_matrix);
 };
 
 

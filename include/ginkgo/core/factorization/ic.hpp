@@ -161,16 +161,7 @@ public:
             config::make_type_descriptor<ValueType, IndexType>());
 
 protected:
-    Ic(const Factory* factory, std::shared_ptr<const gko::LinOp> system_matrix)
-        : Composition<ValueType>{generate(system_matrix,
-                                          parameters_.skip_sorting,
-                                          parameters_.both_factors)},
-          parameters_{factory->get_parameters()}
-    {}
-
-    std::unique_ptr<Composition<ValueType>> generate(
-        const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
-        bool both_factors) const;
+    Ic(const Factory* factory, std::shared_ptr<const gko::LinOp> system_matrix);
 };
 
 
