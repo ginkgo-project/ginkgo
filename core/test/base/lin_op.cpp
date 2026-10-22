@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 
 
 namespace {
@@ -310,10 +311,12 @@ public:
                           gko::LinOpGenerateComponents components)
         : gko::LinOp(factory->get_executor()),
           parameters_{factory->get_parameters()},
-          op_{std::move(components.system_matrix)}
+          op_{std::move(components.system_matrix)},
+          got_workspace{components.has_owned_workspace()}
     {}
 
     std::shared_ptr<const gko::LinOp> op_;
+    bool got_workspace = false;
 
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
@@ -454,6 +457,7 @@ public:
 
     std::shared_ptr<const gko::LinOp> op_;
     bool reused = false;
+    bool got_workspace = false;
 
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
@@ -468,7 +472,8 @@ private:
                        reuse_data_type& reuse_data)
         : gko::LinOp(factory->get_executor()),
           parameters_{factory->get_parameters()},
-          op_{std::move(components.system_matrix)}
+          op_{std::move(components.system_matrix)},
+          got_workspace{components.has_owned_workspace()}
     {
         if (parameters_.throw_on_reuse) {
             throw gko::NotImplemented(__FILE__, __LINE__, "DummyReusableLinOp");
@@ -652,6 +657,35 @@ TEST_F(LinOpFactory, FailedGenerateReuseKeepsReuseDataUsable)
     // and initialized reuse data stays usable
     ASSERT_EQ(data->num_reuses, 0);
     ASSERT_TRUE(factory->generate_reuse(matching, *reuse_data)->reused);
+}
+
+
+TEST_F(LinOpFactory, GenerateReuseHandsTheWorkspaceToTheGeneratedLinOp)
+{
+    auto dummy = gko::share(DummyLinOp::create(ref, gko::dim<2>{3, 5}));
+    auto plain_factory = DummyLinOpWithFactory<>::build().on(ref);
+    auto factory = Reusable::build().on(ref);
+    const gko::LinOpFactory* base_factory = factory.get();
+    auto plain_data = plain_factory->create_empty_reuse_data();
+    auto reuse_data = factory->create_empty_reuse_data();
+
+    auto plain = plain_factory->generate_reuse(dummy, *plain_data,
+                                               gko::Workspace::create(ref));
+    auto first = factory->generate_reuse(dummy, *reuse_data,
+                                         gko::Workspace::create(ref));
+    auto second = base_factory->generate_reuse(dummy, *reuse_data,
+                                               gko::Workspace::create(ref));
+    auto without_workspace = factory->generate_reuse(dummy, *reuse_data);
+
+    static_assert(
+        std::is_same<decltype(first), std::unique_ptr<Reusable>>::value,
+        "generate_reuse has to return the concrete LinOp type");
+    ASSERT_TRUE(gko::as<DummyLinOpWithFactory<>>(plain.get())->got_workspace);
+    ASSERT_TRUE(first->got_workspace);
+    ASSERT_FALSE(first->reused);
+    ASSERT_TRUE(gko::as<Reusable>(second.get())->got_workspace);
+    ASSERT_TRUE(gko::as<Reusable>(second.get())->reused);
+    ASSERT_FALSE(without_workspace->got_workspace);
 }
 
 

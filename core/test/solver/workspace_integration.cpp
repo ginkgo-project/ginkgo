@@ -247,6 +247,64 @@ TEST_F(WorkspaceIntegration, WorkspaceReusesAllocationsAcrossRegenerate)
 }
 
 
+TEST_F(WorkspaceIntegration, WorkspaceReusesAllocationsAcrossGenerateReuse)
+{
+    auto ws = Workspace::create(exec);
+    const auto* root = ws.get();
+    auto factory =
+        Cg::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .on(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    std::unique_ptr<gko::LinOp> solver1 =
+        factory->generate_reuse(matrix, *reuse_data, std::move(ws));
+    x->fill(0.0);
+    solver1->apply(b, x);
+    ws = gko::invalidate_and_extract_workspace(std::move(solver1));
+    const auto* r_before = ws->get_const_op(0);
+    const auto* p_before = ws->get_const_op(2);
+
+    std::unique_ptr<gko::LinOp> solver2 =
+        factory->generate_reuse(matrix, *reuse_data, std::move(ws));
+    x->fill(0.0);
+    solver2->apply(b, x);
+    ws = gko::invalidate_and_extract_workspace(std::move(solver2));
+
+    ASSERT_EQ(ws.get(), root);
+    ASSERT_EQ(ws->get_const_op(0), r_before);
+    ASSERT_EQ(ws->get_const_op(2), p_before);
+}
+
+
+TEST_F(WorkspaceIntegration, GenerateReuseKeepsThePreconditionerWorkspace)
+{
+    auto ws = Workspace::create(exec);
+    auto factory =
+        Cg::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .with_preconditioner(Cg::build().with_criteria(
+                gko::stop::Iteration::build().with_max_iters(2u)))
+            .on(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    std::unique_ptr<gko::LinOp> solver1 =
+        factory->generate_reuse(matrix, *reuse_data, std::move(ws));
+    x->fill(0.0);
+    solver1->apply(b, x);
+    ws = gko::invalidate_and_extract_workspace(std::move(solver1));
+    ASSERT_TRUE(ws->has_child("preconditioner"));
+    const auto* inner_r = ws->get_child("preconditioner")->get_const_op(0);
+
+    std::unique_ptr<gko::LinOp> solver2 =
+        factory->generate_reuse(matrix, *reuse_data, std::move(ws));
+    x->fill(0.0);
+    solver2->apply(b, x);
+    ws = gko::invalidate_and_extract_workspace(std::move(solver2));
+
+    ASSERT_NE(inner_r, nullptr);
+    ASSERT_EQ(ws->get_child("preconditioner")->get_const_op(0), inner_r);
+}
+
+
 TEST_F(WorkspaceIntegration, MultipleExtractRegenerateCycles)
 {
     auto ws = Workspace::create(exec);
