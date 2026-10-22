@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -42,15 +42,23 @@ TEST_F(Timer, WorksAsync)
     auto dummy2 = dummy;
     this->exec->synchronize();
     // we do some minimal work to work around Intel GPU timers running backwards
+    auto measure = [&] {
+        timer->record(start);
+        dummy = dummy2;
+        std::this_thread::sleep_for(std::chrono::seconds{5});
+        dummy = dummy2;
+        timer->record(stop);
+        timer->wait(stop);
+        return timer->difference_async(start, stop);
+    };
 
-    timer->record(start);
-    dummy = dummy2;
-    std::this_thread::sleep_for(std::chrono::seconds{5});
-    dummy = dummy2;
-    timer->record(stop);
-    timer->wait(stop);
+    auto difference = measure();
+    // Intel GPU timestamps can wrap around between the two time points
+    if (difference.count() < 0) {
+        difference = measure();
+    }
 
-    ASSERT_GT(timer->difference_async(start, stop), std::chrono::seconds{1});
+    ASSERT_GT(difference, std::chrono::seconds{1});
 }
 
 
@@ -63,14 +71,22 @@ TEST_F(Timer, Works)
     auto dummy2 = dummy;
     this->exec->synchronize();
     // we do some minimal work to work around Intel GPU timers running backwards
+    auto measure = [&] {
+        timer->record(start);
+        dummy = dummy2;
+        std::this_thread::sleep_for(std::chrono::seconds{5});
+        dummy = dummy2;
+        timer->record(stop);
+        return timer->difference(start, stop);
+    };
 
-    timer->record(start);
-    dummy = dummy2;
-    std::this_thread::sleep_for(std::chrono::seconds{5});
-    dummy = dummy2;
-    timer->record(stop);
+    auto difference = measure();
+    // Intel GPU timestamps can wrap around between the two time points
+    if (difference.count() < 0) {
+        difference = measure();
+    }
 
-    ASSERT_GT(timer->difference(start, stop), std::chrono::seconds{1});
+    ASSERT_GT(difference, std::chrono::seconds{1});
 }
 
 
