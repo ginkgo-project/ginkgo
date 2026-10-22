@@ -88,7 +88,7 @@ void Cg<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     }
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->apply_dense_impl(dense_b, dense_x);
+            // this->apply_dense_impl(dense_b, dense_x);
         },
         b, x);
 }
@@ -136,7 +136,7 @@ void Cg<ValueType>::apply_dense_impl(const VectorType* dense_b,
 
     this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, r);
     // A annihilates N(A), so removing it from x keeps r unchanged
-    this->project_nullspace(dense_x);
+    // this->project_nullspace(dense_x);
     auto stop_criterion = this->get_stop_criterion_factory()->generate(
         this->get_system_matrix(),
         std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x, r);
@@ -208,7 +208,7 @@ void Cg<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get());
+            // this->apply_dense_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone);
         },

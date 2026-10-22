@@ -72,7 +72,7 @@ void symbolic_cholesky(
         const auto scalar = initialize<matrix::MultiVector<ValueType>>(
             {one<ValueType>()}, exec);
         const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
-        lt_factor->apply(scalar, id, scalar, factors);
+        // lt_factor->apply(scalar, id, scalar, factors);
     }
 }
 
@@ -122,7 +122,7 @@ void symbolic_cholesky_device(
         const auto scalar = initialize<matrix::MultiVector<ValueType>>(
             {one<ValueType>()}, exec);
         const auto id = matrix::Identity<ValueType>::create(exec, num_rows);
-        lt_factor->apply(scalar, id, scalar, factors);
+        // lt_factor->apply(scalar, id, scalar, factors);
     }
 }
 
@@ -163,7 +163,7 @@ void symbolic_lu_near_symm(
         const auto scalar = gko::initialize<scalar_type>({one<float>()}, exec);
         const auto symm_mtx = as<float_matrix_type>(float_mtx->transpose());
         const auto id = id_type::create(exec, size[0]);
-        float_mtx->apply(scalar, id, scalar, symm_mtx);
+        // float_mtx->apply(scalar, id, scalar, symm_mtx);
         // compute Cholesky factorization
         std::unique_ptr<elimination_forest<IndexType>> forest;
         symbolic_cholesky(symm_mtx.get(), true, symm_factors, forest);

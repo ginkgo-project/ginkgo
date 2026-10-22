@@ -196,8 +196,8 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         [this](auto dense_b, auto dense_x) {
             auto ell_mtx = this->get_ell();
             auto coo_mtx = this->get_coo();
-            ell_mtx->apply(dense_b, dense_x);
-            coo_mtx->apply2(dense_b, dense_x);
+            // ell_mtx->apply(dense_b, dense_x);
+            // coo_mtx->apply2(dense_b, dense_x);
         },
         b, x);
 }
@@ -212,8 +212,8 @@ void Hybrid<ValueType, IndexType>::apply_impl(const LinOp* alpha,
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto ell_mtx = this->get_ell();
             auto coo_mtx = this->get_coo();
-            ell_mtx->apply(dense_alpha, dense_b, dense_beta, dense_x);
-            coo_mtx->apply2(dense_alpha, dense_b, dense_x);
+            // ell_mtx->apply(dense_alpha, dense_b, dense_beta, dense_x);
+            // coo_mtx->apply2(dense_alpha, dense_b, dense_x);
         },
         alpha, b, beta, x);
 }

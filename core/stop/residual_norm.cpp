@@ -115,7 +115,7 @@ ResidualNormBase<ValueType>::ResidualNormBase(
                 this->starting_tau_ =
                     NormVector::create(exec, dim<2>{1, args.b->get_size()[1]});
                 auto b_clone = share(as<LinOp>(as<Cloneable>(args.b)->clone()));
-                args.system_matrix->apply(neg_one_, args.x, one_, b_clone);
+                // args.system_matrix->apply(neg_one_, args.x, one_, b_clone);
                 norm_dispatch<ValueType>(
                     [&](auto dense_r) {
                         dense_r->compute_norm2(this->starting_tau_,
@@ -188,7 +188,7 @@ bool ResidualNormBase<ValueType>::check_impl(
         norm_dispatch<ValueType>(
             [&](auto dense_b, auto dense_x) {
                 auto dense_r = dense_b->clone();
-                system_matrix_->apply(neg_one_, dense_x, one_, dense_r);
+                // system_matrix_->apply(neg_one_, dense_x, one_, dense_r);
                 dense_r->compute_norm2(u_dense_tau_, reduction_tmp_);
             },
             b_.get(), updater.solution_);
@@ -270,69 +270,75 @@ class ResidualNormFactory : public CriterionFactory {
     {
         std::unique_ptr<Criterion> result;
         auto exec = this->get_executor();
-        run<matrix::MultiVector<double>,
-            matrix::MultiVector<std::complex<double>>,
-            matrix::MultiVector<float>, matrix::MultiVector<std::complex<float>>
-#if GINKGO_ENABLE_HALF
-            ,
-            matrix::MultiVector<half>, matrix::MultiVector<std::complex<half>>
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-            ,
-            matrix::MultiVector<bfloat16>,
-            matrix::MultiVector<std::complex<bfloat16>>
-#endif
-#if GINKGO_BUILD_MPI
-            ,
-            experimental::distributed::Vector<double>,
-            experimental::distributed::Vector<std::complex<double>>,
-            experimental::distributed::Vector<float>,
-            experimental::distributed::Vector<std::complex<float>>
-#if GINKGO_ENABLE_HALF
-            ,
-            experimental::distributed::Vector<half>,
-            experimental::distributed::Vector<std::complex<half>>
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-            ,
-            experimental::distributed::Vector<bfloat16>,
-            experimental::distributed::Vector<std::complex<bfloat16>>
-#endif
-#endif
-            >(args.b, [&](auto dense_b) {
-            using value_type =
-                typename std::decay_t<decltype(*dense_b)>::value_type;
-            constexpr bool is_distributed =
-                std::is_same_v<std::decay_t<decltype(*dense_b)>,
-                               experimental::distributed::Vector<value_type>>;
-            using vector_type = std::conditional_t<
-                is_distributed, experimental::distributed::Vector<value_type>,
-                matrix::MultiVector<value_type>>;
-            auto dense_x = as<vector_type>(args.x);
-            auto dense_r = as<vector_type>(args.initial_residual);
-            auto cast_threshold = static_cast<remove_complex<value_type>>(
-                this->parameters_.threshold);
-            auto cast_args =
-                CriterionArgs{args.system_matrix, dense_b, dense_x, dense_r};
-            if (static_cast<double>(cast_threshold) <= 0.0) {
-                GKO_INVALID_STATE(
-                    "stopping criterion threshold is zero or negative when "
-                    "cast to ValueType");
-            }
-            if (this->parameters_.implicit) {
-                result = ImplicitResidualNorm<value_type>::build()
-                             .with_baseline(this->parameters_.baseline)
-                             .with_reduction_factor(cast_threshold)
-                             .on(exec)
-                             ->generate(cast_args);
-            } else {
-                result = ResidualNorm<value_type>::build()
-                             .with_baseline(this->parameters_.baseline)
-                             .with_reduction_factor(cast_threshold)
-                             .on(exec)
-                             ->generate(cast_args);
-            }
-        });
+        //         run<matrix::MultiVector<double>,
+        //             matrix::MultiVector<std::complex<double>>,
+        //             matrix::MultiVector<float>,
+        //             matrix::MultiVector<std::complex<float>>
+        // #if GINKGO_ENABLE_HALF
+        //             ,
+        //             matrix::MultiVector<half>,
+        //             matrix::MultiVector<std::complex<half>>
+        // #endif
+        // #if GINKGO_ENABLE_BFLOAT16
+        //             ,
+        //             matrix::MultiVector<bfloat16>,
+        //             matrix::MultiVector<std::complex<bfloat16>>
+        // #endif
+        // #if GINKGO_BUILD_MPI
+        //             ,
+        //             experimental::distributed::Vector<double>,
+        //             experimental::distributed::Vector<std::complex<double>>,
+        //             experimental::distributed::Vector<float>,
+        //             experimental::distributed::Vector<std::complex<float>>
+        // #if GINKGO_ENABLE_HALF
+        //             ,
+        //             experimental::distributed::Vector<half>,
+        //             experimental::distributed::Vector<std::complex<half>>
+        // #endif
+        // #if GINKGO_ENABLE_BFLOAT16
+        //             ,
+        //             experimental::distributed::Vector<bfloat16>,
+        //             experimental::distributed::Vector<std::complex<bfloat16>>
+        // #endif
+        // #endif
+        //             >(args.b, [&](auto dense_b) {
+        //             using value_type =
+        //                 typename
+        //                 std::decay_t<decltype(*dense_b)>::value_type;
+        //             constexpr bool is_distributed =
+        //                 std::is_same_v<std::decay_t<decltype(*dense_b)>,
+        //                                experimental::distributed::Vector<value_type>>;
+        //             using vector_type = std::conditional_t<
+        //                 is_distributed,
+        //                 experimental::distributed::Vector<value_type>,
+        //                 matrix::MultiVector<value_type>>;
+        //             auto dense_x = as<vector_type>(args.x);
+        //             auto dense_r = as<vector_type>(args.initial_residual);
+        //             auto cast_threshold =
+        //             static_cast<remove_complex<value_type>>(
+        //                 this->parameters_.threshold);
+        //             auto cast_args =
+        //                 CriterionArgs{args.system_matrix, dense_b, dense_x,
+        //                 dense_r};
+        //             if (static_cast<double>(cast_threshold) <= 0.0) {
+        //                 GKO_INVALID_STATE(
+        //                     "stopping criterion threshold is zero or negative
+        //                     when " "cast to ValueType");
+        //             }
+        //             if (this->parameters_.implicit) {
+        //                 result = ImplicitResidualNorm<value_type>::build()
+        //                              .with_baseline(this->parameters_.baseline)
+        //                              .with_reduction_factor(cast_threshold)
+        //                              .on(exec)
+        //                              ->generate(cast_args);
+        //             } else {
+        //                 result = ResidualNorm<value_type>::build()
+        //                              .with_baseline(this->parameters_.baseline)
+        //                              .with_reduction_factor(cast_threshold)
+        //                              .on(exec)
+        //                              ->generate(cast_args);
+        //             }
+        //         });
         return result;
     }
 

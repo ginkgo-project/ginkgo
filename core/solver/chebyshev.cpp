@@ -192,7 +192,7 @@ void Chebyshev<ValueType>::apply_with_initial_guess_impl(
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this, guess](auto dense_b, auto dense_x) {
             prepare_initial_guess(dense_b, dense_x, guess);
-            this->apply_dense_impl(dense_b, dense_x, guess);
+            // this->apply_dense_impl(dense_b, dense_x, guess);
         },
         b, x);
 }
@@ -310,7 +310,7 @@ void Chebyshev<ValueType>::apply_with_initial_guess_impl(
                       auto dense_x) {
             prepare_initial_guess(dense_b, dense_x, guess);
             auto x_clone = dense_x->clone();
-            this->apply_dense_impl(dense_b, x_clone.get(), guess);
+            // this->apply_dense_impl(dense_b, x_clone.get(), guess);
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone.get());
         },

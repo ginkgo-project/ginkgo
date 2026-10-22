@@ -325,8 +325,8 @@ void Permutation<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
         auto dense_out = make_temporary_conversion<
             typename gko::detail::pointee<decltype(dense_in)>::value_type>(out);
         auto tmp = dense_in->permute(this, permute_mode::rows);
-        dense_out->scale(beta);
-        dense_out->add_scaled(alpha, tmp);
+        // dense_out->scale(beta);
+        // dense_out->add_scaled(alpha, tmp);
     });
 }
 

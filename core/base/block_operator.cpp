@@ -39,8 +39,9 @@ auto create_vector_blocks(LinOpType* vector,
         return dispatch_dense(
             [&](auto* dense) -> std::unique_ptr<LinOpType> {
                 GKO_ENSURE_IN_BOUNDS(i, spans.size());
-                return dense->create_submatrix(spans[i],
-                                               {0, dense->get_size()[1]});
+                return nullptr;
+                // return dense->create_submatrix(spans[i],
+                // {0, dense->get_size()[1]});
             },
             const_cast<LinOp*>(vector));
     };
@@ -211,8 +212,8 @@ void BlockOperator::apply_impl(const LinOp* b, LinOp* x) const
                 block_at(row, col)->apply(block_b(col), block_x(row));
                 first_in_row = false;
             } else {
-                block_at(row, col)->apply(one_.get(), block_b(col), one_.get(),
-                                          block_x(row));
+                // block_at(row, col)->apply(one_.get(), block_b(col),
+                // one_.get(), block_x(row));
             }
         }
     }
@@ -237,8 +238,8 @@ void BlockOperator::apply_impl(const LinOp* alpha, const LinOp* b,
                                           block_x(row));
                 first_in_row = false;
             } else {
-                block_at(row, col)->apply(alpha, block_b(col), one_.get(),
-                                          block_x(row));
+                // block_at(row, col)->apply(alpha, block_b(col), one_.get(),
+                // block_x(row));
             }
         }
     }

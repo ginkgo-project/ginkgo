@@ -188,11 +188,11 @@ void Direct<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
             using ws = gko::solver::workspace_traits<Direct>;
-            this->setup_workspace();
-            auto intermediate = this->create_workspace_op_with_config_of(
-                ws::intermediate, dense_b);
-            lower_solver_->apply(dense_b, intermediate);
-            upper_solver_->apply(intermediate, dense_x);
+            // this->setup_workspace();
+            // auto intermediate = this->create_workspace_op_with_config_of(
+            // ws::intermediate, dense_b);
+            // lower_solver_->apply(dense_b, intermediate);
+            // upper_solver_->apply(intermediate, dense_x);
         },
         b, x);
 }
@@ -211,11 +211,11 @@ void Direct<ValueType, IndexType>::apply_impl(const LinOp* alpha,
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             using ws = gko::solver::workspace_traits<Direct>;
             this->setup_workspace();
-            auto intermediate = this->create_workspace_op_with_config_of(
-                ws::intermediate, dense_b);
-            lower_solver_->apply(dense_b, intermediate);
-            upper_solver_->apply(dense_alpha, intermediate, dense_beta,
-                                 dense_x);
+            // auto intermediate = this->create_workspace_op_with_config_of(
+            // ws::intermediate, dense_b);
+            // lower_solver_->apply(dense_b, intermediate);
+            // upper_solver_->apply(dense_alpha, intermediate, dense_beta,
+            // dense_x);
         },
         alpha, b, beta, x);
 }

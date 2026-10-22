@@ -238,7 +238,7 @@ void update_coarse_values(
         make_array_view(exec, coarse->get_num_stored_elements(),
                         coarse->get_values()),
         1);
-    mapping->apply(fine_vals, coarse_vals);
+    // mapping->apply(fine_vals, coarse_vals);
 }
 
 
@@ -341,7 +341,7 @@ Pgm<ValueType, IndexType>::generate_local(
     auto half_scalar = initialize<matrix::MultiVector<real_type>>({0.5}, exec);
     auto identity = matrix::Identity<real_type>::create(exec, num_rows);
     // W = (abs_mtx + transpose(abs_mtx))/2
-    abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
+    // abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
     // Extract the diagonal value of matrix
     auto diag = weight_mtx->extract_diagonal();
     for (int i = 0; i < parameters_.max_iterations; i++) {

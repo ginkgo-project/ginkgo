@@ -80,13 +80,14 @@ void Convergence<ValueType>::on_iteration_complete(
                 as<LinOp>(as<Cloneable>(residual_norm)->clone()).release());
         } else if (residual != nullptr) {
             using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
-            detail::vector_dispatch<ValueType>(
-                residual, [&](const auto* dense_r) {
-                    this->residual_norm_ =
-                        NormVector::create(residual->get_executor(),
-                                           dim<2>{1, residual->get_size()[1]});
-                    dense_r->compute_norm2(this->residual_norm_);
-                });
+            detail::vector_dispatch<ValueType>(residual,
+                                               [&](const auto* dense_r) {
+                                                   // this->residual_norm_ =
+                                                   // NormVector::create(residual->get_executor(),
+                                                   // dim<2>{1,
+                                                   // residual->get_size()[1]});
+                                                   // dense_r->compute_norm2(this->residual_norm_);
+                                               });
         } else if (dynamic_cast<const solver::detail::SolverBaseLinOp*>(
                        solver) &&
                    b != nullptr && x != nullptr) {
@@ -99,12 +100,11 @@ void Convergence<ValueType>::on_iteration_complete(
                 detail::vector_dispatch<ValueType>(x, [&](const auto* dense_x) {
                     auto exec = system_mtx->get_executor();
                     auto residual = dense_b->clone();
-                    this->residual_norm_ = NormVector::create(
-                        exec, dim<2>{1, residual->get_size()[1]});
-                    system_mtx->apply(initialize<Vector>({-1.0}, exec), dense_x,
-                                      initialize<Vector>({1.0}, exec),
-                                      residual);
-                    residual->compute_norm2(this->residual_norm_);
+                    // this->residual_norm_ = NormVector::create(
+                    // exec, dim<2>{1, residual->get_size()[1]});
+                    // system_mtx->apply(initialize<Vector>({-1.0}, exec),
+                    // dense_x, initialize<Vector>({1.0}, exec), residual);
+                    // residual->compute_norm2(this->residual_norm_);
                 });
             });
         }

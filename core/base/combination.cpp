@@ -19,12 +19,12 @@ inline void initialize_scalars(std::shared_ptr<const Executor> exec,
                                std::unique_ptr<LinOp>& one)
 {
     if (zero == nullptr) {
-        zero = initialize<matrix::MultiVector<ValueType>>(
-            {gko::zero<ValueType>()}, exec);
+        // zero = initialize<matrix::MultiVector<ValueType>>(
+        // {gko::zero<ValueType>()}, exec);
     }
     if (one == nullptr) {
-        one = initialize<matrix::MultiVector<ValueType>>(
-            {gko::one<ValueType>()}, exec);
+        // one = initialize<matrix::MultiVector<ValueType>>(
+        // {gko::one<ValueType>()}, exec);
     }
 }
 
@@ -140,11 +140,11 @@ void Combination<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
                                   cache_.one);
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            operators_[0]->apply(coefficients_[0], dense_b, cache_.zero,
-                                 dense_x);
+            // operators_[0]->apply(coefficients_[0], dense_b, cache_.zero,
+            // dense_x);
             for (size_type i = 1; i < operators_.size(); ++i) {
-                operators_[i]->apply(coefficients_[i], dense_b, cache_.one,
-                                     dense_x);
+                // operators_[i]->apply(coefficients_[i], dense_b, cache_.one,
+                // dense_x);
             }
         },
         b, x);
@@ -159,11 +159,11 @@ void Combination<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             if (cache_.intermediate_x == nullptr ||
                 cache_.intermediate_x->get_size() != dense_x->get_size()) {
-                cache_.intermediate_x = dense_x->clone();
+                // cache_.intermediate_x = dense_x->clone();
             }
-            this->apply_impl(dense_b, cache_.intermediate_x.get());
+            // this->apply_impl(dense_b, cache_.intermediate_x.get());
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, cache_.intermediate_x);
+            // dense_x->add_scaled(dense_alpha, cache_.intermediate_x);
         },
         alpha, b, beta, x);
 }

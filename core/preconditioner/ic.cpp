@@ -131,12 +131,12 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     // take care of real-to-complex apply
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_b, auto dense_x) {
-            this->set_cache_to(dense_b);
-            l_solver_->apply(dense_b, cache_.intermediate);
+            // this->set_cache_to(dense_b);
+            // l_solver_->apply(dense_b, cache_.intermediate);
             if (lh_solver_->apply_uses_initial_guess()) {
-                dense_x->copy_from(as<Cloneable>(cache_.intermediate.get()));
+                // dense_x->copy_from(as<Cloneable>(cache_.intermediate.get()));
             }
-            lh_solver_->apply(cache_.intermediate, dense_x);
+            // lh_solver_->apply(cache_.intermediate, dense_x);
         },
         b, x);
 }
@@ -149,10 +149,10 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
 {
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->set_cache_to(dense_b);
-            l_solver_->apply(dense_b, cache_.intermediate);
-            lh_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
-                              dense_x);
+            // this->set_cache_to(dense_b);
+            // l_solver_->apply(dense_b, cache_.intermediate);
+            // lh_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
+            // dense_x);
         },
         alpha, b, beta, x);
 }
@@ -225,8 +225,8 @@ void Ic<ValueType, IndexType>::set_cache_to(const LinOp* b) const
 
 {
     if (cache_.intermediate == nullptr) {
-        cache_.intermediate =
-            matrix::MultiVector<value_type>::create(this->get_executor());
+        // cache_.intermediate =
+        // matrix::MultiVector<value_type>::create(this->get_executor());
     }
     // Use b as the initial guess for the first triangular solve
     as<Cloneable>(cache_.intermediate.get())->copy_from(as<Cloneable>(b));

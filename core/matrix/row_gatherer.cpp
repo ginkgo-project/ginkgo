@@ -73,7 +73,9 @@ void RowGatherer<IndexType>::apply_impl(const LinOp* in, LinOp* out) const
         gko::bfloat16, std::complex<gko::bfloat16>,
 #endif
         float, double, std::complex<float>, std::complex<double>>(
-        in, [&](auto gather) { gather->row_gather(&row_idxs_, out); });
+        in, [&](auto gather) {
+            // gather->row_gather(&row_idxs_, out);
+        });
 }
 
 template <typename IndexType>
@@ -88,8 +90,9 @@ void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
         gko::bfloat16, std::complex<gko::bfloat16>,
 #endif
         float, double, std::complex<float>, std::complex<double>>(
-        in,
-        [&](auto gather) { gather->row_gather(alpha, &row_idxs_, beta, out); });
+        in, [&](auto gather) {
+            // gather->row_gather(alpha, &row_idxs_, beta, out);
+        });
 }
 
 

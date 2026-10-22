@@ -160,22 +160,22 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* b,
     // take care of real-to-complex apply
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_b, auto dense_x) {
-            this->set_cache_to(dense_b);
-            if (!ReverseApply) {
-                l_solver_->apply(dense_b, cache_.intermediate);
-                if (u_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(
-                        as<Cloneable>(cache_.intermediate.get()));
-                }
-                u_solver_->apply(cache_.intermediate, dense_x);
-            } else {
-                u_solver_->apply(dense_b, cache_.intermediate);
-                if (l_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(
-                        as<Cloneable>(cache_.intermediate.get()));
-                }
-                l_solver_->apply(cache_.intermediate, dense_x);
-            }
+            // this->set_cache_to(dense_b);
+            // if (!ReverseApply) {
+            //     l_solver_->apply(dense_b, cache_.intermediate);
+            //     if (u_solver_->apply_uses_initial_guess()) {
+            //         dense_x->copy_from(
+            //             as<Cloneable>(cache_.intermediate.get()));
+            //     }
+            //     u_solver_->apply(cache_.intermediate, dense_x);
+            // } else {
+            //     u_solver_->apply(dense_b, cache_.intermediate);
+            //     if (l_solver_->apply_uses_initial_guess()) {
+            //         dense_x->copy_from(
+            //             as<Cloneable>(cache_.intermediate.get()));
+            //     }
+            //     // l_solver_->apply(cache_.intermediate, dense_x);
+            // }
         },
         b, x);
 }
@@ -189,16 +189,18 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* alpha,
 {
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->set_cache_to(dense_b);
-            if (!ReverseApply) {
-                l_solver_->apply(dense_b, cache_.intermediate);
-                u_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
-                                 dense_x);
-            } else {
-                u_solver_->apply(dense_b, cache_.intermediate);
-                l_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
-                                 dense_x);
-            }
+            // this->set_cache_to(dense_b);
+            // if (!ReverseApply) {
+            //     l_solver_->apply(dense_b, cache_.intermediate);
+            //     u_solver_->apply(dense_alpha, cache_.intermediate,
+            //     dense_beta,
+            //                      dense_x);
+            // } else {
+            //     u_solver_->apply(dense_b, cache_.intermediate);
+            //     l_solver_->apply(dense_alpha, cache_.intermediate,
+            //     dense_beta,
+            //                      dense_x);
+            // }
         },
         alpha, b, beta, x);
 }
@@ -269,8 +271,8 @@ void Ilu<ValueType, ReverseApply, IndexType>::set_cache_to(const LinOp* b) const
 
 {
     if (cache_.intermediate == nullptr) {
-        cache_.intermediate =
-            matrix::MultiVector<value_type>::create(this->get_executor());
+        // cache_.intermediate =
+        // matrix::MultiVector<value_type>::create(this->get_executor());
     }
     // Use b as the initial guess for the first triangular solve
     as<Cloneable>(cache_.intermediate.get())->copy_from(as<Cloneable>(b));

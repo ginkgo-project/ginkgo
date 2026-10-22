@@ -149,7 +149,7 @@ std::shared_ptr<const matrix::MultiVector<ValueType>> ScalarCache::get() const
         auto new_scalar =
             share(matrix::MultiVector<ValueType>::create(exec, dim<2>{1, 1}));
         new_scalar->fill(static_cast<ValueType>(value));
-        scalars[value_string] = new_scalar;
+        // scalars[value_string] = new_scalar;
         return new_scalar;
     }
 }

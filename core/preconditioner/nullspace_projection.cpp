@@ -32,7 +32,7 @@ VectorType* get_like(std::unique_ptr<LinOp>& cache, const VectorType* like)
             gko::detail::get_local(like)->get_size()) {
         auto new_vec = gko::detail::create_with_config_of(like);
         vec = new_vec.get();
-        cache = std::move(new_vec);
+        // cache = std::move(new_vec);
     }
     return vec;
 }
@@ -179,13 +179,13 @@ void NullspaceProjection<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
         [this](auto dense_b, auto dense_x) {
             if (left_nullspace_) {
                 auto projected = get_like(projected_input_.vec, dense_b);
-                left_nullspace_->apply(dense_b, projected);
-                preconditioner_->apply(projected, dense_x);
+                // left_nullspace_->apply(dense_b, projected);
+                // preconditioner_->apply(projected, dense_x);
             } else {
-                preconditioner_->apply(dense_b, dense_x);
+                // preconditioner_->apply(dense_b, dense_x);
             }
             if (nullspace_) {
-                nullspace_->project(dense_x);
+                // nullspace_->project(dense_x);
             }
         },
         b, x);
@@ -200,10 +200,10 @@ void NullspaceProjection<ValueType>::apply_impl(const LinOp* alpha,
 {
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto result = get_like(result_.vec, dense_x);
-            this->apply_impl(dense_b, result);
+            // auto result = get_like(result_.vec, dense_x);
+            // this->apply_impl(dense_b, result);
             dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, result);
+            // dense_x->add_scaled(dense_alpha, result);
         },
         alpha, b, beta, x);
 }

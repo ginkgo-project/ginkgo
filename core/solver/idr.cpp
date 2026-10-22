@@ -178,7 +178,7 @@ void Idr<ValueType>::iterate(const VectorType* dense_b,
 
     // residual = b - Ax
     residual->copy_from(dense_b);
-    this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
+    // this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
     residual->compute_norm2(residual_norm, reduction_tmp);
 
     // g = u = 0
@@ -325,13 +325,13 @@ void Idr<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
             if (!is_complex<ValueType>() && this->get_complex_subspace()) {
                 auto complex_b = dense_b->make_complex();
                 auto complex_x = dense_x->make_complex();
-                this->iterate(complex_b.get(), complex_x.get());
+                // this->iterate(complex_b.get(), complex_x.get());
                 complex_x->get_real(
                     dynamic_cast<
                         matrix::MultiVector<remove_complex<ValueType>>*>(
                         dense_x));
             } else {
-                this->iterate(dense_b, dense_x);
+                // this->iterate(dense_b, dense_x);
             }
         },
         b, x);
@@ -348,7 +348,7 @@ void Idr<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
-            this->apply_impl(dense_b, x_clone.get());
+            // this->apply_impl(dense_b, x_clone.get());
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone);
         },

@@ -253,8 +253,8 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
             } else {
                 excess_solver_factory = LowerTrs::build().on(exec);
             }
-            excess_solver_factory->generate(share(excess_system->transpose()))
-                ->apply(excess_rhs, excess_solution);
+            // excess_solver_factory->generate(share(excess_system->transpose()))
+            // ->apply(excess_rhs, excess_solution);
             if (is_spd) {
                 exec->run(isai::make_scale_excess_solution(
                     excess_block_ptrs.get_const_data(),

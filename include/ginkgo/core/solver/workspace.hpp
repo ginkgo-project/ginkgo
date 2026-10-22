@@ -106,7 +106,7 @@ public:
         if (!stored_op || typeid(*stored_op) != expected_type) {
             auto new_op = create();
             op = new_op.get();
-            operators_[op_id] = std::move(new_op);
+            // operators_[op_id] = std::move(new_op);
             return op;
         }
         // does the existing object have the wrong dimensions?
@@ -115,7 +115,7 @@ public:
         if (op->get_size() != size || op->get_stride() != stride) {
             auto new_op = create();
             op = new_op.get();
-            operators_[op_id] = std::move(new_op);
+            // operators_[op_id] = std::move(new_op);
         }
         return op;
     }

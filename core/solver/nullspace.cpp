@@ -221,7 +221,7 @@ Nullspace<ValueType>::Nullspace(std::shared_ptr<const Executor> exec,
             basis[0].get(), [&](auto first) {
                 using vector_type =
                     std::remove_const_t<std::remove_pointer_t<decltype(first)>>;
-                this->template setup_basis<vector_type>(basis);
+                // this->template setup_basis<vector_type>(basis);
             });
     }
 }
@@ -297,7 +297,7 @@ void Nullspace<ValueType>::setup_basis(
     auto result = create_like(first, exec, num_kept);
     auto kept =
         block_local->create_submatrix(span{0, local_rows}, span{0, num_kept});
-    gko::detail::get_local(result.get())->copy_from(kept.get());
+    // gko::detail::get_local(result.get())->copy_from(kept.get());
     basis_ = std::move(result);
 }
 
@@ -330,10 +330,10 @@ const matrix::MultiVector<ValueType>* Nullspace<ValueType>::get_local_basis(
     auto basis = dynamic_cast<const VectorType*>(basis_.get());
     if (basis == nullptr) {
         // e.g. a non-distributed basis applied to a distributed vector
-        throw NotSupported(
-            __FILE__, __LINE__,
-            "Nullspace with a basis of type " + type_name_of(basis_.get()),
-            type_name_of(v));
+        // throw NotSupported(
+        // __FILE__, __LINE__,
+        // "Nullspace with a basis of type " + type_name_of(basis_.get()),
+        // type_name_of(v));
     }
     return gko::detail::get_local(basis);
 }
@@ -362,7 +362,7 @@ void Nullspace<ValueType>::compute_components(
         v_local->get_const_device_view(), basis_view(basis_local, local_rows),
         has_constant, inv_size, coefficients_->get_device_view(),
         reduction_tmp_));
-    sum_over_ranks(v, coefficients_.get(), host_coefficients_);
+    // sum_over_ranks(v, coefficients_.get(), host_coefficients_);
 }
 
 

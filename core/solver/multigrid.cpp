@@ -323,78 +323,90 @@ void MultigridState::generate(const LinOp* system_matrix_in,
                               const gko::solver::Multigrid* multigrid_in,
                               const size_type nrhs_in)
 {
-    system_matrix = system_matrix_in;
-    multigrid = multigrid_in;
-    nrhs = nrhs_in;
-    auto current_nrows = system_matrix->get_size()[0];
-    auto mg_level_list = multigrid->get_mg_level_list();
-    auto list_size = mg_level_list.size();
-    auto cycle = multigrid->get_cycle();
-    clear_and_reserve(r_list, list_size);
-    clear_and_reserve(g_list, list_size);
-    clear_and_reserve(e_list, list_size);
-    clear_and_reserve(one_list, list_size);
-    clear_and_reserve(next_one_list, list_size);
-    clear_and_reserve(neg_one_list, list_size);
-    // Allocate memory first such that reusing allocation in each iter.
-    for (int i = 0; i < mg_level_list.size(); i++) {
-        auto next_nrows = mg_level_list.at(i)->get_coarse_op()->get_size()[0];
-        auto mg_level = mg_level_list.at(i);
-
-        run<gko::multigrid::EnableMultigridLevel, float, double,
-#if GINKGO_ENABLE_HALF
-            float16, std::complex<float16>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-            bfloat16, std::complex<bfloat16>,
-#endif
-            std::complex<float>, std::complex<double>>(
-            mg_level,
-            [&, this](auto mg_level, auto i, auto cycle, auto current_nrows,
-                      auto next_nrows) {
-#if GINKGO_BUILD_MPI
-                if (gko::detail::is_distributed(system_matrix_in)) {
-                    using value_type =
-                        typename std::decay_t<decltype(*mg_level)>::value_type;
-                    using VectorType =
-                        experimental::distributed::Vector<value_type>;
-                    auto fine = mg_level->get_fine_op().get();
-                    auto coarse = mg_level->get_coarse_op().get();
-                    auto distributed_fine = dynamic_cast<
-                        const experimental::distributed::DistributedBase*>(
-                        fine);
-                    auto distributed_coarse = dynamic_cast<
-                        const experimental::distributed::DistributedBase*>(
-                        coarse);
-                    auto current_comm = distributed_fine->get_communicator();
-                    auto next_comm = distributed_coarse->get_communicator();
-                    auto current_local_nrows =
-                        ::gko::detail::run_matrix(fine, [](auto* fine_mat) {
-                            return fine_mat->get_diag_matrix()->get_size()[0];
-                        });
-                    auto next_local_nrows =
-                        ::gko::detail::run_matrix(coarse, [](auto* coarse_mat) {
-                            return coarse_mat->get_off_diag_matrix()
-                                ->get_size()[0];
-                        });
-                    this->allocate_memory<VectorType>(
-                        i, cycle, current_comm, next_comm, current_nrows,
-                        next_nrows, current_local_nrows, next_local_nrows);
-
-                } else
-#endif
-                {
-                    using value_type =
-                        typename std::decay_t<decltype(*mg_level)>::value_type;
-                    using VectorType = matrix::MultiVector<value_type>;
-                    this->allocate_memory<VectorType>(i, cycle, current_nrows,
-                                                      next_nrows);
-                }
-            },
-            i, cycle, current_nrows, next_nrows);
-
-        current_nrows = next_nrows;
-    }
+    //     system_matrix = system_matrix_in;
+    //     multigrid = multigrid_in;
+    //     nrhs = nrhs_in;
+    //     auto current_nrows = system_matrix->get_size()[0];
+    //     auto mg_level_list = multigrid->get_mg_level_list();
+    //     auto list_size = mg_level_list.size();
+    //     auto cycle = multigrid->get_cycle();
+    //     clear_and_reserve(r_list, list_size);
+    //     clear_and_reserve(g_list, list_size);
+    //     clear_and_reserve(e_list, list_size);
+    //     clear_and_reserve(one_list, list_size);
+    //     clear_and_reserve(next_one_list, list_size);
+    //     clear_and_reserve(neg_one_list, list_size);
+    //     // Allocate memory first such that reusing allocation in each iter.
+    //     for (int i = 0; i < mg_level_list.size(); i++) {
+    //         auto next_nrows =
+    //         mg_level_list.at(i)->get_coarse_op()->get_size()[0]; auto
+    //         mg_level = mg_level_list.at(i);
+    //
+    //         run<gko::multigrid::EnableMultigridLevel, float, double,
+    // #if GINKGO_ENABLE_HALF
+    //             float16, std::complex<float16>,
+    // #endif
+    // #if GINKGO_ENABLE_BFLOAT16
+    //             bfloat16, std::complex<bfloat16>,
+    // #endif
+    //             std::complex<float>, std::complex<double>>(
+    //             mg_level,
+    //             [&, this](auto mg_level, auto i, auto cycle, auto
+    //             current_nrows,
+    //                       auto next_nrows) {
+    // #if GINKGO_BUILD_MPI
+    //                 if (gko::detail::is_distributed(system_matrix_in)) {
+    //                     using value_type =
+    //                         typename
+    //                         std::decay_t<decltype(*mg_level)>::value_type;
+    //                     using VectorType =
+    //                         experimental::distributed::Vector<value_type>;
+    //                     auto fine = mg_level->get_fine_op().get();
+    //                     auto coarse = mg_level->get_coarse_op().get();
+    //                     auto distributed_fine = dynamic_cast<
+    //                         const
+    //                         experimental::distributed::DistributedBase*>(
+    //                         fine);
+    //                     auto distributed_coarse = dynamic_cast<
+    //                         const
+    //                         experimental::distributed::DistributedBase*>(
+    //                         coarse);
+    //                     auto current_comm =
+    //                     distributed_fine->get_communicator(); auto next_comm
+    //                     = distributed_coarse->get_communicator(); auto
+    //                     current_local_nrows =
+    //                         ::gko::detail::run_matrix(fine, [](auto*
+    //                         fine_mat) {
+    //                             return
+    //                             fine_mat->get_diag_matrix()->get_size()[0];
+    //                         });
+    //                     auto next_local_nrows =
+    //                         ::gko::detail::run_matrix(coarse, [](auto*
+    //                         coarse_mat) {
+    //                             return coarse_mat->get_off_diag_matrix()
+    //                                 ->get_size()[0];
+    //                         });
+    //                     this->allocate_memory<VectorType>(
+    //                         i, cycle, current_comm, next_comm, current_nrows,
+    //                         next_nrows, current_local_nrows,
+    //                         next_local_nrows);
+    //
+    //                 } else
+    // #endif
+    //                 {
+    //                     using value_type =
+    //                         typename
+    //                         std::decay_t<decltype(*mg_level)>::value_type;
+    //                     using VectorType = matrix::MultiVector<value_type>;
+    //                     this->allocate_memory<VectorType>(i, cycle,
+    //                     current_nrows,
+    //                                                       next_nrows);
+    //                 }
+    //             },
+    //             i, cycle, current_nrows, next_nrows);
+    //
+    //         current_nrows = next_nrows;
+    //     }
 }
 
 
@@ -1034,7 +1046,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* b, LinOp* x,
         experimental::precision_dispatch_real_complex_distributed<value_type>(
             [this, guess](auto dense_b, auto dense_x) {
                 prepare_initial_guess(dense_b, dense_x, guess);
-                this->apply_dense_impl(dense_b, dense_x, guess);
+                // this->apply_dense_impl(dense_b, dense_x, guess);
             },
             b, x);
     };
@@ -1077,7 +1089,7 @@ void Multigrid::apply_with_initial_guess_impl(const LinOp* alpha,
                           auto dense_x) {
                 prepare_initial_guess(dense_b, dense_x, guess);
                 auto x_clone = dense_x->clone();
-                this->apply_dense_impl(dense_b, x_clone.get(), guess);
+                // this->apply_dense_impl(dense_b, x_clone.get(), guess);
                 dense_x->scale(dense_beta);
                 dense_x->add_scaled(dense_alpha, x_clone);
             },

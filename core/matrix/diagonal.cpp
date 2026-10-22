@@ -152,9 +152,9 @@ void Diagonal<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             auto x_clone = dense_x->clone();
-            this->apply_impl(dense_b, x_clone.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
+            // this->apply_impl(dense_b, x_clone.get());
+            // dense_x->scale(dense_beta);
+            // dense_x->add_scaled(dense_alpha, x_clone);
         },
         alpha, b, beta, x);
 }

@@ -162,13 +162,13 @@ private:
         {
             using vec = matrix::MultiVector<ValueType>;
             if (one == nullptr) {
-                one = initialize<vec>({gko::one<ValueType>()}, exec);
+                // one = initialize<vec>({gko::one<ValueType>()}, exec);
             }
             if (alpha_scalar == nullptr) {
-                alpha_scalar = vec::create(exec, gko::dim<2>(1));
+                // alpha_scalar = vec::create(exec, gko::dim<2>(1));
             }
             if (intermediate == nullptr || intermediate->get_size() != size) {
-                intermediate = vec::create(exec, size);
+                // intermediate = vec::create(exec, size);
             }
         }
 
