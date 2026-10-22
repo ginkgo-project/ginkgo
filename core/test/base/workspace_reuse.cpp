@@ -15,6 +15,7 @@
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/gauss_seidel.hpp>
 #include <ginkgo/core/preconditioner/ic.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
@@ -28,6 +29,7 @@
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/nullspace.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -110,11 +112,13 @@ struct ReapplyAllocations {
 
 // Generates from `factory` with a workspace, applies, extracts the
 // workspace, regenerates on `regenerate_matrix` (or `matrix`) and applies
-// twice, counting the allocations of these two applies.
+// twice, counting the allocations of these two applies. With `reuse_data`,
+// both generations go through generate_reuse().
 ReapplyAllocations reapply_allocations(
     std::shared_ptr<gko::Executor> exec, const gko::LinOpFactory* factory,
     std::shared_ptr<const gko::LinOp> matrix, gko::size_type num_rhs = 1,
-    std::shared_ptr<const gko::LinOp> regenerate_matrix = nullptr)
+    std::shared_ptr<const gko::LinOp> regenerate_matrix = nullptr,
+    gko::LinOpFactory::ReuseData* reuse_data = nullptr)
 {
     if (!regenerate_matrix) {
         regenerate_matrix = matrix;
@@ -130,11 +134,16 @@ ReapplyAllocations reapply_allocations(
         exec->remove_logger(counter);
         return counter->count;
     };
-    std::unique_ptr<gko::LinOp> solver =
-        factory->generate(matrix, gko::Workspace::create(exec));
+    auto generate = [&](std::shared_ptr<const gko::LinOp> mtx,
+                        std::unique_ptr<gko::Workspace> ws) {
+        return reuse_data
+                   ? factory->generate_reuse(mtx, *reuse_data, std::move(ws))
+                   : factory->generate(mtx, std::move(ws));
+    };
+    auto solver = generate(matrix, gko::Workspace::create(exec));
     apply(solver.get(), matrix.get());
     auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
-    solver = factory->generate(regenerate_matrix, std::move(ws));
+    solver = generate(regenerate_matrix, std::move(ws));
     const auto first = apply(solver.get(), regenerate_matrix.get());
     const auto steady = apply(solver.get(), regenerate_matrix.get());
     return {first, steady};
@@ -510,6 +519,48 @@ TEST_F(WorkspaceReuse, DirectGivesTriangularSolversNodes)
               "  Workspace [preconditioner] (children=2)\n"
               "    Workspace [lower_solver] (children=0)\n"
               "    Workspace [upper_solver] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, MultigridReusesComponentStorage)
+{
+    auto factory =
+        gko::solver::Multigrid::build()
+            .with_mg_level(gko::multigrid::Pgm<double, int>::build())
+            .with_coarsest_solver(Cg::build().with_criteria(iterations(4u)))
+            .with_min_coarse_rows(2u)
+            .with_criteria(iterations(1u))
+            .on(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+
+    const auto generated = reapply_allocations(exec, factory.get(), mtx);
+    const auto reused = reapply_allocations(exec, factory.get(), mtx, 1,
+                                            nullptr, reuse_data.get());
+
+    ASSERT_EQ(generated.first, generated.steady);
+    ASSERT_EQ(reused.first, reused.steady);
+}
+
+
+TEST_F(WorkspaceReuse, CgWithMultigridKeepsStorageWithReuseData)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(2u))
+            .with_preconditioner(
+                gko::solver::Multigrid::build()
+                    .with_mg_level(gko::multigrid::Pgm<double, int>::build())
+                    .with_coarsest_solver(
+                        Cg::build().with_criteria(iterations(4u)))
+                    .with_min_coarse_rows(2u)
+                    .with_criteria(iterations(1u)))
+            .on(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+
+    const auto reused = reapply_allocations(exec, factory.get(), mtx, 1,
+                                            nullptr, reuse_data.get());
+
+    ASSERT_EQ(reused.first, reused.steady);
 }
 
 

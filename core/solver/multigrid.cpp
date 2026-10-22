@@ -87,10 +87,9 @@ casting(const T& x)
 
 
 /**
- * Generates a component of the hierarchy, through generate_reuse() if reuse
- * data is kept for it. Otherwise, the component is generated into the given
- * workspace node, if any. The levels of the hierarchy are generated without
- * one.
+ * Generates a component of the hierarchy into the given workspace node, if
+ * any, and through generate_reuse() if reuse data is kept for it. The levels
+ * of the hierarchy are generated without a node.
  */
 std::unique_ptr<LinOp> generate_component(
     const LinOpFactory* factory, std::shared_ptr<const LinOp> matrix,
@@ -107,7 +106,11 @@ std::unique_ptr<LinOp> generate_component(
     if (!*reuse_data) {
         *reuse_data = factory->create_empty_reuse_data();
     }
-    return factory->generate_reuse(std::move(matrix), **reuse_data);
+    if (!ws_node) {
+        return factory->generate_reuse(std::move(matrix), **reuse_data);
+    }
+    return gko::detail::generate_reuse_with_view(factory, std::move(matrix),
+                                                 **reuse_data, ws_node);
 }
 
 
