@@ -239,25 +239,7 @@ public:
 
 protected:
     explicit ParIct(const Factory* factory,
-                    std::shared_ptr<const LinOp> system_matrix)
-        : Composition<ValueType>(generate_l_lt(std::move(system_matrix))),
-          parameters_{factory->get_parameters()}
-    {}
-
-    /**
-     * Generates the incomplete LL^T factors, which will be returned as a
-     * composition of the lower (first element of the composition) and the
-     * upper factor (second element). The dynamic type of L and L^T is
-     * matrix_type
-     *
-     * @param system_matrix  the source matrix used to generate the factors.
-     *                       @note: system_matrix must be convertible to a Csr
-     *                              Matrix, otherwise, an exception is thrown.
-     * @return  A Composition, containing the incomplete LU factors for the
-     *          given system_matrix (first element is L, then L^T)
-     */
-    std::unique_ptr<Composition<ValueType>> generate_l_lt(
-        const std::shared_ptr<const LinOp>& system_matrix) const;
+                    std::shared_ptr<const LinOp> system_matrix);
 };
 
 
