@@ -206,7 +206,10 @@ public:
         initial_guess_mode GKO_FACTORY_PARAMETER_SCALAR(
             default_initial_guess, initial_guess_mode::provided);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
+    using reuse_data_type = typename EnablePreconditionedIterativeSolver<
+        ValueType, Gmres<ValueType>>::reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Gmres, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -250,12 +253,13 @@ protected:
               std::move(exec)}
     {}
 
-    explicit Gmres(const Factory* factory, LinOpGenerateComponents components)
+    explicit Gmres(const Factory* factory, LinOpGenerateComponents components,
+                   reuse_data_type* reuse_data = nullptr)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
               factory->get_executor(), std::move(components.system_matrix),
-              factory->get_parameters()},
+              factory->get_parameters(), reuse_data},
           parameters_{factory->get_parameters()}
     {
         if (!parameters_.krylov_dim) {
@@ -267,6 +271,11 @@ protected:
             "restart_ratio must lie in [0, 1); zero disables the criterion");
         this->set_default_initial_guess(parameters_.default_initial_guess);
     }
+
+    Gmres(const Factory* factory, LinOpGenerateComponents components,
+          reuse_data_type& reuse_data)
+        : Gmres(factory, std::move(components), &reuse_data)
+    {}
 };
 
 

@@ -161,7 +161,10 @@ public:
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
     };
 
-    GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);
+    using reuse_data_type = typename EnablePreconditionedIterativeSolver<
+        ValueType, CbGmres<ValueType>>::reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(CbGmres, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -197,13 +200,19 @@ protected:
               std::move(exec)}
     {}
 
-    explicit CbGmres(const Factory* factory, LinOpGenerateComponents components)
+    explicit CbGmres(const Factory* factory, LinOpGenerateComponents components,
+                     reuse_data_type* reuse_data = nullptr)
         : LinOp(factory->get_executor(),
                 transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
               factory->get_executor(), std::move(components.system_matrix),
-              factory->get_parameters()},
+              factory->get_parameters(), reuse_data},
           parameters_{factory->get_parameters()}
+    {}
+
+    CbGmres(const Factory* factory, LinOpGenerateComponents components,
+            reuse_data_type& reuse_data)
+        : CbGmres(factory, std::move(components), &reuse_data)
     {}
 };
 

@@ -342,12 +342,21 @@ Minres<ValueType>::Minres(std::shared_ptr<const Executor> exec)
 
 template <typename ValueType>
 Minres<ValueType>::Minres(const Factory* factory,
-                          LinOpGenerateComponents components)
+                          LinOpGenerateComponents components,
+                          reuse_data_type& reuse_data)
+    : Minres(factory, std::move(components), &reuse_data)
+{}
+
+
+template <typename ValueType>
+Minres<ValueType>::Minres(const Factory* factory,
+                          LinOpGenerateComponents components,
+                          reuse_data_type* reuse_data)
     : LinOp(factory->get_executor(),
             gko::transpose(components.system_matrix->get_size())),
       EnablePreconditionedIterativeSolver<ValueType, Minres>{
           factory->get_executor(), std::move(components.system_matrix),
-          factory->get_parameters()},
+          factory->get_parameters(), reuse_data},
       parameters_{factory->get_parameters()}
 {}
 
