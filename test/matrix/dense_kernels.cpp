@@ -1269,6 +1269,47 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoMixedDenseCrossExecutor)
 }
 
 
+TEST_F(Dense, ScatterAddMatchesReference)
+{
+    set_up_apply_data();
+    auto source = gen_mtx<Mtx>(50, x->get_size()[1]);
+    auto dsource = gko::clone(exec, source);
+    gko::array<index_type> scatter_idxs{ref, 50};
+    std::uniform_int_distribution<index_type> row_dist(
+        0, static_cast<index_type>(x->get_size()[0] - 1));
+    for (gko::size_type i = 0; i < 50; ++i) {
+        scatter_idxs.get_data()[i] = row_dist(rand_engine);
+    }
+    gko::array<index_type> dscatter_idxs{exec, scatter_idxs};
+    auto target = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[1]);
+    auto dtarget = gko::clone(exec, target);
+
+    target->scatter_add(&scatter_idxs, source.get());
+    dtarget->scatter_add(&dscatter_idxs, dsource.get());
+
+    GKO_ASSERT_MTX_NEAR(target, dtarget, r<value_type>::value);
+}
+
+
+TEST_F(Dense, ScatterAddWithDuplicatesMatchesReference)
+{
+    set_up_apply_data();
+    auto source = gen_mtx<Mtx>(30, x->get_size()[1]);
+    auto dsource = gko::clone(exec, source);
+    // All source rows scatter to row 0 (duplicate indices)
+    gko::array<index_type> scatter_idxs{ref, 30};
+    scatter_idxs.fill(0);
+    gko::array<index_type> dscatter_idxs{exec, scatter_idxs};
+    auto target = gen_mtx<Mtx>(x->get_size()[0], x->get_size()[1]);
+    auto dtarget = gko::clone(exec, target);
+
+    target->scatter_add(&scatter_idxs, source.get());
+    dtarget->scatter_add(&dscatter_idxs, dsource.get());
+
+    GKO_ASSERT_MTX_NEAR(target, dtarget, r<value_type>::value);
+}
+
+
 TEST_F(Dense, IsGenericPermutable)
 {
     using gko::matrix::permute_mode;
