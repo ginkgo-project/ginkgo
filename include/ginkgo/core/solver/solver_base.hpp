@@ -992,17 +992,18 @@ protected:
             this->store_projected_preconditioner(
                 std::move(exec), size, params.generated_preconditioner);
         } else if (params.preconditioner) {
+            auto* child = this->get_workspace_node()->get_or_create_child(
+                "preconditioner");
             std::shared_ptr<const LinOp> precond;
             if (reuse_data) {
                 if (!reuse_data->preconditioner_) {
                     reuse_data->preconditioner_ =
                         params.preconditioner->create_empty_reuse_data();
                 }
-                precond = params.preconditioner->generate_reuse(
-                    this->get_system_matrix(), *reuse_data->preconditioner_);
+                precond = gko::detail::generate_reuse_with_view(
+                    params.preconditioner.get(), this->get_system_matrix(),
+                    *reuse_data->preconditioner_, child);
             } else {
-                auto* child = this->get_workspace_node()->get_or_create_child(
-                    "preconditioner");
                 precond = gko::detail::generate_with_view(
                     params.preconditioner.get(), this->get_system_matrix(),
                     child);

@@ -99,16 +99,33 @@ std::unique_ptr<LinOpFactory::ReuseData> LinOpFactory::create_empty_reuse_data()
 std::unique_ptr<LinOp> LinOpFactory::generate_reuse(
     std::shared_ptr<const LinOp> input, ReuseData& reuse_data) const
 {
+    return this->generate_reuse_with_components(
+        LinOpGenerateComponents{std::move(input)}, reuse_data);
+}
+
+
+std::unique_ptr<LinOp> LinOpFactory::generate_reuse(
+    std::shared_ptr<const LinOp> input, ReuseData& reuse_data,
+    std::unique_ptr<gko::Workspace> ws) const
+{
+    return this->generate_reuse_with_components(
+        LinOpGenerateComponents{std::move(input), std::move(ws)}, reuse_data);
+}
+
+
+std::unique_ptr<LinOp> LinOpFactory::generate_reuse_with_components(
+    LinOpGenerateComponents components, ReuseData& reuse_data) const
+{
+    const auto input = components.system_matrix;
     this->template log<log::Logger::linop_factory_generate_started>(
         this, input.get());
     const auto exec = this->get_executor();
-    std::shared_ptr<const LinOp> local_input = input;
     if (input->get_executor() != exec) {
-        local_input = gko::clone(exec, input);
+        components.system_matrix = gko::clone(exec, input);
     }
-    this->check_reuse_consistent(local_input.get(), reuse_data);
-    auto generated = this->generate_reuse_impl(
-        LinOpGenerateComponents{std::move(local_input)}, reuse_data);
+    this->check_reuse_consistent(components.system_matrix.get(), reuse_data);
+    auto generated =
+        this->generate_reuse_impl(std::move(components), reuse_data);
     // same as AbstractFactory::generate, which generate() goes through
     for (auto logger : this->loggers_) {
         generated->add_logger(logger);
@@ -149,6 +166,27 @@ std::unique_ptr<LinOp> generate_with_view(const LinOpFactory* factory,
     factory->log<log::Logger::linop_factory_generate_completed>(
         factory, input.get(), generated.get());
     return generated;
+}
+
+
+class LinOpFactoryAccessor {
+public:
+    static std::unique_ptr<LinOp> generate_reuse_with_view(
+        const LinOpFactory* factory, std::shared_ptr<const LinOp> input,
+        LinOpFactory::ReuseData& reuse_data, Workspace* view)
+    {
+        return factory->generate_reuse_with_components(
+            LinOpGenerateComponents{std::move(input), view}, reuse_data);
+    }
+};
+
+
+std::unique_ptr<LinOp> generate_reuse_with_view(
+    const LinOpFactory* factory, std::shared_ptr<const LinOp> input,
+    LinOpFactory::ReuseData& reuse_data, Workspace* view)
+{
+    return LinOpFactoryAccessor::generate_reuse_with_view(
+        factory, std::move(input), reuse_data, view);
 }
 
 
