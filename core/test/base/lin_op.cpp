@@ -464,11 +464,11 @@ protected:
 
 private:
     DummyReusableLinOp(const Factory* factory,
-                       std::shared_ptr<const gko::LinOp> op,
+                       gko::LinOpGenerateComponents components,
                        reuse_data_type& reuse_data)
         : gko::LinOp(factory->get_executor()),
           parameters_{factory->get_parameters()},
-          op_{op}
+          op_{std::move(components.system_matrix)}
     {
         if (parameters_.throw_on_reuse) {
             throw gko::NotImplemented(__FILE__, __LINE__, "DummyReusableLinOp");
@@ -478,7 +478,7 @@ private:
             reuse_data.num_reuses++;
         } else {
             reuse_data.initialized = true;
-            reuse_data.size = op->get_size();
+            reuse_data.size = op_->get_size();
         }
     }
 
@@ -522,7 +522,7 @@ private:
     {}
 
     DummyNonTemplateReusableLinOp(const Factory* factory,
-                                  std::shared_ptr<const gko::LinOp>,
+                                  gko::LinOpGenerateComponents,
                                   reuse_data_type&)
         : gko::LinOp(factory->get_executor()),
           parameters_{factory->get_parameters()},

@@ -1220,10 +1220,9 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
 
 
 Multigrid::Multigrid(const Multigrid::Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix,
+                     LinOpGenerateComponents components,
                      reuse_data_type& reuse_data)
-    : Multigrid(factory, LinOpGenerateComponents{std::move(system_matrix)},
-                &reuse_data)
+    : Multigrid(factory, std::move(components), &reuse_data)
 {}
 
 
