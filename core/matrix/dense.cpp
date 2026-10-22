@@ -2134,6 +2134,8 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
     const span& rows, const span& columns, const size_type stride)
 {
     if (this->get_num_stored_elements() == 0) {
+        GKO_ASSERT(rows.is_valid() && rows.end <= this->get_size()[0]);
+        GKO_ASSERT(columns.is_valid() && columns.end <= this->get_size()[1]);
         return Dense::create(
             this->get_executor(), dim<2>{rows.length(), columns.length()},
             make_array_view(this->get_executor(), 0, this->get_values()),
