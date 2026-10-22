@@ -116,17 +116,18 @@ protected:
         add_operators(std::forward<Rest>(rest)...);
     }
 
+    explicit Composition(const std::shared_ptr<const Executor>& exec);
+
     template <typename Iterator,
               typename = std::void_t<
                   typename std::iterator_traits<Iterator>::iterator_category>>
     explicit Composition(Iterator begin, Iterator end)
-        : LinOp([&] {
+        : Composition([&] {
               if (begin == end) {
                   throw OutOfBoundsError(__FILE__, __LINE__, 1, 0);
               }
               return (*begin)->get_executor();
-          }()),
-          storage_{this->get_executor()}
+          }())
     {
         for (auto it = begin; it != end; ++it) {
             add_operators(*it);
@@ -135,8 +136,7 @@ protected:
 
     template <typename... Rest>
     explicit Composition(std::shared_ptr<const LinOp> oper, Rest&&... rest)
-        : LinOp(oper->get_executor(), oper->get_size()),
-          storage_{this->get_executor()}
+        : Composition(oper->get_executor())
     {
         add_operators(std::move(oper), std::forward<Rest>(rest)...);
     }
