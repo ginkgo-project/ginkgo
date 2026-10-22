@@ -442,6 +442,7 @@ public:
      * @param key  The key to split the comm object
      */
     communicator(const MPI_Comm& comm, int color, int key)
+        : force_host_buffer_(false)
     {
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(MPI_Comm_split(comm, color, key, &comm_out));
@@ -457,6 +458,7 @@ public:
      * @param key  The key to split the comm object
      */
     communicator(const communicator& comm, int color, int key)
+        : force_host_buffer_(comm.force_host_buffer())
     {
         MPI_Comm comm_out;
         GKO_ASSERT_NO_MPI_ERRORS(
