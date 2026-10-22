@@ -107,7 +107,10 @@ public:
         /** Krylov subspace dimension/restart value. */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 0u);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Gcr, parameters, Factory);
+    using reuse_data_type = typename EnablePreconditionedIterativeSolver<
+        ValueType, Gcr<ValueType>>::reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Gcr, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -143,18 +146,24 @@ protected:
               std::move(exec)}
     {}
 
-    explicit Gcr(const Factory* factory, LinOpGenerateComponents components)
+    explicit Gcr(const Factory* factory, LinOpGenerateComponents components,
+                 reuse_data_type* reuse_data = nullptr)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Gcr<ValueType>>{
               factory->get_executor(), std::move(components.system_matrix),
-              factory->get_parameters()},
+              factory->get_parameters(), reuse_data},
           parameters_{factory->get_parameters()}
     {
         if (!parameters_.krylov_dim) {
             parameters_.krylov_dim = gcr_default_krylov_dim;
         }
     }
+
+    Gcr(const Factory* factory, LinOpGenerateComponents components,
+        reuse_data_type& reuse_data)
+        : Gcr(factory, std::move(components), &reuse_data)
+    {}
 };
 
 

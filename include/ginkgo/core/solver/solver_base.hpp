@@ -904,6 +904,19 @@ public:
     {}
 
     /**
+     * The data the solver records in LinOpFactory::generate_reuse(): the
+     * reuse data of its preconditioner, which is generated through
+     * generate_reuse() as well.
+     *
+     * @note This interface is experimental.
+     */
+    class reuse_data_type : public LinOpFactory::ReuseData {
+        friend class EnablePreconditionedIterativeSolver;
+
+        std::unique_ptr<LinOpFactory::ReuseData> preconditioner_;
+    };
+
+    /**
      * Stores the system matrix, stopping criterion factory and preconditioner
      * of a solver with executor `exec`, cloning them onto `exec` if executors
      * don't match.
@@ -921,16 +934,17 @@ public:
 
     /**
      * Creates the base of a solver with executor `exec` from its factory
-     * parameters.
+     * parameters. With `reuse_data`, the preconditioner is generated through
+     * generate_reuse().
      */
     template <typename FactoryParameters>
     EnablePreconditionedIterativeSolver(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const LinOp> system_matrix,
-        const FactoryParameters& params)
+        const FactoryParameters& params, reuse_data_type* reuse_data = nullptr)
         : EnablePreconditionedIterativeSolver{
               exec, system_matrix, stop::combine(params.criteria),
-              generate_preconditioner(system_matrix, params)}
+              generate_preconditioner(system_matrix, params, reuse_data)}
     {
         using traits = nullspace_traits<DerivedType>;
         if ((params.nullspace || params.left_nullspace) &&
@@ -1056,6 +1070,23 @@ public:
     }
 
 protected:
+    /**
+     * Throws if `input` can't be used with `reuse_data`, which is the case if
+     * the reuse data of the preconditioner doesn't accept it.
+     */
+    template <typename Factory>
+    static void check_reuse_consistent(const Factory* factory,
+                                       const LinOp* input,
+                                       const reuse_data_type& reuse_data)
+    {
+        const auto& params = factory->get_parameters();
+        if (!params.generated_preconditioner && params.preconditioner &&
+            reuse_data.preconditioner_) {
+            params.preconditioner->check_reuse_consistent(
+                input, *reuse_data.preconditioner_);
+        }
+    }
+
     /**
      * Removes the right nullspace component from `v`, if a right nullspace is
      * set. Solvers apply this to the initial guess; the preconditioner keeps
@@ -1190,12 +1221,20 @@ private:
     template <typename FactoryParameters>
     static std::shared_ptr<const LinOp> generate_preconditioner(
         std::shared_ptr<const LinOp> system_matrix,
-        const FactoryParameters& params)
+        const FactoryParameters& params, reuse_data_type* reuse_data)
     {
         if (params.generated_preconditioner) {
             return params.generated_preconditioner;
         } else if (params.preconditioner) {
-            return params.preconditioner->generate(system_matrix);
+            if (!reuse_data) {
+                return params.preconditioner->generate(system_matrix);
+            }
+            if (!reuse_data->preconditioner_) {
+                reuse_data->preconditioner_ =
+                    params.preconditioner->create_empty_reuse_data();
+            }
+            return params.preconditioner->generate_reuse(
+                system_matrix, *reuse_data->preconditioner_);
         } else {
             return matrix::Identity<ValueType>::create(
                 system_matrix->get_executor(), system_matrix->get_size());

@@ -91,7 +91,10 @@ public:
         : enable_preconditioned_iterative_solver_factory_parameters<
               parameters_type, Factory> {};
 
-    GKO_ENABLE_LIN_OP_FACTORY(Bicg, parameters, Factory);
+    using reuse_data_type = typename EnablePreconditionedIterativeSolver<
+        ValueType, Bicg<ValueType>>::reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Bicg, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -127,13 +130,19 @@ protected:
               std::move(exec)}
     {}
 
-    explicit Bicg(const Factory* factory, LinOpGenerateComponents components)
+    explicit Bicg(const Factory* factory, LinOpGenerateComponents components,
+                  reuse_data_type* reuse_data = nullptr)
         : LinOp(factory->get_executor(),
                 gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Bicg<ValueType>>{
               factory->get_executor(), std::move(components.system_matrix),
-              factory->get_parameters()},
+              factory->get_parameters(), reuse_data},
           parameters_{factory->get_parameters()}
+    {}
+
+    Bicg(const Factory* factory, LinOpGenerateComponents components,
+         reuse_data_type& reuse_data)
+        : Bicg(factory, std::move(components), &reuse_data)
     {}
 };
 
