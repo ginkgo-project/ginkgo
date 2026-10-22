@@ -182,30 +182,8 @@ public:
             config::make_type_descriptor<ValueType, IndexType>());
 
 protected:
-    Ilu(const Factory* factory, std::shared_ptr<const gko::LinOp> system_matrix)
-        : Composition<ValueType>{generate_l_u(system_matrix,
-                                              parameters_.skip_sorting)},
-          parameters_{factory->get_parameters()}
-    {}
-
-    /**
-     * Generates the incomplete LU factors, which will be returned as a
-     * composition of the lower (first element of the composition) and the
-     * upper factor (second element). The dynamic type of L is l_matrix_type,
-     * while the dynamic type of U is u_matrix_type.
-     *
-     * @param system_matrix  the source matrix used to generate the factors.
-     *                       @note: system_matrix must be convertible to a Csr
-     *                              Matrix, otherwise, an exception is thrown.
-     * @param skip_sorting  determines if the sorting of system_matrix can be
-     *                      skipped (therefore, marking that it is already
-     *                      sorted)
-     * @return  A Composition, containing the incomplete LU factors for the
-     *          given system_matrix (first element is L, then U)
-     */
-    std::unique_ptr<Composition<ValueType>> generate_l_u(
-        const std::shared_ptr<const LinOp>& system_matrix,
-        bool skip_sorting) const;
+    Ilu(const Factory* factory,
+        std::shared_ptr<const gko::LinOp> system_matrix);
 };
 
 

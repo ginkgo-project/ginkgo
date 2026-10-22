@@ -77,12 +77,11 @@ Ic<ValueType, IndexType>::parse(const config::pnode& config,
     }
     return params;
 }
-
-
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
-    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
-    bool both_factors) const
+Ic<ValueType, IndexType>::Ic(const Factory* factory,
+                             std::shared_ptr<const gko::LinOp> system_matrix)
+    : Composition<ValueType>{factory->get_executor()},
+      parameters_{factory->get_parameters()}
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
@@ -94,7 +93,7 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     as<ConvertibleTo<matrix_type>>(system_matrix.get())
         ->convert_to(local_system_matrix);
 
-    if (!skip_sorting) {
+    if (!parameters_.skip_sorting) {
         local_system_matrix->sort_by_column_index();
     }
 
@@ -177,12 +176,10 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     exec->run(ic_factorization::make_initialize_l(
         ic->get_const_device_view(), l_factor->get_device_view(), false));
 
-    if (both_factors) {
+    this->add_operators(l_factor);
+    if (parameters_.both_factors) {
         auto lh_factor = l_factor->conj_transpose();
-        return Composition<ValueType>::create(std::move(l_factor),
-                                              std::move(lh_factor));
-    } else {
-        return Composition<ValueType>::create(std::move(l_factor));
+        this->add_operators(std::move(lh_factor));
     }
 }
 
