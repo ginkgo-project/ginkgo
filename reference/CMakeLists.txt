@@ -89,6 +89,12 @@ ginkgo_compile_features(ginkgo_reference)
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference)
 
+# Disable warning about ABI changes in GCC 4.4
+set_source_files_properties(
+    matrix/csr_kernels.cpp
+    PROPERTIES COMPILE_OPTIONS $<$<CXX_COMPILER_ID:GNU>:-Wno-psabi>
+)
+
 # TODO FIXME: Currently nvhpc 22.7+ optimizations break the reference jacobi's custom
 # precision implementation (mantissa segmentation)
 #
