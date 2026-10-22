@@ -9,7 +9,8 @@ and once without. After the first apply, the applies should only allocate a
 small, constant amount of memory, also after regenerating the solver with the
 extracted workspace. The options after the grid size are <tt>profile</tt>,
 which additionally prints a nested profile showing where the allocations
-happen, and <tt>cudss</tt>, which solves the coarsest level with cuDSS instead
-of CG with an SPD ISAI preconditioner on the cuda executor. This requires
-Ginkgo's cuDSS extension, and the memory cuDSS allocates itself is not
-counted.</h3>
+happen, <tt>cudss</tt>, which solves the coarsest level with cuDSS instead of
+CG with an SPD ISAI preconditioner on the cuda executor, and <tt>reuse</tt>,
+which regenerates the solver with <tt>generate_reuse()</tt> in both variants,
+so that the multigrid reuses its hierarchy. The cuDSS option requires Ginkgo's
+cuDSS extension, and the memory cuDSS allocates itself is not counted.</h3>

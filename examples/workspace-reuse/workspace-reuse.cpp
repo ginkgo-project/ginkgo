@@ -120,6 +120,9 @@ int main(int argc, char* argv[])
                   << "Options: profile  show where the allocations happen"
                   << std::endl
                   << "         cudss    solve the coarsest level with cuDSS"
+                  << std::endl
+                  << "         reuse    regenerate the solver with "
+                     "generate_reuse()"
                   << std::endl;
         std::exit(-1);
     }
@@ -128,12 +131,15 @@ int main(int argc, char* argv[])
     const gko::size_type n = argc >= 3 ? std::stoi(argv[2]) : 64;
     bool profile = false;
     bool use_cudss = false;
+    bool reuse = false;
     for (int i = 3; i < argc; i++) {
         const std::string option = argv[i];
         if (option == "profile") {
             profile = true;
         } else if (option == "cudss") {
             use_cudss = true;
+        } else if (option == "reuse") {
+            reuse = true;
         } else {
             std::cerr << "Unknown option " << option << std::endl;
             std::exit(-1);
@@ -240,6 +246,10 @@ int main(int argc, char* argv[])
                      "counted"
                   << std::endl;
     }
+    if (reuse) {
+        std::cout << "The solver is regenerated with generate_reuse()"
+                  << std::endl;
+    }
 
     // Phase 1: the same solver is applied several times. Only the first apply
     // has to allocate the workspace.
@@ -271,19 +281,28 @@ int main(int argc, char* argv[])
     std::cout << std::endl
               << "Phase 2: regenerate the solver in every step" << std::endl;
     auto ws = gko::Workspace::create(exec);
+    // With the reuse option, each variant keeps the reuse data of its solver,
+    // so that the multigrid reuses its hierarchy
+    auto ws_reuse_data = solver_gen->create_empty_reuse_data();
+    auto plain_reuse_data = solver_gen->create_empty_reuse_data();
     bool reused_regenerations = true;
     for (int step = 0; step < num_repetitions; step++) {
         std::unique_ptr<gko::LinOp> step_solver;
         const auto ws_generate = measure(*counter, [&] {
-            step_solver = solver_gen->generate(A, std::move(ws));
+            step_solver = reuse ? solver_gen->generate_reuse(A, *ws_reuse_data,
+                                                             std::move(ws))
+                                : solver_gen->generate(A, std::move(ws));
         });
         x->copy_from(x0);
         const auto ws_apply =
             measure(*counter, [&] { step_solver->apply(b, x); });
         ws = gko::invalidate_and_extract_workspace(std::move(step_solver));
 
-        const auto plain_generate =
-            measure(*counter, [&] { step_solver = solver_gen->generate(A); });
+        const auto plain_generate = measure(*counter, [&] {
+            step_solver = reuse
+                              ? solver_gen->generate_reuse(A, *plain_reuse_data)
+                              : solver_gen->generate(A);
+        });
         x->copy_from(x0);
         const auto plain_apply =
             measure(*counter, [&] { step_solver->apply(b, x); });
