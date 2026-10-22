@@ -36,4 +36,5 @@ ginkgo_create_test(temporary_conversion)
 ginkgo_create_test(types)
 ginkgo_create_test(precision)
 ginkgo_create_test(utils)
-ginkgo_create_test(version EXECUTABLE_NAME version_test) # version collides with C++ stdlib header
+ginkgo_create_test(vector_collection)
+ginkgo_create_test(version EXECUTABLE_NAME version_test) # version collides with C++ stdlib header)
