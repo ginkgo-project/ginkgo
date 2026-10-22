@@ -18,6 +18,9 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+
 jobs:
   windows_mpi:
     if: inputs.full
@@ -33,7 +36,7 @@ jobs:
     - name: Checkout the latest code (shallow clone)
       uses: actions/checkout@v4
     - name: Setup MPI
-      uses: mpi4py/setup-mpi@v1
+      uses: mpi4py/setup-mpi@3417e34f1394a16723d7913c236642c24e95fd5a # v1.4.4
       with:
           mpi: intelmpi
     - name: setup (versioned)
@@ -45,7 +48,7 @@ jobs:
       run: |
         choco install cuda -y
     - name: Debug over SSH (tmate)
-      uses: mxschmitt/action-tmate@v3.5
+      uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
       if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
       with:
         limit-access-to-actor: true
