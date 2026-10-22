@@ -131,6 +131,12 @@ std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
+Composition<ValueType>::Composition(const std::shared_ptr<const Executor>& exec)
+    : LinOp{exec}, storage_{exec}
+{}
+
+
+template <typename ValueType>
 void Composition<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
