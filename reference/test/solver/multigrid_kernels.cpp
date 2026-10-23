@@ -1481,6 +1481,42 @@ TYPED_TEST(Multigrid, GenerateReuseKeepsTheWorkspace)
 }
 
 
+TYPED_TEST(Multigrid, GenerateReuseWithWorkspaceMatchesRegeneratedSolver)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    auto factory =
+        Solver::build()
+            .with_pre_smoother(this->smoother_factory)
+            .with_coarsest_solver(this->coarsest_factory)
+            .with_max_levels(2u)
+            .with_post_uses_pre(false)
+            .with_mid_case(gko::solver::multigrid::mid_smooth_type::standalone)
+            .with_mg_level(this->coarse_factory)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .with_cycle(gko::solver::multigrid::cycle::w)
+            .with_min_coarse_rows(1u)
+            .on(this->exec);
+    auto scaled = gko::share(gko::clone(this->mtx2));
+    scaled->scale(gko::initialize<Mtx>({value_type{2}}, this->exec));
+    auto reuse_data = factory->create_empty_reuse_data();
+    std::unique_ptr<gko::LinOp> first = factory->generate_reuse(
+        this->mtx2, *reuse_data, gko::Workspace::create(this->exec));
+    auto first_x = gko::clone(this->x2);
+    first->apply(this->b2, first_x);
+    auto ws = gko::invalidate_and_extract_workspace(std::move(first));
+    auto x = gko::clone(this->x2);
+    auto expected_x = gko::clone(this->x2);
+
+    auto solver = factory->generate_reuse(scaled, *reuse_data, std::move(ws));
+    solver->apply(this->b2, x);
+    factory->generate(scaled)->apply(this->b2, expected_x);
+
+    GKO_ASSERT_MTX_NEAR(x, expected_x, r<value_type>::value);
+}
+
+
 // generate picks the smoother of a level through the level selector, so a
 // reused level has to keep the index the selector gave
 TYPED_TEST(Multigrid, GenerateReuseSelectsSmoothersLikeGenerate)
