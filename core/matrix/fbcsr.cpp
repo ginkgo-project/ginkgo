@@ -35,6 +35,8 @@ namespace {
 
 GKO_REGISTER_OPERATION(spmv, fbcsr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, fbcsr::advanced_spmv);
+GKO_REGISTER_OPERATION(spmm, fbcsr::spmm);
+GKO_REGISTER_OPERATION(advanced_spmm, fbcsr::advanced_spmm);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, fbcsr::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(convert_to_csr, fbcsr::convert_to_csr);
 GKO_REGISTER_OPERATION(fill_in_dense, fbcsr::fill_in_dense);
@@ -112,9 +114,15 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
         // otherwise we assume that b is dense and compute a SpMV/SpMM
         precision_dispatch_real_complex<ValueType>(
             [this](auto dense_b, auto dense_x) {
-                this->get_executor()->run(
-                    fbcsr::make_spmv(this, dense_b->get_const_device_view(),
-                                     dense_x->get_device_view()));
+                if (dense_b->get_size()[1] <= 2) {
+                    this->get_executor()->run(
+                        fbcsr::make_spmv(this, dense_b->get_const_device_view(),
+                                         dense_x->get_device_view()));
+                } else {
+                    this->get_executor()->run(
+                        fbcsr::make_spmm(this, dense_b->get_const_device_view(),
+                                         dense_x->get_device_view()));
+                }
             },
             b, x);
     }
@@ -136,11 +144,19 @@ void Fbcsr<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
         precision_dispatch_real_complex<ValueType>(
             [this](auto dense_alpha, auto dense_b, auto dense_beta,
                    auto dense_x) {
-                this->get_executor()->run(fbcsr::make_advanced_spmv(
-                    dense_alpha->get_const_device_view(), this,
-                    dense_b->get_const_device_view(),
-                    dense_beta->get_const_device_view(),
-                    dense_x->get_device_view()));
+                if (dense_b->get_size()[1] <= 2) {
+                    this->get_executor()->run(fbcsr::make_advanced_spmv(
+                        dense_alpha->get_const_device_view(), this,
+                        dense_b->get_const_device_view(),
+                        dense_beta->get_const_device_view(),
+                        dense_x->get_device_view()));
+                } else {
+                    this->get_executor()->run(fbcsr::make_advanced_spmm(
+                        dense_alpha->get_const_device_view(), this,
+                        dense_b->get_const_device_view(),
+                        dense_beta->get_const_device_view(),
+                        dense_x->get_device_view()));
+                }
             },
             alpha, b, beta, x);
     }
