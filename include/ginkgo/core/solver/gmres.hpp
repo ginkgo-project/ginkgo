@@ -192,7 +192,10 @@ public:
         gmres::ortho_method GKO_FACTORY_PARAMETER_SCALAR(
             ortho_method, gmres::ortho_method::mgs);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Gmres, parameters, Factory);
+    using reuse_data_type = typename EnablePreconditionedIterativeSolver<
+        ValueType, Gmres<ValueType>>::reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Gmres, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -223,15 +226,18 @@ protected:
                     LinOp* x) const override;
 
     explicit Gmres(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
+        : LinOp(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
+              std::move(exec)}
     {}
 
-    explicit Gmres(const Factory* factory,
-                   std::shared_ptr<const LinOp> system_matrix)
+    explicit Gmres(const Factory* factory, LinOpGenerateComponents components,
+                   reuse_data_type* reuse_data = nullptr)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Gmres<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+              factory->get_executor(), std::move(components.system_matrix),
+              factory->get_parameters(), reuse_data},
           parameters_{factory->get_parameters()}
     {
         if (!parameters_.krylov_dim) {
@@ -242,6 +248,11 @@ protected:
                 parameters_.restart_ratio < one<remove_complex<ValueType>>(),
             "restart_ratio must lie in [0, 1); zero disables the criterion");
     }
+
+    Gmres(const Factory* factory, LinOpGenerateComponents components,
+          reuse_data_type& reuse_data)
+        : Gmres(factory, std::move(components), &reuse_data)
+    {}
 };
 
 

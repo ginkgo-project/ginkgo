@@ -35,7 +35,8 @@ std::unique_ptr<LinOp> LinOpFactory::generate_reuse(
         local_input = gko::clone(exec, input);
     }
     this->check_reuse_consistent(local_input.get(), reuse_data);
-    auto generated = this->generate_reuse_impl(local_input, reuse_data);
+    auto generated = this->generate_reuse_impl(
+        LinOpGenerateComponents{std::move(local_input)}, reuse_data);
     // same as AbstractFactory::generate, which generate() goes through
     for (auto logger : this->loggers_) {
         generated->add_logger(logger);
@@ -51,11 +52,11 @@ void LinOpFactory::check_reuse_consistent(const LinOp*, const ReuseData&) const
 
 
 std::unique_ptr<LinOp> LinOpFactory::generate_reuse_impl(
-    std::shared_ptr<const LinOp> input, ReuseData&) const
+    LinOpGenerateComponents components, ReuseData&) const
 {
     // generate_impl, not AbstractFactory::generate: generate_reuse adds the
     // loggers itself
-    return this->generate_impl(std::move(input));
+    return this->generate_impl(std::move(components));
 }
 
 

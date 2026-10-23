@@ -79,10 +79,12 @@ NullspaceProjection<ValueType>::NullspaceProjection(
 
 template <typename ValueType>
 NullspaceProjection<ValueType>::NullspaceProjection(
-    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
-    : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size())),
+    const Factory* factory, LinOpGenerateComponents components)
+    : LinOp(factory->get_executor(),
+            gko::transpose(components.system_matrix->get_size())),
       parameters_{factory->get_parameters()}
 {
+    auto system_matrix = std::move(components.system_matrix);
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     auto exec = this->get_executor();
     const auto size = system_matrix->get_size()[0];

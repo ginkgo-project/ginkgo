@@ -107,7 +107,10 @@ public:
         : enable_preconditioned_iterative_solver_factory_parameters<
               parameters_type, Factory> {};
 
-    GKO_ENABLE_LIN_OP_FACTORY(Cgs, parameters, Factory);
+    using reuse_data_type = typename EnablePreconditionedIterativeSolver<
+        ValueType, Cgs<ValueType>>::reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Cgs, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -137,16 +140,25 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Cgs(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
+    explicit Cgs(std::shared_ptr<const Executor> exec)
+        : LinOp(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Cgs<ValueType>>{
+              std::move(exec)}
     {}
 
-    explicit Cgs(const Factory* factory,
-                 std::shared_ptr<const LinOp> system_matrix)
+    explicit Cgs(const Factory* factory, LinOpGenerateComponents components,
+                 reuse_data_type* reuse_data = nullptr)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Cgs<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+              factory->get_executor(), std::move(components.system_matrix),
+              factory->get_parameters(), reuse_data},
           parameters_{factory->get_parameters()}
+    {}
+
+    Cgs(const Factory* factory, LinOpGenerateComponents components,
+        reuse_data_type& reuse_data)
+        : Cgs(factory, std::move(components), &reuse_data)
     {}
 };
 
