@@ -99,7 +99,7 @@ public:
     {
         auto compact =
             compact_vectors_->template get_local_device_view<ValueType>();
-        return {size_, compact.size, compact.stride, compact.values};
+        return {size_, element_size_, compact.stride, compact.values};
     }
 
     template <typename ValueType>
@@ -107,7 +107,7 @@ public:
     {
         auto compact =
             compact_vectors_->template get_local_device_view<ValueType>();
-        return {size_, compact.size, compact.stride, compact.values};
+        return {size_, element_size_, compact.stride, compact.values};
     }
 
 private:
@@ -125,25 +125,25 @@ private:
     }
 
     template <typename Iterator>
-    static auto safe_access(Iterator it)
+    static auto safe_access(Iterator begin, Iterator end)
     {
-        if (*it == nullptr) {
+        if (begin == end) {
             GKO_INVALID_STATE(
                 "VectorCollection cannot be created from empty "
                 "range");
         }
-        return *it;
+        return *begin;
     }
 
     template <typename Iterator>
     VectorCollection(Iterator begin, Iterator end)
         : VectorCollection(
-              safe_access(begin), safe_access(begin)->get_executor(),
-              std::distance(begin, end), safe_access(begin)->get_size(),
-              safe_access(begin)->get_local_size())
+              safe_access(begin, end), safe_access(begin, end)->get_executor(),
+              std::distance(begin, end), safe_access(begin, end)->get_size(),
+              safe_access(begin, end)->get_local_size())
     {
         for (auto it = begin; it != end; ++it) {
-            if (typeid(*it) != typeid(safe_access(begin)) ||
+            if (typeid(**it) != typeid(*safe_access(begin, end)) ||
                 (*it)->get_size() != element_size_ ||
                 (*it)->get_local_size() != element_local_size_) {
                 GKO_INVALID_STATE(

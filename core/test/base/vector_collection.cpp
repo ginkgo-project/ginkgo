@@ -120,7 +120,7 @@ TEST_F(VectorCollection, CreateFromDifferentTypesThrows)
     generic_vectors.push_back(gko::initialize<gko::matrix::MultiVector<float>>(
         {{1.0, 2.0}, {3.0, 4.0}}, exec));
 
-    ASSERT_THROW(create_collection(vectors), gko::InvalidStateError);
+    ASSERT_THROW(create_collection(generic_vectors), gko::InvalidStateError);
 }
 
 
