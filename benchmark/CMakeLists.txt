@@ -241,7 +241,7 @@ if(GINKGO_BUILD_TESTS)
     add_subdirectory(test)
 endif()
 
-configure_file(run_all_benchmarks.sh run_all_benchmarks.sh COPYONLY)
+configure_file(run_all_benchmarks.sh run_all_benchmarks.sh @ONLY)
 
 add_custom_target(benchmark)
 add_custom_command(

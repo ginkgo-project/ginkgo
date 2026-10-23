@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <sstream>
+#include <string>
 
 #include <gtest/gtest.h>
 
@@ -15,6 +16,10 @@
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/test/utils.hpp"
+
+#if GKO_HAVE_ZLIB
+#include <zlib.h>
+#endif
 
 
 namespace {
@@ -698,6 +703,160 @@ TEST(MtxReader, ReadsGenericMtx)
     ASSERT_EQ(v[2], tpl(0, 2, 2.0));
     ASSERT_EQ(v[3], tpl(1, 1, 5.0));
 }
+
+
+#if GKO_HAVE_ZLIB
+
+
+std::string gzip(const std::string& data)
+{
+    z_stream stream{};
+    // 16 + MAX_WBITS writes a gzip header
+    deflateInit2(&stream, Z_DEFAULT_COMPRESSION, Z_DEFLATED, 16 + MAX_WBITS, 8,
+                 Z_DEFAULT_STRATEGY);
+    std::string result(deflateBound(&stream, data.size()), '\0');
+    stream.next_in = reinterpret_cast<Bytef*>(const_cast<char*>(data.data()));
+    stream.avail_in = data.size();
+    stream.next_out = reinterpret_cast<Bytef*>(&result[0]);
+    stream.avail_out = result.size();
+    deflate(&stream, Z_FINISH);
+    result.resize(stream.total_out);
+    deflateEnd(&stream);
+    return result;
+}
+
+
+TEST(MtxReader, ReadsGzipCompressedMtx)
+{
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        gzip("%%MatrixMarket matrix coordinate real general\n"
+             "2 3 4\n"
+             "1 1 1.0\n"
+             "2 2 5.0\n"
+             "1 2 3.0\n"
+             "1 3 2.0\n"));
+
+    auto data = gko::read_generic_raw<double, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    auto& v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 1.0));
+    ASSERT_EQ(v[1], tpl(0, 1, 3.0));
+    ASSERT_EQ(v[2], tpl(0, 2, 2.0));
+    ASSERT_EQ(v[3], tpl(1, 1, 5.0));
+}
+
+
+TEST(MtxReader, ReadsGzipCompressedBinary)
+{
+    auto raw_data = build_binary_real_data();
+    std::istringstream iss(
+        gzip(std::string{reinterpret_cast<char*>(raw_data.data()),
+                         raw_data.size() * sizeof(gko::uint64)}));
+
+    auto data = gko::read_generic_raw<double, int>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(64, 32));
+    ASSERT_EQ(data.nonzeros.size(), 4);
+    ASSERT_EQ(data.nonzeros[0].row, 0);
+    ASSERT_EQ(data.nonzeros[1].row, 1);
+    ASSERT_EQ(data.nonzeros[2].row, 4);
+    ASSERT_EQ(data.nonzeros[3].row, 16);
+    ASSERT_EQ(data.nonzeros[0].column, 1);
+    ASSERT_EQ(data.nonzeros[1].column, 1);
+    ASSERT_EQ(data.nonzeros[2].column, 2);
+    ASSERT_EQ(data.nonzeros[3].column, 25);
+    ASSERT_EQ(data.nonzeros[0].value, 0.0);
+    ASSERT_EQ(data.nonzeros[1].value, 2.5);
+    ASSERT_EQ(data.nonzeros[2].value, -2.5);
+    ASSERT_EQ(data.nonzeros[3].value, 0.0);
+}
+
+
+TEST(MtxReader, ReadsConcatenatedGzipMembers)
+{
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    std::istringstream iss(
+        gzip("%%MatrixMarket matrix coordinate real general\n"
+             "2 3 4\n"
+             "1 1 1.0\n") +
+        gzip("2 2 5.0\n"
+             "1 2 3.0\n"
+             "1 3 2.0\n"));
+
+    auto data = gko::read_generic_raw<double, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(2, 3));
+    auto& v = data.nonzeros;
+    ASSERT_EQ(v[0], tpl(0, 0, 1.0));
+    ASSERT_EQ(v[1], tpl(0, 1, 3.0));
+    ASSERT_EQ(v[2], tpl(0, 2, 2.0));
+    ASSERT_EQ(v[3], tpl(1, 1, 5.0));
+}
+
+
+TEST(MtxReader, ReadsLargeGzipCompressedMtx)
+{
+    using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
+    // large enough to need several reads from the compressed stream
+    const gko::int32 num_rows = 100000;
+    std::string mtx = "%%MatrixMarket matrix coordinate real general\n" +
+                      std::to_string(num_rows) + " 1 " +
+                      std::to_string(num_rows) + "\n";
+    for (gko::int32 row = 0; row < num_rows; ++row) {
+        mtx += std::to_string(row + 1) + " 1 " + std::to_string(row) + "\n";
+    }
+    std::istringstream iss(gzip(mtx));
+
+    auto data = gko::read_generic_raw<double, gko::int32>(iss);
+
+    ASSERT_EQ(data.size, gko::dim<2>(num_rows, 1));
+    ASSERT_EQ(data.nonzeros.size(), static_cast<gko::size_type>(num_rows));
+    for (gko::int32 row = 0; row < num_rows; ++row) {
+        ASSERT_EQ(data.nonzeros[row], tpl(row, 0, row));
+    }
+}
+
+
+TEST(MtxReader, FailsOnTruncatedGzip)
+{
+    auto compressed = gzip(
+        "%%MatrixMarket matrix coordinate real general\n"
+        "2 3 4\n"
+        "1 1 1.0\n"
+        "2 2 5.0\n"
+        "1 2 3.0\n"
+        "1 3 2.0\n");
+    std::istringstream iss(compressed.substr(0, compressed.size() / 2));
+
+    ASSERT_THROW((gko::read_generic_raw<double, gko::int32>(iss)),
+                 gko::StreamError);
+}
+
+
+TEST(MtxReader, FailsOnInvalidGzip)
+{
+    std::istringstream iss("\x1f\x8b invalid");
+
+    ASSERT_THROW((gko::read_generic_raw<double, gko::int32>(iss)),
+                 gko::StreamError);
+}
+
+
+#else
+
+
+TEST(MtxReader, FailsOnGzipWithoutZlib)
+{
+    std::istringstream iss("\x1f\x8b invalid");
+
+    ASSERT_THROW((gko::read_generic_raw<double, gko::int32>(iss)),
+                 gko::StreamError);
+}
+
+
+#endif
 
 
 TEST(MtxReader, FailsWhenReadingSparseComplexMtxToRealMtx)

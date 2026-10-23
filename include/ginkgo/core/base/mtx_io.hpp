@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -70,7 +70,8 @@ matrix_data<ValueType, IndexType> read_binary_raw(std::istream& is);
 
 /**
  * Reads a matrix stored in either binary or matrix market format from an input
- * stream.
+ * stream. The data may also be gzip-compressed if Ginkgo was built with zlib
+ * (GKO_HAVE_ZLIB).
  *
  * @tparam ValueType  type of matrix values
  * @tparam IndexType  type of matrix indexes
@@ -193,7 +194,8 @@ inline std::unique_ptr<MatrixType> read_binary(StreamType&& is,
 
 /**
  * Reads a matrix stored either in binary or matrix market format from an input
- * stream.
+ * stream. The data may also be gzip-compressed if Ginkgo was built with zlib
+ * (GKO_HAVE_ZLIB).
  *
  * @tparam MatrixType  a ReadableFromMatrixData LinOp type used to store the
  *                     matrix once it's been read from disk.
