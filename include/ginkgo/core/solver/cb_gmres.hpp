@@ -205,8 +205,8 @@ protected:
         : LinOp(factory->get_executor(),
                 transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
-              factory->get_executor(), std::move(components.system_matrix),
-              factory->get_parameters(), reuse_data},
+              factory->get_executor(), components, factory->get_parameters(),
+              reuse_data},
           parameters_{factory->get_parameters()}
     {}
 
