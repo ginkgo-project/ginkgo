@@ -28,10 +28,7 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Combination : public LinOp,
-                    public EnableCreateMethod<Combination<ValueType>>,
-                    public Transposable {
-    friend class EnableCreateMethod<Combination>;
+class Combination : public LinOp, public Transposable {
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -65,31 +62,56 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
-     * Copy-assigns a Combination. The executor is not modified, and the
-     * wrapped LinOps are only being cloned if they are on a different executor.
+     * Creates a linear combination of operators using the specified list of
+     * coefficients and operators.
+     *
+     * @tparam CoefficientIterator  a class representing iterators over the
+     *                              coefficients of the linear combination
+     * @tparam OperatorIterator  a class representing iterators over the
+     *                           operators of the linear combination
+     *
+     * @param coefficient_begin  iterator pointing to the first coefficient
+     * @param coefficient_end  iterator pointing behind the last coefficient
+     * @param operator_begin  iterator pointing to the first operator
+     * @param operator_end  iterator pointing behind the last operator
+     *
+     * @return unique pointer to the created combination
      */
-    Combination& operator=(const Combination&);
+    template <
+        typename CoefficientIterator, typename OperatorIterator,
+        typename = std::void_t<
+            typename std::iterator_traits<
+                CoefficientIterator>::iterator_category,
+            typename std::iterator_traits<OperatorIterator>::iterator_category>>
+    static std::unique_ptr<Combination> create(
+        CoefficientIterator coefficient_begin,
+        CoefficientIterator coefficient_end, OperatorIterator operator_begin,
+        OperatorIterator operator_end)
+    {
+        return std::unique_ptr<Combination>(new Combination(
+            coefficient_begin, coefficient_end, operator_begin, operator_end));
+    }
 
     /**
-     * Move-assigns a Combination. The executor is not modified, and the
-     * wrapped LinOps are only being cloned if they are on a different executor,
-     * otherwise they share ownership. The moved-from object is empty (0x0 LinOp
-     * without operators) afterwards.
+     * Creates a linear combination of operators using the specified list of
+     * coefficients and operators.
+     *
+     * @tparam Rest  types of trailing parameters
+     *
+     * @param coef  the first coefficient
+     * @param oper  the first operator
+     * @param rest  other coefficient and operators (interleaved)
+     *
+     * @return a unique pointer to the created combination
      */
-    Combination& operator=(Combination&&);
-
-    /**
-     * Copy-constructs a Combination. This inherits the executor of the input
-     * Combination and all of its operators with shared ownership.
-     */
-    Combination(const Combination&);
-
-    /**
-     * Move-constructs a Combination. This inherits the executor of the input
-     * Combination and all of its operators. The moved-from object is empty (0x0
-     * LinOp without operators) afterwards.
-     */
-    Combination(Combination&&);
+    template <typename... Rest>
+    static std::unique_ptr<Combination> create(
+        std::shared_ptr<const LinOp> coef, std::shared_ptr<const LinOp> oper,
+        Rest&&... rest)
+    {
+        return std::unique_ptr<Combination>(
+            new Combination(coef, oper, std::forward<Rest>(rest)...));
+    }
 
 protected:
     void add_operators() {}
@@ -112,27 +134,6 @@ protected:
         add_operators(std::forward<Rest>(rest)...);
     }
 
-    /**
-     * Creates an empty linear combination (0x0 operator).
-     *
-     * @param exec  Executor associated to the linear combination
-     */
-    explicit Combination(std::shared_ptr<const Executor> exec) : LinOp(exec) {}
-
-    /**
-     * Creates a linear combination of operators using the specified list of
-     * coefficients and operators.
-     *
-     * @tparam CoefficientIterator  a class representing iterators over the
-     *                              coefficients of the linear combination
-     * @tparam OperatorIterator  a class representing iterators over the
-     *                           operators of the linear combination
-     *
-     * @param coefficient_begin  iterator pointing to the first coefficient
-     * @param coefficient_end  iterator pointing behind the last coefficient
-     * @param operator_begin  iterator pointing to the first operator
-     * @param operator_end  iterator pointing behind the last operator
-     */
     template <
         typename CoefficientIterator, typename OperatorIterator,
         typename = std::void_t<
@@ -161,22 +162,11 @@ protected:
         }
     }
 
-    /**
-     * Creates a linear combination of operators using the specified list of
-     * coefficients and operators.
-     *
-     * @tparam Rest  types of trailing parameters
-     *
-     * @param coef  the first coefficient
-     * @param oper  the first operator
-     * @param rest  other coefficient and operators (interleaved)
-     */
     template <typename... Rest>
     explicit Combination(std::shared_ptr<const LinOp> coef,
                          std::shared_ptr<const LinOp> oper, Rest&&... rest)
-        : Combination(oper->get_executor())
+        : LinOp(oper->get_executor(), oper->get_size())
     {
-        this->set_size(oper->get_size());
         add_operators(std::move(coef), std::move(oper),
                       std::forward<Rest>(rest)...);
     }
