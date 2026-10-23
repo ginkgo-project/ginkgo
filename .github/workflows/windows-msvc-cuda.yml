@@ -18,6 +18,9 @@ on:
         type: boolean
         default: true
 
+permissions:
+  contents: read
+
 jobs:
   windows_cuda:
     if: inputs.full
@@ -43,7 +46,7 @@ jobs:
         choco install cuda -y
 
     - name: Debug over SSH (tmate)
-      uses: mxschmitt/action-tmate@v3.5
+      uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
       if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
       with:
         limit-access-to-actor: true

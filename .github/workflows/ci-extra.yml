@@ -33,6 +33,9 @@ concurrency:
 # The label conditions are defined once in the first job and reused by the
 # other jobs through the YAML anchors &run and &with. The platform workflows
 # only check inputs.full to decide whether to run their full set of jobs.
+permissions:
+  contents: read
+
 jobs:
   arm:
     # runs on all pull requests, but of the label events only on adding a full-test label

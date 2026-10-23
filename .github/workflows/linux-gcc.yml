@@ -9,6 +9,9 @@ on:
         required: false
         default: false
 
+permissions:
+  contents: read
+
 jobs:
   linux-omp-mpi:
     strategy:
@@ -54,7 +57,7 @@ jobs:
             ccache-linux-omp-mpi-
 
       - name: Debug over SSH (tmate)
-        uses: mxschmitt/action-tmate@v3.5
+        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       # MPI tests run one at a time after the other tests
