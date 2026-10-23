@@ -55,6 +55,14 @@ def sanitize_json_key(key: str):
     return key
 
 
+def sanitize_typename(name: str) -> str:
+    """Writes a type name as GCC and Clang do: MSVC writes "class " or
+    "struct " in front of class names and no space after commas.
+    """
+
+    return re.sub(r",(?! )", ", ", re.sub(r"\b(?:class|struct) ", "", name))
+
+
 def sanitize_json_value(key: str, value, sanitize_all: bool):
     """Applies sanitation to a single key-value pair.
 
@@ -100,6 +108,8 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
         return [sanitize_json(e, sanitize_all) for e in parsed_input]
     elif sanitize_all and isinstance(parsed_input, float):
         return 1.0
+    elif isinstance(parsed_input, str) and "gko::" in parsed_input:
+        return sanitize_typename(parsed_input)
     else:
         return parsed_input
 
@@ -238,6 +248,7 @@ def compare_output_impl(
     ]
     typename_patterns = [
         (r"(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
+        (r"\b(?:class|struct) (?=gko::)", ""),
         ("what\\(\\): .*", "what(): <removed>"),
         (re.escape(str(matrixpath)), "<filename>"),
     ]

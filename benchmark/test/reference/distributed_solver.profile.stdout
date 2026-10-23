@@ -28,6 +28,22 @@
                         1.0
                     ]
                 },
+                "parameters": {
+                    "criteria": [
+                        {
+                            "baseline": "rhs_norm",
+                            "reduction_factor": 1e-06,
+                            "type": "ResidualNorm",
+                            "value_type": "float64"
+                        },
+                        {
+                            "max_iters": 1000,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "type": "solver::Cg",
+                    "value_type": "float64"
+                },
                 "residual_norm": 1.0,
                 "repetitions": 1,
                 "completed": true

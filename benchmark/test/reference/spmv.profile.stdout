@@ -5,6 +5,7 @@
         "spmv": {
             "coo": {
                 "storage": 11600,
+                "format_parameters": {},
                 "time": 1.0,
                 "repetitions": 1,
                 "repetition_times": [
