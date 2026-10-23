@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout the latest code (shallow clone)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # the CUDA image is large, so remove preinstalled software first
       - name: setup
@@ -44,7 +44,7 @@ jobs:
       # restores the cache of this branch or, as a fallback, of any branch
       # (e.g. develop for a new pull request)
       - name: restore ccache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .ccache
           key: ccache-linux-cuda-${{ github.ref_name }}-${{ github.run_id }}
@@ -78,7 +78,7 @@ jobs:
       # saved even if the build fails or times out, so the next run is faster
       - name: save ccache
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .ccache
           key: ccache-linux-cuda-${{ github.ref_name }}-${{ github.run_id }}

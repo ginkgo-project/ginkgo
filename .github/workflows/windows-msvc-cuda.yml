@@ -34,7 +34,7 @@ jobs:
 
     steps:
     - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: setup (versioned)
       if: matrix.config.version != 'latest'
       run: |

@@ -23,7 +23,7 @@ jobs:
       OMPI_MCA_rmaps_base_oversubscribe: 1
     steps:
       - name: Checkout the latest code (shallow clone)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: setup
         run: |
@@ -32,7 +32,7 @@ jobs:
 
       # only pushes save the cache, so pull requests start from the latest develop build
       - name: restore ccache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .ccache
           key: ccache-coverage-${{ github.run_id }}
@@ -83,7 +83,7 @@ jobs:
       # pull requests from forks get no OIDC token, and Codecov accepts their uploads without one
       - name: upload to Codecov
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
-        uses: codecov/codecov-action@0fb7174895f61a3b6b78fc075e0cd60383518dac # v5.5.5
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         with:
           files: coverage.xml
           disable_search: true
@@ -93,7 +93,7 @@ jobs:
 
       - name: save ccache
         if: ${{ always() && github.event_name == 'push' }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .ccache
           key: ccache-coverage-${{ github.run_id }}

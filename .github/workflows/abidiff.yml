@@ -23,12 +23,12 @@ jobs:
       CMAKE_FLAGS: -DBUILD_SHARED_LIBS=ON -DCMAKE_BUILD_TYPE=DEBUG -DGINKGO_BUILD_TESTS=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_REFERENCE=OFF -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_SYCL=OFF -DGINKGO_ENABLE_BFLOAT16=OFF
     steps:
       - name: Checkout the new code (shallow clone)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: new
           ref: ${{ github.event.pull_request.head.ref }}
       - name: Checkout the old code (shallow clone)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           path: old
           ref: ${{ github.event.pull_request.base.ref }}
@@ -48,7 +48,7 @@ jobs:
         run: old/.github/abidiff.sh
       - name: Upload ABI diff
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: abi
           path: abi.diff
