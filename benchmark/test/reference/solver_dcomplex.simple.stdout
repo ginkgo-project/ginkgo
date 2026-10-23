@@ -17,7 +17,10 @@
                         "generate(<typename>)": 1.0,
                         "overhead": 1.0
                     },
-                    "time": 1.0
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
                 },
                 "apply": {
                     "components": {
@@ -41,7 +44,10 @@
                         "overhead": 1.0
                     },
                     "iterations": 7,
-                    "time": 1.0
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
                 },
                 "preconditioner": {},
                 "residual_norm": 1.0,

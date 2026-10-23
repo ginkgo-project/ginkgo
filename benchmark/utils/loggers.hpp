@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -155,6 +155,9 @@ struct ResidualLogger : gko::log::Logger {
         if (residual_norm) {
             rec_res_norms->push_back(
                 get_norm(gko::as<vec<rc_vtype>>(residual_norm)));
+        } else if (!residual) {
+            // no residual, e.g. IR stopped on its iteration cap
+            rec_res_norms->push_back(-1.0);
         } else {
             gko::detail::vector_dispatch<ValueType>(
                 residual, [&](const auto v_residual) {

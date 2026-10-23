@@ -14,12 +14,18 @@
                 "rhs_norm": 1.0,
                 "generate": {
                     "components": {},
-                    "time": 1.0
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
                 },
                 "apply": {
                     "components": {},
                     "iterations": 7,
-                    "time": 1.0
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
                 },
                 "residual_norm": 1.0,
                 "repetitions": 1,
