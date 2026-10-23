@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -168,6 +168,44 @@ TYPED_TEST(BlockInterleavedStorageScheme, ComputesGlobalBlockOffset)
 TYPED_TEST(BlockInterleavedStorageScheme, ComputesStride)
 {
     ASSERT_EQ(this->s.get_stride(), 4 * 3);  // 4 offsets of 3
+}
+
+
+TYPED_TEST(JacobiFactory, ValidateBlockPointers)
+{
+    using Bj = typename TestFixture::Bj;
+    using index_type = typename TestFixture::index_type;
+    gko::array<index_type> ptrs(this->exec, {0, 2, 4, 5});
+    auto bj = Bj::build()
+                  .with_max_block_size(3u)
+                  .with_block_pointers(ptrs)
+                  .on(this->exec)
+                  ->generate(this->mtx);
+
+    EXPECT_NO_THROW(bj->validate_data());
+}
+
+
+TYPED_TEST(JacobiFactory, ValidateFiniteBlocks)
+{
+    using Bj = typename TestFixture::Bj;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Csr = gko::matrix::Csr<value_type, index_type>;
+    auto dist_mtx = Csr::create(this->exec, gko::dim<2>{2, 2}, 2);
+    dist_mtx->get_row_ptrs()[0] = 0;
+    dist_mtx->get_row_ptrs()[1] = 1;
+    dist_mtx->get_row_ptrs()[2] = 2;
+    dist_mtx->get_col_idxs()[0] = 0;
+    dist_mtx->get_col_idxs()[1] = 1;
+    dist_mtx->get_values()[0] = 1.0;
+    dist_mtx->get_values()[1] = 1.0;
+    auto bj = Bj::build()
+                  .with_max_block_size(2u)
+                  .on(this->exec)
+                  ->generate(gko::give(dist_mtx));
+
+    EXPECT_NO_THROW(bj->validate_data());
 }
 
 

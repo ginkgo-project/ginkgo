@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
@@ -31,6 +32,18 @@ GKO_REGISTER_OPERATION(step_2, fcg::step_2);
 
 }  // anonymous namespace
 }  // namespace fcg
+
+
+template <typename ValueType>
+void Fcg<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Fcg must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
+                 "Fcg must have preconditioner");
+    this->get_preconditioner()->validate_data();
+}
 
 
 template <typename ValueType>
