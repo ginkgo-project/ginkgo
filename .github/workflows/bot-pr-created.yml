@@ -11,7 +11,7 @@ jobs:
       || github.event.pull_request.author_association == 'OWNER'
     steps:
       - name: Checkout the latest code (shallow clone)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: develop
       - name: Add appropriate labels

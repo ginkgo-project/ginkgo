@@ -32,7 +32,7 @@ jobs:
 
     steps:
       - name: Checkout the latest code (shallow clone)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: setup
         run: |
@@ -48,7 +48,7 @@ jobs:
       # restores the cache of this branch or, as a fallback, of any branch
       # (e.g. develop for a new pull request)
       - name: restore ccache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: .ccache
           key: ccache-linux-omp-mpi-${{ github.ref_name }}-${{ github.run_id }}
@@ -83,7 +83,7 @@ jobs:
       # saved even if the build fails or times out, so the next run is faster
       - name: save ccache
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: .ccache
           key: ccache-linux-omp-mpi-${{ github.ref_name }}-${{ github.run_id }}

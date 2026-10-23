@@ -14,7 +14,7 @@ jobs:
     steps:
       # the pull request merge commit and its first parent, the target branch
       - name: Checkout the merge commit
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 2
 

@@ -27,7 +27,7 @@ jobs:
       && !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI')
     steps:
       - name: Checkout the latest code (shallow clone)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: develop
       - name: Check if PR number exists in wiki/Changelog

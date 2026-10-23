@@ -34,7 +34,7 @@ jobs:
 
     steps:
     - name: Checkout the latest code (shallow clone)
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
     - name: Setup MPI
       uses: mpi4py/setup-mpi@3417e34f1394a16723d7913c236642c24e95fd5a # v1.4.4
       with:
