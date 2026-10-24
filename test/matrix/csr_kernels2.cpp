@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include <algorithm>
 #include <random>
 #include <stdexcept>
 
@@ -220,13 +219,13 @@ TEST_F(Csr, SrowIsCorrectFromLoadBalance)
 TEST_F(Csr, ComputeLoadBalanceSrowIsEquivalentToRef)
 {
     auto data = gko::test::generate_random_matrix_data<value_type, index_type>(
-        mtx_size[0], mtx_size[1], std::uniform_int_distribution<>(0, 10),
+        mtx_size[0] - 5, mtx_size[1], std::uniform_int_distribution<>(0, 10),
         std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
     // the starting rows need to skip leading empty rows
-    data.nonzeros.erase(
-        std::remove_if(data.nonzeros.begin(), data.nonzeros.end(),
-                       [](auto entry) { return entry.row < 5; }),
-        data.nonzeros.end());
+    data.size = mtx_size;
+    for (auto& entry : data.nonzeros) {
+        entry.row += 5;
+    }
     auto mtx = Mtx::create(ref);
     mtx->read(data);
     auto dmtx = gko::clone(exec, mtx);
