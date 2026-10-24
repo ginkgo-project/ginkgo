@@ -269,9 +269,6 @@ TEST_F(Csr, SrowAndMaxNnzPerRowMatchRecomputation)
     };
     auto moved = Mtx::create(exec);
     moved->move_from(gko::clone(ref, mtx));
-    auto converted =
-        gko::matrix::Csr<gko::next_precision<value_type>>::create(exec);
-    dmtx->convert_to(converted);
 
     {
         SCOPED_TRACE("copy");
@@ -281,10 +278,15 @@ TEST_F(Csr, SrowAndMaxNnzPerRowMatchRecomputation)
         SCOPED_TRACE("move");
         assert_matches_recomputation(moved.get());
     }
+#if !(GINKGO_COMMON_SINGLE_MODE)
     {
         SCOPED_TRACE("convert");
+        auto converted =
+            gko::matrix::Csr<gko::next_precision<value_type>>::create(exec);
+        dmtx->convert_to(converted);
         assert_matches_recomputation(converted.get());
     }
+#endif
     {
         SCOPED_TRACE("row permute");
         assert_matches_recomputation(
