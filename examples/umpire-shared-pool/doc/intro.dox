@@ -1,0 +1,31 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+This example shows how an application that manages its own memory with
+<a href="https://github.com/LLNL/Umpire">Umpire</a> can have Ginkgo allocate
+from the very same pool.
+
+The application does the entire Umpire setup: it picks the memory resource,
+creates a `QuickPool` over it, and registers that pool under a name of its own
+choosing. It then builds an executor with the matching Ginkgo allocator --
+gko::UmpireCpuAllocator, gko::UmpireCudaAllocator or gko::UmpireHipAllocator --
+which looks the pool up by that name in Umpire's `ResourceManager`. From then
+on every Ginkgo allocation is served out of memory the application has already
+reserved, and the application sees Ginkgo's usage in Umpire's own statistics.
+
+The reason to share a pool is that the alternative wastes device memory: an
+application pool sized to the device leaves Ginkgo nothing to allocate, and
+sizing both of them to half the device wastes whichever half is idle.
+
+The example solves a 2D Poisson problem with CG and then checks what the pool
+saw: that it really served Ginkgo's allocations, that they came out of memory
+the application had already reserved rather than growing the pool, and that
+nothing was left behind once the solve went out of scope.
+
+<h3> Notes </h3>
+
+Ginkgo must be configured with `-DGINKGO_BUILD_UMPIRE=ON` for this example to
+be built, and the application has to link Umpire itself: Ginkgo links it
+privately and does not re-export it.
+
+Umpire's pools are not stream-ordered, so sharing a device pool across streams
+needs an `Executor::synchronize()` before freed memory is handed out again.

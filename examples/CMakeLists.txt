@@ -22,6 +22,11 @@ set(EXAMPLES_EXEC_LIST
     three-pt-stencil-solver
 )
 
+# This example calls the Umpire API itself, so it needs Umpire support.
+if(GINKGO_HAVE_UMPIRE)
+    list(APPEND EXAMPLES_EXEC_LIST umpire-shared-pool)
+endif()
+
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
     custom-stopping-criterion
