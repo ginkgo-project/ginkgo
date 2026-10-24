@@ -241,7 +241,10 @@ build/amd/openmpi/gcc/rocm620/debug/shared:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "ON"
-    MODULE_LOAD: "cmake/3.24.4 rocm/6.2.0 gcc/13.3.0 openmpi/5.0.7"
+    # a HIP-enabled Umpire aborts without a visible AMD GPU, so only GPU jobs
+    # can enable this
+    BUILD_UMPIRE: "ON"
+    MODULE_LOAD: "cmake/3.24.4 rocm/6.2.0 gcc/13.3.0 openmpi/5.0.7 umpire/2026.07.1-rocm6.2.0"
 
 # rocm 6.3.x is the last version support MI50 officially
 build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:
