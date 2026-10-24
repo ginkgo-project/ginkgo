@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 
 #include <memory>
 
+#include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -42,6 +43,11 @@ namespace kernels {
                                const RowPtrType* ptrs, size_type num_blocks, \
                                size_type* sizes)
 
+#define GKO_DECLARE_COMPUTE_MAX_ROW_NNZ(RowPtrType)                       \
+    void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec, \
+                             const array<RowPtrType>& row_ptrs,           \
+                             size_type& max_nnz)
+
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                         \
     template <typename IndexType, typename RowPtrType>       \
@@ -49,7 +55,9 @@ namespace kernels {
     template <typename IndexType, typename RowPtrType>       \
     GKO_DECLARE_CONVERT_IDXS_TO_PTRS(IndexType, RowPtrType); \
     template <typename RowPtrType>                           \
-    GKO_DECLARE_CONVERT_PTRS_TO_SIZES(RowPtrType)
+    GKO_DECLARE_CONVERT_PTRS_TO_SIZES(RowPtrType);           \
+    template <typename RowPtrType>                           \
+    GKO_DECLARE_COMPUTE_MAX_ROW_NNZ(RowPtrType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(components,

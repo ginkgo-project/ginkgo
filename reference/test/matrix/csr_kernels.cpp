@@ -5,6 +5,8 @@
 #include "core/matrix/csr_kernels.hpp"
 
 #include <algorithm>
+#include <numeric>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -2595,6 +2597,42 @@ TYPED_TEST(Csr, ScaleCsrAddIdentityThrowsOnZeroDiagonal)
 
     ASSERT_THROW(b->add_scaled_identity(alpha.get(), beta.get()),
                  gko::UnsupportedMatrixProperty);
+}
+
+
+TYPED_TEST(Csr, ComputesLoadBalanceSrow)
+{
+    using index_type = typename TestFixture::index_type;
+    // row lengths 0, 0, 3, 40, 0, 1, 70, 0, 5, 33
+    std::vector<index_type> row_ptrs{0,  0,   0,   3,   43, 43,
+                                     44, 114, 114, 119, 152};
+    const gko::int64 num_rows = row_ptrs.size() - 1;
+    const gko::int64 nnz = row_ptrs.back();
+    const int warp_size = 32;
+    const auto num_lines = gko::ceildiv(nnz, warp_size);
+    for (gko::int64 srow_size : {1, 2, 3, 5, 8}) {
+        SCOPED_TRACE(srow_size);
+        // srow[i] counts the rows ending before or at the start of warp i
+        std::vector<index_type> expected(srow_size, 0);
+        for (gko::int64 row = 0; row < num_rows; row++) {
+            const auto bucket = gko::ceildiv(
+                gko::ceildiv(row_ptrs[row + 1], warp_size) * srow_size,
+                num_lines);
+            if (bucket < srow_size) {
+                expected[bucket]++;
+            }
+        }
+        std::partial_sum(expected.begin(), expected.end(), expected.begin());
+        gko::array<index_type> srow{this->exec,
+                                    static_cast<gko::size_type>(srow_size)};
+
+        gko::kernels::reference::csr::compute_load_balance_srow(
+            this->exec, row_ptrs.data(), num_rows, nnz, warp_size, srow);
+
+        GKO_ASSERT_ARRAY_EQ(srow,
+                            gko::array<index_type>(this->exec, expected.begin(),
+                                                   expected.end()));
+    }
 }
 
 

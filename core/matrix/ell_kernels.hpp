@@ -36,11 +36,6 @@ namespace kernels {
         matrix::view::dense<const OutputValueType> beta,                      \
         matrix::view::dense<OutputValueType> c)
 
-#define GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL(IndexType)             \
-    void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec, \
-                             const array<IndexType>& row_ptrs,            \
-                             size_type& max_nnz)
-
 #define GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
     void fill_in_matrix_data(                                            \
         std::shared_ptr<const DefaultExecutor> exec,                     \
@@ -85,8 +80,6 @@ namespace kernels {
               typename OutputValueType, typename IndexType>               \
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL(InputValueType, MatrixValueType, \
                                          OutputValueType, IndexType);     \
-    template <typename IndexType>                                         \
-    GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL(IndexType);                \
     template <typename ValueType, typename IndexType>                     \
     GKO_DECLARE_ELL_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                     \

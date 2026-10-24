@@ -116,8 +116,12 @@ DEBUG: begin copy
 DEBUG: end   copy
 DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
+DEBUG: begin components::compute_max_row_nnz
+DEBUG: end   components::compute_max_row_nnz
 DEBUG: begin components::convert_idxs_to_ptrs
 DEBUG: end   components::convert_idxs_to_ptrs
+DEBUG: begin components::compute_max_row_nnz
+DEBUG: end   components::compute_max_row_nnz
 DEBUG: begin copy(<typename>)
 DEBUG: begin dense::copy
 DEBUG: end   dense::copy

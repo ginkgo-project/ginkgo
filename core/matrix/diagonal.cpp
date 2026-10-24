@@ -245,7 +245,8 @@ void Diagonal<ValueType>::convert_to(Csr<ValueType, int32>* result) const
         tmp->set_size(this->get_size());
         exec->run(diagonal::make_convert_to_csr(this, tmp->get_device_view()));
     }
-    result->make_srow();
+    // every row contains exactly one stored element
+    result->make_srow(this->get_size()[0] > 0 ? 1 : 0);
 }
 
 
@@ -268,7 +269,8 @@ void Diagonal<ValueType>::convert_to(Csr<ValueType, int64>* result) const
         tmp->set_size(this->get_size());
         exec->run(diagonal::make_convert_to_csr(this, tmp->get_device_view()));
     }
-    result->make_srow();
+    // every row contains exactly one stored element
+    result->make_srow(this->get_size()[0] > 0 ? 1 : 0);
 }
 
 
