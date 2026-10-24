@@ -11,7 +11,7 @@
                     "allocate": 1.0,
                     "components::fill_array": 1.0,
                     "csr::transpose": 1.0,
-                    "ell::compute_max_row_nnz": 1.0,
+                    "components::compute_max_row_nnz": 1.0,
                     "free": 1.0,
                     "overhead": 1.0
                 },
