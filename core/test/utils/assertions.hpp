@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -449,20 +449,25 @@ template <typename MatrixData1, typename MatrixData2>
     auto snd_end = end(second.nonzeros);
     using nz_type_f = typename std::decay<decltype(*fst_it)>::type;
     using nz_type_s = typename std::decay<decltype(*snd_it)>::type;
+    // the nonzeros are sorted row-major, so a linear scan finds each row.
+    // std::lower_bound and std::upper_bound check the whole remaining range in
+    // debug mode, which would make this quadratic.
+    auto advance_while = [](auto it, auto end, auto pred) {
+        while (it != end && pred(*it)) {
+            ++it;
+        }
+        return it;
+    };
     for (size_type row = 0; row < num_rows; ++row) {
-        auto cmp_l_f = [](nz_type_f nz, size_type row) { return nz.row < row; };
-        auto cmp_u_f = [](size_type row, nz_type_f nz) { return row < nz.row; };
-        auto cmp_l_s = [](nz_type_s nz, size_type row) { return nz.row < row; };
-        auto cmp_u_s = [](size_type row, nz_type_s nz) { return row < nz.row; };
+        auto before_row = [row](auto nz) { return nz.row < row; };
+        auto in_row = [row](auto nz) { return !(row < nz.row); };
         auto col_eq = [](nz_type_f a, nz_type_s b) {
             return a.column == b.column;
         };
-        auto fst_row_begin = std::lower_bound(fst_it, fst_end, row, cmp_l_f);
-        auto snd_row_begin = std::lower_bound(snd_it, snd_end, row, cmp_l_s);
-        auto fst_row_end =
-            std::upper_bound(fst_row_begin, fst_end, row, cmp_u_f);
-        auto snd_row_end =
-            std::upper_bound(snd_row_begin, snd_end, row, cmp_u_s);
+        auto fst_row_begin = advance_while(fst_it, fst_end, before_row);
+        auto snd_row_begin = advance_while(snd_it, snd_end, before_row);
+        auto fst_row_end = advance_while(fst_row_begin, fst_end, in_row);
+        auto snd_row_end = advance_while(snd_row_begin, snd_end, in_row);
         if (std::distance(fst_row_begin, fst_row_end) !=
                 std::distance(snd_row_begin, snd_row_end) ||
             !std::equal(fst_row_begin, fst_row_end, snd_row_begin, col_eq)) {
