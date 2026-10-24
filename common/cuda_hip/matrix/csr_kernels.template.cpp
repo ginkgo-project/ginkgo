@@ -2674,7 +2674,6 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto handle = exec->get_sparselib_handle();
     sparselib::pointer_mode_guard pm_guard(handle);
 
-    auto valpha = exec->copy_val_to_host(alpha.values);
     auto a_nnz = IndexType(a.num_stored_elements);
     auto a_vals = a.values;
     auto a_row_ptrs = a.row_ptrs;
@@ -2683,7 +2682,6 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto b_vals = b.values;
     auto b_row_ptrs = b.row_ptrs;
     auto b_col_idxs = b.col_idxs;
-    auto vbeta = exec->copy_val_to_host(beta.values);
     auto d_vals = d.values;
     auto d_row_ptrs = d.row_ptrs;
     auto d_col_idxs = d.col_idxs;
