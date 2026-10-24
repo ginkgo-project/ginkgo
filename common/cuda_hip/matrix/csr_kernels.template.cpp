@@ -2019,7 +2019,7 @@ int compute_items_per_thread(std::shared_ptr<const DefaultExecutor> exec)
     // 3.0 3.5: 6
     // 3.7: 14
     // 5.0, 5.3, 6.0, 6.2: 8
-    // 5.2, 6.1, 7.0: 12
+    // 5.2, 6.1, 7.0 and newer: 12
     int num_item = 6;
     switch (version) {
     case 0x50:
@@ -2035,6 +2035,11 @@ int compute_items_per_thread(std::shared_ptr<const DefaultExecutor> exec)
         break;
     case 0x37:
         num_item = 14;
+        break;
+    default:
+        if (version > 0x70) {
+            num_item = 12;
+        }
     }
 
 
