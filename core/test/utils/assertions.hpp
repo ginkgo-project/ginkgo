@@ -271,6 +271,20 @@ void save_matrices_to_disk(Ostream& os, const MatrixData1& first,
 }
 
 
+// write() mostly produces row-major data already, and std::sort does the full
+// work even on sorted input
+template <typename MatrixData>
+void sort_row_major_if_unsorted(MatrixData& data)
+{
+    if (!std::is_sorted(
+            begin(data.nonzeros), end(data.nonzeros), [](auto a, auto b) {
+                return std::tie(a.row, a.column) < std::tie(b.row, b.column);
+            })) {
+        data.sort_row_major();
+    }
+}
+
+
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1& first, const MatrixData2& second)
 {
@@ -767,8 +781,8 @@ template <typename Mat1, typename Mat2>
     }
 
     for (size_type b = 0; b < first_data.size(); ++b) {
-        first_data[b].sort_row_major();
-        second_data[b].sort_row_major();
+        detail::sort_row_major_if_unsorted(first_data[b]);
+        detail::sort_row_major_if_unsorted(second_data[b]);
     }
 
     return detail::batch_matrices_near_impl(
@@ -832,8 +846,8 @@ template <typename LinOp1, typename LinOp2>
     first->write(first_data);
     second->write(second_data);
 
-    first_data.sort_row_major();
-    second_data.sort_row_major();
+    detail::sort_row_major_if_unsorted(first_data);
+    detail::sort_row_major_if_unsorted(second_data);
 
     return detail::matrices_near_impl(
         detail::remove_pointer_wrapper(first_expression),
@@ -1099,8 +1113,8 @@ template <typename LinOp1, typename LinOp2>
     first->write(first_data);
     second->write(second_data);
 
-    first_data.sort_row_major();
-    second_data.sort_row_major();
+    detail::sort_row_major_if_unsorted(first_data);
+    detail::sort_row_major_if_unsorted(second_data);
     // make sure if we write data to disk, it only contains ones.
     for (auto& entry : first_data.nonzeros) {
         entry.value = one<typename LinOp1::value_type>();
