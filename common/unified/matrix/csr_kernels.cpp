@@ -226,6 +226,43 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
+void compute_load_balance_srow(std::shared_ptr<const DefaultExecutor> exec,
+                               const IndexType* row_ptrs, size_type num_rows,
+                               size_type num_stored_elements, int warp_size,
+                               array<IndexType>& srow)
+{
+    const auto num_warps = static_cast<int64>(srow.get_size());
+    const auto num_lines = static_cast<int64>(
+        num_stored_elements > 0 ? ceildiv(num_stored_elements, warp_size) : 1);
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto warp, auto row_ptrs, auto num_rows, auto num_lines,
+                      auto num_warps, auto warp_size, auto srow) {
+            // the first stored element processed by this warp, this needs to
+            // match get_warp_start_idx in the load-balance SpMV kernel
+            const auto start = warp * num_lines / num_warps * warp_size;
+            // the starting row is the first row ending after start
+            int64 begin = 0;
+            int64 end = num_rows;
+            while (begin < end) {
+                const auto mid = begin + (end - begin) / 2;
+                if (row_ptrs[mid + 1] <= start) {
+                    begin = mid + 1;
+                } else {
+                    end = mid;
+                }
+            }
+            srow[warp] = static_cast<IndexType>(begin);
+        },
+        srow.get_size(), row_ptrs, static_cast<int64>(num_rows), num_lines,
+        num_warps, static_cast<int64>(warp_size), srow.get_data());
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_LOAD_BALANCE_SROW_KERNEL);
+
+
+template <typename IndexType>
 void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,
                           const IndexType* row_ptrs, const IndexType* col_idxs,
                           size_type num_rows,

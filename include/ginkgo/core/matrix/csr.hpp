@@ -1171,6 +1171,14 @@ protected:
     void make_srow();
 
     /**
+     * Computes srow like make_srow(), but with a known maximum number of
+     * stored elements per row instead of recomputing it.
+     *
+     * @param max_nnz_per_row  the maximum number of stored elements per row
+     */
+    void make_srow(index_type max_nnz_per_row);
+
+    /**
      * @copydoc scale(const LinOp *)
      *
      * @note  Other implementations of Csr should override this function
