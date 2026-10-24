@@ -34,6 +34,30 @@ if(GINKGO_BUILD_MPI)
     target_link_libraries(test_install PRIVATE MPI::MPI_CXX)
 endif()
 
+if(GINKGO_HAVE_UMPIRE)
+    # Ginkgo links Umpire privately, so an application that creates the pool
+    # itself has to find Umpire for itself.
+    find_package(umpire REQUIRED)
+    # v2026.07.0 renamed the export to umpire::umpire and deprecated the bare
+    # one.
+    if(TARGET umpire::umpire)
+        set(test_install_umpire_target umpire::umpire)
+    else()
+        set(test_install_umpire_target umpire)
+    endif()
+    target_link_libraries(test_install PRIVATE ${test_install_umpire_target})
+    target_compile_definitions(test_install PRIVATE HAS_UMPIRE=1)
+    # Umpire >= 2026.07 requires C++20, while 2025.09 to 2025.12 need C++17.
+    if(umpire_VERSION VERSION_LESS 2026.07)
+        target_compile_features(test_install PRIVATE cxx_std_17)
+    else()
+        target_compile_features(test_install PRIVATE cxx_std_20)
+    endif()
+    # The CUDA and HIP variants below stay without Umpire: they compile the
+    # same source at C++17, which Umpire >= 2026.07 does not support. The
+    # umpire-shared-pool example covers the device allocators instead.
+endif()
+
 if(GINKGO_BUILD_CUDA)
     enable_language(CUDA)
     configure_file(test_install.cpp test_install.cu COPYONLY)
