@@ -1420,8 +1420,10 @@ void compute_load_balance_srow(std::shared_ptr<const ReferenceExecutor> exec,
                                array<IndexType>& srow)
 {
     const auto num_warps = static_cast<int64>(srow.get_size());
-    const auto num_lines = static_cast<int64>(
-        num_stored_elements > 0 ? ceildiv(num_stored_elements, warp_size) : 1);
+    const auto num_lines =
+        num_stored_elements > 0
+            ? ceildiv(static_cast<int64>(num_stored_elements), warp_size)
+            : int64{1};
     for (int64 warp = 0; warp < num_warps; warp++) {
         // the first stored element processed by this warp
         const auto start = warp * num_lines / num_warps * warp_size;

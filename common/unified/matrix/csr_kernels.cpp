@@ -232,8 +232,10 @@ void compute_load_balance_srow(std::shared_ptr<const DefaultExecutor> exec,
                                array<IndexType>& srow)
 {
     const auto num_warps = static_cast<int64>(srow.get_size());
-    const auto num_lines = static_cast<int64>(
-        num_stored_elements > 0 ? ceildiv(num_stored_elements, warp_size) : 1);
+    const auto num_lines =
+        num_stored_elements > 0
+            ? ceildiv(static_cast<int64>(num_stored_elements), warp_size)
+            : int64{1};
     run_kernel(
         exec,
         [] GKO_KERNEL(auto warp, auto row_ptrs, auto num_rows, auto num_lines,
