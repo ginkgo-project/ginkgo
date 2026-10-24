@@ -60,7 +60,7 @@ GKO_REGISTER_OPERATION(fill_in_dense, csr::fill_in_dense);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
-GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
+GKO_REGISTER_OPERATION(compute_max_row_nnz, components::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_fbcsr, csr::convert_to_fbcsr);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
