@@ -794,8 +794,8 @@ TEST_F(Csr, MultiplyReuseUpdateCrossExecutor)
 TEST_F(Csr, MultiplyReuseUpdateWithSparseIsEquivalentToRef)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    // the kernel configuration depends on the row lengths of the second factor
-    for (int max_nnz_row : {3, 10, 20, 40}) {
+    // the average row length is about max_nnz_row / 2, covering subwarps 1-32
+    for (int max_nnz_row : {1, 3, 6, 10, 20, 40}) {
         SCOPED_TRACE(max_nnz_row);
         auto mtx1 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0, max_nnz_row);
         auto mtx2 = gen_mtx<Mtx>(mtx_size[1], mtx_size[0], 0, max_nnz_row);
@@ -820,8 +820,8 @@ TEST_F(Csr, MultiplyReuseUpdateWithSparseIsEquivalentToRef)
 TEST_F(Csr, MultiplyAddReuseUpdateWithSparseIsEquivalentToRef)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
-    // the kernel configuration depends on the row lengths of the second factor
-    for (int max_nnz_row : {3, 10, 20, 40}) {
+    // the average row length is about max_nnz_row / 2, covering subwarps 1-32
+    for (int max_nnz_row : {1, 3, 6, 10, 20, 40}) {
         SCOPED_TRACE(max_nnz_row);
         auto mtx1 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0, max_nnz_row);
         auto mtx2 = gen_mtx<Mtx>(mtx_size[1], mtx_size[0], 0, max_nnz_row);

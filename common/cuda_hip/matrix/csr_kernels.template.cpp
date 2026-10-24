@@ -87,7 +87,7 @@ using spgeam_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 using spgemm_reuse_kernels =
-    syn::value_list<int, 4, 8, 16, 32, config::warp_size>;
+    syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
 
 #include "common/cuda_hip/matrix/csr_common.hpp.inc"
