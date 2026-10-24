@@ -791,6 +791,63 @@ TEST_F(Csr, MultiplyReuseUpdateCrossExecutor)
 }
 
 
+TEST_F(Csr, MultiplyReuseUpdateWithSparseIsEquivalentToRef)
+{
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
+    // the kernel configuration depends on the row lengths of the second factor
+    for (int max_nnz_row : {3, 10, 20, 40}) {
+        SCOPED_TRACE(max_nnz_row);
+        auto mtx1 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0, max_nnz_row);
+        auto mtx2 = gen_mtx<Mtx>(mtx_size[1], mtx_size[0], 0, max_nnz_row);
+        auto dmtx1 = gko::clone(exec, mtx1);
+        auto dmtx2 = gko::clone(exec, mtx2);
+        auto [dresult, dreuse] = dmtx1->multiply_reuse(dmtx2);
+        // modify all involved matrices
+        mtx1->scale(alpha);
+        mtx2->scale(beta);
+        dmtx1->scale(dalpha);
+        dmtx2->scale(dbeta);
+
+        dreuse.update_values(dmtx1, dmtx2, dresult);
+        auto expected = mtx1->multiply(mtx2);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(dresult, expected);
+        GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
+    }
+}
+
+
+TEST_F(Csr, MultiplyAddReuseUpdateWithSparseIsEquivalentToRef)
+{
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
+    // the kernel configuration depends on the row lengths of the second factor
+    for (int max_nnz_row : {3, 10, 20, 40}) {
+        SCOPED_TRACE(max_nnz_row);
+        auto mtx1 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0, max_nnz_row);
+        auto mtx2 = gen_mtx<Mtx>(mtx_size[1], mtx_size[0], 0, max_nnz_row);
+        auto mtx3 = gen_mtx<Mtx>(mtx_size[0], mtx_size[0], 0, max_nnz_row);
+        auto dmtx1 = gko::clone(exec, mtx1);
+        auto dmtx2 = gko::clone(exec, mtx2);
+        auto dmtx3 = gko::clone(exec, mtx3);
+        auto [dresult, dreuse] =
+            dmtx1->multiply_add_reuse(dalpha, dmtx2, dbeta, dmtx3);
+        // modify all involved matrices
+        mtx1->scale(alpha);
+        mtx2->scale(beta);
+        mtx3->scale(alpha);
+        dmtx1->scale(dalpha);
+        dmtx2->scale(dbeta);
+        dmtx3->scale(dalpha);
+
+        dreuse.update_values(dmtx1, dalpha, dmtx2, dbeta, dmtx3, dresult);
+        auto expected = mtx1->multiply_add(alpha, mtx2, beta, mtx3);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(dresult, expected);
+        GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
+    }
+}
+
+
 TEST_F(Csr, AdvancedApplyToIdentityMatrixIsEquivalentToRef)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();

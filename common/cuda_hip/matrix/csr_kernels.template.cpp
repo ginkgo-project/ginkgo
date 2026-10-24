@@ -86,6 +86,9 @@ using classical_kernels =
 using spgeam_kernels =
     syn::value_list<int, 1, 2, 4, 8, 16, 32, config::warp_size>;
 
+using spgemm_reuse_kernels =
+    syn::value_list<int, 4, 8, 16, 32, config::warp_size>;
+
 
 #include "common/cuda_hip/matrix/csr_common.hpp.inc"
 
@@ -2762,7 +2765,7 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
 namespace kernel {
 
 
-template <typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void spgemm_reuse(
     const IndexType* __restrict__ a_row_ptrs,
     const IndexType* __restrict__ a_cols, const ValueType* __restrict__ a_vals,
@@ -2774,7 +2777,6 @@ __global__ __launch_bounds__(default_block_size) void spgemm_reuse(
     const int32* __restrict__ lookup_storage,
     const int64* __restrict__ lookup_descs, IndexType num_rows)
 {
-    constexpr auto subwarp_size = config::warp_size;
     const auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
@@ -2811,7 +2813,7 @@ __global__ __launch_bounds__(default_block_size) void spgemm_reuse(
 }
 
 
-template <typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType>
 __global__ __launch_bounds__(default_block_size) void advanced_spgemm_reuse(
     const IndexType* __restrict__ a_row_ptrs,
     const IndexType* __restrict__ a_cols, const ValueType* __restrict__ a_vals,
@@ -2826,7 +2828,6 @@ __global__ __launch_bounds__(default_block_size) void advanced_spgemm_reuse(
     const int32* __restrict__ lookup_storage,
     const int64* __restrict__ lookup_descs, IndexType num_rows)
 {
-    constexpr auto subwarp_size = config::warp_size;
     const auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
@@ -2879,8 +2880,12 @@ __global__ __launch_bounds__(default_block_size) void advanced_spgemm_reuse(
 }  // namespace kernel
 
 
-template <typename ValueType, typename IndexType>
-void spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
+namespace {
+
+
+template <int subwarp_size, typename ValueType, typename IndexType>
+void spgemm_reuse(syn::value_list<int, subwarp_size>,
+                  std::shared_ptr<const DefaultExecutor> exec,
                   matrix::view::csr<const ValueType, const IndexType> a,
                   matrix::view::csr<const ValueType, const IndexType> b,
                   const matrix::csr::lookup_data<IndexType>& c_lookup,
@@ -2902,18 +2907,21 @@ void spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
     const auto lookup_descs = c_lookup.row_descs.get_const_data();
     if (num_rows > 0) {
         const auto num_blocks =
-            ceildiv(num_rows, default_block_size / config::warp_size);
-        kernel::spgemm_reuse<<<num_blocks, default_block_size, 0,
-                               exec->get_stream()>>>(
-            a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals, c_row_ptrs,
-            c_cols, c_vals, lookup_storage_offsets, lookup_storage,
-            lookup_descs, num_rows);
+            ceildiv(num_rows, default_block_size / subwarp_size);
+        kernel::spgemm_reuse<subwarp_size>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
+                c_row_ptrs, c_cols, c_vals, lookup_storage_offsets,
+                lookup_storage, lookup_descs, num_rows);
     }
 }
 
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_spgemm_reuse, spgemm_reuse);
 
-template <typename ValueType, typename IndexType>
+
+template <int subwarp_size, typename ValueType, typename IndexType>
 void advanced_spgemm_reuse(
+    syn::value_list<int, subwarp_size>,
     std::shared_ptr<const DefaultExecutor> exec,
     matrix::view::dense<const ValueType> alpha,
     matrix::view::csr<const ValueType, const IndexType> a,
@@ -2944,13 +2952,65 @@ void advanced_spgemm_reuse(
     const auto lookup_descs = c_lookup.row_descs.get_const_data();
     if (num_rows > 0) {
         const auto num_blocks =
-            ceildiv(num_rows, default_block_size / config::warp_size);
-        kernel::advanced_spgemm_reuse<<<num_blocks, default_block_size, 0,
-                                        exec->get_stream()>>>(
-            a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals, d_row_ptrs,
-            d_cols, d_vals, palpha, pbeta, c_row_ptrs, c_cols, c_vals,
-            lookup_storage_offsets, lookup_storage, lookup_descs, num_rows);
+            ceildiv(num_rows, default_block_size / subwarp_size);
+        kernel::advanced_spgemm_reuse<subwarp_size>
+            <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
+                a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
+                d_row_ptrs, d_cols, d_vals, palpha, pbeta, c_row_ptrs, c_cols,
+                c_vals, lookup_storage_offsets, lookup_storage, lookup_descs,
+                num_rows);
     }
+}
+
+GKO_ENABLE_IMPLEMENTATION_SELECTION(select_advanced_spgemm_reuse,
+                                    advanced_spgemm_reuse);
+
+
+// one subwarp per row of the product, sized by the row length of b
+template <typename ValueType, typename IndexType>
+auto spgemm_reuse_subwarp_selector(
+    matrix::view::csr<const ValueType, const IndexType> b)
+{
+    const auto nnz_per_row =
+        b.size[0] > 0 ? ceildiv(b.num_stored_elements, b.size[0]) : 0;
+    return [nnz_per_row](int compiled_subwarp_size) {
+        return compiled_subwarp_size >= nnz_per_row ||
+               compiled_subwarp_size == config::warp_size;
+    };
+}
+
+
+}  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
+                  matrix::view::csr<const ValueType, const IndexType> a,
+                  matrix::view::csr<const ValueType, const IndexType> b,
+                  const matrix::csr::lookup_data<IndexType>& c_lookup,
+                  matrix::view::csr<ValueType, IndexType> c)
+{
+    select_spgemm_reuse(
+        spgemm_reuse_kernels(), spgemm_reuse_subwarp_selector(b),
+        syn::value_list<int>(), syn::type_list<>(), exec, a, b, c_lookup, c);
+}
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spgemm_reuse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::dense<const ValueType> alpha,
+    matrix::view::csr<const ValueType, const IndexType> a,
+    matrix::view::csr<const ValueType, const IndexType> b,
+    matrix::view::dense<const ValueType> beta,
+    matrix::view::csr<const ValueType, const IndexType> d,
+    const matrix::csr::lookup_data<IndexType>& c_lookup,
+    matrix::view::csr<ValueType, IndexType> c)
+{
+    select_advanced_spgemm_reuse(spgemm_reuse_kernels(),
+                                 spgemm_reuse_subwarp_selector(b),
+                                 syn::value_list<int>(), syn::type_list<>(),
+                                 exec, alpha, a, b, beta, d, c_lookup, c);
 }
 
 
