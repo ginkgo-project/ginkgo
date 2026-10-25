@@ -10,6 +10,11 @@ endif()
 # Inside Ginkgo's own build the target exists already, and a second lookup
 # would rerun Umpire's CUDA setup.
 if(NOT TARGET umpire::umpire AND NOT TARGET umpire)
+    # see the FindCUDA note in cmake/umpire_helpers.cmake
+    if(GINKGO_BUILD_CUDA AND NOT CUDA_TOOLKIT_ROOT_DIR)
+        find_package(CUDAToolkit REQUIRED)
+        set(CUDA_TOOLKIT_ROOT_DIR "${CUDAToolkit_LIBRARY_ROOT}")
+    endif()
     find_package(umpire REQUIRED)
 endif()
 # v2026.07.0 renamed the export to umpire::umpire and deprecated the bare one.
