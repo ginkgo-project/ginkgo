@@ -37,6 +37,11 @@ endif()
 if(GINKGO_HAVE_UMPIRE)
     # Ginkgo links Umpire privately, so an application that creates the pool
     # itself has to find Umpire for itself.
+    # see the FindCUDA note in cmake/umpire_helpers.cmake
+    if(GINKGO_BUILD_CUDA AND NOT CUDA_TOOLKIT_ROOT_DIR)
+        find_package(CUDAToolkit REQUIRED)
+        set(CUDA_TOOLKIT_ROOT_DIR "${CUDAToolkit_LIBRARY_ROOT}")
+    endif()
     find_package(umpire REQUIRED)
     # v2026.07.0 renamed the export to umpire::umpire and deprecated the bare
     # one.

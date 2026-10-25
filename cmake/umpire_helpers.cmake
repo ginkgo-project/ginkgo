@@ -43,6 +43,15 @@ function(ginkgo_find_umpire)
                 set(CMAKE_CUDA_HOST_COMPILER "${CMAKE_CXX_COMPILER}")
                 set(GINKGO_UMPIRE_RESTORE_CUDA_HOST_COMPILER ON)
             endif()
+            # camp's BLT macros rerun the legacy FindCUDA, which defaults to
+            # /usr/local/cuda and asserts that it exists
+            if(
+                "CUDA" IN_LIST GINKGO_UMPIRE_LANGUAGES
+                AND CUDAToolkit_LIBRARY_ROOT
+                AND NOT CUDA_TOOLKIT_ROOT_DIR
+            )
+                set(CUDA_TOOLKIT_ROOT_DIR "${CUDAToolkit_LIBRARY_ROOT}")
+            endif()
             find_package(umpire QUIET)
             if(GINKGO_UMPIRE_RESTORE_CUDA_HOST_COMPILER)
                 set(CMAKE_CUDA_HOST_COMPILER
