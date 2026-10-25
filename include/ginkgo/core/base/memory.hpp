@@ -289,6 +289,8 @@ public:
 protected:
     explicit UmpireAllocatorBase(std::string name);
 
+    // the destructor stays out-of-line because `data` is incomplete here
+    // NOLINTNEXTLINE(performance-trivially-destructible)
     ~UmpireAllocatorBase();
 
     void* allocate_impl(size_type num_bytes);

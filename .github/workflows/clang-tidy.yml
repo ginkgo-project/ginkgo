@@ -33,15 +33,16 @@ jobs:
           cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_MPI=ON -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_SYCL=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF
 
       # skipped: CUDA, HIP, SYCL and Kokkos code, which this configuration can't compile,
-      # dev_tools, omp/base/kernel_launch*.hpp, which only compile inside
-      # common/unified/base/kernel_launch*.hpp, and the device hook stubs, which only
-      # compile inside core/device_hooks/*_hooks.cpp
+      # dev_tools, and omp/base/kernel_launch*.hpp, which only compile inside
+      # common/unified/base/kernel_launch*.hpp. The Umpire glue and example need an
+      # Umpire installation that this job does not have, and core/device_hooks holds
+      # stubs whose signatures have to match the headers they implement.
       - name: clang-tidy
         run: |
           status=0
           git diff -U0 HEAD^1 HEAD | clang-tidy-diff-18.py -p1 -path build -j 4 -quiet \
             -clang-tidy-binary clang-tidy-18 \
-            -regex '(?!third_party/|dev_tools/|cuda/|hip/|dpcpp/|common/cuda_hip/|accessor/(?:cuda|hip|cuda_hip|sycl)_helper|include/ginkgo/extensions/kokkos|omp/base/kernel_launch|core/device_hooks/common_kernels\.inc|(?:.*/)?test/).*\.(cpp|hpp|hpp\.inc)' \
+            -regex '(?!third_party/|dev_tools/|cuda/|hip/|dpcpp/|common/cuda_hip/|accessor/(?:cuda|hip|cuda_hip|sycl)_helper|include/ginkgo/extensions/kokkos|omp/base/kernel_launch|core/device_hooks/|core/base/umpire_allocator\.cpp|examples/umpire-shared-pool/|(?:.*/)?test/).*\.(cpp|hpp|hpp\.inc)' \
             > clang-tidy.log 2>&1 || status=$?
           cat clang-tidy.log
           python3 - <<'EOF'
