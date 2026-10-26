@@ -60,7 +60,7 @@ GKO_REGISTER_OPERATION(fill_in_dense, csr::fill_in_dense);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
 GKO_REGISTER_OPERATION(compute_slice_sets, sellp::compute_slice_sets);
 GKO_REGISTER_OPERATION(convert_to_sellp, csr::convert_to_sellp);
-GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
+GKO_REGISTER_OPERATION(compute_max_row_nnz, components::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(convert_to_ell, csr::convert_to_ell);
 GKO_REGISTER_OPERATION(convert_to_fbcsr, csr::convert_to_fbcsr);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
@@ -103,6 +103,8 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 GKO_REGISTER_OPERATION(scale, csr::scale);
 GKO_REGISTER_OPERATION(inv_scale, csr::inv_scale);
 GKO_REGISTER_OPERATION(add_scaled_identity, csr::add_scaled_identity);
+GKO_REGISTER_OPERATION(compute_load_balance_srow,
+                       csr::compute_load_balance_srow);
 GKO_REGISTER_OPERATION(check_diagonal_entries,
                        csr::check_diagonal_entries_exist);
 GKO_REGISTER_OPERATION(aos_to_soa, components::aos_to_soa);
@@ -302,7 +304,8 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
       srow_(exec)
 {
     row_ptrs_.fill(0);
-    this->make_srow();
+    // all rows are empty
+    this->make_srow(index_type{});
 }
 
 
@@ -334,12 +337,14 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         values_ = other.values_;
         col_idxs_ = other.col_idxs_;
         row_ptrs_ = other.row_ptrs_;
-        srow_ = other.srow_;
-        max_nnz_per_row_ = other.max_nnz_per_row_;
         strategy_ = other.strategy_;
         if (this->get_executor() != other.get_executor()) {
-            // strategy can give different srow on different executor
+            // strategy can give different srow on different executor, and
+            // max_nnz_per_row is stale if the row_ptrs were filled directly
             this->make_srow();
+        } else {
+            srow_ = other.srow_;
+            max_nnz_per_row_ = other.max_nnz_per_row_;
         }
     }
     return *this;
@@ -355,17 +360,19 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         values_ = std::move(other.values_);
         col_idxs_ = std::move(other.col_idxs_);
         row_ptrs_ = std::move(other.row_ptrs_);
-        srow_ = std::move(other.srow_);
-        max_nnz_per_row_ = std::exchange(other.max_nnz_per_row_, 0);
         strategy_ = other.strategy_;
+        max_nnz_per_row_ = std::exchange(other.max_nnz_per_row_, 0);
         if (this->get_executor() != other.get_executor()) {
-            // strategy can give different srow on different executor
+            // strategy can give different srow on different executor, and
+            // max_nnz_per_row is stale if the row_ptrs were filled directly
             this->make_srow();
+            other.srow_.clear();
+        } else {
+            srow_ = std::move(other.srow_);
         }
         // restore other invariant
         other.row_ptrs_.resize_and_reset(1);
         other.row_ptrs_.fill(0);
-        other.make_srow();
     }
     return *this;
 }
@@ -415,24 +422,23 @@ void Csr<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 template <typename ValueType, typename IndexType>
 void Csr<ValueType, IndexType>::make_srow()
 {
+    size_type max_nnz_per_row{};
+    if (this->get_size()[0] > 0 && this->get_num_stored_elements() > 0) {
+        this->get_executor()->run(
+            csr::make_compute_max_row_nnz(row_ptrs_, max_nnz_per_row));
+    }
+    this->make_srow(static_cast<index_type>(max_nnz_per_row));
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::make_srow(index_type max_nnz_per_row)
+{
     size_type srow_size = 0;
     int warp_size = 0;
     int64_t nwarps = 0;
-    max_nnz_per_row_ = 0;
+    max_nnz_per_row_ = max_nnz_per_row;
     auto exec = this->get_executor();
-    array<IndexType> row_ptrs_host(exec->get_master());
-    const IndexType* row_ptrs{nullptr};
-    if (exec == exec->get_master()) {
-        row_ptrs = row_ptrs_.get_const_data();
-    } else {
-        row_ptrs_host = row_ptrs_;
-        row_ptrs = row_ptrs_host.get_const_data();
-    }
-    // calculate the max_nnz_per_row in host
-    for (int i = 0; i < this->get_size()[0]; i++) {
-        max_nnz_per_row_ =
-            std::max(max_nnz_per_row_, row_ptrs[i + 1] - row_ptrs[i]);
-    }
 
     if (auto dexec = std::dynamic_pointer_cast<const CudaExecutor>(exec)) {
         nwarps = dexec->get_num_warps();
@@ -483,29 +489,10 @@ void Csr<ValueType, IndexType>::make_srow()
     }
     srow_.resize_and_reset(srow_size);
     if (srow_size != 0) {
-        srow_.set_executor(exec->get_master());
-        const auto num_rows = this->get_size()[0];
-        for (size_type i = 0; i < srow_size; i++) {
-            srow_.get_data()[i] = 0;
-        }
-        const auto num_elems = this->get_num_stored_elements();
-        const auto bucket_divider =
-            num_elems > 0 ? ceildiv(num_elems, warp_size) : 1;
-        for (size_type i = 0; i < num_rows; i++) {
-            auto bucket =
-                ceildiv((ceildiv(row_ptrs[i + 1], warp_size) * srow_size),
-                        bucket_divider);
-            if (bucket < srow_size) {
-                srow_.get_data()[bucket]++;
-            }
-        }
-        // find starting row for thread i
-        for (size_type i = 1; i < srow_size; i++) {
-            srow_.get_data()[i] += srow_.get_data()[i - 1];
-        }
-        srow_.set_executor(exec);
+        exec->run(csr::make_compute_load_balance_srow(
+            row_ptrs_.get_const_data(), this->get_size()[0],
+            this->get_num_stored_elements(), warp_size, srow_));
     }
-    row_ptrs_.set_executor(exec);
 }
 
 
@@ -563,7 +550,12 @@ void Csr<ValueType, IndexType>::convert_to(
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
-    result->set_strategy(this->get_strategy());
+    result->strategy_ = this->get_strategy();
+    if (result->get_executor() == this->get_executor()) {
+        result->make_srow(this->max_nnz_per_row_);
+    } else {
+        result->make_srow();
+    }
 }
 
 
@@ -583,7 +575,12 @@ void Csr<ValueType, IndexType>::convert_to(
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
-    result->set_strategy(this->get_strategy());
+    result->strategy_ = this->get_strategy();
+    if (result->get_executor() == this->get_executor()) {
+        result->make_srow(this->max_nnz_per_row_);
+    } else {
+        result->make_srow();
+    }
 }
 
 
@@ -605,7 +602,12 @@ void Csr<ValueType, IndexType>::convert_to(
     result->col_idxs_ = this->col_idxs_;
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
-    result->set_strategy(this->get_strategy());
+    result->strategy_ = this->get_strategy();
+    if (result->get_executor() == this->get_executor()) {
+        result->make_srow(this->max_nnz_per_row_);
+    } else {
+        result->make_srow();
+    }
 }
 
 
@@ -1476,7 +1478,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
     default:
         GKO_INVALID_STATE("Invalid permute mode");
     }
-    result->make_srow();
+    result->make_srow(max_nnz_per_row_);
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         result->sort_by_column_index();
     }
@@ -1510,7 +1512,7 @@ std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::permute(
             inv_col_perm->get_const_permutation(),
             this->get_const_device_view(), result->get_device_view()));
     }
-    result->make_srow();
+    result->make_srow(max_nnz_per_row_);
     result->sort_by_column_index();
     return result;
 }
@@ -1604,7 +1606,7 @@ Csr<ValueType, IndexType>::scale_permute(
     default:
         GKO_INVALID_STATE("Invalid permute mode");
     }
-    result->make_srow();
+    result->make_srow(max_nnz_per_row_);
     if ((mode & permute_mode::columns) == permute_mode::columns) {
         result->sort_by_column_index();
     }
@@ -1644,7 +1646,7 @@ Csr<ValueType, IndexType>::scale_permute(
             inv_col_perm->get_const_permutation(),
             this->get_const_device_view(), result->get_device_view()));
     }
-    result->make_srow();
+    result->make_srow(max_nnz_per_row_);
     result->sort_by_column_index();
     return result;
 }
@@ -1750,10 +1752,10 @@ Csr<ValueType, IndexType>::create_submatrix(const gko::span& row_span,
                                std::move(array<ValueType>(exec, num_nnz)),
                                std::move(array<IndexType>(exec, num_nnz)),
                                std::move(row_ptrs), this->get_strategy());
+    // srow was already computed from the final row pointers in create
     exec->run(csr::make_compute_submatrix(this->get_const_device_view(),
                                           row_span, column_span,
                                           sub_mat->get_device_view()));
-    sub_mat->make_srow();
     return sub_mat;
 }
 
@@ -1796,10 +1798,10 @@ Csr<ValueType, IndexType>::create_submatrix(
                                    std::move(array<ValueType>(exec, num_nnz)),
                                    std::move(array<IndexType>(exec, num_nnz)),
                                    std::move(row_ptrs), this->get_strategy());
+        // srow was already computed from the final row pointers in create
         exec->run(csr::make_compute_submatrix_from_index_set(
             this->get_const_device_view(), row_index_set, col_index_set,
             sub_mat->get_device_view()));
-        sub_mat->make_srow();
         return sub_mat;
     }
 }
@@ -1869,7 +1871,7 @@ Csr<ValueType, IndexType>::compute_absolute() const
                                                 this->get_num_stored_elements(),
                                                 abs_csr->get_values()));
 
-    abs_csr->make_srow();
+    abs_csr->make_srow(max_nnz_per_row_);
     return abs_csr;
 }
 

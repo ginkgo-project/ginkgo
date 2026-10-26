@@ -215,6 +215,129 @@ TEST_F(Csr, SrowIsCorrectFromLoadBalance)
     }
 }
 
+
+TEST_F(Csr, ComputeLoadBalanceSrowIsEquivalentToRef)
+{
+    auto data = gko::test::generate_random_matrix_data<value_type, index_type>(
+        mtx_size[0] - 5, mtx_size[1], std::uniform_int_distribution<>(0, 10),
+        std::normal_distribution<value_type>(-1.0, 1.0), rand_engine);
+    // the starting rows need to skip leading empty rows
+    data.size = mtx_size;
+    for (auto& entry : data.nonzeros) {
+        entry.row += 5;
+    }
+    auto mtx = Mtx::create(ref);
+    mtx->read(data);
+    auto dmtx = gko::clone(exec, mtx);
+    for (gko::size_type num_warps : {1, 7, 64, 1000}) {
+        SCOPED_TRACE(num_warps);
+        gko::array<index_type> srow{ref, num_warps};
+        gko::array<index_type> dsrow{exec, num_warps};
+
+        gko::kernels::reference::csr::compute_load_balance_srow(
+            ref, mtx->get_const_row_ptrs(), mtx->get_size()[0],
+            mtx->get_num_stored_elements(), 32, srow);
+        gko::kernels::GKO_DEVICE_NAMESPACE::csr::compute_load_balance_srow(
+            exec, dmtx->get_const_row_ptrs(), dmtx->get_size()[0],
+            dmtx->get_num_stored_elements(), 32, dsrow);
+
+        GKO_ASSERT_ARRAY_EQ(dsrow, srow);
+    }
+}
+
+
+TEST_F(Csr, SrowAndMaxNnzPerRowMatchRecomputation)
+{
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::load_balance>();
+    auto assert_matches_recomputation = [](auto mtx) {
+        auto recomputed = gko::clone(mtx);
+        recomputed->set_strategy(mtx->get_strategy());
+        const auto exec = mtx->get_executor();
+        GKO_ASSERT_ARRAY_EQ(
+            gko::make_const_array_view(exec, mtx->get_num_srow_elements(),
+                                       mtx->get_const_srow())
+                .copy_to_array(),
+            gko::make_const_array_view(exec,
+                                       recomputed->get_num_srow_elements(),
+                                       recomputed->get_const_srow())
+                .copy_to_array());
+        ASSERT_EQ(
+            gko::matrix::make_builder_unique_ptr(mtx)->get_max_nnz_per_row(),
+            gko::matrix::make_builder_unique_ptr(recomputed)
+                ->get_max_nnz_per_row());
+    };
+    auto moved = Mtx::create(exec);
+    moved->move_from(gko::clone(ref, mtx));
+    // filling the arrays directly leaves a stale max_nnz_per_row behind
+    auto filled =
+        Mtx::create(ref, mtx->get_size(), mtx->get_num_stored_elements(),
+                    mtx->get_strategy());
+    ref->copy(mtx->get_size()[0] + 1, mtx->get_const_row_ptrs(),
+              filled->get_row_ptrs());
+    ref->copy(mtx->get_num_stored_elements(), mtx->get_const_col_idxs(),
+              filled->get_col_idxs());
+    ref->copy(mtx->get_num_stored_elements(), mtx->get_const_values(),
+              filled->get_values());
+    auto moved_filled = Mtx::create(exec);
+    moved_filled->move_from(gko::clone(filled));
+
+    {
+        SCOPED_TRACE("copy");
+        assert_matches_recomputation(dmtx.get());
+    }
+    {
+        SCOPED_TRACE("move");
+        assert_matches_recomputation(moved.get());
+    }
+    {
+        SCOPED_TRACE("copy filled");
+        assert_matches_recomputation(gko::clone(exec, filled).get());
+    }
+    {
+        SCOPED_TRACE("move filled");
+        assert_matches_recomputation(moved_filled.get());
+    }
+#if !(GINKGO_COMMON_SINGLE_MODE)
+    {
+        SCOPED_TRACE("convert");
+        auto converted =
+            gko::matrix::Csr<gko::next_precision<value_type>>::create(exec);
+        dmtx->convert_to(converted);
+        assert_matches_recomputation(converted.get());
+    }
+    {
+        SCOPED_TRACE("convert filled");
+        auto converted =
+            gko::matrix::Csr<gko::next_precision<value_type>>::create(exec);
+        filled->convert_to(converted);
+        assert_matches_recomputation(converted.get());
+    }
+#endif
+    {
+        SCOPED_TRACE("row permute");
+        assert_matches_recomputation(
+            dmtx->permute(rpermutation, gko::matrix::permute_mode::rows).get());
+    }
+    {
+        SCOPED_TRACE("symmetric permute");
+        assert_matches_recomputation(dsquare_mtx->permute(rpermutation).get());
+    }
+    {
+        SCOPED_TRACE("scale permute");
+        assert_matches_recomputation(
+            dsquare_mtx->scale_permute(srpermutation).get());
+    }
+    {
+        SCOPED_TRACE("absolute");
+        assert_matches_recomputation(dmtx->compute_absolute().get());
+    }
+    {
+        SCOPED_TRACE("submatrix");
+        assert_matches_recomputation(
+            dmtx->create_submatrix(gko::span{7, 51}, gko::span{22, 88}).get());
+    }
+}
+
 TEST_F(Csr, SimpleApplyIsEquivalentToRefWithClassical)
 {
     set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
@@ -693,6 +816,63 @@ TEST_F(Csr, MultiplyReuseUpdateCrossExecutor)
     expected = mtx->multiply(trans);
 
     GKO_ASSERT_MTX_NEAR(result, expected, r<value_type>::value);
+}
+
+
+TEST_F(Csr, MultiplyReuseUpdateWithSparseIsEquivalentToRef)
+{
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
+    // the average row length is about max_nnz_row / 2, covering subwarps 1-32
+    for (int max_nnz_row : {1, 3, 6, 10, 20, 40}) {
+        SCOPED_TRACE(max_nnz_row);
+        auto mtx1 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0, max_nnz_row);
+        auto mtx2 = gen_mtx<Mtx>(mtx_size[1], mtx_size[0], 0, max_nnz_row);
+        auto dmtx1 = gko::clone(exec, mtx1);
+        auto dmtx2 = gko::clone(exec, mtx2);
+        auto [dresult, dreuse] = dmtx1->multiply_reuse(dmtx2);
+        // modify all involved matrices
+        mtx1->scale(alpha);
+        mtx2->scale(beta);
+        dmtx1->scale(dalpha);
+        dmtx2->scale(dbeta);
+
+        dreuse.update_values(dmtx1, dmtx2, dresult);
+        auto expected = mtx1->multiply(mtx2);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(dresult, expected);
+        GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
+    }
+}
+
+
+TEST_F(Csr, MultiplyAddReuseUpdateWithSparseIsEquivalentToRef)
+{
+    set_up_apply_data<gko::matrix::csr::spmv_strategy::classical>();
+    // the average row length is about max_nnz_row / 2, covering subwarps 1-32
+    for (int max_nnz_row : {1, 3, 6, 10, 20, 40}) {
+        SCOPED_TRACE(max_nnz_row);
+        auto mtx1 = gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 0, max_nnz_row);
+        auto mtx2 = gen_mtx<Mtx>(mtx_size[1], mtx_size[0], 0, max_nnz_row);
+        auto mtx3 = gen_mtx<Mtx>(mtx_size[0], mtx_size[0], 0, max_nnz_row);
+        auto dmtx1 = gko::clone(exec, mtx1);
+        auto dmtx2 = gko::clone(exec, mtx2);
+        auto dmtx3 = gko::clone(exec, mtx3);
+        auto [dresult, dreuse] =
+            dmtx1->multiply_add_reuse(dalpha, dmtx2, dbeta, dmtx3);
+        // modify all involved matrices
+        mtx1->scale(alpha);
+        mtx2->scale(beta);
+        mtx3->scale(alpha);
+        dmtx1->scale(dalpha);
+        dmtx2->scale(dbeta);
+        dmtx3->scale(dalpha);
+
+        dreuse.update_values(dmtx1, dalpha, dmtx2, dbeta, dmtx3, dresult);
+        auto expected = mtx1->multiply_add(alpha, mtx2, beta, mtx3);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(dresult, expected);
+        GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
+    }
 }
 
 

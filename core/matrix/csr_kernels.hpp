@@ -280,6 +280,12 @@ namespace kernels {
                              matrix::view::dense<const ValueType> beta,   \
                              matrix::view::csr<ValueType, IndexType> mtx)
 
+#define GKO_DECLARE_CSR_COMPUTE_LOAD_BALANCE_SROW_KERNEL(IndexType) \
+    void compute_load_balance_srow(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                \
+        const IndexType* row_ptrs, size_type num_rows,              \
+        size_type num_stored_elements, int warp_size, array<IndexType>& srow)
+
 #define GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL(IndexType)               \
     void build_lookup_offsets(std::shared_ptr<const DefaultExecutor> exec,   \
                               const IndexType* row_ptrs,                     \
@@ -389,6 +395,8 @@ namespace kernels {
     GKO_DECLARE_CSR_CHECK_DIAGONAL_ENTRIES_EXIST(ValueType, IndexType);     \
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL(ValueType, IndexType);       \
+    template <typename IndexType>                                           \
+    GKO_DECLARE_CSR_COMPUTE_LOAD_BALANCE_SROW_KERNEL(IndexType);            \
     template <typename IndexType>                                           \
     GKO_DECLARE_CSR_BUILD_LOOKUP_OFFSETS_KERNEL(IndexType);                 \
     template <typename IndexType>                                           \

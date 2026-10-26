@@ -1414,6 +1414,31 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename IndexType>
+void compute_load_balance_srow(std::shared_ptr<const ReferenceExecutor> exec,
+                               const IndexType* row_ptrs, size_type num_rows,
+                               size_type num_stored_elements, int warp_size,
+                               array<IndexType>& srow)
+{
+    const auto num_warps = static_cast<int64>(srow.get_size());
+    const auto num_lines =
+        num_stored_elements > 0
+            ? ceildiv(static_cast<int64>(num_stored_elements), warp_size)
+            : int64{1};
+    for (int64 warp = 0; warp < num_warps; warp++) {
+        // the first stored element processed by this warp
+        const auto start = warp * num_lines / num_warps * warp_size;
+        // the starting row is the first row ending after start
+        srow.get_data()[warp] = static_cast<IndexType>(
+            std::upper_bound(row_ptrs + 1, row_ptrs + num_rows + 1, start) -
+            (row_ptrs + 1));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_LOAD_BALANCE_SROW_KERNEL);
+
+
+template <typename IndexType>
 void build_lookup_offsets(std::shared_ptr<const ReferenceExecutor> exec,
                           const IndexType* row_ptrs, const IndexType* col_idxs,
                           size_type num_rows,

@@ -120,20 +120,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 
-template <typename IndexType>
-void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
-                         const array<IndexType>& row_ptrs, size_type& max_nnz)
-{
-    max_nnz = 0;
-    const auto ptrs = row_ptrs.get_const_data();
-    for (size_type i = 1; i < row_ptrs.get_size(); i++) {
-        max_nnz = std::max<size_type>(max_nnz, ptrs[i] - ptrs[i - 1]);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          const device_matrix_data<ValueType, IndexType>& data,

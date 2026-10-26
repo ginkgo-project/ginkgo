@@ -36,7 +36,7 @@ namespace {
 GKO_REGISTER_OPERATION(spmv, ell::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, ell::advanced_spmv);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
-GKO_REGISTER_OPERATION(compute_max_row_nnz, ell::compute_max_row_nnz);
+GKO_REGISTER_OPERATION(compute_max_row_nnz, components::compute_max_row_nnz);
 GKO_REGISTER_OPERATION(fill_in_matrix_data, ell::fill_in_matrix_data);
 GKO_REGISTER_OPERATION(fill_in_dense, ell::fill_in_dense);
 GKO_REGISTER_OPERATION(copy, ell::copy);

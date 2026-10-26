@@ -16,6 +16,7 @@
                     "cholesky::symbolic_count": 1.0,
                     "components::prefix_sum_nonnegative": 1.0,
                     "copy": 1.0,
+                    "components::compute_max_row_nnz": 1.0,
                     "cholesky::symbolic_factorize": 1.0,
                     "csr::sort_by_column_index": 1.0,
                     "overhead": 1.0

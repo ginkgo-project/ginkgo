@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,8 @@
 #include <ginkgo/core/base/types.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch_reduction.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 
 
@@ -80,6 +82,24 @@ void convert_ptrs_to_sizes(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_CONVERT_PTRS_TO_SIZES);
+
+
+template <typename RowPtrType>
+void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
+                         const array<RowPtrType>& row_ptrs, size_type& max_nnz)
+{
+    array<size_type> result{exec, 1};
+    run_kernel_reduction(
+        exec,
+        [] GKO_KERNEL(auto i, auto row_ptrs) {
+            return row_ptrs[i + 1] - row_ptrs[i];
+        },
+        GKO_KERNEL_REDUCE_MAX(size_type), result.get_data(),
+        row_ptrs.get_size() - 1, row_ptrs);
+    max_nnz = get_element(result, 0);
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_COMPUTE_MAX_ROW_NNZ);
 
 
 }  // namespace components
