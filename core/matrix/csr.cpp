@@ -338,12 +338,12 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         col_idxs_ = other.col_idxs_;
         row_ptrs_ = other.row_ptrs_;
         strategy_ = other.strategy_;
+        max_nnz_per_row_ = other.max_nnz_per_row_;
         if (this->get_executor() != other.get_executor()) {
             // strategy can give different srow on different executor
-            this->make_srow();
+            this->make_srow(max_nnz_per_row_);
         } else {
             srow_ = other.srow_;
-            max_nnz_per_row_ = other.max_nnz_per_row_;
         }
     }
     return *this;
@@ -363,7 +363,7 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         max_nnz_per_row_ = std::exchange(other.max_nnz_per_row_, 0);
         if (this->get_executor() != other.get_executor()) {
             // strategy can give different srow on different executor
-            this->make_srow();
+            this->make_srow(max_nnz_per_row_);
             other.srow_.clear();
         } else {
             srow_ = std::move(other.srow_);
