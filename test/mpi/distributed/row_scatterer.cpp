@@ -66,6 +66,23 @@ protected:
                 gko::array<T>{exec, {8, 12, 13, 14}}};
     }
 
+    // ghost values with distinct values per rank and row, so that wrong
+    // indices are detected
+    std::unique_ptr<gko::experimental::distributed::Vector<double>>
+    create_ghost_values()
+    {
+        using Vector = gko::experimental::distributed::Vector<double>;
+        auto send_size = static_cast<gko::size_type>(
+            rs->get_collective_communicator()->get_send_size());
+        auto host_ghost_vals =
+            Vector::create(host_exec, comm, gko::dim<2>{rs->get_size()[1], 1},
+                           gko::dim<2>{send_size, 1});
+        for (gko::size_type i = 0; i < send_size; ++i) {
+            host_ghost_vals->at_local(i, 0) = 100.0 * comm.rank() + i;
+        }
+        return gko::clone(mpi_exec, host_ghost_vals);
+    }
+
     std::shared_ptr<const gko::Executor> host_exec = exec->get_master();
     std::shared_ptr<const gko::Executor> mpi_exec =
         gko::experimental::mpi::requires_host_buffer(exec, comm) ? host_exec
@@ -120,6 +137,47 @@ TYPED_TEST(RowScatterer, CreateFromIndexMapMatchesCreateFromGatherer)
               rs_coll_comm->get_send_size());
     ASSERT_EQ(rs_imap_coll_comm->get_recv_size(),
               rs_coll_comm->get_recv_size());
+    GKO_ASSERT_MTX_NEAR(result->get_local_vector(),
+                        expected->get_local_vector(), 0.0);
+}
+
+
+TYPED_TEST(RowScatterer, CopiedScattererScattersLikeOriginal)
+{
+    using Vector = gko::experimental::distributed::Vector<double>;
+    auto ghost_vals = this->create_ghost_values();
+    auto expected = Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
+                                   gko::dim<2>{3, 1});
+    expected->fill(0.0);
+    auto result = gko::clone(expected);
+    this->rs->apply_async(ghost_vals);
+    this->rs->wait_and_accumulate(expected);
+    auto copy = gko::clone(this->rs);
+
+    copy->apply_async(ghost_vals);
+    copy->wait_and_accumulate(result);
+
+    GKO_ASSERT_MTX_NEAR(result->get_local_vector(),
+                        expected->get_local_vector(), 0.0);
+}
+
+
+TYPED_TEST(RowScatterer, MovedScattererScattersLikeOriginal)
+{
+    using Vector = gko::experimental::distributed::Vector<double>;
+    auto ghost_vals = this->create_ghost_values();
+    auto expected = Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
+                                   gko::dim<2>{3, 1});
+    expected->fill(0.0);
+    auto result = gko::clone(expected);
+    this->rs->apply_async(ghost_vals);
+    this->rs->wait_and_accumulate(expected);
+    auto move = TestFixture::row_scatterer_type::create(this->exec, this->comm);
+    move->move_from(this->rs);
+
+    move->apply_async(ghost_vals);
+    move->wait_and_accumulate(result);
+
     GKO_ASSERT_MTX_NEAR(result->get_local_vector(),
                         expected->get_local_vector(), 0.0);
 }
