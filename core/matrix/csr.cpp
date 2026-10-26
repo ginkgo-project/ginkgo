@@ -338,12 +338,13 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         col_idxs_ = other.col_idxs_;
         row_ptrs_ = other.row_ptrs_;
         strategy_ = other.strategy_;
-        max_nnz_per_row_ = other.max_nnz_per_row_;
         if (this->get_executor() != other.get_executor()) {
-            // strategy can give different srow on different executor
-            this->make_srow(max_nnz_per_row_);
+            // strategy can give different srow on different executor, and
+            // max_nnz_per_row is stale if the row_ptrs were filled directly
+            this->make_srow();
         } else {
             srow_ = other.srow_;
+            max_nnz_per_row_ = other.max_nnz_per_row_;
         }
     }
     return *this;
@@ -362,8 +363,9 @@ Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
         strategy_ = other.strategy_;
         max_nnz_per_row_ = std::exchange(other.max_nnz_per_row_, 0);
         if (this->get_executor() != other.get_executor()) {
-            // strategy can give different srow on different executor
-            this->make_srow(max_nnz_per_row_);
+            // strategy can give different srow on different executor, and
+            // max_nnz_per_row is stale if the row_ptrs were filled directly
+            this->make_srow();
             other.srow_.clear();
         } else {
             srow_ = std::move(other.srow_);
@@ -549,7 +551,11 @@ void Csr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
     result->strategy_ = this->get_strategy();
-    result->make_srow(this->max_nnz_per_row_);
+    if (result->get_executor() == this->get_executor()) {
+        result->make_srow(this->max_nnz_per_row_);
+    } else {
+        result->make_srow();
+    }
 }
 
 
@@ -570,7 +576,11 @@ void Csr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
     result->strategy_ = this->get_strategy();
-    result->make_srow(this->max_nnz_per_row_);
+    if (result->get_executor() == this->get_executor()) {
+        result->make_srow(this->max_nnz_per_row_);
+    } else {
+        result->make_srow();
+    }
 }
 
 
@@ -593,7 +603,11 @@ void Csr<ValueType, IndexType>::convert_to(
     result->row_ptrs_ = this->row_ptrs_;
     result->set_size(this->get_size());
     result->strategy_ = this->get_strategy();
-    result->make_srow(this->max_nnz_per_row_);
+    if (result->get_executor() == this->get_executor()) {
+        result->make_srow(this->max_nnz_per_row_);
+    } else {
+        result->make_srow();
+    }
 }
 
 

@@ -268,6 +268,18 @@ TEST_F(Csr, SrowAndMaxNnzPerRowMatchRecomputation)
     };
     auto moved = Mtx::create(exec);
     moved->move_from(gko::clone(ref, mtx));
+    // filling the arrays directly leaves a stale max_nnz_per_row behind
+    auto filled =
+        Mtx::create(ref, mtx->get_size(), mtx->get_num_stored_elements(),
+                    mtx->get_strategy());
+    ref->copy(mtx->get_size()[0] + 1, mtx->get_const_row_ptrs(),
+              filled->get_row_ptrs());
+    ref->copy(mtx->get_num_stored_elements(), mtx->get_const_col_idxs(),
+              filled->get_col_idxs());
+    ref->copy(mtx->get_num_stored_elements(), mtx->get_const_values(),
+              filled->get_values());
+    auto moved_filled = Mtx::create(exec);
+    moved_filled->move_from(gko::clone(filled));
 
     {
         SCOPED_TRACE("copy");
@@ -277,12 +289,27 @@ TEST_F(Csr, SrowAndMaxNnzPerRowMatchRecomputation)
         SCOPED_TRACE("move");
         assert_matches_recomputation(moved.get());
     }
+    {
+        SCOPED_TRACE("copy filled");
+        assert_matches_recomputation(gko::clone(exec, filled).get());
+    }
+    {
+        SCOPED_TRACE("move filled");
+        assert_matches_recomputation(moved_filled.get());
+    }
 #if !(GINKGO_COMMON_SINGLE_MODE)
     {
         SCOPED_TRACE("convert");
         auto converted =
             gko::matrix::Csr<gko::next_precision<value_type>>::create(exec);
         dmtx->convert_to(converted);
+        assert_matches_recomputation(converted.get());
+    }
+    {
+        SCOPED_TRACE("convert filled");
+        auto converted =
+            gko::matrix::Csr<gko::next_precision<value_type>>::create(exec);
+        filled->convert_to(converted);
         assert_matches_recomputation(converted.get());
     }
 #endif
