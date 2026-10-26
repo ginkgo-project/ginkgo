@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,7 @@
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/row_gatherer.hpp>
+#include <ginkgo/core/distributed/row_scatterer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
 #include "core/test/utils.hpp"
@@ -155,4 +156,41 @@ TYPED_TEST(RowGatherer, CanMove)
     ASSERT_EQ(rg->get_const_send_idxs(), nullptr);
     ASSERT_EQ(rg->get_num_send_idxs(), 0);
     ASSERT_NE(rg->get_collective_communicator(), nullptr);
+}
+
+
+TYPED_TEST(RowGatherer, CanCreateFromScatterer)
+{
+    using RowGatherer = typename TestFixture::row_gatherer_type;
+    using RowScatterer = gko::experimental::distributed::RowScatterer<
+        typename TestFixture::index_type>;
+    auto rg = RowGatherer::create(this->ref, this->coll_comm, this->imap);
+    auto rs = RowScatterer::create(this->ref, this->coll_comm, this->imap);
+    auto send_idxs = gko::make_const_array_view(
+        rg->get_executor(), rg->get_num_send_idxs(), rg->get_const_send_idxs());
+
+    auto rg_from_rs = RowGatherer::create_from_scatterer(this->ref, rs);
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(rg_from_rs, rg);
+    ASSERT_EQ(*gko::as<CollCommType>(rg_from_rs->get_collective_communicator()),
+              *this->coll_comm);
+    GKO_ASSERT_ARRAY_EQ(
+        gko::make_const_array_view(rg_from_rs->get_executor(),
+                                   rg_from_rs->get_num_send_idxs(),
+                                   rg_from_rs->get_const_send_idxs()),
+        send_idxs);
+}
+
+
+TYPED_TEST(RowGatherer, CanCreateFromEmptyScatterer)
+{
+    using RowGatherer = typename TestFixture::row_gatherer_type;
+    using RowScatterer = gko::experimental::distributed::RowScatterer<
+        typename TestFixture::index_type>;
+    auto rs = RowScatterer::create(this->ref, this->comm);
+
+    auto rg = RowGatherer::create_from_scatterer(this->ref, rs);
+
+    GKO_ASSERT_EQUAL_DIMENSIONS(rg, gko::dim<2>());
+    ASSERT_EQ(rg->get_num_send_idxs(), 0);
 }

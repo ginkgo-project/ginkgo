@@ -29,6 +29,9 @@ namespace distributed {
 template <typename LocalIndexType>
 class RowGatherer;
 
+template <typename LocalIndexType>
+class RowScatterer;
+
 
 namespace detail {
 
@@ -210,6 +213,22 @@ public:
     }
 
     /**
+     * Creates a distributed::RowGatherer from an existing RowScatterer.
+     *
+     * The gatherer is the transpose of the scatterer: it inverts the
+     * communication pattern and gathers the values from the positions into
+     * which the scatterer accumulates.
+     *
+     * @param exec  the executor
+     * @param scatterer  the RowScatterer to create the inverse from
+     *
+     * @return  a unique_ptr to the created distributed::RowGatherer
+     */
+    static std::unique_ptr<RowGatherer> create_from_scatterer(
+        std::shared_ptr<const Executor> exec,
+        ptr_param<const RowScatterer<LocalIndexType>> scatterer);
+
+    /**
      * Create method for an empty RowGatherer.
      */
     static std::unique_ptr<RowGatherer> create(
@@ -284,6 +303,10 @@ private:
     RowGatherer(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template);
+
+    RowGatherer(std::shared_ptr<const Executor> exec,
+                std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm,
+                array<LocalIndexType> send_idxs, dim<2> size);
 
     dim<2> size_;
     std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_;

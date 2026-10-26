@@ -9,6 +9,7 @@
 #include <ginkgo/core/distributed/row_scatterer.hpp>
 
 #include "core/test/utils.hpp"
+#include "core/test/utils/assertions.hpp"
 
 
 using CollCommType =
@@ -86,6 +87,23 @@ TYPED_TEST(RowScatterer, CanConstructFromCollectiveCommAndIndexMap)
     // transpose of the corresponding RowGatherer size
     gko::dim<2> size{18, this->recv_connections_size()};
     GKO_ASSERT_EQUAL_DIMENSIONS(rs, size);
+}
+
+
+TYPED_TEST(RowScatterer, RecvIdxsMatchSendIdxsOfGatherer)
+{
+    using RowScatterer = typename TestFixture::row_scatterer_type;
+    using RowGatherer = gko::experimental::distributed::RowGatherer<
+        typename TestFixture::index_type>;
+    auto rs = RowScatterer::create(this->ref, this->coll_comm, this->imap);
+    auto rg = RowGatherer::create(this->ref, this->coll_comm, this->imap);
+    auto send_idxs = gko::make_const_array_view(
+        rg->get_executor(), rg->get_num_send_idxs(), rg->get_const_send_idxs());
+
+    auto recv_idxs = gko::make_const_array_view(
+        rs->get_executor(), rs->get_num_recv_idxs(), rs->get_const_recv_idxs());
+
+    GKO_ASSERT_ARRAY_EQ(recv_idxs, send_idxs);
 }
 
 

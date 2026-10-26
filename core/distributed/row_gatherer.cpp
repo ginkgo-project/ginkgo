@@ -8,6 +8,7 @@
 #include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
+#include <ginkgo/core/distributed/row_scatterer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
@@ -296,6 +297,32 @@ size_type RowGatherer<LocalIndexType>::get_num_send_idxs() const
 
 template <typename LocalIndexType>
 std::unique_ptr<RowGatherer<LocalIndexType>>
+RowGatherer<LocalIndexType>::create_from_scatterer(
+    std::shared_ptr<const Executor> exec,
+    ptr_param<const RowScatterer<LocalIndexType>> scatterer)
+{
+    auto inverse_comm =
+        scatterer->get_collective_communicator()->create_inverse();
+
+    // The send_idxs_ for the gatherer are the recv_idxs_ of the scatterer
+    auto num_recv_idxs = scatterer->get_num_recv_idxs();
+    array<LocalIndexType> send_idxs(exec, num_recv_idxs);
+    if (num_recv_idxs > 0) {
+        exec->copy_from(scatterer->get_executor(), num_recv_idxs,
+                        scatterer->get_const_recv_idxs(), send_idxs.get_data());
+    }
+
+    // Size is the transpose of the scatterer's size
+    auto scatterer_size = scatterer->get_size();
+    dim<2> size{scatterer_size[1], scatterer_size[0]};
+
+    return std::unique_ptr<RowGatherer>(new RowGatherer(
+        std::move(exec), std::move(inverse_comm), std::move(send_idxs), size));
+}
+
+
+template <typename LocalIndexType>
+std::unique_ptr<RowGatherer<LocalIndexType>>
 RowGatherer<LocalIndexType>::create(std::shared_ptr<const Executor> exec,
                                     mpi::communicator comm)
 {
@@ -332,6 +359,19 @@ RowGatherer<LocalIndexType>::RowGatherer(
       DistributedBase(coll_comm_template->get_base_communicator()),
       coll_comm_(std::move(coll_comm_template)),
       send_idxs_(exec)
+{}
+
+
+template <typename LocalIndexType>
+RowGatherer<LocalIndexType>::RowGatherer(
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm,
+    array<LocalIndexType> send_idxs, dim<2> size)
+    : PolymorphicObject(exec),
+      DistributedBase(coll_comm->get_base_communicator()),
+      size_(size),
+      coll_comm_(std::move(coll_comm)),
+      send_idxs_(std::move(send_idxs))
 {}
 
 

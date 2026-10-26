@@ -105,6 +105,17 @@ public:
     get_collective_communicator() const;
 
     /**
+     * Read access to the (local) row indices into which the received values
+     * are accumulated.
+     */
+    const LocalIndexType* get_const_recv_idxs() const;
+
+    /**
+     * Returns the number of (local) row indices.
+     */
+    size_type get_num_recv_idxs() const;
+
+    /**
      * Creates a distributed::RowScatterer from a given collective communicator
      * and index map.
      *

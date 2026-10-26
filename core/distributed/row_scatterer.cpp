@@ -133,6 +133,20 @@ RowScatterer<LocalIndexType>::get_collective_communicator() const
 
 
 template <typename LocalIndexType>
+const LocalIndexType* RowScatterer<LocalIndexType>::get_const_recv_idxs() const
+{
+    return recv_idxs_.get_const_data();
+}
+
+
+template <typename LocalIndexType>
+size_type RowScatterer<LocalIndexType>::get_num_recv_idxs() const
+{
+    return recv_idxs_.get_size();
+}
+
+
+template <typename LocalIndexType>
 template <typename GlobalIndexType>
 RowScatterer<LocalIndexType>::RowScatterer(
     std::shared_ptr<const Executor> exec,
