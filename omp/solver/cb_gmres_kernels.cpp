@@ -362,8 +362,14 @@ void restart(std::shared_ptr<const OmpExecutor> exec,
         if (has_scalar) {
             arnoldi_norm(2, j) = res_inf;
         }
+        const auto zero_norm =
+            is_zero(arnoldi_norm(2, j)) && is_zero(residual_norm(0, j));
+        const auto scale_numerator =
+            zero_norm ? one<rc_vtype>() : arnoldi_norm(2, j);
+        const auto scale_divisor =
+            zero_norm ? one<rc_vtype>() : residual_norm(0, j);
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
-            krylov_bases, {0}, j, arnoldi_norm(2, j) / residual_norm(0, j));
+            krylov_bases, {0}, j, scale_numerator / scale_divisor);
 
 #pragma omp parallel for
         for (size_type i = 0; i < krylov_dim + 1; ++i) {
@@ -376,7 +382,11 @@ void restart(std::shared_ptr<const OmpExecutor> exec,
 
 #pragma omp parallel for
         for (size_type i = 0; i < residual.size[0]; ++i) {
-            auto value = residual(i, j) / residual_norm(0, j);
+            const auto divisor =
+                is_zero(residual(i, j)) && is_zero(residual_norm(0, j))
+                    ? one<rc_vtype>()
+                    : residual_norm(0, j);
+            const auto value = residual(i, j) / divisor;
             krylov_bases(0, i, j) = value;
             next_krylov_basis(i, j) = value;
         }

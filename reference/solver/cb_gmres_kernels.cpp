@@ -322,8 +322,14 @@ void restart(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
         residual_norm(0, j) = sqrt(residual_norm(0, j));
+        const auto zero_norm =
+            is_zero(arnoldi_norm(2, j)) && is_zero(residual_norm(0, j));
+        const auto scale_numerator =
+            zero_norm ? one<rc_vtype>() : arnoldi_norm(2, j);
+        const auto scale_divisor =
+            zero_norm ? one<rc_vtype>() : residual_norm(0, j);
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
-            krylov_bases, {0}, j, arnoldi_norm(2, j) / residual_norm(0, j));
+            krylov_bases, {0}, j, scale_numerator / scale_divisor);
 
         for (size_type i = 0; i < krylov_dim + 1; ++i) {
             if (i == 0) {
@@ -333,8 +339,13 @@ void restart(std::shared_ptr<const ReferenceExecutor> exec,
             }
         }
         for (size_type i = 0; i < residual.size[0]; ++i) {
-            krylov_bases(0, i, j) = residual(i, j) / residual_norm(0, j);
-            next_krylov_basis(i, j) = residual(i, j) / residual_norm(0, j);
+            const auto divisor =
+                is_zero(residual(i, j)) && is_zero(residual_norm(0, j))
+                    ? one<rc_vtype>()
+                    : residual_norm(0, j);
+            const auto value = residual(i, j) / divisor;
+            krylov_bases(0, i, j) = value;
+            next_krylov_basis(i, j) = value;
         }
         final_iter_nums.get_data()[j] = 0;
     }
