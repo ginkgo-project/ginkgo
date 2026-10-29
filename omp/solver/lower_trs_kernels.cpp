@@ -17,6 +17,8 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
+#include "core/base/mixed_precision_types.hpp"
+
 
 namespace gko {
 namespace kernels {
@@ -55,16 +57,19 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
  * The parameters trans_x and trans_b are used only in the CUDA executor for
  * versions <=9.1 due to a limitation in the cssrsm_solve algorithm
  */
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void solve(std::shared_ptr<const OmpExecutor> exec,
-           matrix::view::csr<const ValueType, const IndexType> matrix,
+           matrix::view::csr<const MatrixValueType, const IndexType> matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
-           std::optional<matrix::view::dense<ValueType>> trans_b,
-           std::optional<matrix::view::dense<ValueType>> trans_x,
-           matrix::view::dense<const ValueType> b,
-           matrix::view::dense<ValueType> x)
+           std::optional<matrix::view::dense<InputValueType>> trans_b,
+           std::optional<matrix::view::dense<OutputValueType>> trans_x,
+           matrix::view::dense<const InputValueType> b,
+           matrix::view::dense<OutputValueType> x)
 {
+    using arithmetic_type =
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
     auto row_ptrs = matrix.row_ptrs;
     auto col_idxs = matrix.col_idxs;
     auto vals = matrix.values;
@@ -72,25 +77,29 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
 #pragma omp parallel for
     for (size_type j = 0; j < b.size[1]; ++j) {
         for (size_type row = 0; row < matrix.size[0]; ++row) {
-            auto diag = one<ValueType>();
-            x(row, j) = b(row, j);
+            auto diag = one<arithmetic_type>();
+            x(row, j) = static_cast<OutputValueType>(b(row, j));
             for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
                 if (col < row) {
-                    x(row, j) -= vals[k] * x(col, j);
+                    x(row, j) = static_cast<OutputValueType>(
+                        static_cast<arithmetic_type>(x(row, j)) -
+                        static_cast<arithmetic_type>(vals[k]) *
+                            static_cast<arithmetic_type>(x(col, j)));
                 }
                 if (col == row) {
-                    diag = vals[k];
+                    diag = static_cast<arithmetic_type>(vals[k]);
                 }
             }
             if (!unit_diag) {
-                x(row, j) /= diag;
+                x(row, j) = static_cast<OutputValueType>(
+                    static_cast<arithmetic_type>(x(row, j)) / diag);
             }
         }
     }
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);
 
 
