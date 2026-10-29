@@ -103,9 +103,10 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
-     * Return true as iterative solvers use the data in x as an initial guess.
+     * Return true if the solver will use the initial guess provided by the
+     * user.
      *
-     * @return true as iterative solvers use the data in x as an initial guess.
+     * @return true if the solver was build with initial_guess_mode::provided.
      */
     bool apply_uses_initial_guess() const override
     {
