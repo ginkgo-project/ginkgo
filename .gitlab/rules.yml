@@ -30,14 +30,6 @@
   dependencies: []
 
 
-.full_test_short_lived_condition:
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "master"  || $CI_COMMIT_TAG
-      when: never
-    - if: $RUN_CI_TAG && $STATUS_CONTEXT == "full"
-  dependencies: []
-
-
 .quick_test_condition:
   rules:
     - if: $RUN_CI_TAG && $CI_COMMIT_BRANCH == "master"
@@ -52,17 +44,10 @@
   dependencies: []
 
 
-.benchmark-spmv-cuda-rules:
+.develop_condition:
   rules:
-    # First, check that we have any of the following file changes
-    - if: $RUN_CI_TAG && $STATUS_CONTEXT == "full" && $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "external_pull_request_event"
-      changes:
-        - cuda/matrix/*
-        - include/ginkgo/core/matrix/*
-        - common/cuda_hip/matrix/*
-        # - common/unified/matrix/* # for now no SpMV there?
-      when: manual
-      allow_failure: true
+    - if: $RUN_CI_TAG && $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE != "schedule"
+  dependencies: []
 
 
 .disable_job_condition:

@@ -140,6 +140,7 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
               ->create_with_same_type(comm, &imap),
           imap)),
       imap_(std::move(imap)),
+      row_partition_(imap_.get_partition()),
       one_scalar_{exec, 1.0}
 {
     this->set_size({imap_.get_global_size(), imap_.get_global_size()});
@@ -389,7 +390,6 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::read_distributed(
     GKO_ASSERT_EQ(comm.size(), col_partition->get_num_parts());
     auto exec = this->get_executor();
     auto local_part = comm.rank();
-    auto use_host_buffer = mpi::requires_host_buffer(exec, comm);
     auto tmp_row_partition = make_temporary_clone(exec, row_partition);
     auto tmp_col_partition = make_temporary_clone(exec, col_partition);
 

@@ -166,6 +166,10 @@ improvements from code reviews.
   platforms. Another comprehensive Linux based pipeline is run from a [mirror on
   gitlab](https://gitlab.com/ginkgo-project/ginkgo-public-ci/pipelines) and
   contains additional checks like static analysis and test coverage.
+* By default, the Github Actions pipeline only runs a reduced set of jobs on
+  pull requests. Adding the label `1:ST:run-full-test` or
+  `1:ST:ready-to-merge` starts the full set of jobs, as does every following
+  push to the branch while one of these labels is present.
 * Once a PR has been approved and the build has passed, one of the reviewers can
   mark the PR as `READY TO MERGE`. At this point the creator/assignee of the PR
   *needs to* verify that the branch is up to date with `develop` and rebase it
@@ -392,7 +396,7 @@ Please note that this only applies to implementation files, so files ending in `
 1. Private headers of Ginkgo should not be included within the public Ginkgo header.
 2. It is a good idea to keep the headers self-sufficient, See [Google Style guide for reasoning](https://google.github.io/styleguide/cppguide.html#Self_contained_Headers).
 When compiling with `GINKGO_CHECK_CIRCULAR_DEPS` enabled, this property is explicitly checked.
-3. The recommendations of the `iwyu` (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( `.cu`, `.cpp`, `.hip.cpp` ) include only what they use. A [CI pipeline](https://gitlab.com/ginkgo-project/ginkgo-public-ci/-/jobs/584358356) is available that runs with the `iwyu` tool. Please be aware that this tool can be incorrect in some cases.
+3. The recommendations of the `iwyu` (Include what you use) tool can be used to make sure that the headers are self-sufficient and that the compiled files ( `.cu`, `.cpp`, `.hip.cpp` ) include only what they use. Please be aware that this tool can be incorrect in some cases.
 
 
 ### Other Code Formatting not handled by ClangFormat

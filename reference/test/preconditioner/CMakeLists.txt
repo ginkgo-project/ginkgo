@@ -18,4 +18,5 @@ if(
 endif()
 ginkgo_create_test(jacobi)
 ginkgo_create_test(jacobi_kernels)
+ginkgo_create_test(nullspace_projection)
 ginkgo_create_test(sor_kernels)

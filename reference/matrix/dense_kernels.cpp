@@ -458,7 +458,6 @@ void convert_to_coo(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
-    auto num_nonzeros = result.num_stored_elements;
 
     auto row_idxs = result.row_idxs;
     auto col_idxs = result.col_idxs;
@@ -489,7 +488,6 @@ void convert_to_csr(std::shared_ptr<const ReferenceExecutor> exec,
 {
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
-    auto num_nonzeros = result.num_stored_elements;
 
     auto row_ptrs = result.row_ptrs;
     auto col_idxs = result.col_idxs;
@@ -602,7 +600,6 @@ void convert_to_hybrid(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
     auto ell_lim = result.ell_part.num_stored_elements_per_row;
-    auto coo_lim = result.coo_part.num_stored_elements;
     auto coo_val = result.coo_part.values;
     auto coo_col = result.coo_part.col_idxs;
     auto coo_row = result.coo_part.row_idxs;
@@ -652,7 +649,6 @@ void convert_to_sellp(std::shared_ptr<const ReferenceExecutor> exec,
     auto num_cols = result.size[1];
     auto vals = result.values;
     auto col_idxs = result.col_idxs;
-    auto slice_lengths = result.slice_lengths;
     auto slice_sets = result.slice_sets;
     auto slice_size = result.slice_size;
     for (size_type row = 0; row < num_rows; row++) {
@@ -954,6 +950,24 @@ void advanced_row_gather(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE_2(
     GKO_DECLARE_DENSE_ADVANCED_ROW_GATHER_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void scatter_add(std::shared_ptr<const ReferenceExecutor> exec,
+                 const IndexType* scatter_indices,
+                 matrix::view::dense<const ValueType> source,
+                 matrix::view::dense<ValueType> target)
+{
+    for (size_type i = 0; i < source.size[0]; ++i) {
+        auto target_row = static_cast<size_type>(scatter_indices[i]);
+        for (size_type j = 0; j < source.size[1]; ++j) {
+            target(target_row, j) += source(i, j);
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_DENSE_SCATTER_ADD_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

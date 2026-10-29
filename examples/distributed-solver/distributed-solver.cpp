@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
     x_data.size = {num_rows, 1};
     const auto range_start = partition->get_range_bounds()[rank];
     const auto range_end = partition->get_range_bounds()[rank + 1];
-    for (int i = range_start; i < range_end; i++) {
+    for (auto i = range_start; i < range_end; i++) {
         if (i > 0) {
             A_data.nonzeros.emplace_back(i, i - 1, -1);
         }

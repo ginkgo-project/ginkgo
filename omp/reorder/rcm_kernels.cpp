@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -628,7 +628,6 @@ void write_permutation(std::shared_ptr<const OmpExecutor> exec,
         for (IndexType level = tid; level < num_levels; level += num_threads) {
             const auto next_level_idx = offsets[level + 1];
             const auto level_idx = offsets[level];
-            const auto level_len = next_level_idx - level_idx;
             IndexType write_offset = 0;
 
             // Go through one level.

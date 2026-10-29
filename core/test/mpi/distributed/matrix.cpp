@@ -403,6 +403,34 @@ TYPED_TEST(MatrixBuilder, WritesMatrixDataWithGlobalIndices)
 }
 
 
+TYPED_TEST(MatrixBuilder, IndexMapConstructorSetsRowPartition)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using mtx_type = gko::matrix::Csr<value_type, local_index_type>;
+    using partition_type =
+        gko::experimental::distributed::Partition<local_index_type,
+                                                  global_index_type>;
+    using map_type =
+        gko::experimental::distributed::index_map<local_index_type,
+                                                  global_index_type>;
+    auto partition = gko::share(partition_type::build_from_global_size_uniform(
+        this->ref, this->comm.size(),
+        static_cast<global_index_type>(2 * this->comm.size())));
+
+    auto matrix = dist_mtx_type::create(
+        this->ref, this->comm,
+        map_type{this->ref, partition, this->comm.rank(),
+                 gko::array<global_index_type>{this->ref}},
+        mtx_type::create(this->ref, gko::dim<2>{2, 2}),
+        mtx_type::create(this->ref, gko::dim<2>{2, 0}));
+
+    ASSERT_EQ(matrix->get_row_partition(), partition);
+}
+
+
 TYPED_TEST(MatrixBuilder, WritesMatrixDataWithNonUniformPartition)
 {
     using value_type = typename TestFixture::value_type;

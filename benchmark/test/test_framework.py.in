@@ -169,15 +169,15 @@ def compare_output_impl(
         "DEBUG: (begin|end  ) (allocate|free)",  # allocations
     ]
     typename_patterns = [
-        ("(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
+        (r"(apply|generate|check|copy|move)\([^())]*\)", "\\1(<typename>)"),
         ("what\\(\\): .*", "what(): <removed>"),
         (re.escape(str(matrixpath)), "<filename>"),
     ]
     if generate:
-        open(expected_stdout, "w").write(
+        pathlib.Path(expected_stdout).write_text(
             "\n".join(sanitize_json_text(result.stdout.decode()))
         )
-        open(expected_stderr, "w").write(
+        pathlib.Path(expected_stderr).write_text(
             "\n".join(
                 sanitize_text(
                     result.stderr.decode(),
@@ -194,9 +194,9 @@ def compare_output_impl(
         ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
-    expected_stdout_processed = sanitize_json_text(open(expected_stdout).read())
+    expected_stdout_processed = sanitize_json_text(pathlib.Path(expected_stdout).read_text())
     expected_stderr_processed = sanitize_text(
-        open(expected_stderr).read(),
+        pathlib.Path(expected_stderr).read_text(),
         ignore_patterns=ignore_patterns,
         replace_patterns=typename_patterns,
     )
@@ -239,6 +239,28 @@ def compare_output(
     )
 
 
+def mpiexec_output_flags() -> List[str]:
+    """Returns the launcher flags needed to keep stdout and stderr separate.
+
+    Open MPI 5 (PMIx 5.x/6.0) caches an incomplete line of a rank's output
+    until the rest of it arrives, but looks the cache up by rank *or* stream
+    (pmix_iof_write_output). If a read of the rank's stderr pipe ends
+    mid-line and its stdout arrives before the next stderr read, the partial
+    stderr line gets prepended to stdout, breaking the JSON output.
+    The raw qualifier disables this line caching.
+    """
+
+    version = subprocess.run(
+        args=["@MPIEXEC_EXECUTABLE@", "--version"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    ).stdout.decode()
+    match = re.search(r"\(Open MPI\) (\d+)\.", version)
+    if match and int(match.group(1)) >= 5:
+        return ["--output", ":raw"]
+    return []
+
+
 def compare_output_distributed(
     args: List[str], *, expected_stdout: str, expected_stderr: str, num_procs: int, stdin: str = "", use_complex: bool = False
 ):
@@ -247,6 +269,8 @@ def compare_output_distributed(
         expected_stdout=expected_stdout,
         expected_stderr=expected_stderr,
         stdin=stdin,
-        launcher_flags=["@MPIEXEC_EXECUTABLE@", "@MPIEXEC_NUMPROC_FLAG@", str(num_procs)],
+        launcher_flags=["@MPIEXEC_EXECUTABLE@"]
+        + mpiexec_output_flags()
+        + ["@MPIEXEC_NUMPROC_FLAG@", str(num_procs)],
         use_complex=use_complex
     )

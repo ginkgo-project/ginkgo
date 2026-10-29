@@ -9,11 +9,20 @@
 #include <memory>
 
 #include <ginkgo/config.hpp>
+#include <ginkgo/core/base/dense_cache.hpp>
+#include <ginkgo/core/base/exception_helpers.hpp>
+#include <ginkgo/core/distributed/collective_communicator.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/base/dispatch_helper.hpp"
+
+#if GINKGO_BUILD_MPI
+#include <ginkgo/core/base/mpi.hpp>
+
+#include "core/mpi/mpi_op.hpp"
+#endif
 
 
 namespace gko {
@@ -70,6 +79,53 @@ const matrix::Dense<ValueType>* get_local(
     const experimental::distributed::Vector<ValueType>* mtx)
 {
     return mtx->get_local_vector();
+}
+
+
+/**
+ * Sums the entries of `values` over all ranks of `comm` in place. If the MPI
+ * implementation cannot access the memory of the executor of `values`, the
+ * data is communicated through `host_buffer`.
+ *
+ * @param comm  the communicator
+ * @param values  the values to reduce, stored contiguously (stride equal to
+ *                the number of columns)
+ * @param host_buffer  the host buffer used if necessary
+ */
+template <typename ValueType>
+void all_reduce_sum(const experimental::mpi::communicator& comm,
+                    matrix::Dense<ValueType>* values,
+                    const DenseCache<ValueType>& host_buffer)
+{
+    GKO_ASSERT(values->get_stride() == values->get_size()[1] ||
+               values->get_size()[0] <= 1);
+    auto exec = values->get_executor();
+    const auto count =
+        static_cast<int>(values->get_size()[0] * values->get_size()[1]);
+    auto sum_op = experimental::mpi::sum<ValueType>();
+    exec->synchronize();
+    if (experimental::mpi::requires_host_buffer(exec, comm)) {
+        host_buffer.init(exec->get_master(), values->get_size());
+        host_buffer->copy_from(values);
+        comm.all_reduce(exec->get_master(), host_buffer->get_values(), count,
+                        sum_op.get_op());
+        values->copy_from(host_buffer.get());
+    } else {
+        comm.all_reduce(exec, values->get_values(), count, sum_op.get_op());
+    }
+}
+
+
+/**
+ * Returns the sum of `value` over all processes of `comm`.
+ */
+template <typename T>
+T global_add(std::shared_ptr<const Executor> exec,
+             const experimental::mpi::communicator& comm, const T& value)
+{
+    T result;
+    comm.all_reduce(std::move(exec), &value, &result, 1, MPI_SUM);
+    return result;
 }
 
 
@@ -201,6 +257,106 @@ inline const LinOp* get_local(const LinOp* mtx)
         return mtx;
     }
 }
+
+
+#if GINKGO_BUILD_MPI
+
+
+/**
+ * Reusable buffers for exchange_with_neighbors, so that a loop which exchanges
+ * in every iteration allocates only once.
+ */
+template <typename ValueType>
+struct neighbor_exchange_buffers {
+    explicit neighbor_exchange_buffers(std::shared_ptr<const Executor> exec)
+        : recv{exec},
+          host_send{exec->get_master()},
+          host_recv{exec->get_master()}
+    {}
+
+    array<ValueType> recv;
+    array<ValueType> host_send;
+    array<ValueType> host_recv;
+};
+
+
+/**
+ * Exchanges one value per halo index with the neighboring ranks.
+ *
+ * Distributed coarsening schemes use this to communicate a single value per
+ * non-local index, such as the aggregate an index was assigned to (Pgm), or
+ * the measure and the C/F status of a node (Pmis).
+ *
+ * The direction is fixed: the send buffer must match the communicator's send
+ * size. To send halo contributions back to their owners, pass a communicator
+ * obtained from CollectiveCommunicator::create_inverse(), which swaps the send
+ * and receive roles.
+ *
+ * @param send_buffer  one value per send index of the collective communicator,
+ *                     in its send index order
+ * @param buffers      reusable buffers, shared across calls
+ *
+ * @return buffers.recv, one value per receive index in receive order
+ */
+template <typename ValueType>
+const array<ValueType>& exchange_with_neighbors(
+    std::shared_ptr<const Executor> exec,
+    const experimental::mpi::communicator& comm,
+    const experimental::mpi::CollectiveCommunicator* coll_comm,
+    const array<ValueType>& send_buffer,
+    neighbor_exchange_buffers<ValueType>& buffers)
+{
+    const auto total_send_size =
+        static_cast<size_type>(coll_comm->get_send_size());
+    const auto total_recv_size =
+        static_cast<size_type>(coll_comm->get_recv_size());
+    GKO_ASSERT_EQ(send_buffer.get_size(), total_send_size);
+    buffers.recv.resize_and_reset(total_recv_size);
+
+    // not every executor/MPI combination can send from device memory
+    auto use_host_buffer = experimental::mpi::requires_host_buffer(exec, comm);
+    if (use_host_buffer) {
+        buffers.host_send.resize_and_reset(total_send_size);
+        buffers.host_recv.resize_and_reset(total_recv_size);
+        exec->get_master()->copy_from(exec, total_send_size,
+                                      send_buffer.get_const_data(),
+                                      buffers.host_send.get_data());
+    }
+
+    const auto send_ptr = use_host_buffer ? buffers.host_send.get_const_data()
+                                          : send_buffer.get_const_data();
+    auto recv_ptr = use_host_buffer ? buffers.host_recv.get_data()
+                                    : buffers.recv.get_data();
+    exec->synchronize();
+    coll_comm
+        ->i_all_to_all_v(use_host_buffer ? exec->get_master() : exec, send_ptr,
+                         recv_ptr)
+        .wait();
+    if (use_host_buffer) {
+        exec->copy_from(exec->get_master(), total_recv_size, recv_ptr,
+                        buffers.recv.get_data());
+    }
+    return buffers.recv;
+}
+
+
+/**
+ * Overload that allocates its own buffers.
+ */
+template <typename ValueType>
+array<ValueType> exchange_with_neighbors(
+    std::shared_ptr<const Executor> exec,
+    const experimental::mpi::communicator& comm,
+    const experimental::mpi::CollectiveCommunicator* coll_comm,
+    const array<ValueType>& send_buffer)
+{
+    neighbor_exchange_buffers<ValueType> buffers{exec};
+    exchange_with_neighbors(exec, comm, coll_comm, send_buffer, buffers);
+    return std::move(buffers.recv);
+}
+
+
+#endif  // GINKGO_BUILD_MPI
 
 
 }  // namespace detail

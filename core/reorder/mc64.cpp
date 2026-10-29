@@ -87,7 +87,6 @@ void initial_matching(
     array<IndexType>& matched_idxs_array,
     array<IndexType>& unmatched_rows_array, ValueType tolerance)
 {
-    const auto nnz = row_ptrs[num_rows];
     const auto weights = weights_array.get_const_data();
     const auto dual_u = dual_u_array.get_const_data();
     auto p = permutation.get_data();
@@ -435,7 +434,6 @@ void compute_scaling(
     const array<IndexType>& matched_idxs_array, mc64_strategy strategy,
     ValueType* row_scaling, ValueType* col_scaling)
 {
-    const auto inf = std::numeric_limits<remove_complex<ValueType>>::infinity();
     const auto num_rows = host_mtx.size[0];
     const auto weights = weights_array.get_const_data();
     const auto dual_u = dual_u_array.get_const_data();

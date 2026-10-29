@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -8,6 +8,7 @@
 #endif
 
 
+#include <algorithm>
 #include <numeric>
 
 #include <omp.h>
@@ -20,6 +21,13 @@ namespace omp {
 
 // how many more reduction tasks we launch relative to the number of threads
 constexpr int reduction_kernel_oversubscription = 4;
+
+// `num_threads(...)` is a request, not a guarantee. Seed the partials and
+// derive each range from the team actually granted.
+
+// Inside parallel regions, the kernel arguments are only expanded within a
+// `[&]` lambda: icpx 2024 reads floating-point values that are not the first
+// entry of a parameter pack expanded directly in a parallel region as zero.
 
 
 namespace {
@@ -36,24 +44,28 @@ void run_kernel_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
     const auto ssize = static_cast<int64>(size);
     // Limit the number of threads to the number of columns
     const auto num_threads = std::min<int64>(omp_get_max_threads(), ssize);
-    const auto work_per_thread =
-        ceildiv(ssize, std::max<int64>(num_threads, 1));
     const auto required_storage = sizeof(ValueType) * num_threads;
     if (tmp.get_size() < required_storage) {
         tmp.resize_and_reset(required_storage);
     }
     const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
+    std::fill_n(partial, num_threads, identity);
 #pragma omp parallel num_threads(num_threads)
     {
         const auto thread_id = omp_get_thread_num();
-        if (thread_id < num_threads) {
+        const auto team_size = std::min<int64>(
+            std::max<int64>(omp_get_num_threads(), 1), num_threads);
+        const auto work_per_thread =
+            ceildiv(ssize, std::max<int64>(team_size, 1));
+        if (thread_id < team_size) {
             const auto begin = thread_id * work_per_thread;
             const auto end = std::min(ssize, begin + work_per_thread);
 
             auto local_partial = identity;
             for (auto i = begin; i < end; i++) {
-                local_partial =
-                    op(local_partial, fn(i, map_to_device(args)...));
+                local_partial = op(local_partial, [&]() {
+                    return fn(i, map_to_device(args)...);
+                }());
             }
             partial[thread_id] = local_partial;
         }
@@ -77,19 +89,23 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
     const auto cols = static_cast<int64>(size[1]);
     // Limit the number of threads to the number of columns
     const auto num_threads = std::min<int64>(omp_get_max_threads(), rows);
-    const auto work_per_thread = ceildiv(rows, std::max<int64>(num_threads, 1));
     const auto required_storage = sizeof(ValueType) * num_threads;
     if (tmp.get_size() < required_storage) {
         tmp.resize_and_reset(required_storage);
     }
     const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
+    std::fill_n(partial, num_threads, identity);
     static_assert(remainder_cols < block_size, "remainder too large");
     const auto rounded_cols = cols / block_size * block_size;
     GKO_ASSERT(rounded_cols + remainder_cols == cols);
 #pragma omp parallel num_threads(num_threads)
     {
         const auto thread_id = omp_get_thread_num();
-        if (thread_id < num_threads) {
+        const auto team_size = std::min<int64>(
+            std::max<int64>(omp_get_num_threads(), 1), num_threads);
+        const auto work_per_thread =
+            ceildiv(rows, std::max<int64>(team_size, 1));
+        if (thread_id < team_size) {
             const auto begin = thread_id * work_per_thread;
             const auto end = std::min(rows, begin + work_per_thread);
 
@@ -101,8 +117,9 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
                 for (auto row = begin; row < end; row++) {
 #pragma unroll
                     for (int64 col = 0; col < local_cols; col++) {
-                        local_partial =
-                            op(local_partial, fn(row, col, args...));
+                        local_partial = op(local_partial, [&]() {
+                            return fn(row, col, args...);
+                        }());
                     }
                 }
             } else {
@@ -113,14 +130,16 @@ void run_kernel_reduction_sized_impl(syn::value_list<int, remainder_cols>,
                          base_col += block_size) {
 #pragma unroll
                         for (int64 i = 0; i < block_size; i++) {
-                            local_partial = op(local_partial,
-                                               fn(row, base_col + i, args...));
+                            local_partial = op(local_partial, [&]() {
+                                return fn(row, base_col + i, args...);
+                            }());
                         }
                     }
 #pragma unroll
                     for (int64 i = 0; i < remainder_cols; i++) {
-                        local_partial = op(local_partial,
-                                           fn(row, rounded_cols + i, args...));
+                        local_partial = op(local_partial, [&]() {
+                            return fn(row, rounded_cols + i, args...);
+                        }());
                     }
                 }
             }
@@ -210,8 +229,6 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
     } else {
         // small number of rows and large reduction sizes: do partial sum first
         const auto num_threads = std::min<int64>(available_threads, cols);
-        const auto work_per_thread =
-            ceildiv(cols, std::max<int64>(num_threads, 1));
         const auto temp_elems_per_row = num_threads;
         const auto required_storage =
             sizeof(ValueType) * rows * temp_elems_per_row;
@@ -219,10 +236,15 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
             tmp.resize_and_reset(required_storage);
         }
         const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
+        std::fill_n(partial, rows * temp_elems_per_row, identity);
 #pragma omp parallel num_threads(num_threads)
         {
             const auto thread_id = static_cast<int64>(omp_get_thread_num());
-            if (thread_id < num_threads) {
+            const auto team_size = std::min<int64>(
+                std::max<int64>(omp_get_num_threads(), 1), num_threads);
+            const auto work_per_thread =
+                ceildiv(cols, std::max<int64>(team_size, 1));
+            if (thread_id < team_size) {
                 const auto begin = thread_id * work_per_thread;
                 const auto end = std::min(begin + work_per_thread, cols);
                 for (int64 row = 0; row < rows; row++) {
@@ -299,16 +321,18 @@ void run_kernel_col_reduction_sized_impl(
         rows < cols) {
 #pragma omp parallel for
         for (int64 col_block = 0; col_block < num_col_blocks; col_block++) {
-            const auto base_col = col_block * block_size;
-            if (base_col + block_size <= cols) {
-                run_kernel_col_reduction_sized_block_impl<block_size>(
-                    fn, op, finalize, identity, result, 0, rows, base_col,
-                    args...);
-            } else {
-                run_kernel_col_reduction_sized_block_impl<remainder_cols>(
-                    fn, op, finalize, identity, result, 0, rows, base_col,
-                    args...);
-            }
+            [&] {
+                const auto base_col = col_block * block_size;
+                if (base_col + block_size <= cols) {
+                    run_kernel_col_reduction_sized_block_impl<block_size>(
+                        fn, op, finalize, identity, result, 0, rows, base_col,
+                        args...);
+                } else {
+                    run_kernel_col_reduction_sized_block_impl<remainder_cols>(
+                        fn, op, finalize, identity, result, 0, rows, base_col,
+                        args...);
+                }
+            }();
         }
     } else {
         // number of blocks that need to be reduced afterwards
@@ -326,21 +350,25 @@ void run_kernel_col_reduction_sized_impl(
         const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
 #pragma omp parallel for
         for (int64 i = 0; i < reduction_size * num_col_blocks; i++) {
-            const auto col_block = i % num_col_blocks;
-            const auto row_block = i / num_col_blocks;
-            const auto begin = row_block * rows_per_thread;
-            const auto end = std::min(begin + rows_per_thread, rows);
-            const auto base_col = col_block * block_size;
-            const auto identity_fn = [](auto i) { return i; };
-            if (base_col + block_size <= cols) {
-                run_kernel_col_reduction_sized_block_impl<block_size>(
-                    fn, op, identity_fn, identity, partial + cols * row_block,
-                    begin, end, base_col, args...);
-            } else {
-                run_kernel_col_reduction_sized_block_impl<remainder_cols>(
-                    fn, op, identity_fn, identity, partial + cols * row_block,
-                    begin, end, base_col, args...);
-            }
+            [&] {
+                const auto col_block = i % num_col_blocks;
+                const auto row_block = i / num_col_blocks;
+                const auto begin = row_block * rows_per_thread;
+                const auto end = std::min(begin + rows_per_thread, rows);
+                const auto base_col = col_block * block_size;
+                const auto identity_fn = [](auto i) { return i; };
+                if (base_col + block_size <= cols) {
+                    run_kernel_col_reduction_sized_block_impl<block_size>(
+                        fn, op, identity_fn, identity,
+                        partial + cols * row_block, begin, end, base_col,
+                        args...);
+                } else {
+                    run_kernel_col_reduction_sized_block_impl<remainder_cols>(
+                        fn, op, identity_fn, identity,
+                        partial + cols * row_block, begin, end, base_col,
+                        args...);
+                }
+            }();
         }
 #pragma omp parallel for
         for (int64 col = 0; col < cols; col++) {
@@ -388,7 +416,6 @@ void run_kernel_col_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
 {
     constexpr auto block_size = 8;
     using remainders = syn::as_list<syn::range<0, block_size, 1>>;
-    const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     if (cols <= 0) {
         return;

@@ -204,7 +204,6 @@ void Chebyshev<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                             VectorType* dense_x,
                                             initial_guess_mode guess) const
 {
-    using Vector = matrix::Dense<ValueType>;
     using ws = workspace_traits<Chebyshev>;
     using coeff_type = solver::detail::coeff_type<ValueType>;
 

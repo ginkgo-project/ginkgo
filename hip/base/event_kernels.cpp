@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,7 +33,9 @@ public:
     ~HipEvent()
     {
         auto guard = exec_->get_scoped_device_id_guard();
-        GKO_ASSERT_NO_HIP_ERRORS(hipEventDestroy(event_));
+        // a destructor must not throw, and failing to destroy the event only
+        // leaks it
+        (void)hipEventDestroy(event_);
     }
 
     void synchronize() const override
@@ -41,6 +43,8 @@ public:
         auto guard = exec_->get_scoped_device_id_guard();
         GKO_ASSERT_NO_HIP_ERRORS(hipEventSynchronize(event_));
     }
+
+    hipEvent_t get() const { return event_; }
 
 private:
     std::shared_ptr<const HipExecutor> exec_;
@@ -60,6 +64,20 @@ void record_event(std::shared_ptr<const DefaultExecutor> exec,
                   std::shared_ptr<const detail::Event>& event)
 {
     event = std::make_shared<detail::HipEvent>(exec);
+}
+
+
+void wait_event(std::shared_ptr<const DefaultExecutor> exec,
+                const detail::Event* event)
+{
+    // an event from another backend has no handle the stream can wait on
+    if (auto hip_event = dynamic_cast<const detail::HipEvent*>(event)) {
+        auto guard = exec->get_scoped_device_id_guard();
+        GKO_ASSERT_NO_HIP_ERRORS(
+            hipStreamWaitEvent(exec->get_stream(), hip_event->get(), 0));
+    } else {
+        event->synchronize();
+    }
 }
 
 

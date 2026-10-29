@@ -21,9 +21,9 @@ class time_point {
 public:
     ~time_point();
 
-    time_point(time_point&&);
+    time_point(time_point&&) noexcept;
 
-    time_point& operator=(time_point&&);
+    time_point& operator=(time_point&&) noexcept;
 
     time_point(const time_point&) = delete;
 
@@ -209,7 +209,15 @@ private:
 };
 
 
-/** A timer using kernels for timing on a DpcppExecutor in profiling mode. */
+/**
+ * A timer using kernels for timing on a DpcppExecutor in profiling mode.
+ *
+ * @note With the Level Zero backend, the SYCL runtime truncates the event
+ *       timestamps to the valid bits of the GPU's kernel timestamps, so they
+ *       wrap around periodically, about every 223 seconds on an Intel Arc
+ *       A770. A difference between two time points that spans a wrap-around
+ *       is too small by one period, which usually makes it negative.
+ */
 class DpcppTimer : public Timer {
 public:
     void record(time_point& time) override;

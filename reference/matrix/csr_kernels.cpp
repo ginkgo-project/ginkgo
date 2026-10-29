@@ -485,7 +485,6 @@ void spgeam_numeric(std::shared_ptr<const ReferenceExecutor> exec,
     auto valpha = alpha(0, 0);
     auto vbeta = beta(0, 0);
     auto c_row_ptrs = c.row_ptrs;
-    auto c_col_idxs = c.col_idxs;
     auto c_vals = c.values;
 
     abstract_spgeam(
@@ -512,7 +511,6 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                    matrix::view::dense<ValueType> result)
 {
     auto num_rows = source.size[0];
-    auto num_cols = source.size[1];
     auto row_ptrs = source.row_ptrs;
     auto col_idxs = source.col_idxs;
     auto vals = source.values;
@@ -536,13 +534,11 @@ void convert_to_sellp(
     matrix::view::sellp<ValueType, IndexType> result)
 {
     auto num_rows = result.size[0];
-    auto num_cols = result.size[1];
     auto vals = result.values;
     auto col_idxs = result.col_idxs;
     auto slice_lengths = result.slice_lengths;
     auto slice_sets = result.slice_sets;
     auto slice_size = result.slice_size;
-    auto stride_factor = result.stride_factor;
 
     const auto source_row_ptrs = source.row_ptrs;
     const auto source_col_idxs = source.col_idxs;
@@ -583,7 +579,6 @@ void convert_to_ell(std::shared_ptr<const ReferenceExecutor> exec,
                     matrix::view::ell<ValueType, IndexType> result)
 {
     const auto num_rows = source.size[0];
-    const auto num_cols = source.size[1];
     const auto vals = source.values;
     const auto col_idxs = source.col_idxs;
     const auto row_ptrs = source.row_ptrs;
@@ -616,9 +611,6 @@ void convert_to_fbcsr(
 {
     using entry = matrix_data_entry<ValueType, IndexType>;
     const auto num_rows = source.size[0];
-    const auto num_cols = source.size[1];
-    const auto num_block_rows = num_rows / bs;
-    const auto num_block_cols = num_cols / bs;
     const auto in_row_ptrs = source.row_ptrs;
     const auto in_cols = source.col_idxs;
     const auto in_vals = source.values;
@@ -831,7 +823,6 @@ void compute_submatrix(
     auto col_offset = col_span.begin;
     auto num_rows = result.size[0];
     auto num_cols = result.size[1];
-    auto res_row_ptrs = result.row_ptrs;
     auto res_col_idxs = result.col_idxs;
     auto res_values = result.values;
     const auto src_row_ptrs = source.row_ptrs;
@@ -863,12 +854,9 @@ void compute_submatrix_from_index_set(
     const gko::index_set<IndexType>& col_index_set,
     matrix::view::csr<ValueType, IndexType> result)
 {
-    auto num_rows = result.size[0];
-    auto num_cols = result.size[1];
     auto num_row_subsets = row_index_set.get_num_subsets();
     auto row_subset_begin = row_index_set.get_subsets_begin();
     auto row_subset_end = row_index_set.get_subsets_end();
-    auto res_row_ptrs = result.row_ptrs;
     auto res_col_idxs = result.col_idxs;
     auto res_values = result.values;
     auto num_col_subsets = col_index_set.get_num_subsets();
@@ -876,7 +864,6 @@ void compute_submatrix_from_index_set(
     auto col_subset_end = col_index_set.get_subsets_end();
     auto col_superset_indices = col_index_set.get_superset_indices();
     const auto src_ptrs = source.row_ptrs;
-    const auto src_col_idxs = source.col_idxs;
     const auto src_values = source.values;
 
     size_type res_nnz = 0;
@@ -920,7 +907,6 @@ void convert_to_hybrid(
     matrix::view::hybrid<ValueType, IndexType> result)
 {
     auto num_rows = result.size[0];
-    auto num_cols = result.size[1];
     auto ell_lim = result.ell_part.num_stored_elements_per_row;
     auto coo_val = result.coo_part.values;
     auto coo_col = result.coo_part.col_idxs;
@@ -1425,6 +1411,31 @@ void add_scaled_identity(std::shared_ptr<const ReferenceExecutor> exec,
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_CSR_ADD_SCALED_IDENTITY_KERNEL);
+
+
+template <typename IndexType>
+void compute_load_balance_srow(std::shared_ptr<const ReferenceExecutor> exec,
+                               const IndexType* row_ptrs, size_type num_rows,
+                               size_type num_stored_elements, int warp_size,
+                               array<IndexType>& srow)
+{
+    const auto num_warps = static_cast<int64>(srow.get_size());
+    const auto num_lines =
+        num_stored_elements > 0
+            ? ceildiv(static_cast<int64>(num_stored_elements), warp_size)
+            : int64{1};
+    for (int64 warp = 0; warp < num_warps; warp++) {
+        // the first stored element processed by this warp
+        const auto start = warp * num_lines / num_warps * warp_size;
+        // the starting row is the first row ending after start
+        srow.get_data()[warp] = static_cast<IndexType>(
+            std::upper_bound(row_ptrs + 1, row_ptrs + num_rows + 1, start) -
+            (row_ptrs + 1));
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(
+    GKO_DECLARE_CSR_COMPUTE_LOAD_BALANCE_SROW_KERNEL);
 
 
 template <typename IndexType>

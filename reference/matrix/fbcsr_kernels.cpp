@@ -191,7 +191,6 @@ void fill_in_dense(const std::shared_ptr<const ReferenceExecutor>,
 {
     const int bs = source->get_block_size();
     const IndexType nbrows = source->get_num_block_rows();
-    const IndexType nbcols = source->get_num_block_cols();
     const IndexType* const row_ptrs = source->get_const_row_ptrs();
     const IndexType* const col_idxs = source->get_const_col_idxs();
     const ValueType* const vals = source->get_const_values();
@@ -463,7 +462,6 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor>,
     const auto col_idxs = orig->get_const_col_idxs();
     const auto values = orig->get_const_values();
     const int bs = orig->get_block_size();
-    const IndexType nbrows = orig->get_num_block_rows();
     const IndexType nbdim_min =
         std::min(orig->get_num_block_rows(), orig->get_num_block_cols());
     auto diag_values = diag->get_values();

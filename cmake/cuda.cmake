@@ -15,7 +15,15 @@ endif()
 find_package(NVTX REQUIRED)
 
 if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL 13)
-    find_package(Thrust REQUIRED CONFIG HINTS ${CUDAToolkit_LIBRARY_ROOT})
+    # The Thrust config is in the cmake directory next to the CUDA libraries.
+    # The toolkit root alone is not enough on Debian-based systems, where CMake
+    # does not search its lib64 directory.
+    find_package(
+        Thrust
+        REQUIRED
+        CONFIG
+        HINTS ${CUDAToolkit_LIBRARY_ROOT} ${CUDAToolkit_LIBRARY_DIR}/cmake
+    )
     thrust_create_target(Thrust)
 endif()
 

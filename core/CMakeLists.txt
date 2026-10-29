@@ -37,6 +37,7 @@ target_sources(
         base/device_matrix_data.cpp
         base/executor.cpp
         base/index_set.cpp
+        base/lin_op.cpp
         base/memory.cpp
         base/mpi.cpp
         base/mtx_io.cpp
@@ -105,6 +106,7 @@ target_sources(
         preconditioner/ilu.cpp
         preconditioner/isai.cpp
         preconditioner/jacobi.cpp
+        preconditioner/nullspace_projection.cpp
         preconditioner/sor.cpp
         reorder/amd.cpp
         reorder/mc64.cpp
@@ -127,6 +129,7 @@ target_sources(
         solver/lower_trs.cpp
         solver/minres.cpp
         solver/multigrid.cpp
+        solver/nullspace.cpp
         solver/pipe_cg.cpp
         solver/upper_trs.cpp
         stop/combined.cpp
@@ -156,6 +159,7 @@ if(GINKGO_BUILD_MPI)
             distributed/partition_helpers.cpp
             distributed/preconditioner/schwarz.cpp
             distributed/row_gatherer.cpp
+            distributed/row_scatterer.cpp
             distributed/spgemm.cpp
             distributed/transpose.cpp
             distributed/vector.cpp

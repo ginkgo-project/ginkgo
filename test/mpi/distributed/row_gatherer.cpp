@@ -15,6 +15,7 @@
 #include <ginkgo/core/distributed/dense_communicator.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/row_gatherer.hpp>
+#include <ginkgo/core/distributed/row_scatterer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 
 #include "core/test/utils.hpp"
@@ -98,6 +99,36 @@ TYPED_TEST(RowGatherer, CanApplyAsync)
         this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
         Dense::create(this->mpi_exec, gko::dim<2>{expected.get_size(), 1},
                       expected, 1));
+    GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected_vec->get_local_vector(),
+                        0.0);
+}
+
+
+TYPED_TEST(RowGatherer, CanApplyAsyncWhenCreatedFromScatterer)
+{
+    using Dense = gko::matrix::Dense<double>;
+    using Vector = gko::experimental::distributed::Vector<double>;
+    using RowScatterer = gko::experimental::distributed::RowScatterer<
+        typename TestFixture::index_type>;
+    int rank = this->comm.rank();
+    auto offset = static_cast<double>(rank * 3);
+    auto b = Vector::create(
+        this->exec, this->comm, gko::dim<2>{18, 1},
+        gko::initialize<Dense>({offset, offset + 1, offset + 2}, this->exec));
+    auto expected = this->template create_recv_connections<double>()[rank];
+    auto expected_vec = Vector::create(
+        this->mpi_exec, this->comm, gko::dim<2>{this->rg->get_size()[0], 1},
+        Dense::create(this->mpi_exec, gko::dim<2>{expected.get_size(), 1},
+                      expected, 1));
+    auto x = Vector::create(this->mpi_exec, this->comm,
+                            gko::dim<2>{this->rg->get_size()[0], 1},
+                            gko::dim<2>{expected.get_size(), 1});
+    auto rs = RowScatterer::create_from_gatherer(this->exec, this->rg);
+    auto rg =
+        TestFixture::row_gatherer_type::create_from_scatterer(this->exec, rs);
+
+    rg->apply_async(b, x).wait();
+
     GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected_vec->get_local_vector(),
                         0.0);
 }
@@ -365,4 +396,22 @@ TYPED_TEST(RowGatherer, ThrowsOnNonMatchingExecutor)
     auto x = Vector::create(this->exec, this->comm);
 
     ASSERT_THROW(rg->apply_async(b, x).wait(), gko::InvalidStateError);
+}
+
+
+TYPED_TEST(RowGatherer, ThrowsOnValueTypeMismatch)
+{
+    using Vector = gko::experimental::distributed::Vector<double>;
+    using FloatVector = gko::experimental::distributed::Vector<float>;
+    int rank = this->comm.rank();
+    auto b = Vector::create(this->exec, this->comm, gko::dim<2>{18, 1},
+                            gko::dim<2>{3, 1});
+    b->fill(1.0);
+    auto num_recv =
+        this->template create_recv_connections<double>()[rank].get_size();
+    auto x = FloatVector::create(this->mpi_exec, this->comm,
+                                 gko::dim<2>{this->rg->get_size()[0], 1},
+                                 gko::dim<2>{num_recv, 1});
+
+    ASSERT_THROW(this->rg->apply_async(b, x).wait(), gko::NotSupported);
 }

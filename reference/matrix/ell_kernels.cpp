@@ -120,20 +120,6 @@ GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ELL_ADVANCED_SPMV_KERNEL);
 
 
-template <typename IndexType>
-void compute_max_row_nnz(std::shared_ptr<const DefaultExecutor> exec,
-                         const array<IndexType>& row_ptrs, size_type& max_nnz)
-{
-    max_nnz = 0;
-    const auto ptrs = row_ptrs.get_const_data();
-    for (size_type i = 1; i < row_ptrs.get_size(); i++) {
-        max_nnz = std::max<size_type>(max_nnz, ptrs[i] - ptrs[i - 1]);
-    }
-}
-
-GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ELL_COMPUTE_MAX_ROW_NNZ_KERNEL);
-
-
 template <typename ValueType, typename IndexType>
 void fill_in_matrix_data(std::shared_ptr<const DefaultExecutor> exec,
                          const device_matrix_data<ValueType, IndexType>& data,
@@ -166,7 +152,6 @@ void fill_in_dense(std::shared_ptr<const ReferenceExecutor> exec,
                    matrix::view::dense<ValueType> result)
 {
     auto num_rows = source.size[0];
-    auto num_cols = source.size[1];
     auto num_stored_elements_per_row = source.num_stored_elements_per_row;
 
     for (size_type row = 0; row < num_rows; row++) {
@@ -239,7 +224,6 @@ void count_nonzeros_per_row(
 {
     const auto num_rows = source.size[0];
     const auto max_nnz_per_row = source.num_stored_elements_per_row;
-    const auto stride = source.stride;
 
     for (size_type row = 0; row < num_rows; row++) {
         size_type nonzeros_in_this_row = 0;
@@ -261,8 +245,6 @@ void extract_diagonal(std::shared_ptr<const ReferenceExecutor> exec,
                       matrix::view::ell<const ValueType, const IndexType> orig,
                       matrix::Diagonal<ValueType>* diag)
 {
-    const auto col_idxs = orig.col_idxs;
-    const auto values = orig.values;
     const auto diag_size = diag->get_size()[0];
     const auto max_nnz_per_row = orig.num_stored_elements_per_row;
     auto diag_values = diag->get_values();

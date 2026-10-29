@@ -59,6 +59,12 @@ struct SolverConfigTest {
         config_map["generated_preconditioner"] = pnode{"linop"};
         param.with_generated_preconditioner(
             detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
+        config_map["nullspace"] = pnode{"linop"};
+        param.with_nullspace(
+            detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
+        config_map["left_nullspace"] = pnode{"linop"};
+        param.with_left_nullspace(
+            detail::registry_accessor::get_data<gko::LinOp>(reg, "linop"));
         if (from_reg) {
             config_map["criteria"] = pnode{"criterion_factory"};
             param.with_criteria(
@@ -86,6 +92,8 @@ struct SolverConfigTest {
 
         ASSERT_EQ(res_param.generated_preconditioner,
                   ans_param.generated_preconditioner);
+        ASSERT_EQ(res_param.nullspace, ans_param.nullspace);
+        ASSERT_EQ(res_param.left_nullspace, ans_param.left_nullspace);
         if (from_reg) {
             ASSERT_EQ(res_param.criteria, ans_param.criteria);
             ASSERT_EQ(res_param.preconditioner, ans_param.preconditioner);
@@ -173,6 +181,8 @@ struct Ir : SolverConfigTest<gko::solver::Ir<float>, gko::solver::Ir<double>> {
         param.with_relaxation_factor(decltype(param.relaxation_factor){1.2});
         config_map["default_initial_guess"] = pnode{"zero"};
         param.with_default_initial_guess(gko::solver::initial_guess_mode::zero);
+        config_map["inner_initial_guess"] = pnode{"rhs"};
+        param.with_inner_initial_guess(gko::solver::initial_guess_mode::rhs);
         if (from_reg) {
             config_map["criteria"] = pnode{"criterion_factory"};
             param.with_criteria(
@@ -201,6 +211,7 @@ struct Ir : SolverConfigTest<gko::solver::Ir<float>, gko::solver::Ir<double>> {
         ASSERT_EQ(res_param.relaxation_factor, ans_param.relaxation_factor);
         ASSERT_EQ(res_param.default_initial_guess,
                   ans_param.default_initial_guess);
+        ASSERT_EQ(res_param.inner_initial_guess, ans_param.inner_initial_guess);
         if (from_reg) {
             ASSERT_EQ(res_param.criteria, ans_param.criteria);
             ASSERT_EQ(res_param.solver, ans_param.solver);

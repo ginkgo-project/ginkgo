@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -23,6 +23,14 @@ void record_event(std::shared_ptr<const DefaultExecutor> exec,
                   std::shared_ptr<const detail::Event>& event)
 {
     event = std::make_shared<detail::NotAsyncEvent>(exec);
+}
+
+
+void wait_event(std::shared_ptr<const DefaultExecutor> exec,
+                const detail::Event* event)
+{
+    // the host executes in order, so it has no queue to defer the wait to
+    event->synchronize();
 }
 
 

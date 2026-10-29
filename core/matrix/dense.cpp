@@ -75,6 +75,7 @@ GKO_REGISTER_OPERATION(nonsymm_permute, dense::nonsymm_permute);
 GKO_REGISTER_OPERATION(inv_nonsymm_permute, dense::inv_nonsymm_permute);
 GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
 GKO_REGISTER_OPERATION(advanced_row_gather, dense::advanced_row_gather);
+GKO_REGISTER_OPERATION(scatter_add, dense::scatter_add);
 GKO_REGISTER_OPERATION(col_permute, dense::col_permute);
 GKO_REGISTER_OPERATION(inverse_row_permute, dense::inv_row_permute);
 GKO_REGISTER_OPERATION(inverse_col_permute, dense::inv_col_permute);
@@ -1286,7 +1287,6 @@ void Dense<ValueType>::permute_impl(
     Dense* output) const
 {
     auto exec = this->get_executor();
-    auto size = this->get_size();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
     GKO_ASSERT_EQUAL_COLS(this, col_permutation);
@@ -1374,7 +1374,6 @@ void Dense<ValueType>::scale_permute_impl(
     Dense* output) const
 {
     auto exec = this->get_executor();
-    auto size = this->get_size();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     GKO_ASSERT_EQUAL_ROWS(this, row_permutation);
     GKO_ASSERT_EQUAL_COLS(this, col_permutation);
@@ -1734,6 +1733,40 @@ void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
                                   dense_beta.get(), dense);
         },
         out.get());
+}
+
+
+template <typename ValueType>
+template <typename IndexType>
+void Dense<ValueType>::scatter_add_impl(const array<IndexType>* scatter_indices,
+                                        const LinOp* source)
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQ(source->get_size()[1], this->get_size()[1]);
+    GKO_ASSERT_EQ(scatter_indices->get_size(), source->get_size()[0]);
+
+    exec->run(dense::make_scatter_add(
+        make_temporary_clone(exec, scatter_indices)->get_const_data(),
+        make_temporary_conversion<ValueType>(
+            make_temporary_clone(exec, source).get())
+            ->get_const_device_view(),
+        this->get_device_view()));
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::scatter_add(const array<int32>* scatter_indices,
+                                   ptr_param<const LinOp> source)
+{
+    scatter_add_impl(scatter_indices, source.get());
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::scatter_add(const array<int64>* scatter_indices,
+                                   ptr_param<const LinOp> source)
+{
+    scatter_add_impl(scatter_indices, source.get());
 }
 
 
@@ -2135,6 +2168,14 @@ template <typename ValueType>
 std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
     const span& rows, const span& columns, const size_type stride)
 {
+    if (this->get_num_stored_elements() == 0) {
+        GKO_ASSERT(rows.is_valid() && rows.end <= this->get_size()[0]);
+        GKO_ASSERT(columns.is_valid() && columns.end <= this->get_size()[1]);
+        return Dense::create(
+            this->get_executor(), dim<2>{rows.length(), columns.length()},
+            make_array_view(this->get_executor(), 0, this->get_values()),
+            stride);
+    }
     row_major_range range_this{this->get_values(), this->get_size()[0],
                                this->get_size()[1], this->get_stride()};
     auto sub_range = range_this(rows, columns);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -297,7 +297,7 @@ bool ProfilerHook::needs_propagation() const { return true; }
 void ProfilerHook::set_object_name(ptr_param<const PolymorphicObject> obj,
                                    std::string name)
 {
-    name_map_[obj.get()] = name;
+    name_map_[obj.get()] = std::move(name);
 }
 
 
@@ -339,7 +339,9 @@ std::string ProfilerHook::stringify_object(const PolymorphicObject* obj) const
 
 
 ProfilerHook::ProfilerHook(hook_function begin, hook_function end)
-    : synchronize_{false}, begin_hook_{begin}, end_hook_{end}
+    : synchronize_{false},
+      begin_hook_{std::move(begin)},
+      end_hook_{std::move(end)}
 {}
 
 
@@ -414,7 +416,8 @@ std::shared_ptr<ProfilerHook> ProfilerHook::create_for_executor(
 std::shared_ptr<ProfilerHook> ProfilerHook::create_custom(hook_function begin,
                                                           hook_function end)
 {
-    return std::shared_ptr<ProfilerHook>{new ProfilerHook{begin, end}};
+    return std::shared_ptr<ProfilerHook>{
+        new ProfilerHook{std::move(begin), std::move(end)}};
 }
 
 
@@ -430,7 +433,7 @@ profiling_scope_guard::profiling_scope_guard(const char* name,
                                              profile_event_category category,
                                              ProfilerHook::hook_function begin,
                                              ProfilerHook::hook_function end)
-    : empty_{false}, name_{name}, category_{category}, end_{end}
+    : empty_{false}, name_{name}, category_{category}, end_{std::move(end)}
 {
     begin(name, category);
 }

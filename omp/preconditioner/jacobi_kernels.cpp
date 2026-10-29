@@ -158,7 +158,7 @@ inline void extract_block(
     for (int row = 0; row < block_size; ++row) {
         const auto start = row_ptrs[block_start + row];
         const auto end = row_ptrs[block_start + row + 1];
-        for (int i = start; i < end; ++i) {
+        for (auto i = start; i < end; ++i) {
             const auto col = col_idxs[i] - block_start;
             if (0 <= col && col < block_size) {
                 block[row * stride + col] = vals[i];
@@ -565,7 +565,6 @@ void transpose_jacobi(
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
-    const size_type matrix_size = ptrs[num_blocks];
 
 #pragma omp parallel for
     for (size_type i = 0; i < num_blocks; ++i) {
@@ -602,7 +601,6 @@ void conj_transpose_jacobi(
 {
     const auto ptrs = block_pointers.get_const_data();
     const auto prec = block_precisions.get_const_data();
-    const size_type matrix_size = ptrs[num_blocks];
 
 #pragma omp parallel for
     for (size_type i = 0; i < num_blocks; ++i) {

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -271,6 +271,20 @@ void save_matrices_to_disk(Ostream& os, const MatrixData1& first,
 }
 
 
+// write() mostly produces row-major data already, and std::sort does the full
+// work even on sorted input
+template <typename MatrixData>
+void sort_row_major_if_unsorted(MatrixData& data)
+{
+    if (!std::is_sorted(
+            begin(data.nonzeros), end(data.nonzeros), [](auto a, auto b) {
+                return std::tie(a.row, a.column) < std::tie(b.row, b.column);
+            })) {
+        data.sort_row_major();
+    }
+}
+
+
 template <typename MatrixData1, typename MatrixData2>
 double get_relative_error(const MatrixData1& first, const MatrixData2& second)
 {
@@ -449,20 +463,25 @@ template <typename MatrixData1, typename MatrixData2>
     auto snd_end = end(second.nonzeros);
     using nz_type_f = typename std::decay<decltype(*fst_it)>::type;
     using nz_type_s = typename std::decay<decltype(*snd_it)>::type;
+    // the nonzeros are sorted row-major, so a linear scan finds each row.
+    // std::lower_bound and std::upper_bound check the whole remaining range in
+    // debug mode, which would make this quadratic.
+    auto advance_while = [](auto it, auto end, auto pred) {
+        while (it != end && pred(*it)) {
+            ++it;
+        }
+        return it;
+    };
     for (size_type row = 0; row < num_rows; ++row) {
-        auto cmp_l_f = [](nz_type_f nz, size_type row) { return nz.row < row; };
-        auto cmp_u_f = [](size_type row, nz_type_f nz) { return row < nz.row; };
-        auto cmp_l_s = [](nz_type_s nz, size_type row) { return nz.row < row; };
-        auto cmp_u_s = [](size_type row, nz_type_s nz) { return row < nz.row; };
+        auto before_row = [row](auto nz) { return nz.row < row; };
+        auto in_row = [row](auto nz) { return !(row < nz.row); };
         auto col_eq = [](nz_type_f a, nz_type_s b) {
             return a.column == b.column;
         };
-        auto fst_row_begin = std::lower_bound(fst_it, fst_end, row, cmp_l_f);
-        auto snd_row_begin = std::lower_bound(snd_it, snd_end, row, cmp_l_s);
-        auto fst_row_end =
-            std::upper_bound(fst_row_begin, fst_end, row, cmp_u_f);
-        auto snd_row_end =
-            std::upper_bound(snd_row_begin, snd_end, row, cmp_u_s);
+        auto fst_row_begin = advance_while(fst_it, fst_end, before_row);
+        auto snd_row_begin = advance_while(snd_it, snd_end, before_row);
+        auto fst_row_end = advance_while(fst_row_begin, fst_end, in_row);
+        auto snd_row_end = advance_while(snd_row_begin, snd_end, in_row);
         if (std::distance(fst_row_begin, fst_row_end) !=
                 std::distance(snd_row_begin, snd_row_end) ||
             !std::equal(fst_row_begin, fst_row_end, snd_row_begin, col_eq)) {
@@ -762,8 +781,8 @@ template <typename Mat1, typename Mat2>
     }
 
     for (size_type b = 0; b < first_data.size(); ++b) {
-        first_data[b].sort_row_major();
-        second_data[b].sort_row_major();
+        detail::sort_row_major_if_unsorted(first_data[b]);
+        detail::sort_row_major_if_unsorted(second_data[b]);
     }
 
     return detail::batch_matrices_near_impl(
@@ -827,8 +846,8 @@ template <typename LinOp1, typename LinOp2>
     first->write(first_data);
     second->write(second_data);
 
-    first_data.sort_row_major();
-    second_data.sort_row_major();
+    detail::sort_row_major_if_unsorted(first_data);
+    detail::sort_row_major_if_unsorted(second_data);
 
     return detail::matrices_near_impl(
         detail::remove_pointer_wrapper(first_expression),
@@ -1094,8 +1113,8 @@ template <typename LinOp1, typename LinOp2>
     first->write(first_data);
     second->write(second_data);
 
-    first_data.sort_row_major();
-    second_data.sort_row_major();
+    detail::sort_row_major_if_unsorted(first_data);
+    detail::sort_row_major_if_unsorted(second_data);
     // make sure if we write data to disk, it only contains ones.
     for (auto& entry : first_data.nonzeros) {
         entry.value = one<typename LinOp1::value_type>();

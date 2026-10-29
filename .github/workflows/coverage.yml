@@ -1,0 +1,99 @@
+name: coverage
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  coverage:
+    name: coverage of the reference, OpenMP and MPI code
+    runs-on: [ubuntu-24.04]
+    timeout-minutes: 300
+    permissions:
+      contents: read
+      # the upload to Codecov authenticates with GitHub's OIDC token, so no secret is needed
+      id-token: write
+    env:
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 1G
+      # the runner has 4 cores, but some MPI tests use up to 8 processes
+      OMPI_MCA_rmaps_base_oversubscribe: 1
+    steps:
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v7
+
+      - name: setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache libopenmpi-dev openmpi-bin gcovr
+
+      # only pushes save the cache, so pull requests start from the latest develop build
+      - name: restore ccache
+        uses: actions/cache/restore@v6
+        with:
+          path: .ccache
+          key: ccache-coverage-${{ github.run_id }}
+          restore-keys: ccache-coverage-
+
+      # -O0 without debug information, which gcov doesn't need; GCC already makes the
+      # counters atomic in the sources compiled with OpenMP, the only multithreaded ones
+      - name: configure
+        run: >-
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG=-O0
+          -DCMAKE_CXX_FLAGS=--coverage
+          -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_MPI=ON -DMPIEXEC_MAX_NUMPROCS=8
+          -DGINKGO_BUILD_BENCHMARKS=OFF -DGINKGO_BUILD_EXAMPLES=OFF -DGINKGO_FAST_TESTS=ON
+
+      - name: build
+        id: build
+        run: |
+          ccache --zero-stats
+          cmake --build build -j4
+          ccache --show-stats
+
+      # MPI tests run one at a time after the other tests, even if some of those failed
+      - name: test
+        env:
+          # threads updating the same coverage counters slow each other down, and gcov
+          # doesn't count the lines inside OpenMP parallel regions anyway
+          OMP_NUM_THREADS: 1
+        run: |
+          status=0
+          ctest --test-dir build -j4 --output-on-failure --label-exclude distributed || status=1
+          ctest --test-dir build --output-on-failure --label-regex distributed || status=1
+          exit $status
+
+      # also after failed tests, so that develop keeps its coverage; tests, third-party
+      # and generated code are left out, as are CMake's compiler checks and the code of
+      # the GPU backends this build leaves out: the device hooks standing in for their
+      # kernels, and their executors in devices/
+      - name: report
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: >-
+          gcovr --root . --object-directory build
+          --exclude-directories 'build/CMakeFiles/[0-9.]+/' --exclude-directories build/_deps
+          --exclude build/ --exclude third_party/ --exclude '(.+/)?test/' --exclude core/device_hooks/
+          --exclude 'devices/(cuda|hip|dpcpp)/'
+          -j 4 --cobertura coverage.xml --print-summary
+
+      # the uploader's plugins are off, so it doesn't run gcov again on every object file;
+      # pull requests from forks get no OIDC token, and Codecov accepts their uploads without one
+      - name: upload to Codecov
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
+        with:
+          files: coverage.xml
+          disable_search: true
+          plugins: noop
+          use_oidc: ${{ !github.event.pull_request.head.repo.fork }}
+          fail_ci_if_error: ${{ github.event_name == 'push' }}
+
+      - name: save ccache
+        if: ${{ always() && github.event_name == 'push' }}
+        uses: actions/cache/save@v6
+        with:
+          path: .ccache
+          key: ccache-coverage-${{ github.run_id }}

@@ -119,6 +119,7 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     matrix::view::coo<const ValueType, const IndexType> a_lower,
                     matrix::view::csr<ValueType, IndexType> l)
 {
+    iterations = (iterations == 0) ? 10 : iterations;
     auto nnz = l.num_stored_elements;
     auto num_blocks = ceildiv(nnz, default_block_size);
     if (num_blocks > 0) {

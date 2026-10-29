@@ -27,7 +27,8 @@ namespace gko {
 namespace solver {
 
 
-[[deprecated]] constexpr size_type default_krylov_dim = 100u;
+[[deprecated("please use gmres_default_krylov_dim")]] constexpr size_type
+    default_krylov_dim = 100u;
 
 constexpr size_type gmres_default_krylov_dim = 100u;
 
@@ -267,6 +268,14 @@ protected:
 
 
 template <typename ValueType>
+struct nullspace_traits<Gmres<ValueType>> {
+    static constexpr bool is_supported = true;
+    static constexpr bool requires_hermitian = false;
+    static constexpr bool two_sided_projection = false;
+};
+
+
+template <typename ValueType>
 struct workspace_traits<Gmres<ValueType>> {
     using Solver = Gmres<ValueType>;
     // number of vectors used by this workspace
@@ -314,6 +323,8 @@ struct workspace_traits<Gmres<ValueType>> {
     constexpr static int next_krylov_norm_tmp = 14;
     // preconditioned krylov basis multivector
     constexpr static int preconditioned_krylov_bases = 15;
+    // right-hand side projected onto the range of the system matrix
+    constexpr static int proj_rhs = 16;
 
     // stopping status array
     constexpr static int stop = 0;

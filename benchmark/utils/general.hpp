@@ -167,9 +167,10 @@ void initialize_argument_parsing(int* argc, char** argv[], std::string& header,
 /**
  * Writes a diagnostic message to stderr in a single write().
  *
- * std::cerr is unit-buffered, so each `<<` becomes its own write(). MPI
- * launchers forward stderr through pipes and can misroute such fragments onto
- * their stdout, corrupting the JSON that the benchmark tests parse from there.
+ * std::cerr is unit-buffered, so each `<<` becomes its own write(), and other
+ * output can end up between the pieces of a line. This does not keep MPI
+ * launchers from splitting lines when they forward the output, which is dealt
+ * with in benchmark/test/test_framework.py.in.
  *
  * @param line  the message to print, without the trailing newline
  */

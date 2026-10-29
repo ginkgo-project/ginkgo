@@ -49,6 +49,8 @@ configuration_map generate_config_map()
             {"preconditioner::Ilu", parse<LinOpFactoryType::Ilu>},
             {"preconditioner::Isai", parse<LinOpFactoryType::Isai>},
             {"preconditioner::Jacobi", parse<LinOpFactoryType::Jacobi>},
+            {"preconditioner::NullspaceProjection",
+             parse<LinOpFactoryType::NullspaceProjection>},
             {"preconditioner::Sor", parse<LinOpFactoryType::Sor>},
             {"solver::Multigrid", parse<LinOpFactoryType::Multigrid>},
             {"multigrid::Pgm", parse<LinOpFactoryType::Pgm>},

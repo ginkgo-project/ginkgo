@@ -144,7 +144,7 @@ void check_ell_admissibility(const gko::matrix_data<etype, itype>& data)
         return;
     }
     std::vector<gko::size_type> row_lengths(data.size[0]);
-    for (auto nz : data.nonzeros) {
+    for (const auto& nz : data.nonzeros) {
         row_lengths[nz.row]++;
     }
     auto max_len = *std::max_element(row_lengths.begin(), row_lengths.end());

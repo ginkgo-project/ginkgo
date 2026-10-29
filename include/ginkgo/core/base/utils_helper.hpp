@@ -65,7 +65,7 @@ public:
 
     ptr_param(const ptr_param&) = default;
 
-    ptr_param(ptr_param&&) = default;
+    ptr_param(ptr_param&&) noexcept = default;
 
     /** @return a reference to the underlying pointee. */
     T& operator*() const { return *ptr_; }

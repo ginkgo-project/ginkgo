@@ -255,6 +255,19 @@ include(cmake/install_helpers.cmake)
 include(cmake/compiler_features.cmake)
 include(cmake/generate_ginkgo_hpp.cmake)
 
+# The standard library of GCC 7 and 8 lacks parts of C++17 that Ginkgo uses,
+# like std::inclusive_scan
+if(
+    CMAKE_CXX_COMPILER_ID STREQUAL "GNU"
+    AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 9
+)
+    message(
+        FATAL_ERROR
+        "Ginkgo requires GCC 9 or newer, but the C++ compiler is "
+        "${CMAKE_CXX_COMPILER} with version ${CMAKE_CXX_COMPILER_VERSION}."
+    )
+endif()
+
 if(MSVC)
     # MSVC has macro for min/max, it leads C2589 issue with CUDA 13.2.
     # We disable it by -DNOMINMAX

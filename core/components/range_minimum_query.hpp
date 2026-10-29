@@ -454,7 +454,7 @@ public:
      * @param level  the level index, which is the binary logarithm
      *               of the block size minus 1.
      */
-    constexpr int get_offset(int level) const
+    constexpr index_type get_offset(int level) const
     {
         constexpr auto offsets = compute_block_offset_lookup();
         assert(level >= 0);

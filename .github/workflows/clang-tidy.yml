@@ -1,0 +1,71 @@
+name: clang-tidy
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  clang-tidy:
+    name: clang-tidy on changed lines
+    runs-on: [ubuntu-24.04]
+    timeout-minutes: 180
+    steps:
+      # the pull request merge commit and its first parent, the target branch
+      - name: Checkout the merge commit
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+
+      # headers are checked with the flags of a nearby source file, which may lack the
+      # include paths of the benchmark and extension dependencies; in /usr/include
+      # they are found anyway
+      - name: setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build clang-tidy-18 libomp-18-dev libopenmpi-dev openmpi-bin \
+            libgflags-dev nlohmann-json3-dev libyaml-cpp-dev
+
+      # only the compilation database is needed, nothing is compiled
+      - name: configure
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DGINKGO_BUILD_OMP=ON -DGINKGO_BUILD_MPI=ON -DGINKGO_BUILD_CUDA=OFF -DGINKGO_BUILD_HIP=OFF -DGINKGO_BUILD_SYCL=OFF -DGINKGO_BUILD_TESTS=OFF -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF
+
+      # skipped: CUDA, HIP, SYCL and Kokkos code, which this configuration can't compile,
+      # dev_tools, omp/base/kernel_launch*.hpp, which only compile inside
+      # common/unified/base/kernel_launch*.hpp, and the device hook stubs, which only
+      # compile inside core/device_hooks/*_hooks.cpp
+      - name: clang-tidy
+        run: |
+          status=0
+          git diff -U0 HEAD^1 HEAD | clang-tidy-diff-18.py -p1 -path build -j 4 -quiet \
+            -clang-tidy-binary clang-tidy-18 \
+            -regex '(?!third_party/|dev_tools/|cuda/|hip/|dpcpp/|common/cuda_hip/|accessor/(?:cuda|hip|cuda_hip|sycl)_helper|include/ginkgo/extensions/kokkos|omp/base/kernel_launch|core/device_hooks/common_kernels\.inc|(?:.*/)?test/).*\.(cpp|hpp|hpp\.inc)' \
+            > clang-tidy.log 2>&1 || status=$?
+          cat clang-tidy.log
+          python3 - <<'EOF'
+          import os, re, sys
+
+          def escape(text, property=False):
+              text = text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+              if property:
+                  text = text.replace(":", "%3A").replace(",", "%2C")
+              return text
+
+          root = os.environ["GITHUB_WORKSPACE"] + "/"
+          pattern = re.compile(r"^(.+?):(\d+):(\d+): (warning|error): (.*) \[([^\]]+)\]$")
+          seen = set()
+          for line in open("clang-tidy.log", errors="replace"):
+              match = pattern.match(line.rstrip())
+              if not match or match.groups() in seen:
+                  continue
+              seen.add(match.groups())
+              path, row, col, kind, message, check = match.groups()
+              path = path[len(root):] if path.startswith(root) else path
+              print(f"::{kind} file={escape(path, True)},line={row},col={col},"
+                    f"title={escape('clang-tidy ' + check, True)}::{escape(message)}")
+          print(f"{len(seen)} clang-tidy finding(s) on changed lines")
+          sys.exit(1 if seen else 0)
+          EOF
+          exit $status

@@ -40,6 +40,9 @@ template <typename ValueType, typename IndexType>
 class Pgm;
 
 template <typename ValueType, typename IndexType>
+class Pmis;
+
+template <typename ValueType, typename IndexType>
 class UniformCoarsening;
 
 
@@ -283,6 +286,7 @@ class Matrix
                         GlobalIndexType>;
 
     friend class multigrid::Pgm<ValueType, LocalIndexType>;
+    friend class multigrid::Pmis<ValueType, LocalIndexType>;
     friend class multigrid::UniformCoarsening<ValueType, LocalIndexType>;
     GKO_ASSERT_SUPPORTED_VALUE_AND_DIST_INDEX_TYPE;
 
@@ -489,8 +493,9 @@ public:
     }
 
     /**
-     * Get the row partition this matrix was constructed with via
-     * read_distributed. May be null if the matrix was not read.
+     * Get the row partition of this matrix. It is set by read_distributed,
+     * and by the index_map constructor to the partition of the index_map.
+     * May be null otherwise.
      */
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
     get_row_partition() const;

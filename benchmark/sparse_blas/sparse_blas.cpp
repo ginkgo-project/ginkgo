@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,9 +21,6 @@
 #include "benchmark/utils/runner.hpp"
 #include "benchmark/utils/types.hpp"
 #include "core/test/utils/matrix_generator.hpp"
-
-
-const auto benchmark_name = "sparse_blas";
 
 
 using mat_data = gko::matrix_data<etype, itype>;

@@ -256,6 +256,8 @@ class ExecutorBase;
  */
 class Operation {
 public:
+    virtual ~Operation() = default;
+
 #define GKO_DECLARE_RUN_OVERLOAD(_type, ...) \
     virtual void run(std::shared_ptr<const _type>) const
 
@@ -978,7 +980,7 @@ protected:
          *       In DPCPP, this is the maximum number of workitems that are
          *       permitted in a workgroup.
          */
-        int max_workgroup_size;
+        int max_workgroup_size = -1;
 
         /**
          * The major version for CUDA/HIP device.

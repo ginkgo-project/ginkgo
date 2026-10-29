@@ -42,8 +42,6 @@ void initialize(std::shared_ptr<const DefaultExecutor> exec,
     for (size_type row = 0; row < num_rows; row++) {
         const auto factor_begin = factor_row_ptrs[row];
         const auto factor_end = factor_row_ptrs[row + 1];
-        const auto mtx_begin = mtx_row_ptrs[row];
-        const auto mtx_end = mtx_row_ptrs[row + 1];
         std::fill(factor_vals + factor_begin, factor_vals + factor_end,
                   zero<ValueType>());
         matrix::csr::device_sparsity_lookup<IndexType> lookup{

@@ -11,6 +11,7 @@ target_sources(
         components/absolute_array_kernels.cpp
         components/fill_array_kernels.cpp
         components/format_conversion_kernels.cpp
+        components/gather_kernels.cpp
         components/precision_conversion_kernels.cpp
         components/prefix_sum_kernels.cpp
         components/range_minimum_query_kernels.cpp
@@ -72,6 +73,7 @@ target_sources(
         solver/lower_trs_kernels.cpp
         solver/minres_kernels.cpp
         solver/multigrid_kernels.cpp
+        solver/nullspace_kernels.cpp
         solver/pipe_cg_kernels.cpp
         solver/upper_trs_kernels.cpp
         stop/criterion_kernels.cpp
@@ -86,6 +88,12 @@ target_compile_definitions(
 ginkgo_compile_features(ginkgo_reference)
 ginkgo_default_includes(ginkgo_reference)
 ginkgo_install_library(ginkgo_reference)
+
+# Disable warning about ABI changes in GCC 4.4
+set_source_files_properties(
+    matrix/csr_kernels.cpp
+    PROPERTIES COMPILE_OPTIONS $<$<CXX_COMPILER_ID:GNU>:-Wno-psabi>
+)
 
 # TODO FIXME: Currently nvhpc 22.7+ optimizations break the reference jacobi's custom
 # precision implementation (mantissa segmentation)

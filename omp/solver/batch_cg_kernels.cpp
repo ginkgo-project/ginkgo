@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -21,13 +21,6 @@ namespace gko {
 namespace kernels {
 namespace omp {
 namespace batch_cg {
-namespace {
-
-
-constexpr int max_num_rhs = 1;
-
-
-}  // unnamed namespace
 
 
 template <typename T>
@@ -49,7 +42,6 @@ public:
         const gko::batch::multi_vector::uniform_batch<const ValueType>& b,
         const gko::batch::multi_vector::uniform_batch<ValueType>& x) const
     {
-        using real_type = typename gko::remove_complex<ValueType>;
         const size_type num_batch_items = mat.num_batch_items;
         const auto num_rows = mat.num_rows;
         const auto num_rhs = b.num_rhs;

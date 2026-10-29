@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,8 +26,11 @@ public:
      * Creates a new custom CUDA stream on the given device.
      *
      * @param device_id  the device ID to create the stream on.
+     * @param non_blocking  create the stream with cudaStreamNonBlocking, so
+     *                      that it does not implicitly order against the
+     *                      legacy default stream.
      */
-    cuda_stream(int device_id);
+    cuda_stream(int device_id, bool non_blocking = false);
 
     /** Destroys the custom CUDA stream, if it isn't empty. */
     ~cuda_stream();
@@ -35,7 +38,7 @@ public:
     cuda_stream(const cuda_stream&) = delete;
 
     /** Move-constructs from an existing stream, which will be emptied. */
-    cuda_stream(cuda_stream&&);
+    cuda_stream(cuda_stream&&) noexcept;
 
     cuda_stream& operator=(const cuda_stream&) = delete;
 
@@ -69,8 +72,11 @@ public:
      * Creates a new custom HIP stream on the given device.
      *
      * @param device_id  the device ID to create the stream on.
+     * @param non_blocking  create the stream with hipStreamNonBlocking, so
+     *                      that it does not implicitly order against the
+     *                      legacy default stream.
      */
-    hip_stream(int device_id);
+    hip_stream(int device_id, bool non_blocking = false);
 
     /** Destroys the custom HIP stream, if it isn't empty. */
     ~hip_stream();
@@ -78,7 +84,7 @@ public:
     hip_stream(const hip_stream&) = delete;
 
     /** Move-constructs from an existing stream, which will be emptied. */
-    hip_stream(hip_stream&&);
+    hip_stream(hip_stream&&) noexcept;
 
     hip_stream& operator=(const hip_stream&) = delete;
 

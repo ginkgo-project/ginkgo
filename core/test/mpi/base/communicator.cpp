@@ -1,6 +1,9 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
+
+#include <cstring>
+#include <vector>
 
 #include <mpi.h>
 
@@ -11,6 +14,34 @@
 
 
 namespace {
+
+
+/**
+ * Returns the rank among the ranks of comm on the same node, determined from
+ * the processor names instead of MPI_Comm_split_type.
+ */
+int node_local_rank_from_names(MPI_Comm comm)
+{
+    int rank;
+    int size;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &size);
+    std::vector<char> names(size * MPI_MAX_PROCESSOR_NAME);
+    auto name = [&](int i) {
+        return names.data() + i * MPI_MAX_PROCESSOR_NAME;
+    };
+    int length;
+    MPI_Get_processor_name(name(rank), &length);
+    MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL, names.data(),
+                  MPI_MAX_PROCESSOR_NAME, MPI_CHAR, comm);
+    int local_rank = 0;
+    for (int i = 0; i < rank; ++i) {
+        if (std::strcmp(name(i), name(rank)) == 0) {
+            ++local_rank;
+        }
+    }
+    return local_rank;
+}
 
 
 class Communicator : public ::testing::Test {
@@ -48,11 +79,8 @@ TEST_F(Communicator, CommKnowsItsRank)
 
 TEST_F(Communicator, CommKnowsItsLocalRank)
 {
-    int rank;
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    // Expect local rank to be same as rank when on one node
-    EXPECT_EQ(comm.node_local_rank(), rank);
+    EXPECT_EQ(comm.node_local_rank(),
+              node_local_rank_from_names(MPI_COMM_WORLD));
 }
 
 
@@ -108,6 +136,19 @@ TEST_F(Communicator, CanSetCustomCommunicator)
     for (auto i = 0; i < world_size; ++i) {
         EXPECT_LT(row_comm.rank(), 4);
     }
+}
+
+
+TEST_F(Communicator, SplitCommunicatorsSetForceHostBuffer)
+{
+    gko::experimental::mpi::communicator host_comm(MPI_COMM_WORLD, true);
+
+    gko::experimental::mpi::communicator from_comm(host_comm, rank / 4, rank);
+    gko::experimental::mpi::communicator from_mpi_comm(MPI_COMM_WORLD, rank / 4,
+                                                       rank);
+
+    EXPECT_TRUE(from_comm.force_host_buffer());
+    EXPECT_FALSE(from_mpi_comm.force_host_buffer());
 }
 
 

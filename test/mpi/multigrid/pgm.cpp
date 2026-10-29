@@ -2,6 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <algorithm>
 #include <array>
 #include <memory>
 
@@ -16,7 +17,10 @@
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
@@ -112,4 +116,226 @@ TYPED_TEST(Pgm, CanGenerateFromDistributedMatrix)
     GKO_ASSERT_MTX_NEAR(
         gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
         res_off_diag[rank], r<value_type>::value);
+}
+
+
+TYPED_TEST(Pgm, CanGenerateReuseFromDistributedMatrix)
+{
+    using pgm = typename TestFixture::pgm;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    auto rank = this->comm.rank();
+    // this->mat_input with other values, same pattern
+    gko::matrix_data<value_type, global_index_type> new_mat_input{
+        {8, 8}, {{0, 0, 5},  {0, 1, -3}, {1, 0, -1}, {1, 1, 5},  {2, 2, 5},
+                 {3, 3, 5},  {4, 4, 5},  {4, 6, -2}, {5, 5, 5},  {5, 7, -2},
+                 {6, 4, -2}, {6, 6, 5},  {7, 5, -2}, {7, 7, 5},  {0, 2, -3},
+                 {0, 4, 1},  {0, 5, 2},  {0, 6, 3},  {1, 3, -7}, {1, 5, 4},
+                 {1, 6, 5},  {1, 7, -5}, {2, 0, -3}, {2, 5, -1}, {2, 6, -9},
+                 {3, 1, -4}, {3, 7, -5}, {4, 0, 1},  {5, 0, 2},  {5, 1, -1},
+                 {5, 2, -1}, {6, 0, 3},  {6, 1, 5},  {6, 2, -2}, {7, 1, 6},
+                 {7, 3, -5}}};
+    auto new_dist_mat =
+        gko::share(dist_mtx_type::create(this->exec, this->comm));
+    new_dist_mat->read_distributed(new_mat_input, this->row_part);
+    I<I<value_type>> res_diag[] = {{{6}}, {{5, 0}, {0, 5}}, {{6, 0}, {0, 6}}};
+    I<I<value_type>> res_off_diag[] = {{{-3, -7, 9, 1}},
+                                       {{-3, -9, -1}, {-4, 0, -5}},
+                                       {{9, -2, 0}, {7, -1, -5}}};
+    // read_distributed gives sorted blocks, so with skip_sorting the fine op
+    // is taken without conversion
+    for (bool skip_sorting : {false, true}) {
+        auto factory =
+            pgm::build().with_skip_sorting(skip_sorting).on(this->exec);
+        auto reuse_data = factory->create_empty_reuse_data();
+        factory->generate_reuse(this->dist_mat, *reuse_data);
+
+        auto result = factory->generate_reuse(new_dist_mat, *reuse_data);
+
+        auto coarse = gko::as<dist_mtx_type>(result->get_coarse_op());
+        GKO_ASSERT_MTX_NEAR(
+            gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+            res_diag[rank], r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(
+            gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
+            res_off_diag[rank], r<value_type>::value);
+    }
+    // block diagonal w.r.t. the partition: every rank has an empty
+    // off-diagonal block, so the off-diagonal mapping is empty
+    gko::matrix_data<value_type, global_index_type> block_input{{8, 8},
+                                                                {{0, 0, 5},
+                                                                 {0, 1, -3},
+                                                                 {1, 0, -3},
+                                                                 {1, 1, 5},
+                                                                 {2, 2, 5},
+                                                                 {2, 3, -3},
+                                                                 {3, 2, -3},
+                                                                 {3, 3, 5},
+                                                                 {4, 4, 5},
+                                                                 {4, 5, -3},
+                                                                 {5, 4, -3},
+                                                                 {5, 5, 5},
+                                                                 {6, 6, 5},
+                                                                 {6, 7, -3},
+                                                                 {7, 6, -3},
+                                                                 {7, 7, 5}}};
+    auto scaled_input = block_input;
+    for (auto& entry : scaled_input.nonzeros) {
+        entry.value = entry.value * value_type{2};
+    }
+    auto block_mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    block_mat->read_distributed(block_input, this->row_part);
+    auto scaled_mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    scaled_mat->read_distributed(scaled_input, this->row_part);
+    auto factory = pgm::build().on(this->exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto first = factory->generate_reuse(block_mat, *reuse_data);
+    auto expected_diag = gko::clone(gko::as<local_matrix_type>(
+        gko::as<dist_mtx_type>(first->get_coarse_op())->get_diag_matrix()));
+    expected_diag->scale(gko::initialize<gko::matrix::Dense<value_type>>(
+        {value_type{2}}, this->exec));
+
+    auto scaled = factory->generate_reuse(scaled_mat, *reuse_data);
+
+    auto coarse = gko::as<dist_mtx_type>(scaled->get_coarse_op());
+    GKO_ASSERT_MTX_NEAR(gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+                        expected_diag, r<value_type>::value);
+    ASSERT_EQ(gko::as<local_matrix_type>(coarse->get_off_diag_matrix())
+                  ->get_num_stored_elements(),
+              0);
+}
+
+
+// a mismatch on a single rank has to make every rank throw, otherwise the
+// others would hang in the next collective call
+TYPED_TEST(Pgm, GenerateReuseWithMismatchingNnzOnOneRankThrowsEverywhere)
+{
+    using pgm = typename TestFixture::pgm;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    auto factory = pgm::build().on(this->exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    factory->generate_reuse(this->dist_mat, *reuse_data);
+    // (2, 2) lives on rank 1 only
+    auto sparser_input = this->mat_input;
+    auto& nonzeros = sparser_input.nonzeros;
+    nonzeros.erase(
+        std::remove_if(nonzeros.begin(), nonzeros.end(),
+                       [](const auto& entry) {
+                           return entry.row == global_index_type{2} &&
+                                  entry.column == global_index_type{2};
+                       }),
+        nonzeros.end());
+    auto sparser_mat =
+        gko::share(dist_mtx_type::create(this->exec, this->comm));
+    sparser_mat->read_distributed(sparser_input, this->row_part);
+
+    ASSERT_THROW(factory->generate_reuse(sparser_mat, *reuse_data),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Pgm, GenerateReuseWithChangedLocalRowsThrowsEverywhere)
+{
+    using pgm = typename TestFixture::pgm;
+    using value_type = typename TestFixture::value_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using Partition = typename TestFixture::Partition;
+    // rows 0 and 1 are empty, so moving them from rank 0 to rank 1 keeps the
+    // number of nonzeros of every block on every rank
+    gko::matrix_data<value_type, global_index_type> input;
+    input.size = this->size;
+    for (global_index_type row = 2; row < 8; row++) {
+        if (row > 2) {
+            input.nonzeros.emplace_back(row, row - 1, -1);
+        }
+        input.nonzeros.emplace_back(row, row, 5);
+        if (row < 7) {
+            input.nonzeros.emplace_back(row, row + 1, -1);
+        }
+    }
+    auto moved_part = gko::share(Partition::build_from_contiguous(
+        this->exec, gko::array<global_index_type>(
+                        this->exec, I<global_index_type>{0, 0, 4, 8})));
+    auto mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    mat->read_distributed(input, this->row_part);
+    auto moved_mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    moved_mat->read_distributed(input, moved_part);
+    auto factory = pgm::build().on(this->exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    factory->generate_reuse(mat, *reuse_data);
+
+    ASSERT_THROW(factory->generate_reuse(moved_mat, *reuse_data),
+                 gko::DimensionMismatch);
+}
+
+
+TYPED_TEST(Pgm, MultigridCanGenerateReuseFromDistributedMatrix)
+{
+    using pgm = typename TestFixture::pgm;
+    using value_type = typename TestFixture::value_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    // scaling by a constant keeps the sparsity pattern and the aggregates
+    auto scaled_input = this->mat_input;
+    for (auto& entry : scaled_input.nonzeros) {
+        entry.value = entry.value * value_type{2};
+    }
+    auto scaled_mat = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    scaled_mat->read_distributed(scaled_input, this->row_part);
+    gko::matrix_data<value_type, global_index_type> b_data{gko::dim<2>{8, 1},
+                                                           {{0, 0, 1.0},
+                                                            {1, 0, -1.0},
+                                                            {2, 0, 2.0},
+                                                            {3, 0, 0.0},
+                                                            {4, 0, -2.0},
+                                                            {5, 0, 1.0},
+                                                            {6, 0, 3.0},
+                                                            {7, 0, -1.0}}};
+    auto b = dist_vec_type::create(this->exec, this->comm);
+    b->read_distributed(b_data, this->row_part);
+    auto x = dist_vec_type::create(this->exec, this->comm);
+    x->read_distributed(
+        gko::matrix_data<value_type, global_index_type>{gko::dim<2>{8, 1}},
+        this->row_part);
+    auto expected_x = gko::clone(x);
+    auto factory =
+        gko::solver::Multigrid::build()
+            .with_max_levels(1u)
+            .with_min_coarse_rows(2u)
+            .with_mg_level(pgm::build())
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    factory->generate_reuse(this->dist_mat, *reuse_data);
+
+    auto solver = factory->generate_reuse(scaled_mat, *reuse_data);
+    auto expected_solver = factory->generate(scaled_mat);
+    solver->apply(b, x);
+    expected_solver->apply(b, expected_x);
+
+    auto levels = solver->get_mg_level_list();
+    auto expected_levels = expected_solver->get_mg_level_list();
+    ASSERT_GT(levels.size(), 0);
+    ASSERT_EQ(levels.size(), expected_levels.size());
+    for (gko::size_type i = 0; i < levels.size(); i++) {
+        auto coarse = gko::as<dist_mtx_type>(levels.at(i)->get_coarse_op());
+        auto expected_coarse =
+            gko::as<dist_mtx_type>(expected_levels.at(i)->get_coarse_op());
+        GKO_ASSERT_MTX_NEAR(
+            gko::as<local_matrix_type>(coarse->get_diag_matrix()),
+            gko::as<local_matrix_type>(expected_coarse->get_diag_matrix()),
+            r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(
+            gko::as<local_matrix_type>(coarse->get_off_diag_matrix()),
+            gko::as<local_matrix_type>(expected_coarse->get_off_diag_matrix()),
+            r<value_type>::value);
+    }
+    GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected_x->get_local_vector(),
+                        r<value_type>::value * 50);
 }

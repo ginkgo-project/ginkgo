@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout the latest code (shallow clone)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Run Pre-Commit checks
         run: cp .github/check-format.sh /tmp && /tmp/check-format.sh
         id: pre-commit
@@ -15,7 +15,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
       - name: Upload code formatting patch
         if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: patch
           path: format.patch

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -117,7 +117,7 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
 
     PreconditionerBenchmark() : name{"preconditioner"}
     {
-        for (auto precond : split(FLAGS_preconditioners)) {
+        for (const auto& precond : split(FLAGS_preconditioners)) {
             preconditioners.push_back(encode_parameters(precond.c_str()));
             precond_decoder[preconditioners.back()] = precond;
         }
@@ -280,7 +280,6 @@ int main(int argc, char* argv[])
 
     auto exec = get_executor(FLAGS_gpu_timer);
     print_general_information(extra_information, exec);
-    auto& engine = get_engine();
 
     auto preconditioners = split(FLAGS_preconditioners, ',');
 

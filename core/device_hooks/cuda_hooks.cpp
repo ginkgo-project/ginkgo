@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <memory>
+#include <utility>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -198,13 +199,17 @@ scoped_device_id_guard::scoped_device_id_guard(const CudaExecutor* exec,
 cuda_stream::cuda_stream() GKO_NOT_COMPILED(cuda);
 
 
-cuda_stream::cuda_stream(int device_id) GKO_NOT_COMPILED(cuda);
+cuda_stream::cuda_stream(int device_id, bool non_blocking)
+    GKO_NOT_COMPILED(cuda);
 
 
 cuda_stream::~cuda_stream() {}
 
 
-cuda_stream::cuda_stream(cuda_stream&&) GKO_NOT_COMPILED(cuda);
+cuda_stream::cuda_stream(cuda_stream&& other) noexcept
+    : stream_{std::exchange(other.stream_, nullptr)},
+      device_id_{std::exchange(other.device_id_, 0)}
+{}
 
 
 CUstream_st* cuda_stream::get() const GKO_NOT_COMPILED(cuda);

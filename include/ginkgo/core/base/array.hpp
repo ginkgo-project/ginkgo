@@ -80,7 +80,7 @@ public:
      * TODO C++17: delete this overload as well, it is no longer necessary due
      * to guaranteed RVO.
      */
-    const_array_view(const_array_view&& other)
+    const_array_view(const_array_view&& other) noexcept
         : const_array_view{other.exec_, other.size_, other.data_}
     {
         other.size_ = 0;

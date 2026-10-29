@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -197,13 +198,16 @@ scoped_device_id_guard::scoped_device_id_guard(const HipExecutor* exec,
 hip_stream::hip_stream() GKO_NOT_COMPILED(hip);
 
 
-hip_stream::hip_stream(int device_id) GKO_NOT_COMPILED(hip);
+hip_stream::hip_stream(int device_id, bool non_blocking) GKO_NOT_COMPILED(hip);
 
 
 hip_stream::~hip_stream() {}
 
 
-hip_stream::hip_stream(hip_stream&&) GKO_NOT_COMPILED(hip);
+hip_stream::hip_stream(hip_stream&& other) noexcept
+    : stream_{std::exchange(other.stream_, nullptr)},
+      device_id_{std::exchange(other.device_id_, 0)}
+{}
 
 
 GKO_HIP_STREAM_STRUCT* hip_stream::get() const GKO_NOT_COMPILED(hip);

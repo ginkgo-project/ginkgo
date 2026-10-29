@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -56,7 +56,6 @@ void print_lu(const gko::range<Accessor>& A)
 int main(int argc, char* argv[])
 {
     using ValueType = double;
-    using IndexType = int;
 
     // Print version information
     std::cout << gko::version_info::get() << std::endl;

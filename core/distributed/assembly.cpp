@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -71,6 +71,9 @@ device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
     exec->run(assembly::make_fill_send_buffers(
         input, partition.get(), local_part, send_positions, original_positions,
         send_row_idxs, send_col_idxs, send_values));
+    // GPU-aware MPI reads the send buffers directly, so they have to be filled
+    // before the communication starts
+    exec->synchronize();
 
     if (use_host_buffer) {
         send_row_idxs.set_executor(exec->get_master());
@@ -80,21 +83,28 @@ device_matrix_data<ValueType, GlobalIndexType> assemble_rows_from_neighbors(
         recv_col_idxs.set_executor(exec->get_master());
         recv_values.set_executor(exec->get_master());
     }
-    auto row_req = comm.i_all_to_all_v(
-        use_host_buffer ? exec->get_master() : exec,
-        send_row_idxs.get_const_data(), send_sizes.get_data(),
-        send_offsets.get_data(), recv_row_idxs.get_data(),
-        recv_sizes.get_data(), recv_offsets.get_data());
-    auto col_req = comm.i_all_to_all_v(
-        use_host_buffer ? exec->get_master() : exec,
-        send_col_idxs.get_const_data(), send_sizes.get_data(),
-        send_offsets.get_data(), recv_col_idxs.get_data(),
-        recv_sizes.get_data(), recv_offsets.get_data());
+    auto exchange = [&](const auto* send_buffer, auto* recv_buffer) {
+        auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
+        // OpenMPI 4.0.x runs a nonblocking exchange whose send and receive
+        // buffers are both null in place, which deadlocks later collectives
+        comm.all_to_all_v(mpi_exec, send_buffer, send_sizes.get_data(),
+                          send_offsets.get_data(), recv_buffer,
+                          recv_sizes.get_data(), recv_offsets.get_data());
+        return mpi::request{};
+#else
+        return comm.i_all_to_all_v(mpi_exec, send_buffer, send_sizes.get_data(),
+                                   send_offsets.get_data(), recv_buffer,
+                                   recv_sizes.get_data(),
+                                   recv_offsets.get_data());
+#endif
+    };
+    auto row_req =
+        exchange(send_row_idxs.get_const_data(), recv_row_idxs.get_data());
+    auto col_req =
+        exchange(send_col_idxs.get_const_data(), recv_col_idxs.get_data());
     auto val_req =
-        comm.i_all_to_all_v(use_host_buffer ? exec->get_master() : exec,
-                            send_values.get_const_data(), send_sizes.get_data(),
-                            send_offsets.get_data(), recv_values.get_data(),
-                            recv_sizes.get_data(), recv_offsets.get_data());
+        exchange(send_values.get_const_data(), recv_values.get_data());
 
     array<GlobalIndexType> all_row_idxs{exec, num_entries + n_recv};
     array<GlobalIndexType> all_col_idxs{exec, num_entries + n_recv};
