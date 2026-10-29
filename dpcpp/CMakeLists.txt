@@ -5,15 +5,32 @@ set(GINKGO_MKL_ROOT "${MKL_DIR}" PARENT_SCOPE)
 set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
-add_instantiation_files(${PROJECT_SOURCE_DIR}/common/unified matrix/dense_kernels.instantiate.cpp DENSE_INSTANTIATE)
-add_instantiation_files(. solver/batch_bicgstab_launch.instantiate.dp.cpp BATCH_BICGSTAB_INSTANTIATE)
-add_instantiation_files(. solver/batch_cg_launch.instantiate.dp.cpp BATCH_CG_INSTANTIATE)
+add_instantiation_files(
+    ${PROJECT_SOURCE_DIR}/common/unified
+    matrix/dense_kernels.instantiate.cpp
+    DENSE_INSTANTIATE
+)
+add_instantiation_files(
+    .
+    solver/batch_bicgstab_launch.instantiate.dp.cpp
+    BATCH_BICGSTAB_INSTANTIATE
+)
+add_instantiation_files(
+    .
+    solver/batch_cg_launch.instantiate.dp.cpp
+    BATCH_CG_INSTANTIATE
+)
 add_library(ginkgo_dpcpp $<TARGET_OBJECTS:ginkgo_dpcpp_device> "")
 target_sources(
     ginkgo_dpcpp
     PRIVATE
+        ${BATCH_BICGSTAB_INSTANTIATE}
+        ${BATCH_CG_INSTANTIATE}
+        ${DENSE_INSTANTIATE}
+        ${GKO_UNIFIED_COMMON_SOURCES}
         base/batch_multi_vector_kernels.dp.cpp
         base/device_matrix_data_kernels.dp.cpp
+        base/event_kernels.dp.cpp
         base/executor.dp.cpp
         base/helper.dp.cpp
         base/index_set_kernels.dp.cpp
@@ -29,9 +46,9 @@ target_sources(
         distributed/vector_kernels.dp.cpp
         factorization/cholesky_kernels.dp.cpp
         factorization/elimination_forest_kernels.dp.cpp
+        factorization/factorization_kernels.dp.cpp
         factorization/ic_kernels.dp.cpp
         factorization/ilu_kernels.dp.cpp
-        factorization/factorization_kernels.dp.cpp
         factorization/lu_kernels.dp.cpp
         factorization/par_ic_kernels.dp.cpp
         factorization/par_ict_kernels.dp.cpp
@@ -47,10 +64,10 @@ target_sources(
         matrix/batch_ell_kernels.dp.cpp
         matrix/coo_kernels.dp.cpp
         matrix/csr_kernels.dp.cpp
-        matrix/fbcsr_kernels.dp.cpp
         matrix/dense_kernels.dp.cpp
         matrix/diagonal_kernels.dp.cpp
         matrix/ell_kernels.dp.cpp
+        matrix/fbcsr_kernels.dp.cpp
         matrix/fft_kernels.dp.cpp
         matrix/sellp_kernels.dp.cpp
         matrix/sparsity_csr_kernels.dp.cpp
@@ -64,9 +81,7 @@ target_sources(
         preconditioner/sor_kernels.dp.cpp
         reorder/rcm_kernels.dp.cpp
         solver/batch_bicgstab_kernels.dp.cpp
-        ${BATCH_BICGSTAB_INSTANTIATE}
         solver/batch_cg_kernels.dp.cpp
-        ${BATCH_CG_INSTANTIATE}
         solver/cb_gmres_kernels.dp.cpp
         solver/idr_kernels.dp.cpp
         solver/lower_trs_kernels.dp.cpp
@@ -74,8 +89,6 @@ target_sources(
         solver/upper_trs_kernels.dp.cpp
         stop/criterion_kernels.dp.cpp
         stop/residual_norm_kernels.dp.cpp
-        ${GKO_UNIFIED_COMMON_SOURCES}
-        ${DENSE_INSTANTIATE}
 )
 
 # TODO: adjust it when dpcpp jacobi supports more block size
@@ -162,7 +175,10 @@ ginkgo_default_includes(ginkgo_dpcpp)
 ginkgo_install_library(ginkgo_dpcpp)
 
 if(GINKGO_CHECK_CIRCULAR_DEPS)
-    ginkgo_check_headers(ginkgo_dpcpp "GKO_COMPILING_DPCPP;GKO_DEVICE_NAMESPACE=dpcpp")
+    ginkgo_check_headers(
+        ginkgo_dpcpp
+        "GKO_COMPILING_DPCPP;GKO_DEVICE_NAMESPACE=dpcpp"
+    )
 endif()
 
 if(GINKGO_BUILD_TESTS)

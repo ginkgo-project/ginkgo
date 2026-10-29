@@ -750,6 +750,14 @@ Vector<ValueType>::create_real_view()
 
 
 template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_submatrix(
+    local_span rows, local_span columns, dim<2> global_size)
+{
+    return this->create_submatrix_impl(rows, columns, global_size);
+}
+
+
+template <typename ValueType>
 std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_same_config()
     const
 {
@@ -766,6 +774,15 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of_impl(
 {
     return Vector::create(exec, this->get_communicator(), global_size,
                           local_size, stride);
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_submatrix_impl(
+    local_span rows, local_span columns, dim<2> global_size)
+{
+    return Vector::create(this->get_executor(), this->get_communicator(),
+                          global_size, local_.create_submatrix(rows, columns));
 }
 
 

@@ -30,9 +30,9 @@ using mat_data = gko::matrix_data<etype, itype>;
 
 const char* operations_string =
     "Comma-separated list of operations to be benchmarked. Can be "
-    "spgemm, spgeam, transpose, sort, is_sorted, generate_lookup, "
-    "lookup, symbolic_lu, symbolic_lu_near_symm, symbolic_cholesky, "
-    "symbolic_cholesky_symmetric, reorder_rcm, "
+    "spgemm, spgemm_reuse, spgemm_reuse_setup, spgeam, transpose, sort, "
+    "is_sorted, generate_lookup, lookup, symbolic_lu, symbolic_lu_near_symm, "
+    "symbolic_cholesky, symbolic_cholesky_symmetric, reorder_rcm, "
 #if GKO_HAVE_METIS
     "reorder_nd, "
 #endif
@@ -85,7 +85,7 @@ struct SparseBlasBenchmark : Benchmark<std::unique_ptr<Mtx>> {
     {
         auto [data, local_size] = Generator::generate_matrix_data(test_case);
         reorder(data, test_case);
-        std::clog << "Matrix is of size (" << data.size[0] << ", "
+        std::cerr << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
         test_case["rows"] = data.size[0];
         test_case["cols"] = data.size[1];

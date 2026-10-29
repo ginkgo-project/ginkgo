@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -68,6 +68,8 @@ struct log_data final {
  */
 template <typename ValueType = default_precision>
 class BatchConvergence final : public gko::log::Logger {
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
+
 public:
     using real_type = remove_complex<ValueType>;
     using index_type = int;

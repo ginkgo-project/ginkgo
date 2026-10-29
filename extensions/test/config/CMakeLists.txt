@@ -5,7 +5,7 @@ if(NOT yaml-cpp_FOUND)
     FetchContent_Declare(
         yaml-cpp
         GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-        GIT_TAG 2f86d13775d119edbb69af52e5f566fd65c6953b
+        GIT_TAG bbf8bdb087bb3f3621ca0a5ace06047805f4e9f3
     )
 
     # Turn off additional tool in yaml-cpp
@@ -28,7 +28,11 @@ if(NOT yaml-cpp_FOUND)
     # We set the default to c++17 as Ginkgo
     set_target_properties(yaml-cpp PROPERTIES CXX_STANDARD 17)
 endif()
-ginkgo_create_test(json_config ADDITIONAL_LIBRARIES nlohmann_json::nlohmann_json)
+ginkgo_create_test(
+    json_config
+    ADDITIONAL_LIBRARIES
+    nlohmann_json::nlohmann_json
+)
 ginkgo_create_test(yaml_config ADDITIONAL_LIBRARIES yaml-cpp::yaml-cpp)
 
 # prepare the testing file and generate location

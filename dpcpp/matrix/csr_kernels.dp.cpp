@@ -21,6 +21,7 @@
 
 #include "accessor/sycl_helper.hpp"
 #include "core/base/array_access.hpp"
+#include "core/base/index_range.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/base/utils.hpp"
 #include "core/components/fill_array_kernels.hpp"
@@ -2188,6 +2189,155 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
 
 
 template <typename ValueType, typename IndexType>
+void spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
+                  const matrix::Csr<ValueType, IndexType>* a,
+                  const matrix::Csr<ValueType, IndexType>* b,
+                  const matrix::csr::lookup_data<IndexType>& c_lookup,
+                  matrix::Csr<ValueType, IndexType>* c)
+{
+    const auto num_rows = static_cast<IndexType>(c->get_size()[0]);
+    const auto a_row_ptrs = a->get_const_row_ptrs();
+    const auto b_row_ptrs = b->get_const_row_ptrs();
+    const auto c_row_ptrs = c->get_const_row_ptrs();
+    const auto a_cols = a->get_const_col_idxs();
+    const auto b_cols = b->get_const_col_idxs();
+    const auto c_cols = c->get_const_col_idxs();
+    const auto a_vals = as_device_type(a->get_const_values());
+    const auto b_vals = as_device_type(b->get_const_values());
+    const auto c_vals = as_device_type(c->get_values());
+    const auto lookup_storage_offsets =
+        c_lookup.storage_offsets.get_const_data();
+    const auto lookup_storage = c_lookup.storage.get_const_data();
+    const auto lookup_descs = c_lookup.row_descs.get_const_data();
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl::range<1>{static_cast<size_type>(num_rows)},
+            [=](sycl::id<1> idx) {
+                const auto row = static_cast<IndexType>(idx[0]);
+                const auto a_begin = a_row_ptrs[row];
+                const auto a_end = a_row_ptrs[row + 1];
+                const auto c_begin = c_row_ptrs[row];
+                const auto c_end = c_row_ptrs[row + 1];
+                const auto c_row_lookup =
+                    matrix::csr::device_sparsity_lookup<IndexType>{
+                        c_row_ptrs,
+                        c_cols,
+                        lookup_storage_offsets,
+                        lookup_storage,
+                        lookup_descs,
+                        static_cast<size_type>(row)};
+                for (auto nz = c_begin; nz < c_end; nz++) {
+                    c_vals[nz] = zero(c_vals[nz]);
+                }
+                for (const auto a_nz : irange{a_begin, a_end}) {
+                    const auto a_col = a_cols[a_nz];
+                    const auto a_val = a_vals[a_nz];
+                    const auto b_begin = b_row_ptrs[a_col];
+                    const auto b_end = b_row_ptrs[a_col + 1];
+                    for (const auto b_nz : irange{b_begin, b_end}) {
+                        const auto b_col = b_cols[b_nz];
+                        const auto b_val = b_vals[b_nz];
+                        const auto rel_nz = c_row_lookup.lookup_unsafe(b_col);
+                        GKO_ASSERT(rel_nz != invalid_index<IndexType>());
+                        c_vals[c_begin + rel_nz] += a_val * b_val;
+                    }
+                }
+            });
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SPGEMM_REUSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void advanced_spgemm_reuse(std::shared_ptr<const DefaultExecutor> exec,
+                           const matrix::Dense<ValueType>* alpha,
+                           const matrix::Csr<ValueType, IndexType>* a,
+                           const matrix::Csr<ValueType, IndexType>* b,
+                           const matrix::Dense<ValueType>* beta,
+                           const matrix::Csr<ValueType, IndexType>* d,
+                           const matrix::csr::lookup_data<IndexType>& c_lookup,
+                           matrix::Csr<ValueType, IndexType>* c)
+{
+    const auto num_rows = static_cast<IndexType>(c->get_size()[0]);
+    const auto a_row_ptrs = a->get_const_row_ptrs();
+    const auto b_row_ptrs = b->get_const_row_ptrs();
+    const auto c_row_ptrs = c->get_const_row_ptrs();
+    const auto d_row_ptrs = d->get_const_row_ptrs();
+    const auto a_cols = a->get_const_col_idxs();
+    const auto b_cols = b->get_const_col_idxs();
+    const auto c_cols = c->get_const_col_idxs();
+    const auto d_cols = d->get_const_col_idxs();
+    const auto a_vals = as_device_type(a->get_const_values());
+    const auto b_vals = as_device_type(b->get_const_values());
+    const auto c_vals = as_device_type(c->get_values());
+    const auto d_vals = as_device_type(d->get_const_values());
+    const auto palpha = as_device_type(alpha->get_const_values());
+    const auto pbeta = as_device_type(beta->get_const_values());
+    const auto lookup_storage_offsets =
+        c_lookup.storage_offsets.get_const_data();
+    const auto lookup_storage = c_lookup.storage.get_const_data();
+    const auto lookup_descs = c_lookup.row_descs.get_const_data();
+    exec->get_queue()->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl::range<1>{static_cast<size_type>(num_rows)},
+            [=](sycl::id<1> idx) {
+                const auto row = static_cast<IndexType>(idx[0]);
+                const auto a_begin = a_row_ptrs[row];
+                const auto a_end = a_row_ptrs[row + 1];
+                const auto c_begin = c_row_ptrs[row];
+                const auto c_end = c_row_ptrs[row + 1];
+                const auto d_begin = d_row_ptrs[row];
+                const auto d_end = d_row_ptrs[row + 1];
+                const auto valpha = *palpha;
+                const auto vbeta = *pbeta;
+                const auto c_row_lookup =
+                    matrix::csr::device_sparsity_lookup<IndexType>{
+                        c_row_ptrs,
+                        c_cols,
+                        lookup_storage_offsets,
+                        lookup_storage,
+                        lookup_descs,
+                        static_cast<size_type>(row)};
+                // Then scale by alpha
+                for (const auto c_nz : irange{c_begin, c_end}) {
+                    c_vals[c_nz] = zero(c_vals[c_nz]);
+                }
+                // compute A * B first
+                for (const auto a_nz : irange{a_begin, a_end}) {
+                    const auto a_col = a_cols[a_nz];
+                    const auto a_val = a_vals[a_nz];
+                    const auto b_begin = b_row_ptrs[a_col];
+                    const auto b_end = b_row_ptrs[a_col + 1];
+                    for (const auto b_nz : irange{b_begin, b_end}) {
+                        const auto b_col = b_cols[b_nz];
+                        const auto b_val = b_vals[b_nz];
+                        const auto rel_nz = c_row_lookup.lookup_unsafe(b_col);
+                        c_vals[c_begin + rel_nz] += a_val * b_val;
+                    }
+                }
+                // Then scale by alpha
+                for (const auto c_nz : irange{c_begin, c_end}) {
+                    c_vals[c_nz] *= valpha;
+                }
+                // Finally add beta * D
+                for (const auto d_nz : irange{d_begin, d_end}) {
+                    const auto d_col = d_cols[d_nz];
+                    const auto d_val = d_vals[d_nz];
+                    const auto rel_nz = c_row_lookup.lookup_unsafe(d_col);
+                    GKO_ASSERT(rel_nz != invalid_index<IndexType>());
+                    c_vals[c_begin + rel_nz] += vbeta * d_val;
+                }
+            });
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_ADVANCED_SPGEMM_REUSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
 void spgeam(std::shared_ptr<const DpcppExecutor> exec,
             const matrix::Dense<ValueType>* alpha,
             const matrix::Csr<ValueType, IndexType>* a,
@@ -2273,6 +2423,62 @@ void spgeam(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SPGEAM_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void spgeam_numeric(std::shared_ptr<const DpcppExecutor> exec,
+                    const matrix::Dense<ValueType>* alpha,
+                    const matrix::Csr<ValueType, IndexType>* a,
+                    const matrix::Dense<ValueType>* beta,
+                    const matrix::Csr<ValueType, IndexType>* b,
+                    matrix::Csr<ValueType, IndexType>* c)
+{
+    constexpr auto sentinel = std::numeric_limits<IndexType>::max();
+    const auto num_rows = a->get_size()[0];
+    const auto a_row_ptrs = a->get_const_row_ptrs();
+    const auto a_cols = a->get_const_col_idxs();
+    const auto a_vals = as_device_type(a->get_const_values());
+    const auto b_row_ptrs = b->get_const_row_ptrs();
+    const auto b_cols = b->get_const_col_idxs();
+    const auto b_vals = as_device_type(b->get_const_values());
+    const auto c_row_ptrs = c->get_row_ptrs();
+    const auto c_vals = as_device_type(c->get_values());
+    const auto alpha_vals = as_device_type(alpha->get_const_values());
+    const auto beta_vals = as_device_type(beta->get_const_values());
+    auto queue = exec->get_queue();
+
+    using device_value_type = device_type<ValueType>;
+    // count number of non-zeros per row
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(sycl::range<1>{num_rows}, [=](sycl::id<1> idx) {
+            const auto row = static_cast<size_type>(idx[0]);
+            auto a_idx = a_row_ptrs[row];
+            const auto a_end = a_row_ptrs[row + 1];
+            auto b_idx = b_row_ptrs[row];
+            const auto b_end = b_row_ptrs[row + 1];
+            const auto alpha = alpha_vals[0];
+            const auto beta = beta_vals[0];
+            auto c_nz = c_row_ptrs[row];
+            while (a_idx < a_end || b_idx < b_end) {
+                const auto a_col = checked_load(a_cols, a_idx, a_end, sentinel);
+                const auto b_col = checked_load(b_cols, b_idx, b_end, sentinel);
+                const bool use_a = a_col <= b_col;
+                const bool use_b = b_col <= a_col;
+                const auto a_val =
+                    use_a ? a_vals[a_idx] : zero<device_value_type>();
+                const auto b_val =
+                    use_b ? b_vals[b_idx] : zero<device_value_type>();
+                c_vals[c_nz] = alpha * a_val + beta * b_val;
+                c_nz++;
+                a_idx += use_a ? 1 : 0;
+                b_idx += use_b ? 1 : 0;
+            }
+        });
+    });
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_CSR_SPGEAM_NUMERIC_KERNEL);
 
 
 template <typename ValueType, typename IndexType>

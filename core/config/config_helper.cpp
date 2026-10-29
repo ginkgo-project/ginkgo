@@ -113,6 +113,17 @@ parse_minimal_criteria(const pnode& config, const registry& context,
 
     type_descriptor updated_td = update_type(config, td);
 
+    // Although it can still be caught in the following map, it gives consistent
+    // error exception when some keys are not allowed.
+    // We use additional scope such that we check it before the following map
+    // throw exception
+    {
+        config_check_decorator config_check(config);
+        for (const auto& it : criterion_map) {
+            config_check.get(it.first);
+        }
+    }
+
     std::vector<deferred_factory_parameter<const stop::CriterionFactory>> res;
     for (const auto& it : config.get_map()) {
         if (it.first == "value_type") {
@@ -147,6 +158,49 @@ parse_or_get_criteria(const pnode& config, const registry& context,
     GKO_INVALID_STATE(
         "Criteria must either be defined as a string, an array,"
         "or an map.");
+}
+
+config_check_decorator::config_check_decorator(
+    const pnode& config, const std::set<std::string>& additional_allowed_keys)
+    : allowed_keys_(additional_allowed_keys), config_(config)
+{
+    // we allow value_type in all class such that they can change their
+    // own/child value_type
+    allowed_keys_.insert("value_type");
+    // type for choose the class
+    allowed_keys_.insert("type");
+}
+
+
+config_check_decorator::~config_check_decorator() noexcept(false)
+{
+    if (config_.get_tag() != pnode::tag_t::map) {
+        // we only check the key in the map
+        return;
+    }
+    const auto& map = config_.get_map();
+    auto set_output = [](auto& set) {
+        std::string output = "[";
+        for (const auto& item : set) {
+            output = output + " " + item;
+        }
+        output += " ]";
+        return output;
+    };
+    for (const auto& item : map) {
+        auto search = allowed_keys_.find(item.first);
+        GKO_THROW_IF_INVALID(
+            search != allowed_keys_.end(),
+            item.first + " is not a allowed key. The allowed keys here is " +
+                set_output(allowed_keys_));
+    }
+}
+
+
+const pnode& config_check_decorator::get(const std::string& key)
+{
+    allowed_keys_.insert(key);
+    return config_.get(key);
 }
 
 }  // namespace config

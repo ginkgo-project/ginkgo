@@ -1,20 +1,25 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/log/profiler_hook.hpp"
 
+#include <complex>
 #include <memory>
 #include <mutex>
 #include <sstream>
 
 #include <ginkgo/core/base/name_demangling.hpp>
+#include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
+#include "core/base/dispatch_helper.hpp"
+#include "core/config/type_descriptor_helper.hpp"
 #include "core/log/profiler_hook.hpp"
-
 
 namespace gko {
 namespace log {
@@ -139,7 +144,8 @@ void ProfilerHook::on_linop_apply_started(const LinOp* A, const LinOp* b,
                                           const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "apply(" << stringify_object(A) << ")";
+    ss << "apply(" << stringify_object(A) << " * " << stringify_object(b)
+       << " = " << stringify_object(x) << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->begin_hook_("iteration", profile_event_category::solver);
@@ -151,7 +157,8 @@ void ProfilerHook::on_linop_apply_completed(const LinOp* A, const LinOp* b,
                                             const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "apply(" << stringify_object(A) << ")";
+    ss << "apply(" << stringify_object(A) << " * " << stringify_object(b)
+       << " = " << stringify_object(x) << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->end_hook_("iteration", profile_event_category::solver);
     }
@@ -166,7 +173,9 @@ void ProfilerHook::on_linop_advanced_apply_started(const LinOp* A,
                                                    const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "advanced_apply(" << stringify_object(A) << ")";
+    ss << "advanced_apply(" << stringify_object(alpha) << " * "
+       << stringify_object(A) << " * " << stringify_object(b) << " + "
+       << stringify_object(beta) << " * " << stringify_object(x) << ")";
     this->begin_hook_(ss.str().c_str(), profile_event_category::linop);
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->begin_hook_("iteration", profile_event_category::solver);
@@ -181,7 +190,9 @@ void ProfilerHook::on_linop_advanced_apply_completed(const LinOp* A,
                                                      const LinOp* x) const
 {
     std::stringstream ss;
-    ss << "advanced_apply(" << stringify_object(A) << ")";
+    ss << "advanced_apply(" << stringify_object(alpha) << " * "
+       << stringify_object(A) << " * " << stringify_object(b) << " + "
+       << stringify_object(beta) << " * " << stringify_object(x) << ")";
     if (dynamic_cast<const solver::IterativeBase*>(A)) {
         this->end_hook_("iteration", profile_event_category::solver);
     }

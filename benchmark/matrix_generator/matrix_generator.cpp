@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -101,7 +101,7 @@ int main(int argc, char* argv[])
         "matrices.\n";
     initialize_argument_parsing(&argc, &argv, header, input_format);
 
-    std::clog << gko::version_info::get() << std::endl;
+    std::cerr << gko::version_info::get() << std::endl;
 
     auto engine = get_engine();
     auto configurations = json::parse(get_input_stream());
@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
     for (auto& config : configurations) {
         try {
             validate_option_object(config);
-            std::clog << "Generating matrix: " << config << std::endl;
+            std::cerr << "Generating matrix: " << config << std::endl;
             auto filename = config["filename"].get<std::string>();
             auto type = config["problem"]["type"].get<std::string>();
             auto mdata = generator[type](config["problem"], engine);

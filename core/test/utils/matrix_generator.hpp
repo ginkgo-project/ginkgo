@@ -663,8 +663,10 @@ gko::matrix_data<ValueType, IndexType> generate_tridiag_inverse_matrix_data(
                 // complex<half>. We use the float variant to help it, also for
                 // half.
                 using pow_type = std::conditional_t<
-                    std::is_same<gko::remove_complex<ValueType>,
-                                 gko::float16>::value,
+                    std::is_same_v<gko::remove_complex<ValueType>,
+                                   gko::float16> ||
+                        std::is_same_v<gko::remove_complex<ValueType>,
+                                       gko::bfloat16>,
                     std::conditional_t<gko::is_complex<ValueType>(),
                                        std::complex<float>, float>,
                     ValueType>;

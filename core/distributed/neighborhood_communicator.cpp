@@ -74,10 +74,8 @@ communicator create_neighborhood_comm(
     MPI_Info info;
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_dup(MPI_INFO_ENV, &info));
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Dist_graph_create_adjacent(
-        base.get(), in_degree, sources.data(),
-        in_degree ? MPI_UNWEIGHTED : MPI_WEIGHTS_EMPTY, out_degree,
-        destinations.data(), out_degree ? MPI_UNWEIGHTED : MPI_WEIGHTS_EMPTY,
-        info, false, &graph_comm));
+        base.get(), in_degree, sources.data(), MPI_UNWEIGHTED, out_degree,
+        destinations.data(), MPI_UNWEIGHTED, info, false, &graph_comm));
     GKO_ASSERT_NO_MPI_ERRORS(MPI_Info_free(&info));
 
     return communicator::create_owning(graph_comm, base.force_host_buffer());

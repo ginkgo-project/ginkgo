@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -75,6 +75,7 @@ enum class storage_type {
 template <typename ValueType, typename IndexType>
 class Factorization : public EnableLinOp<Factorization<ValueType, IndexType>> {
     friend class EnablePolymorphicObject<Factorization, LinOp>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using value_type = ValueType;

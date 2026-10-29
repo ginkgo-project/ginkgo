@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -124,6 +124,7 @@ struct matrix_data_entry {
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
 struct matrix_data {
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
     using value_type = ValueType;
     using index_type = IndexType;
     using nonzero_type = matrix_data_entry<value_type, index_type>;

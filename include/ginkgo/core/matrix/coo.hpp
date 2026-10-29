@@ -69,6 +69,7 @@ class Coo : public EnableLinOp<Coo<ValueType, IndexType>>,
     friend class CooBuilder<ValueType, IndexType>;
     friend class Coo<to_complex<ValueType>, IndexType>;
     friend class Hybrid<ValueType, IndexType>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using EnableLinOp<Coo>::convert_to;

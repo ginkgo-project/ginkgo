@@ -1,8 +1,10 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include "ginkgo/core/solver/gcr.hpp"
+
+#include <string>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
@@ -14,12 +16,11 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
+#include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"
 #include "core/solver/solver_boilerplate.hpp"
-
-
 namespace gko {
 namespace solver {
 namespace gcr {
@@ -41,10 +42,12 @@ typename Gcr<ValueType>::parameters_type Gcr<ValueType>::parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = solver::Gcr<ValueType>::build();
-    common_solver_parse(params, config, context, td_for_child);
-    if (auto& obj = config.get("krylov_dim")) {
-        params.with_krylov_dim(gko::config::get_value<size_type>(obj));
+    config::config_check_decorator config_check(config);
+    config::common_solver_parse(params, config_check, context, td_for_child);
+    if (auto& obj = config_check.get("krylov_dim")) {
+        params.with_krylov_dim(config::get_value<size_type>(obj));
     }
+
     return params;
 }
 
@@ -225,21 +228,19 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
             restart_iter = 0;
         }
 
-        auto Ap = ::gko::detail::create_submatrix_helper(
-            mapped_krylov_bases_Ap, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * restart_iter,
-                 local_num_rows * (restart_iter + 1)},
-            span{0, num_rhs});
-        auto p = ::gko::detail::create_submatrix_helper(
-            krylov_bases_p, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * restart_iter,
-                 local_num_rows * (restart_iter + 1)},
-            span{0, num_rhs});
+        auto Ap = mapped_krylov_bases_Ap->create_submatrix(
+            local_span{local_num_rows * restart_iter,
+                       local_num_rows * (restart_iter + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+        auto p = krylov_bases_p->create_submatrix(
+            local_span{local_num_rows * restart_iter,
+                       local_num_rows * (restart_iter + 1)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         // compute r*Ap
         residual->compute_conj_dot(Ap.get(), tmp_rAp, reduction_tmp);
         // normalise
         auto Ap_norm = Ap_norms->create_submatrix(
-            span{restart_iter, restart_iter + 1}, span{0, num_rhs});
+            local_span{restart_iter, restart_iter + 1}, local_span{0, num_rhs});
         Ap->compute_squared_norm2(Ap_norm.get(), reduction_tmp);
 
         // alpha = r*Ap / Ap_norm
@@ -259,31 +260,27 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->get_system_matrix()->apply(precon_residual, A_precon_residual);
 
         // modified Gram-Schmidt
-        auto next_Ap = ::gko::detail::create_submatrix_helper(
-            mapped_krylov_bases_Ap, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * (restart_iter + 1),
-                 local_num_rows * (restart_iter + 2)},
-            span{0, num_rhs});
-        auto next_p = ::gko::detail::create_submatrix_helper(
-            krylov_bases_p, dim<2>{num_rows, num_rhs},
-            span{local_num_rows * (restart_iter + 1),
-                 local_num_rows * (restart_iter + 2)},
-            span{0, num_rhs});
+        auto next_Ap = mapped_krylov_bases_Ap->create_submatrix(
+            local_span{local_num_rows * (restart_iter + 1),
+                       local_num_rows * (restart_iter + 2)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+        auto next_p = krylov_bases_p->create_submatrix(
+            local_span{local_num_rows * (restart_iter + 1),
+                       local_num_rows * (restart_iter + 2)},
+            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         // Ap = Ar
         // p = r
         next_Ap->copy_from(A_precon_residual);
         next_p->copy_from(precon_residual);
         for (size_type i = 0; i <= restart_iter; ++i) {
-            Ap = ::gko::detail::create_submatrix_helper(
-                mapped_krylov_bases_Ap, dim<2>{num_rows, num_rhs},
-                span{local_num_rows * i, local_num_rows * (i + 1)},
-                span{0, num_rhs});
-            p = ::gko::detail::create_submatrix_helper(
-                krylov_bases_p, dim<2>{num_rows, num_rhs},
-                span{local_num_rows * i, local_num_rows * (i + 1)},
-                span{0, num_rhs});
-            Ap_norm =
-                Ap_norms->create_submatrix(span{i, i + 1}, span{0, num_rhs});
+            Ap = mapped_krylov_bases_Ap->create_submatrix(
+                local_span{local_num_rows * i, local_num_rows * (i + 1)},
+                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+            p = krylov_bases_p->create_submatrix(
+                local_span{local_num_rows * i, local_num_rows * (i + 1)},
+                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+            Ap_norm = Ap_norms->create_submatrix(local_span{i, i + 1},
+                                                 local_span{0, num_rhs});
             // tmp_minus_beta = -beta = Ar*Ap/Ap*Ap
             A_precon_residual->compute_conj_dot(Ap.get(), tmp_minus_beta,
                                                 reduction_tmp);

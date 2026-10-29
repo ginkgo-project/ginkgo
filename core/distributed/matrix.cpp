@@ -37,7 +37,7 @@ GKO_REGISTER_OPERATION(separate_local_nonlocal,
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<const Executor> exec, mpi::communicator comm)
-    : Matrix(exec, comm,
+    : Matrix(exec, RowGatherer<LocalIndexType>::create(exec, comm),
              gko::matrix::Csr<ValueType, LocalIndexType>::create(exec),
              gko::matrix::Csr<ValueType, LocalIndexType>::create(exec))
 {}
@@ -45,12 +45,13 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
 Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    std::shared_ptr<const Executor> exec, mpi::communicator comm,
+    std::shared_ptr<const Executor> exec,
+    std::shared_ptr<const RowGatherer<LocalIndexType>> row_gather_template,
     ptr_param<const LinOp> local_matrix_template,
     ptr_param<const LinOp> non_local_matrix_template)
     : EnableLinOp<Matrix>{exec},
-      DistributedBase{comm},
-      row_gatherer_{RowGatherer<LocalIndexType>::create(exec, comm)},
+      DistributedBase{row_gather_template->get_communicator()},
+      row_gatherer_{row_gather_template->clone(exec)},
       imap_{exec},
       one_scalar_{exec, 1.0},
       local_mtx_{local_matrix_template->clone(exec)},
@@ -70,7 +71,8 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<LinOp> local_linop)
     : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
-      row_gatherer_{RowGatherer<LocalIndexType>::create(exec, comm)},
+      row_gatherer_{RowGatherer<LocalIndexType>::create(
+          exec, mpi::detail::create_default_collective_communicator(comm))},
       imap_{exec},
       one_scalar_{exec, 1.0},
       non_local_mtx_(::gko::matrix::Coo<ValueType, LocalIndexType>::create(
@@ -87,19 +89,17 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
     std::shared_ptr<LinOp> local_linop, std::shared_ptr<LinOp> non_local_linop)
     : EnableLinOp<Matrix>{exec},
       DistributedBase{comm},
-      row_gatherer_(RowGatherer<LocalIndexType>::create(exec, comm)),
+      row_gatherer_(RowGatherer<LocalIndexType>::create(
+          exec,
+          mpi::detail::create_default_collective_communicator(comm)
+              ->create_with_same_type(comm, &imap),
+          imap)),
       imap_(std::move(imap)),
       one_scalar_{exec, 1.0}
 {
     this->set_size({imap_.get_global_size(), imap_.get_global_size()});
     local_mtx_ = std::move(local_linop);
     non_local_mtx_ = std::move(non_local_linop);
-
-    row_gatherer_ = RowGatherer<LocalIndexType>::create(
-        row_gatherer_->get_executor(),
-        row_gatherer_->get_collective_communicator()->create_with_same_type(
-            comm, &imap_),
-        imap_);
 }
 
 
@@ -129,8 +129,11 @@ Matrix<ValueType, LocalIndexType, GlobalIndexType>::create(
     ptr_param<const LinOp> local_matrix_template,
     ptr_param<const LinOp> non_local_matrix_template)
 {
-    return std::unique_ptr<Matrix>{new Matrix{exec, comm, local_matrix_template,
-                                              non_local_matrix_template}};
+    return std::unique_ptr<Matrix>{new Matrix{
+        exec,
+        RowGatherer<LocalIndexType>::create(
+            exec, mpi::detail::create_default_collective_communicator(comm)),
+        local_matrix_template, non_local_matrix_template}};
 }
 
 
@@ -471,17 +474,36 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                                 ? host_recv_vector.get()
                                 : recv_vector.get();
-            auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
-            local_mtx_->apply(dense_b->get_local_vector(), local_x);
-            req.wait();
+            if (dense_b->get_executor() ==
+                dense_b->get_executor()->get_master()) {
+                // reference and omp executor does not have event, so we still
+                // submit the mpi first.
+                auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
+                local_mtx_->apply(dense_b->get_local_vector(), local_x);
+                req.wait();
+            } else {
+                // we use event here such that we can submit spmv job first
+                // without waiting for synchronization from the row gatherer.
+                auto ev = this->row_gatherer_->apply_prepare(dense_b);
+                local_mtx_->apply(dense_b->get_local_vector(), local_x);
+                auto req =
+                    this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
+                req.wait();
+            }
 
             if (recv_ptr != recv_vector.get()) {
                 recv_vector->copy_from(host_recv_vector);
             }
-            non_local_mtx_->apply(
-                one_scalar_.template get<ValueType>().get(),
-                recv_vector->get_local_vector(),
-                one_scalar_.template get<x_value_type>().get(), local_x);
+            if (auto coo = std::dynamic_pointer_cast<
+                    const ::gko::matrix::Coo<ValueType, LocalIndexType>>(
+                    non_local_mtx_)) {
+                coo->apply2(recv_vector->get_local_vector(), local_x);
+            } else {
+                non_local_mtx_->apply(
+                    one_scalar_.template get<ValueType>().get(),
+                    recv_vector->get_local_vector(),
+                    one_scalar_.template get<x_value_type>().get(), local_x);
+            }
         },
         b, x);
 }
@@ -518,17 +540,40 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::apply_impl(
             auto recv_ptr = mpi::requires_host_buffer(exec, comm)
                                 ? host_recv_vector.get()
                                 : recv_vector.get();
-            auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
-            local_mtx_->apply(local_alpha.get(), dense_b->get_local_vector(),
-                              local_beta.get(), local_x);
-            req.wait();
+            if (dense_b->get_executor() ==
+                dense_b->get_executor()->get_master()) {
+                // reference and omp executor does not have event, so we still
+                // submit the mpi first.
+                auto req = this->row_gatherer_->apply_async(dense_b, recv_ptr);
+                local_mtx_->apply(local_alpha.get(),
+                                  dense_b->get_local_vector(), local_beta.get(),
+                                  local_x);
+                req.wait();
+            } else {
+                // we use event here such that we can submit spmv job first
+                // without waiting for synchronization from the row gatherer.
+                auto ev = this->row_gatherer_->apply_prepare(dense_b);
+                local_mtx_->apply(local_alpha.get(),
+                                  dense_b->get_local_vector(), local_beta.get(),
+                                  local_x);
+                auto req =
+                    this->row_gatherer_->apply_finalize(dense_b, recv_ptr, ev);
+                req.wait();
+            }
 
             if (recv_ptr != recv_vector.get()) {
                 recv_vector->copy_from(host_recv_vector);
             }
-            non_local_mtx_->apply(
-                local_alpha.get(), recv_vector->get_local_vector(),
-                one_scalar_.template get<x_value_type>().get(), local_x);
+            if (auto coo = std::dynamic_pointer_cast<
+                    const ::gko::matrix::Coo<ValueType, LocalIndexType>>(
+                    non_local_mtx_)) {
+                coo->apply2(local_alpha.get(), recv_vector->get_local_vector(),
+                            local_x);
+            } else {
+                non_local_mtx_->apply(
+                    local_alpha.get(), recv_vector->get_local_vector(),
+                    one_scalar_.template get<x_value_type>().get(), local_x);
+            }
         },
         b, x);
 }
@@ -566,9 +611,23 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::col_scale(
                         ? host_recv_vector.get()
                         : recv_vector.get();
 
-    auto req = row_gatherer_->apply_async(scaling_factors_ptr, recv_ptr);
-    scale_diag->rapply(local_mtx_, local_mtx_);
-    req.wait();
+    if (scaling_factors->get_executor() ==
+        scaling_factors->get_executor()->get_master()) {
+        // reference and omp executor does not have event, so we still
+        // submit the mpi first.
+        auto req =
+            this->row_gatherer_->apply_async(scaling_factors_ptr, recv_ptr);
+        scale_diag->rapply(local_mtx_, local_mtx_);
+        req.wait();
+    } else {
+        // we use event here such that we can submit local matrix scaling job
+        // first without waiting for synchronization from the row gatherer.
+        auto ev = this->row_gatherer_->apply_prepare(scaling_factors_ptr);
+        scale_diag->rapply(local_mtx_, local_mtx_);
+        auto req = this->row_gatherer_->apply_finalize(scaling_factors_ptr,
+                                                       recv_ptr, ev);
+        req.wait();
+    }
     if (n_non_local_cols > 0) {
         if (recv_ptr != recv_vector.get()) {
             recv_vector->copy_from(host_recv_vector);

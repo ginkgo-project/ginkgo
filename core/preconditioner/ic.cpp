@@ -24,18 +24,21 @@ typename Ic::parameters_type ic_parse(
     const config::type_descriptor& td_for_child)
 {
     auto params = Ic::build();
+    config::config_check_decorator config_check(config);
+
     using l_solver_type = typename Ic::l_solver_type;
     static_assert(std::is_same_v<l_solver_type, LinOp>,
                   "only support IC parse when l_solver_type is LinOp.");
-    if (auto& obj = config.get("l_solver")) {
+
+    if (auto& obj = config_check.get("l_solver")) {
         params.with_l_solver(
             gko::config::parse_or_get_factory<const LinOpFactory>(
                 obj, context, td_for_child));
     }
-    if (auto& obj = config.get("factorization")) {
+    if (auto& obj = config_check.get("factorization")) {
         params.with_factorization(
-            gko::config::parse_or_get_factory<const LinOpFactory>(
-                obj, context, td_for_child));
+            config::parse_or_get_factory<const LinOpFactory>(obj, context,
+                                                             td_for_child));
     }
 
     return params;

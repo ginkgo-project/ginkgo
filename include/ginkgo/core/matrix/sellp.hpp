@@ -60,6 +60,7 @@ class Sellp
     friend class Dense<ValueType>;
     friend class Csr<ValueType, IndexType>;
     friend class Sellp<to_complex<ValueType>, IndexType>;
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
     using EnableLinOp<Sellp>::convert_to;

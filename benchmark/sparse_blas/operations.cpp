@@ -145,8 +145,7 @@ public:
     std::pair<bool, double> validate() const override
     {
         auto ref = gko::ReferenceExecutor::create();
-        auto correct = Mtx::create(ref, mtx_out_->get_size());
-        gko::make_temporary_clone(ref, mtx_)->apply(mtx2_, correct);
+        auto correct = gko::make_temporary_clone(ref, mtx_)->multiply(mtx2_);
         return validate_result(correct, mtx_out_);
     }
 
@@ -179,19 +178,46 @@ public:
                (sizeof(etype) + sizeof(itype));
     }
 
-    void prepare() override
-    {
-        mtx_out_ =
-            Mtx::create(mtx_->get_executor(),
-                        gko::dim<2>{mtx_->get_size()[0], mtx2_->get_size()[1]});
-    }
+    void prepare() override {}
 
-    void run() override { mtx_->apply(mtx2_, mtx_out_); }
+    void run() override { mtx_out_ = mtx_->multiply(mtx2_); }
 
-private:
+protected:
     const Mtx* mtx_;
     std::unique_ptr<Mtx> mtx2_;
     std::unique_ptr<Mtx> mtx_out_;
+};
+
+
+class SpgemmReuseSetupOperation : public SpgemmOperation {
+public:
+    using SpgemmOperation::SpgemmOperation;
+
+    void prepare() override {}
+
+    void run() override
+    {
+        std::tie(mtx_out_, reuse_) = mtx_->multiply_reuse(mtx2_);
+    }
+
+protected:
+    Mtx::multiply_reuse_info reuse_;
+};
+
+
+class SpgemmReuseOperation : public SpgemmOperation {
+public:
+    using SpgemmOperation::SpgemmOperation;
+
+    void prepare() override
+    {
+        std::tie(mtx_out_, reuse_) = mtx_->multiply_reuse(mtx2_);
+    }
+
+    void run() override { reuse_.update_values(mtx_, mtx2_, mtx_out_); }
+
+protected:
+    Mtx::multiply_reuse_info reuse_;
 };
 
 
@@ -244,9 +270,9 @@ public:
                (sizeof(etype) + sizeof(itype));
     }
 
-    void prepare() override { mtx_out_ = mtx2_->clone(); }
+    void prepare() override {}
 
-    void run() override { mtx_->apply(scalar_, id_, scalar_, mtx_out_); }
+    void run() override { mtx_out_ = mtx_->scale_add(scalar_, scalar_, mtx2_); }
 
 private:
     const Mtx* mtx_;
@@ -772,6 +798,14 @@ const std::map<std::string,
     operation_map{
         {"spgemm",
          [](const Mtx* mtx) { return std::make_unique<SpgemmOperation>(mtx); }},
+        {"spgemm_reuse",
+         [](const Mtx* mtx) {
+             return std::make_unique<SpgemmReuseOperation>(mtx);
+         }},
+        {"spgemm_reuse_setup",
+         [](const Mtx* mtx) {
+             return std::make_unique<SpgemmReuseSetupOperation>(mtx);
+         }},
         {"spgeam",
          [](const Mtx* mtx) { return std::make_unique<SpgeamOperation>(mtx); }},
         {"transpose",

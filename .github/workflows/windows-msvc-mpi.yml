@@ -1,0 +1,65 @@
+name: Windows-MSVC-MPI (compile-only)
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'develop'
+      - 'release/**'
+    tags:
+      - '**'
+  pull_request:
+    types: [opened,synchronize]
+    paths-ignore:
+      - 'doc/**'
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  windows_mpi:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {version: "latest", name: "mpi-latest/release/shared", "mixed": "OFF"}
+    name: msvc/${{ matrix.config.name }} (only compile)
+    runs-on: [windows-2022]
+
+    steps:
+    - name: Checkout the latest code (shallow clone)
+      uses: actions/checkout@v4
+    - name: Setup MPI
+      uses: mpi4py/setup-mpi@v1
+      with:
+          mpi: intelmpi
+    - name: setup (versioned)
+      if: matrix.config.version != 'latest'
+      run: |
+        choco install cuda --version=${{ matrix.config.version }} -y
+    - name: setup (latest)
+      if: matrix.config.version == 'latest'
+      run: |
+        choco install cuda -y
+    - name: Debug over SSH (tmate)
+      uses: mxschmitt/action-tmate@v3.5
+      if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+      with:
+        limit-access-to-actor: true
+
+    - name: configure
+      run: |
+        $env:ChocolateyInstall = Convert-Path "$((Get-Command choco).Path)\..\.."
+        Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+        refreshenv
+        mkdir build
+        cd build
+        cmake -DGINKGO_BUILD_MPI=ON -DGINKGO_BUILD_OMP=OFF -DGINKGO_BUILD_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=75 -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_ENABLE_HALF=OFF -DGINKGO_ENABLE_BFLOAT16=OFF ..
+        cmake --build . -j4 --config Release

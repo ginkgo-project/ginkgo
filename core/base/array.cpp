@@ -92,6 +92,7 @@ ValueType reduce_add(const array<ValueType>& input_arr,
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_ARRAY_FILL);
 template GKO_DECLARE_ARRAY_FILL(bool);
+template GKO_DECLARE_ARRAY_FILL(char);
 template GKO_DECLARE_ARRAY_FILL(uint16);
 template GKO_DECLARE_ARRAY_FILL(uint32);
 #ifndef GKO_SIZE_T_IS_UINT64_T

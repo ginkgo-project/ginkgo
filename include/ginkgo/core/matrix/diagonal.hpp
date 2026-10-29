@@ -58,6 +58,7 @@ class Diagonal
     friend class Csr<ValueType, int32>;
     friend class Csr<ValueType, int64>;
     friend class Diagonal<to_complex<ValueType>>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using EnableLinOp<Diagonal>::convert_to;

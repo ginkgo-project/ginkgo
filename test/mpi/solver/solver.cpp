@@ -26,6 +26,7 @@
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
 #include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
 #include "core/test/utils.hpp"
@@ -98,6 +99,16 @@ struct SimpleSolverTest {
 
 
 struct Cg : SimpleSolverTest<gko::solver::Cg<solver_value_type>> {
+    static void preprocess(
+        gko::matrix_data<value_type, global_index_type>& data)
+    {
+        // make sure the matrix is well-conditioned
+        gko::utils::make_hpd(data, 1.5);
+    }
+};
+
+
+struct PipeCg : SimpleSolverTest<gko::solver::PipeCg<solver_value_type>> {
     static void preprocess(
         gko::matrix_data<value_type, global_index_type>& data)
     {
@@ -529,7 +540,8 @@ using SolverTypes =
                      Gmres<10u, gko::solver::gmres::ortho_method::mgs>,
                      Gmres<10u, gko::solver::gmres::ortho_method::cgs>,
                      Gmres<10u, gko::solver::gmres::ortho_method::cgs2>,
-                     Gmres<100u, gko::solver::gmres::ortho_method::mgs>>;
+                     Gmres<100u, gko::solver::gmres::ortho_method::mgs>,
+                     PipeCg>;
 
 TYPED_TEST_SUITE(Solver, SolverTypes, TypenameNameGenerator);
 

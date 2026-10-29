@@ -6,6 +6,8 @@
 
 #include <mpi.h>
 
+#include <ginkgo/core/distributed/dense_communicator.hpp>
+
 
 namespace gko {
 namespace experimental {
@@ -32,6 +34,17 @@ request CollectiveCommunicator::i_all_to_all_v(
 }
 
 
+namespace detail {
+
+
+std::shared_ptr<CollectiveCommunicator> create_default_collective_communicator(
+    communicator base)
+{
+    return std::make_shared<DenseCommunicator>(base);
+}
+
+
+}  // namespace detail
 }  // namespace mpi
 }  // namespace experimental
 }  // namespace gko

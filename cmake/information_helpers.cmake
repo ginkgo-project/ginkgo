@@ -56,7 +56,8 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                     INTERFACE_LINK_OPTIONS
                 )
                 if(GINKGO_INTERFACE_LIBS_LINK_FLAGS)
-                    filter_generator_expressions("${GINKGO_INTERFACE_LIBS_LINK_FLAGS}"
+                    filter_generator_expressions(
+                        "${GINKGO_INTERFACE_LIBS_LINK_FLAGS}"
                         GINKGO_INTERFACE_LIB_NAME
                     )
                 endif()
@@ -100,7 +101,10 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                     INTERFACE_INCLUDE_DIRECTORIES
                 )
                 foreach(_incs ${GINKGO_LIBS_INTERFACE_INCS})
-                    filter_generator_expressions("${_incs}" GINKGO_INTERFACE_INC_FILTERED)
+                    filter_generator_expressions(
+                        "${_incs}"
+                        GINKGO_INTERFACE_INC_FILTERED
+                    )
                     if(
                         GINKGO_INTERFACE_INC_FILTERED
                         AND NOT "-I${GINKGO_INTERFACE_INC_FILTERED}"
@@ -135,7 +139,10 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                     "${_lib}"
                     INTERFACE_COMPILE_OPTIONS
                 )
-                filter_generator_expressions("${GINKGO_LIBS_INTERFACE_OPTS}" GINKGO_LIBS_INTERFACE_OPTS_FILTERED)
+                filter_generator_expressions(
+                    "${GINKGO_LIBS_INTERFACE_OPTS}"
+                    GINKGO_LIBS_INTERFACE_OPTS_FILTERED
+                )
                 if(GINKGO_LIBS_INTERFACE_OPTS)
                     list(
                         APPEND
@@ -156,7 +163,9 @@ macro(ginkgo_interface_libraries_recursively INTERFACE_LIBS)
                     TRANSFORM GINKGO_LIBS_INTERFACE_LIBS
                     REPLACE "\\$<LINK_ONLY:(.*)>" "\\1"
                 )
-                ginkgo_interface_libraries_recursively("${GINKGO_LIBS_INTERFACE_LIBS}")
+                ginkgo_interface_libraries_recursively(
+                    "${GINKGO_LIBS_INTERFACE_LIBS}"
+                )
                 unset(GINKGO_LIBS_INTERFACE_LIBS)
             elseif(EXISTS "${_lib}")
                 list(APPEND GINKGO_INTERFACE_LIBS_FOUND "${_lib}")

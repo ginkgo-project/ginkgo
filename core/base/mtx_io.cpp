@@ -13,11 +13,15 @@
 #include <string>
 #include <type_traits>
 
+#include <ginkgo/config.hpp>
 #include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/half.hpp>
+#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/utils.hpp>
+
+#include "core/base/dispatch_helper.hpp"
 
 
 namespace gko {
@@ -1003,6 +1007,45 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WRITE_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_BINARY_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_WRITE_BINARY_RAW);
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_READ_GENERIC_RAW);
+
+
+void write(std::ostream& os, ptr_param<const LinOp> matrix)
+{
+    auto op = matrix.get();
+    run<
+#if GINKGO_ENABLE_HALF
+        gko::WritableToMatrixData<gko::float16, int32>,
+        gko::WritableToMatrixData<std::complex<gko::float16>, int32>,
+        gko::WritableToMatrixData<gko::float16, int64>,
+        gko::WritableToMatrixData<std::complex<gko::float16>, int64>,
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+        gko::WritableToMatrixData<gko::bfloat16, int32>,
+        gko::WritableToMatrixData<std::complex<gko::bfloat16>, int32>,
+        gko::WritableToMatrixData<gko::bfloat16, int64>,
+        gko::WritableToMatrixData<std::complex<gko::bfloat16>, int64>,
+#endif
+        gko::WritableToMatrixData<double, int32>,
+        gko::WritableToMatrixData<float, int32>,
+        gko::WritableToMatrixData<std::complex<double>, int32>,
+        gko::WritableToMatrixData<std::complex<float>, int32>,
+        gko::WritableToMatrixData<double, int64>,
+        gko::WritableToMatrixData<float, int64>,
+        gko::WritableToMatrixData<std::complex<double>, int64>,
+        gko::WritableToMatrixData<std::complex<float>, int64>>(
+        op, [&](auto writer) {
+            using type = std::decay_t<decltype(*writer)>;
+            matrix_data<typename type::value_type, typename type::index_type>
+                mat_data;
+            writer->write(mat_data);
+            // simple rule to decide array or coordinate format
+            auto layout = mat_data.nonzeros.size() >=
+                                  mat_data.size[0] * mat_data.size[1] / 4
+                              ? layout_type::array
+                              : layout_type::coordinate;
+            write_raw(os, mat_data, layout);
+        });
+}
 
 
 }  // namespace gko

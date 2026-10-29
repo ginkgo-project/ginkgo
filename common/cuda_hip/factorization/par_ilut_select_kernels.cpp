@@ -119,7 +119,7 @@ void threshold_select(std::shared_ptr<const DefaultExecutor> exec,
                            partial_counts, total_counts);
         auto new_bucket = sampleselect_find_bucket(exec, total_counts, rank);
         sampleselect_filter(exec, tmp_in, bucket.size, oracles, partial_counts,
-                            bucket.idx, tmp_out);
+                            new_bucket.idx, tmp_out);
 
         rank -= new_bucket.begin;
         bucket.size = new_bucket.size;

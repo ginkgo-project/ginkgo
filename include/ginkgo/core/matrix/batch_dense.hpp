@@ -56,6 +56,7 @@ class Dense final : public EnableBatchLinOp<Dense<ValueType>>,
     friend class EnablePolymorphicObject<Dense, BatchLinOp>;
     friend class Dense<to_complex<ValueType>>;
     friend class Dense<previous_precision<ValueType>>;
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
     using EnableBatchLinOp<Dense>::convert_to;

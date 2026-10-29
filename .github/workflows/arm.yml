@@ -1,0 +1,67 @@
+name: ARM-build
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'master'
+      - 'develop'
+      - 'release/**'
+    tags:
+      - '**'
+  pull_request:
+    types: [opened,synchronize]
+    paths-ignore:
+      - 'doc/**'
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
+        required: false
+        default: false
+
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  arm-omp:
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {shared: "ON", build_type: "Debug", name: "arm/omp/debug/shared", mixed: "OFF", half: "ON", bfloat16: "OFF"}
+          - {shared: "OFF", build_type: "Release", name: "arm/omp/release/static", mixed: "ON", half: "ON", bfloat16: "OFF"}
+          - {shared: "ON", build_type: "Release", name: "arm/omp/release/shared", mixed: "ON", half: "OFF", bfloat16: "ON"}
+          - {shared: "ON", build_type: "Release", name: "arm/omp/release/shared-16bit", mixed: "ON", half: "ON", bfloat16: "ON"}
+    name: ${{ matrix.config.name }}
+    runs-on: [ubuntu-24.04-arm]
+
+    steps:
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v4
+
+      - name: info
+        run: |
+          g++ -v
+          cmake --version
+
+      - name: Debug over SSH (tmate)
+        uses: mxschmitt/action-tmate@v3.5
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
+
+      - name: configure
+        run: |
+          mkdir build
+          mkdir install
+          export INSTALL_PREFIX=`pwd`/install
+          cd build
+          cmake .. -DCMAKE_CXX_FLAGS="-Wpedantic -ffp-contract=off" -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_ENABLE_HALF=${{ matrix.config.half }} -DGINKGO_ENABLE_BFLOAT16=${{ matrix.config.bfloat16 }}
+          make -j4
+          ctest -j4 --output-on-failure
+
+      - name: install
+        run: |
+          cd build
+          make install
+          make test_install

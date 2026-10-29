@@ -5,11 +5,13 @@
 #include "ginkgo/core/matrix/csr.hpp"
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/index_set.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/temporary_clone.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -45,7 +47,10 @@ GKO_REGISTER_OPERATION(spmv, csr::spmv);
 GKO_REGISTER_OPERATION(advanced_spmv, csr::advanced_spmv);
 GKO_REGISTER_OPERATION(spgemm, csr::spgemm);
 GKO_REGISTER_OPERATION(advanced_spgemm, csr::advanced_spgemm);
+GKO_REGISTER_OPERATION(spgemm_reuse, csr::spgemm_reuse);
+GKO_REGISTER_OPERATION(advanced_spgemm_reuse, csr::advanced_spgemm_reuse);
 GKO_REGISTER_OPERATION(spgeam, csr::spgeam);
+GKO_REGISTER_OPERATION(spgeam_numeric, csr::spgeam_numeric);
 GKO_REGISTER_OPERATION(convert_idxs_to_ptrs, components::convert_idxs_to_ptrs);
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
 GKO_REGISTER_OPERATION(fill_in_dense, csr::fill_in_dense);
@@ -640,6 +645,365 @@ void Csr<ValueType, IndexType>::write(mat_data& data) const
             data.nonzeros.emplace_back(row, col, val);
         }
     }
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::multiply(
+    ptr_param<const Csr> other) const
+{
+    GKO_ASSERT_CONFORMANT(this, other);
+    auto result_size = gko::dim<2>{this->get_size()[0], other->get_size()[1]};
+    auto exec = this->get_executor();
+    auto local_other = make_temporary_clone(exec, other);
+    auto result = Csr::create(exec, result_size);
+    exec->run(csr::make_spgemm(this, local_other.get(), result.get()));
+    return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+struct Csr<ValueType, IndexType>::multiply_reuse_info::lookup_data {
+    dim<2> size1;
+    dim<2> size2;
+    dim<2> size_out;
+    size_type nnz1;
+    size_type nnz2;
+    size_type nnz_out;
+    csr::lookup_data<IndexType> data;
+};
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_reuse_info::~multiply_reuse_info() =
+    default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info(
+    multiply_reuse_info&&) noexcept = default;
+
+
+template <typename ValueType, typename IndexType>
+typename Csr<ValueType, IndexType>::multiply_reuse_info&
+Csr<ValueType, IndexType>::multiply_reuse_info::operator=(
+    multiply_reuse_info&&) noexcept = default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info() = default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_reuse_info::multiply_reuse_info(
+    std::unique_ptr<lookup_data> data)
+    : internal{std::move(data)}
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::multiply_reuse_info::update_values(
+    ptr_param<const Csr> mtx1, ptr_param<const Csr> mtx2,
+    ptr_param<Csr> out) const
+{
+    if (!internal) {
+        throw InvalidStateError{
+            __FILE__, __LINE__, __func__,
+            "Attempting to use uninitialized multiply_reuse_info"};
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx1, internal->size1);
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx2, internal->size2);
+    GKO_ASSERT_EQUAL_DIMENSIONS(out, internal->size_out);
+    GKO_ASSERT_EQ(mtx1->get_num_stored_elements(), internal->nnz1);
+    GKO_ASSERT_EQ(mtx2->get_num_stored_elements(), internal->nnz2);
+    GKO_ASSERT_EQ(out->get_num_stored_elements(), internal->nnz_out);
+    auto exec = internal->data.storage.get_executor();
+    auto local_mtx1 = make_temporary_clone(exec, mtx1);
+    auto local_mtx2 = make_temporary_clone(exec, mtx2);
+    auto local_out = make_temporary_clone(exec, out);
+    exec->run(csr::make_spgemm_reuse(local_mtx1.get(), local_mtx2.get(),
+                                     internal->data, local_out.get()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::pair<std::unique_ptr<Csr<ValueType, IndexType>>,
+          typename Csr<ValueType, IndexType>::multiply_reuse_info>
+Csr<ValueType, IndexType>::multiply_reuse(ptr_param<const Csr> other) const
+{
+    GKO_ASSERT_CONFORMANT(this, other);
+    auto result_size = gko::dim<2>{this->get_size()[0], other->get_size()[1]};
+    auto exec = this->get_executor();
+    auto local_other = make_temporary_clone(exec, other);
+    auto result = Csr::create(exec, result_size);
+    exec->run(csr::make_spgemm(this, local_other.get(), result.get()));
+    auto lookup = csr::build_lookup(result.get());
+    auto reuse_info = multiply_reuse_info{
+        std::make_unique<typename multiply_reuse_info::lookup_data>(
+            typename multiply_reuse_info::lookup_data{
+                this->get_size(), other->get_size(), result_size,
+                this->get_num_stored_elements(),
+                other->get_num_stored_elements(),
+                result->get_num_stored_elements(), std::move(lookup)})};
+    return std::make_pair(std::move(result), std::move(reuse_info));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>>
+Csr<ValueType, IndexType>::multiply_add(
+    ptr_param<const Dense<value_type>> scale_mult,
+    ptr_param<const Csr> mtx_mult, ptr_param<const Dense<value_type>> scale_add,
+    ptr_param<const Csr> mtx_add) const
+{
+    GKO_ASSERT_CONFORMANT(this, mtx_mult);
+    auto result_size =
+        gko::dim<2>{this->get_size()[0], mtx_mult->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx_add, result_size);
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale_mult, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale_add, dim<2>(1, 1));
+    auto exec = this->get_executor();
+    auto local_scale_mult = make_temporary_clone(exec, scale_mult);
+    auto local_mtx_mult = make_temporary_clone(exec, mtx_mult);
+    auto local_scale_add = make_temporary_clone(exec, scale_add);
+    auto local_mtx_add = make_temporary_clone(exec, mtx_add);
+    auto result = Csr::create(exec, result_size);
+    exec->run(csr::make_advanced_spgemm(
+        local_scale_mult.get(), this, local_mtx_mult.get(),
+        local_scale_add.get(), local_mtx_add.get(), result.get()));
+    return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+struct Csr<ValueType, IndexType>::multiply_add_reuse_info::lookup_data {
+    dim<2> size1;
+    dim<2> size2;
+    dim<2> size_out;
+    size_type nnz1;
+    size_type nnz2;
+    size_type nnz3;
+    size_type nnz_out;
+    csr::lookup_data<IndexType> data;
+};
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_add_reuse_info::~multiply_add_reuse_info() =
+    default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_add_reuse_info::multiply_add_reuse_info(
+    multiply_add_reuse_info&&) noexcept = default;
+
+
+template <typename ValueType, typename IndexType>
+typename Csr<ValueType, IndexType>::multiply_add_reuse_info&
+Csr<ValueType, IndexType>::multiply_add_reuse_info::operator=(
+    multiply_add_reuse_info&&) noexcept = default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_add_reuse_info::multiply_add_reuse_info() =
+    default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::multiply_add_reuse_info::multiply_add_reuse_info(
+    std::unique_ptr<lookup_data> data)
+    : internal{std::move(data)}
+{}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::multiply_add_reuse_info::update_values(
+    ptr_param<const Csr> mtx1, ptr_param<const Dense<value_type>> alpha,
+    ptr_param<const Csr> mtx2, ptr_param<const Dense<value_type>> beta,
+    ptr_param<const Csr> mtx3, ptr_param<Csr> out) const
+{
+    if (!internal) {
+        throw InvalidStateError{
+            __FILE__, __LINE__, __func__,
+            "Attempting to use uninitialized multiply_add_reuse_info"};
+    }
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx1, internal->size1);
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx2, internal->size2);
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx3, internal->size_out);
+    GKO_ASSERT_EQUAL_DIMENSIONS(out, internal->size_out);
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
+    GKO_ASSERT_EQ(mtx1->get_num_stored_elements(), internal->nnz1);
+    GKO_ASSERT_EQ(mtx2->get_num_stored_elements(), internal->nnz2);
+    GKO_ASSERT_EQ(mtx3->get_num_stored_elements(), internal->nnz3);
+    GKO_ASSERT_EQ(out->get_num_stored_elements(), internal->nnz_out);
+    auto exec = internal->data.storage.get_executor();
+    auto local_mtx1 = make_temporary_clone(exec, mtx1);
+    auto local_mtx2 = make_temporary_clone(exec, mtx2);
+    auto local_mtx3 = make_temporary_clone(exec, mtx3);
+    auto local_out = make_temporary_clone(exec, out);
+    auto local_alpha = make_temporary_clone(exec, alpha);
+    auto local_beta = make_temporary_clone(exec, beta);
+    exec->run(csr::make_advanced_spgemm_reuse(
+        local_alpha.get(), local_mtx1.get(), local_mtx2.get(), local_beta.get(),
+        local_mtx3.get(), internal->data, local_out.get()));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::pair<std::unique_ptr<Csr<ValueType, IndexType>>,
+          typename Csr<ValueType, IndexType>::multiply_add_reuse_info>
+Csr<ValueType, IndexType>::multiply_add_reuse(
+    ptr_param<const Dense<value_type>> scale_mult,
+    ptr_param<const Csr> mtx_mult, ptr_param<const Dense<value_type>> scale_add,
+    ptr_param<const Csr> mtx_add) const
+{
+    GKO_ASSERT_CONFORMANT(this, mtx_mult);
+    auto result_size =
+        gko::dim<2>{this->get_size()[0], mtx_mult->get_size()[1]};
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx_add, result_size);
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale_mult, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale_add, dim<2>(1, 1));
+    auto exec = this->get_executor();
+    auto local_scale_mult = make_temporary_clone(exec, scale_mult);
+    auto local_mtx_mult = make_temporary_clone(exec, mtx_mult);
+    auto local_scale_add = make_temporary_clone(exec, scale_add);
+    auto local_mtx_add = make_temporary_clone(exec, mtx_add);
+    auto result = Csr::create(exec, result_size);
+    exec->run(csr::make_advanced_spgemm(
+        local_scale_mult.get(), this, local_mtx_mult.get(),
+        local_scale_add.get(), local_mtx_add.get(), result.get()));
+    auto lookup = csr::build_lookup(result.get());
+    auto reuse_info = multiply_add_reuse_info{
+        std::make_unique<typename multiply_add_reuse_info::lookup_data>(
+            typename multiply_add_reuse_info::lookup_data{
+                this->get_size(), mtx_mult->get_size(), result_size,
+                this->get_num_stored_elements(),
+                mtx_mult->get_num_stored_elements(),
+                mtx_add->get_num_stored_elements(),
+                result->get_num_stored_elements(), std::move(lookup)})};
+    return std::make_pair(std::move(result), std::move(reuse_info));
+}
+
+
+template <typename ValueType, typename IndexType>
+std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::scale_add(
+    ptr_param<const Dense<value_type>> scale_this,
+    ptr_param<const Dense<value_type>> scale_other,
+    ptr_param<const Csr> mtx_other) const
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, mtx_other);
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale_this, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale_other, dim<2>(1, 1));
+    auto local_scale_this = make_temporary_clone(exec, scale_this);
+    auto local_scale_other = make_temporary_clone(exec, scale_other);
+    auto local_mtx_other = make_temporary_clone(exec, mtx_other);
+    auto result = Csr::create(exec, this->get_size());
+    exec->run(csr::make_spgeam(local_scale_this.get(), this,
+                               local_scale_other.get(), local_mtx_other.get(),
+                               result.get()));
+    return result;
+}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::scale_add_reuse_info::scale_add_reuse_info() =
+    default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::scale_add_reuse_info::scale_add_reuse_info(
+    std::unique_ptr<lookup_data> data)
+    : internal{std::move(data)}
+{}
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::scale_add_reuse_info::~scale_add_reuse_info() =
+    default;
+
+
+template <typename ValueType, typename IndexType>
+Csr<ValueType, IndexType>::scale_add_reuse_info::scale_add_reuse_info(
+    scale_add_reuse_info&&) noexcept = default;
+
+
+template <typename ValueType, typename IndexType>
+typename Csr<ValueType, IndexType>::scale_add_reuse_info&
+Csr<ValueType, IndexType>::scale_add_reuse_info::operator=(
+    scale_add_reuse_info&&) noexcept = default;
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::scale_add_reuse_info::update_values(
+    ptr_param<const Dense<value_type>> scale1, ptr_param<const Csr> mtx1,
+    ptr_param<const Dense<value_type>> scale2, ptr_param<const Csr> mtx2,
+    ptr_param<Csr> out) const
+{
+    if (!internal) {
+        throw InvalidStateError{
+            __FILE__, __LINE__, __func__,
+            "Attempting to use uninitialized scale_add_reuse_info"};
+    }
+    auto exec = internal->exec;
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx1, internal->size);
+    GKO_ASSERT_EQUAL_DIMENSIONS(mtx2, internal->size);
+    GKO_ASSERT_EQUAL_DIMENSIONS(out, internal->size);
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale1, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale2, dim<2>(1, 1));
+    GKO_ASSERT_EQ(mtx1->get_num_stored_elements(), internal->nnz1);
+    GKO_ASSERT_EQ(mtx2->get_num_stored_elements(), internal->nnz2);
+    GKO_ASSERT_EQ(out->get_num_stored_elements(), internal->nnz_out);
+    auto local_scale1 = make_temporary_clone(exec, scale1);
+    auto local_scale2 = make_temporary_clone(exec, scale2);
+    auto local_mtx1 = make_temporary_clone(exec, mtx1);
+    auto local_mtx2 = make_temporary_clone(exec, mtx2);
+    auto local_mtx_out = make_temporary_clone(exec, out);
+    exec->run(csr::make_spgeam_numeric(local_scale1.get(), local_mtx1.get(),
+                                       local_scale2.get(), local_mtx2.get(),
+                                       local_mtx_out.get()));
+}
+
+
+template <typename ValueType, typename IndexType>
+struct Csr<ValueType, IndexType>::scale_add_reuse_info::lookup_data {
+    std::shared_ptr<const Executor> exec;
+    dim<2> size;
+    size_type nnz1;
+    size_type nnz2;
+    size_type nnz_out;
+    // any potential future optimization data for repeated SpGEAM goes here
+};
+
+
+template <typename ValueType, typename IndexType>
+std::pair<std::unique_ptr<Csr<ValueType, IndexType>>,
+          typename Csr<ValueType, IndexType>::scale_add_reuse_info>
+Csr<ValueType, IndexType>::add_scale_reuse(
+    ptr_param<const Dense<value_type>> scale_this,
+    ptr_param<const Dense<value_type>> scale_other,
+    ptr_param<const Csr> mtx_other) const
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, mtx_other);
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale_this, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(scale_other, dim<2>(1, 1));
+    auto local_scale_this = make_temporary_clone(exec, scale_this);
+    auto local_scale_other = make_temporary_clone(exec, scale_other);
+    auto local_mtx_other = make_temporary_clone(exec, mtx_other);
+    auto result = Csr::create(exec, this->get_size());
+    exec->run(csr::make_spgeam(local_scale_this.get(), this,
+                               local_scale_other.get(), local_mtx_other.get(),
+                               result.get()));
+    return std::make_pair(
+        std::move(result),
+        scale_add_reuse_info{
+            std::make_unique<typename scale_add_reuse_info::lookup_data>(
+                typename scale_add_reuse_info::lookup_data{
+                    exec, this->get_size(), this->get_num_stored_elements(),
+                    mtx_other->get_num_stored_elements(),
+                    result->get_num_stored_elements()})});
 }
 
 

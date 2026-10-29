@@ -77,8 +77,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_INITIALIZE_2_KERNEL);
 template <typename ValueType>
 void step_1(std::shared_ptr<const ReferenceExecutor> exec,
             matrix::Dense<ValueType>* x, matrix::Dense<ValueType>* r,
-            matrix::Dense<ValueType>* z, matrix::Dense<ValueType>* w,
-            const matrix::Dense<ValueType>* p,
+            matrix::Dense<ValueType>* z1, matrix::Dense<ValueType>* z2,
+            matrix::Dense<ValueType>* w, const matrix::Dense<ValueType>* p,
             const matrix::Dense<ValueType>* q,
             const matrix::Dense<ValueType>* f,
             const matrix::Dense<ValueType>* g,
@@ -100,7 +100,8 @@ void step_1(std::shared_ptr<const ReferenceExecutor> exec,
                 auto tmp = rho->at(j) / beta->at(j);
                 x->at(i, j) += tmp * p->at(i, j);
                 r->at(i, j) -= tmp * q->at(i, j);
-                z->at(i, j) -= tmp * f->at(i, j);
+                z1->at(i, j) -= tmp * f->at(i, j);
+                z2->at(i, j) = z1->at(i, j);
                 w->at(i, j) -= tmp * g->at(i, j);
             }
         }

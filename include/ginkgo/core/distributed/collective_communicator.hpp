@@ -133,6 +133,22 @@ request CollectiveCommunicator::i_all_to_all_v(
 }
 
 
+namespace detail {
+
+
+/**
+ * Creates a collective communicator with the default type.
+ *
+ * @note: Currently the default type is DenseCommunicator, but this is subject
+ *        to change.
+ *
+ * @return  A collective communicator.
+ */
+std::shared_ptr<CollectiveCommunicator> create_default_collective_communicator(
+    communicator base);
+
+
+}  // namespace detail
 }  // namespace mpi
 }  // namespace experimental
 }  // namespace gko

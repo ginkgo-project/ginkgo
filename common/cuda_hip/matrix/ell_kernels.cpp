@@ -252,7 +252,7 @@ void abstract_spmv(syn::value_list<int, info>,
                          b->get_size()[1], 1);
 
 // not support 16 bit atomic
-#if !(defined(CUDA_VERSION) && (__CUDA_ARCH__ >= 700))
+#if !defined(CUDA_VERSION)
     // We do atomic on shared memory when num_thread_per_worker is not 1.
     // If atomic is also true, we also do atomic on out_vector.
     constexpr bool shared_half =
@@ -261,6 +261,25 @@ void abstract_spmv(syn::value_list<int, info>,
         atomic && sizeof(remove_complex<OutputValueType>) == sizeof(int16);
     if constexpr (num_thread_per_worker != 1 &&
                   (shared_half || atomic_half_out)) {
+        GKO_KERNEL_NOT_FOUND;
+    } else
+#else
+    constexpr bool shared_half =
+        sizeof(remove_complex<arithmetic_type>) == sizeof(half);
+    constexpr bool atomic_half_out =
+        atomic && sizeof(remove_complex<OutputValueType>) == sizeof(half);
+    constexpr bool shared_bfloat16 =
+        sizeof(remove_complex<arithmetic_type>) == sizeof(bfloat16);
+    constexpr bool atomic_bfloat16_out =
+        atomic && sizeof(remove_complex<OutputValueType>) == sizeof(bfloat16);
+    const auto compute_capability =
+        as<CudaExecutor>(exec)->get_compute_capability();
+    if (num_thread_per_worker != 1 && (shared_half || atomic_half_out) &&
+        compute_capability < 70) {
+        GKO_KERNEL_NOT_FOUND;
+    } else if (num_thread_per_worker != 1 &&
+               (shared_bfloat16 || atomic_bfloat16_out) &&
+               compute_capability < 80) {
         GKO_KERNEL_NOT_FOUND;
     } else
 #endif

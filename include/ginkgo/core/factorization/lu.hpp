@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,6 +54,8 @@ template <typename ValueType, typename IndexType>
 class Lu
     : public EnablePolymorphicObject<Lu<ValueType, IndexType>, LinOpFactory>,
       public EnablePolymorphicAssignment<Lu<ValueType, IndexType>> {
+    GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
+
 public:
     struct parameters_type;
     friend class EnablePolymorphicObject<Lu, LinOpFactory>;

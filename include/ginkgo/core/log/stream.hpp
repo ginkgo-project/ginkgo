@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,6 +28,8 @@ namespace log {
  */
 template <typename ValueType = default_precision>
 class Stream : public Logger {
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
+
 public:
     /* Executor events */
     void on_allocation_started(const Executor* exec,

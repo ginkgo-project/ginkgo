@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,6 +35,8 @@ namespace log {
  */
 template <typename ValueType = default_precision>
 class Convergence : public Logger {
+    GKO_ASSERT_SUPPORTED_VALUE_TYPE;
+
 public:
     void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,

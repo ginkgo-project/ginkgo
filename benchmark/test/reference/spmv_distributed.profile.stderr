@@ -50,6 +50,10 @@ DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
+DEBUG: begin copy(<typename>)
+DEBUG: begin copy
+DEBUG: end   copy
+DEBUG: end   copy(<typename>)
 DEBUG: begin components::fill_array
 DEBUG: end   components::fill_array
 DEBUG: begin components::fill_array
@@ -122,6 +126,8 @@ DEBUG: begin repetition
 DEBUG: begin apply(<typename>)
 DEBUG: begin dense::row_gather
 DEBUG: end   dense::row_gather
+DEBUG: begin event::record_event
+DEBUG: end   event::record_event
 DEBUG: begin apply(<typename>)
 DEBUG: begin csr::spmv
 DEBUG: end   csr::spmv
