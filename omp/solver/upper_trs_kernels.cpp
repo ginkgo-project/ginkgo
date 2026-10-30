@@ -68,7 +68,7 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
            matrix::view::dense<const InputValueType> b,
            matrix::view::dense<OutputValueType> x)
 {
-    using arithmetic_type =
+    using ArithmeticType =
         highest_precision<InputValueType, OutputValueType, MatrixValueType>;
 
     auto row_ptrs = matrix.row_ptrs;
@@ -79,23 +79,23 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
     for (size_type j = 0; j < b.size[1]; ++j) {
         for (size_type inv_row = 0; inv_row < matrix.size[0]; ++inv_row) {
             auto row = matrix.size[0] - 1 - inv_row;
-            auto diag = one<arithmetic_type>();
+            auto diag = one<ArithmeticType>();
             x(row, j) = b(row, j);
             for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
                 if (col > row) {
                     x(row, j) = static_cast<OutputValueType>(
-                        static_cast<arithmetic_type>(x(row, j)) -
-                        static_cast<arithmetic_type>(vals[k]) *
-                            static_cast<arithmetic_type>(x(col, j)));
+                        static_cast<ArithmeticType>(x(row, j)) -
+                        static_cast<ArithmeticType>(vals[k]) *
+                            static_cast<ArithmeticType>(x(col, j)));
                 }
                 if (col == row) {
-                    diag = static_cast<arithmetic_type>(vals[k]);
+                    diag = static_cast<ArithmeticType>(vals[k]);
                 }
             }
             if (!unit_diag) {
                 x(row, j) = static_cast<OutputValueType>(
-                    static_cast<arithmetic_type>(x(row, j)) / diag);
+                    static_cast<ArithmeticType>(x(row, j)) / diag);
             }
         }
     }

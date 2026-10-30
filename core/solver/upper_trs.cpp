@@ -149,10 +149,8 @@ void UpperTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     }
     mixed_precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            using InputVector = matrix::Dense<
-                typename std::decay_t<decltype(*dense_b)>::value_type>;
-            using OutputVector = matrix::Dense<
-                typename std::decay_t<decltype(*dense_x)>::value_type>;
+            using InputVector = std::decay_t<decltype(*dense_b)>;
+            using OutputVector = std::decay_t<decltype(*dense_x)>;
             using ws = workspace_traits<UpperTrs>;
             const auto exec = this->get_executor();
             this->setup_workspace();

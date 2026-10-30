@@ -421,7 +421,7 @@ is_nan_exact(const T& value)
 }
 
 
-template <bool is_upper, typename arithmetic_type, typename InputValueType,
+template <bool is_upper, typename ArithmeticType, typename InputValueType,
           typename MatrixValueType, typename OutputValueType,
           typename IndexType>
 __global__ void sptrsv_naive_caching_kernel(
@@ -476,7 +476,7 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    auto sum = zero<arithmetic_type>();
+    auto sum = zero<ArithmeticType>();
     auto i = row_begin;
     for (; i != row_end; i += row_step) {
         const auto dependency = colidxs[i];
@@ -506,15 +506,15 @@ __global__ void sptrsv_naive_caching_kernel(
             val = static_cast<SharedValueType>(output_val);
         }
 
-        sum += static_cast<arithmetic_type>(val) *
-               static_cast<arithmetic_type>(vals[i]);
+        sum += static_cast<ArithmeticType>(val) *
+               static_cast<ArithmeticType>(vals[i]);
     }
 
     // The first entry past the triangular part will be the diagonal
-    const auto diag = unit_diag ? one<arithmetic_type>()
-                                : static_cast<arithmetic_type>(vals[i]);
+    const auto diag = unit_diag ? one<ArithmeticType>()
+                                : static_cast<ArithmeticType>(vals[i]);
     const auto r =
-        (static_cast<arithmetic_type>(b[row * b_stride + rhs]) - sum) / diag;
+        (static_cast<ArithmeticType>(b[row * b_stride + rhs]) - sum) / diag;
 
     store_relaxed_shared(x_s + self_shid, r);
     store_relaxed(x + row * x_stride + rhs, static_cast<OutputValueType>(r));
@@ -528,7 +528,7 @@ __global__ void sptrsv_naive_caching_kernel(
 }
 
 
-template <bool is_upper, typename arithmetic_type, typename InputValueType,
+template <bool is_upper, typename ArithmeticType, typename InputValueType,
           typename MatrixValueType, typename OutputValueType,
           typename IndexType>
 __global__ void sptrsv_naive_legacy_kernel(
@@ -559,14 +559,14 @@ __global__ void sptrsv_naive_legacy_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    arithmetic_type sum = zero<arithmetic_type>();
+    auto sum = zero<ArithmeticType>();
     auto j = row_begin;
     auto col = colidxs[j];
     while (j != row_end) {
         auto x_val = load_relaxed(x + col * x_stride + rhs);
         while (!is_nan_exact(x_val)) {
-            sum += static_cast<arithmetic_type>(vals[j]) *
-                   static_cast<arithmetic_type>(x_val);
+            sum += static_cast<ArithmeticType>(vals[j]) *
+                   static_cast<ArithmeticType>(x_val);
             j += row_step;
             col = colidxs[j];
             x_val = load_relaxed(x + col * x_stride + rhs);
@@ -577,10 +577,10 @@ __global__ void sptrsv_naive_legacy_kernel(
         // but prevents an infinite loop.
         if (is_upper ? row >= col : row <= col) {
             // assert(row == col);
-            auto diag = unit_diag ? one<arithmetic_type>()
-                                  : static_cast<arithmetic_type>(vals[j]);
+            auto diag = unit_diag ? one<ArithmeticType>()
+                                  : static_cast<ArithmeticType>(vals[j]);
             const auto r =
-                (static_cast<arithmetic_type>(b[row * b_stride + rhs]) - sum) /
+                (static_cast<ArithmeticType>(b[row * b_stride + rhs]) - sum) /
                 diag;
             store_relaxed(x + row * x_stride + rhs,
                           static_cast<OutputValueType>(r));
@@ -613,7 +613,7 @@ void sptrsv_naive_caching(
     bool unit_diag, matrix::view::dense<const InputValueType> b,
     matrix::view::dense<OutputValueType> x)
 {
-    using arithmetic_type =
+    using ArithmeticType =
         highest_precision<InputValueType, MatrixValueType, OutputValueType>;
 
     // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
@@ -635,14 +635,14 @@ void sptrsv_naive_caching(
     const dim3 grid_size(ceildiv(n * nrhs, block_size.x), 1, 1);
 
     if (is_fallback_required) {
-        sptrsv_naive_legacy_kernel<is_upper, cuda_type<arithmetic_type>>
+        sptrsv_naive_legacy_kernel<is_upper, cuda_type<ArithmeticType>>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix.row_ptrs, matrix.col_idxs, as_device_type(matrix.values),
                 as_device_type(b.values), b.stride, as_device_type(x.values),
                 x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
                 atomic_counter.get_data());
     } else {
-        sptrsv_naive_caching_kernel<is_upper, cuda_type<arithmetic_type>>
+        sptrsv_naive_caching_kernel<is_upper, cuda_type<ArithmeticType>>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix.row_ptrs, matrix.col_idxs, as_device_type(matrix.values),
                 as_device_type(b.values), b.stride, as_device_type(x.values),
