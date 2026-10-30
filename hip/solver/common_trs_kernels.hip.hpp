@@ -246,7 +246,7 @@ __device__ __forceinline__ void store(thrust::complex<ValueType>* values,
 }
 
 
-template <bool is_upper, typename arithmetic_type, typename InputValueType,
+template <bool is_upper, typename ArithmeticType, typename InputValueType,
           typename MatrixValueType, typename OutputValueType,
           typename IndexType>
 __global__ void sptrsv_naive_legacy_kernel(
@@ -279,22 +279,22 @@ __global__ void sptrsv_naive_legacy_kernel(
     const auto row_diag = is_upper ? rowptrs[row] : rowptrs[row + 1] - 1;
     const int row_step = is_upper ? -1 : 1;
 
-    arithmetic_type sum = 0.0;
+    auto sum = zero<ArithmeticType>();
     auto j = row_begin;
     while (j != row_diag + row_step) {
         auto col = colidxs[j];
         auto x_val = load(x, col * x_stride + rhs);
         while (!is_nan(x_val)) {
-            sum += static_cast<arithmetic_type>(vals[j]) *
-                   static_cast<arithmetic_type>(x_val);
+            sum += static_cast<ArithmeticType>(vals[j]) *
+                   static_cast<ArithmeticType>(x_val);
             j += row_step;
             col = colidxs[j];
             x_val = load(x, col * x_stride + rhs);
         }
         if (row == col) {
             const auto r =
-                (static_cast<arithmetic_type>(b[row * b_stride + rhs]) - sum) /
-                static_cast<arithmetic_type>(vals[row_diag]);
+                (static_cast<ArithmeticType>(b[row * b_stride + rhs]) - sum) /
+                static_cast<ArithmeticType>(vals[row_diag]);
             store(x, row * x_stride + rhs, static_cast<OutputValueType>(r));
             j += row_step;
             if (is_nan(r)) {
@@ -322,7 +322,7 @@ void sptrsv_naive_caching(std::shared_ptr<const HipExecutor> exec,
                           const matrix::Dense<InputValueType>* b,
                           matrix::Dense<OutputValueType>* x)
 {
-    using arithmetic_type =
+    using ArithmeticType =
         highest_precision<InputValueType, MatrixValueType, OutputValueType>;
 
     const auto n = matrix->get_size()[0];
@@ -339,7 +339,7 @@ void sptrsv_naive_caching(std::shared_ptr<const HipExecutor> exec,
     const dim3 block_size(default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n * nrhs, block_size.x), 1, 1);
 
-    sptrsv_naive_legacy_kernel<is_upper, hip_type<arithmetic_type>>
+    sptrsv_naive_legacy_kernel<is_upper, hip_type<ArithmeticType>>
         <<<grid_size, block_size>>>(
             matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
             as_hip_type(matrix->get_const_values()),
