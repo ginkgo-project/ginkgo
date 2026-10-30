@@ -146,11 +146,12 @@ struct ParIlutState {
                                      u_csc->get_device_view()));
     }
 
-    std::unique_ptr<Composition<ValueType>> to_factors() &&
+    std::pair<std::shared_ptr<CsrMatrix>, std::shared_ptr<CsrMatrix>>
+    to_factors() &&
     {
         l->set_strategy(l_strategy);
         u->set_strategy(u_strategy);
-        return Composition<ValueType>::create(std::move(l), std::move(u));
+        return {std::move(l), std::move(u)};
     }
 
     void iterate();
@@ -195,9 +196,10 @@ ParIlut<ValueType, IndexType>::parse(
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>>
-ParIlut<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp>& system_matrix) const
+ParIlut<ValueType, IndexType>::ParIlut(
+    const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
+    : Composition<ValueType>(factory->get_executor()),
+      parameters_(factory->get_parameters())
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
@@ -257,7 +259,8 @@ ParIlut<ValueType, IndexType>::generate_l_u(
         state.iterate();
     }
 
-    return std::move(state).to_factors();
+    auto [l_factor, u_factor] = std::move(state).to_factors();
+    this->add_operators(std::move(l_factor), std::move(u_factor));
 }
 
 
