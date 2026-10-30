@@ -16,6 +16,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/trisolver_config.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
@@ -34,6 +35,18 @@ GKO_REGISTER_OPERATION(solve, lower_trs::solve);
 
 }  // anonymous namespace
 }  // namespace lower_trs
+
+
+template <typename ValueType, typename IndexType>
+void LowerTrs<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "LowerTrs must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE((validation::is_triangular_system_matrix<ValueType, IndexType>(
+                     this->get_system_matrix(), true)),
+                 "System matrix is not lower triangular.");
+}
 
 
 template <typename ValueType, typename IndexType>

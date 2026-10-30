@@ -276,4 +276,42 @@ TYPED_TEST(Gcr, PassExplicitFactory)
 }
 
 
+TYPED_TEST(Gcr, RecognizesInvalidSystemMatrix)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    std::shared_ptr<const gko::LinOp> m = gko::initialize<Mtx>(
+        {{value_type{1.0}, INFINITY}, {value_type{3.0}, value_type{4.0}}},
+        this->exec);
+
+    ASSERT_THROW(this->gcr_factory->generate(m)->validate_data(),
+                 gko::InvalidData);
+}
+
+
+TYPED_TEST(Gcr, RecognizesInvalidPreconditioner)
+{
+    using value_type = typename TestFixture::value_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Solver = typename TestFixture::Solver;
+    std::shared_ptr<const gko::LinOp> invalid_mtx =
+        gko::initialize<Mtx>({{value_type{1.0}, INFINITY, value_type{}},
+                              {value_type{3.0}, value_type{4.0}, value_type{}},
+                              {value_type{}, value_type{}, value_type{5.0}}},
+                             this->exec);
+    std::shared_ptr<Solver> invalid_preconditioner =
+        this->gcr_factory->generate(invalid_mtx);
+    auto factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .with_generated_preconditioner(invalid_preconditioner)
+            .on(this->exec);
+    auto solver = factory->generate(this->mtx);
+
+    ASSERT_THROW(solver->validate_data(), gko::InvalidData);
+}
+
+
 }  // namespace
