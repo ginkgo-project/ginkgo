@@ -1,0 +1,33 @@
+<h1>Results</h1>
+The output is one line per combination of storage format and restart ratio.
+Run on Ginkgo's @p matrices/test/ani1.mtx with a cap of ten steps per cycle,
+two restart ratios and three storage formats:
+
+@code{.sh}
+cb-gmres-sweep reference matrices/test/ani1.mtx 10 0,0.5 keep,reduce1,ireduce1
+@endcode
+
+@code{.cpp}
+Matrix:      matrices/test/ani1.mtx  (36 x 36, 208 nonzeros)
+krylov_dim:  10
+restart_ratio: 0,0.5
+solver:      CbGmres
+precond:     none
+rhs:         sinus
+tolerance:   1e-10 (relative to |b|)
+
+storage   restart_ratio   iters      time [s]     rel. res.
+----------------------------------------------------------
+keep      0                 54    3.8557e-04    5.8360e-11
+keep      0.5               69    4.8053e-04    5.0478e-11
+reduce1   0                 54    2.5378e-04    5.8359e-11
+reduce1   0.5               69    4.7527e-04    5.0474e-11
+ireduce1  0                 54    2.5720e-04    5.8360e-11
+ireduce1  0.5               69    4.7383e-04    5.0478e-11
+@endcode
+
+<h3> Comments about programming and debugging </h3>
+The iteration counts depend on the matrix and the storage format, and the times
+on the executor and the machine. A positive restart ratio ends a cycle earlier
+than the cap, which costs iterations on a problem this small and pays on the
+large ones.

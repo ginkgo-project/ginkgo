@@ -1,0 +1,21 @@
+<a name="Intro"></a>
+<h1>Introduction</h1>
+
+<h3> About the example </h3>
+This example solves one system with CB-GMRES repeatedly, over a list of
+storage precisions and a list of restart ratios, and reports the iteration
+count, the solve time and the relative residual of each combination:
+
+@code{.sh}
+cb-gmres-sweep [executor] [matrix.mtx] [krylov_dim] [restart_ratios] [storage]
+@endcode
+
+Every combination runs in one process, the matrix being parsed once and reused,
+since parsing a large matrix costs more than solving with it. A restart ratio
+of zero restarts after @p krylov_dim steps, and a positive one ends a cycle
+once the correction has reduced the residual by that factor, with
+@p krylov_dim acting only as a cap on the basis.
+
+The right-hand side, the stopping tolerance, the iteration cap, the number of
+repetitions, the preconditioner and the per-cycle log are selected through
+environment variables; run with @p --help for the list.

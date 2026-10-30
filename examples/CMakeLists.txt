@@ -24,6 +24,7 @@ set(EXAMPLES_EXEC_LIST
 
 set(EXAMPLES_LIST
     ${EXAMPLES_EXEC_LIST}
+    cb-gmres-sweep
     custom-stopping-criterion
     file-config-solver
     ginkgo-overhead
