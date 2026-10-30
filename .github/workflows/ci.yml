@@ -63,11 +63,3 @@ jobs:
     if: >-
       ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI') }}
     uses: ./.github/workflows/clang-tidy.yml
-
-  # pull requests get coverage in CI-Extra, with the full-test labels
-  coverage:
-    if: ${{ github.event_name != 'pull_request' }}
-    permissions:
-      contents: read
-      id-token: write
-    uses: ./.github/workflows/coverage.yml
