@@ -557,6 +557,208 @@ public:
 };
 
 
+/**
+ * Simulate a derived vector class for integration of Ginkgo
+ * in other libraries, based on the VectorWrapper class
+ * in MFEM. Here, we just use Ginkgo's MultiVector as the wrapped
+ * type.
+ */
+template <typename VecValueType>
+class VectorWrapper : public gko::matrix::Dense<VecValueType> {
+public:
+    using MVec = gko::batch::MultiVector<VecValueType>;
+
+    VectorWrapper(std::shared_ptr<const gko::Executor> exec,
+                  const gko::dim<2>& size, MVec* other_vec,
+                  gko::size_type stride = 0, bool ownership = false)
+        : gko::matrix::Dense<VecValueType>(
+              exec, size,
+              gko::array<VecValueType>::view(
+                  exec, size[0] * (stride == 0 ? size[1] : stride),
+                  other_vec->get_values()),
+              (stride == 0 ? size[1] : stride))
+    {
+        if (ownership) {
+            wrapped_vec = std::unique_ptr<MVec>(other_vec);
+        } else {
+            using deleter = gko::null_deleter<MVec>;
+            wrapped_vec = std::unique_ptr<MVec, std::function<void(MVec*)>>(
+                other_vec, deleter{});
+        }
+    }
+
+    static std::unique_ptr<VectorWrapper<VecValueType>> create(
+        std::shared_ptr<const gko::Executor> exec, const gko::dim<2>& size,
+        MVec* other_vec, gko::size_type stride = 0, bool ownership = false)
+    {
+        return std::unique_ptr<VectorWrapper<VecValueType>>(
+            new VectorWrapper<VecValueType>(exec, size, other_vec, stride,
+                                            ownership));
+    }
+
+    MVec* get_wrapped_vec_ptr() { return this->wrapped_vec.get(); }
+
+    const MVec* get_wrapped_vec_const_ptr() const
+    {
+        return this->wrapped_vec.get();
+    }
+
+    std::unique_ptr<gko::matrix::Dense<VecValueType>> create_with_same_config()
+        const override
+    {
+        auto other_vec =
+            MVec::create(this->get_executor(),
+                         gko::batch_dim<2>(1, gko::dim<2>{this->get_size()[0],
+                                                          this->get_stride()}))
+                .release();
+
+        // If this function is called, Ginkgo is creating this
+        // object and should control the memory, so ownership is
+        // set to true
+        return VectorWrapper<VecValueType>::create(this->get_executor(),
+                                                   this->get_size(), other_vec,
+                                                   this->get_stride(), true);
+    }
+
+    std::unique_ptr<gko::matrix::Dense<VecValueType>> create_with_type_of_impl(
+        std::shared_ptr<const gko::Executor> exec, const gko::dim<2>& size,
+        gko::size_type stride) const override
+    {
+        MVec* other_vec =
+            MVec::create(this->get_executor(),
+                         gko::batch_dim<2>(1, gko::dim<2>{size[0], stride}))
+                .release();
+
+        return VectorWrapper<VecValueType>::create(this->get_executor(), size,
+                                                   other_vec, stride, true);
+    }
+
+    std::unique_ptr<gko::matrix::Dense<VecValueType>> create_submatrix_impl(
+        const gko::span& rows, const gko::span& columns,
+        const gko::size_type stride) override
+    {
+        using row_major_range =
+            gko::range<gko::accessor::row_major<VecValueType, 2>>;
+        row_major_range range_this{this->get_values(), this->get_size()[0],
+                                   this->get_size()[1], this->get_stride()};
+        auto sub_range = range_this(rows, columns);
+        gko::size_type storage_size =
+            rows.length() > 0
+                ? sub_range.length(1) +
+                      (sub_range.length(0) - 1) * this->get_stride()
+                : 0;
+        // Create a new vector pointing to this starting point in the data
+        MVec* other_vec =
+            MVec::create(
+                this->get_executor(),
+                gko::batch_dim<2>{1, gko::dim<2>{1, storage_size}},
+                gko::array<VecValueType>::view(this->get_executor(),
+                                               storage_size, sub_range->data))
+                .release();
+
+        return VectorWrapper<VecValueType>::create(
+            this->get_executor(),
+            gko::dim<2>{sub_range.length(0), sub_range.length(1)}, other_vec,
+            stride, true);
+    }
+
+private:
+    std::unique_ptr<MVec, std::function<void(MVec*)>> wrapped_vec;
+};
+
+
+/**
+ * Simulate a derived LinOp class for interop between Ginkgo
+ * and other libraries, based on the OperatorWrapper class in
+ * MFEM. Here, we just wrap another LinOp as a stand-in for
+ * whatever operator class the other library uses.
+ */
+template <typename ValueType, typename VecValueType>
+class OperatorWrapper
+    : public gko::LinOp,
+      public gko::EnableCreateMethod<OperatorWrapper<ValueType, VecValueType>> {
+public:
+    using MVec = gko::batch::MultiVector<VecValueType>;
+    using Vec = gko::matrix::Dense<VecValueType>;
+
+    OperatorWrapper(std::shared_ptr<const gko::Executor> exec,
+                    gko::size_type size = 0, const gko::LinOp* oper = NULL)
+        : gko::LinOp(exec, gko::dim<2>{size, size}),
+          gko::EnableCreateMethod<OperatorWrapper>()
+    {
+        this->wrapped_oper = oper;
+    }
+
+protected:
+    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    {
+        // Cast to VectorWrapper; only accept this type for this impl
+        const VectorWrapper<VecValueType>* wrapped_b =
+            gko::as<const VectorWrapper<VecValueType>>(b);
+        VectorWrapper<VecValueType>* wrapped_x =
+            gko::as<VectorWrapper<VecValueType>>(x);
+
+        this->wrapped_oper->apply(wrapped_b, wrapped_x);
+    }
+
+    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
+                    const gko::LinOp* beta, gko::LinOp* x) const override
+    {
+        // x = alpha * op (b) + beta * x
+        // Cast to VectorWrapper; only accept this type for this impl
+        const VectorWrapper<VecValueType>* wrapped_b =
+            gko::as<const VectorWrapper<VecValueType>>(b);
+        VectorWrapper<VecValueType>* wrapped_x =
+            gko::as<VectorWrapper<VecValueType>>(x);
+
+        // Check that alpha and beta are Dense<ValueType> of size (1,1):
+        if (alpha->get_size()[0] > 1 || alpha->get_size()[1] > 1) {
+            throw gko::BadDimension(
+                __FILE__, __LINE__, __func__, "alpha", alpha->get_size()[0],
+                alpha->get_size()[1],
+                "Expected an object of size [1 x 1] for scaling "
+                " in this operator's apply_impl");
+        }
+        if (beta->get_size()[0] > 1 || beta->get_size()[1] > 1) {
+            throw gko::BadDimension(
+                __FILE__, __LINE__, __func__, "beta", beta->get_size()[0],
+                beta->get_size()[1],
+                "Expected an object of size [1 x 1] for scaling "
+                " in this operator's apply_impl");
+        }
+        using alpha_value_type =
+            typename std::decay_t<decltype(*gko::as<Vec>(alpha))>::value_type;
+        auto alpha_mv = MVec::create(
+            this->get_executor(), gko::batch_dim<2>{1, gko::dim<2>{1, 1}},
+            gko::array<alpha_value_type>::view(
+                this->get_executor(), alpha->get_size()[0],
+                const_cast<alpha_value_type*>(
+                    gko::as<Vec>(alpha)->get_const_values())));
+        using beta_value_type =
+            typename std::decay_t<decltype(*gko::as<Vec>(beta))>::value_type;
+        auto beta_mv = MVec::create(
+            this->get_executor(), gko::batch_dim<2>{1, gko::dim<2>{1, 1}},
+            gko::array<beta_value_type>::view(
+                this->get_executor(), beta->get_size()[0],
+                const_cast<beta_value_type*>(
+                    gko::as<Vec>(beta)->get_const_values())));
+
+        // Scale x by beta
+        wrapped_x->get_wrapped_vec_ptr()->scale(beta_mv);
+        auto tmp_vec = gko::as<VectorWrapper<VecValueType>>(
+            wrapped_x->create_with_same_config());
+        // Apply the operator
+        this->wrapped_oper->apply(wrapped_b, tmp_vec);
+        // Scale tmp by alpha and add
+        wrapped_x->get_wrapped_vec_ptr()->add_scaled(
+            alpha_mv, tmp_vec->get_wrapped_vec_const_ptr());
+    }
+
+private:
+    const gko::LinOp* wrapped_oper;
+};
+
+
 template <typename T>
 class Solver : public CommonTestFixture {
 protected:
@@ -918,6 +1120,84 @@ TYPED_TEST(Solver, ApplyIsEquivalentToRef)
             mtx, [this, &mtx](auto solver, auto b, auto x) {
                 solver.ref->apply(b.ref, x.ref);
                 solver.dev->apply(b.dev, x.dev);
+
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, 1.2 * this->tol(x));
+            });
+    });
+}
+
+
+TYPED_TEST(Solver, ApplyWithVecWrapperIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_vector_and_solver_scenarios(
+            mtx, [this, &mtx](auto solver, auto b, auto x) {
+                using vec_value_type =
+                    typename std::decay_t<decltype(*b.ref)>::value_type;
+                solver.ref->apply(b.ref, x.ref);
+                auto b_mv = gko::batch::MultiVector<vec_value_type>::create(
+                                b.dev->get_executor(),
+                                gko::batch_dim<2>(1, b.dev->get_size()),
+                                gko::array<vec_value_type>::view(
+                                    b.dev->get_executor(),
+                                    b.dev->get_size()[0] * b.dev->get_stride(),
+                                    b.dev->get_values()))
+                                .release();
+                auto b_wrapped = VectorWrapper<vec_value_type>::create(
+                    b.dev->get_executor(), b.dev->get_size(), b_mv);
+                auto x_mv = gko::batch::MultiVector<vec_value_type>::create(
+                                x.dev->get_executor(),
+                                gko::batch_dim<2>(1, x.dev->get_size()),
+                                gko::array<vec_value_type>::view(
+                                    x.dev->get_executor(),
+                                    x.dev->get_size()[0] * x.dev->get_stride(),
+                                    x.dev->get_values()))
+                                .release();
+                auto x_wrapped = VectorWrapper<vec_value_type>::create(
+                    x.dev->get_executor(), x.dev->get_size(), x_mv);
+                solver.dev->apply(b_wrapped, x_wrapped);
+
+                GKO_ASSERT_MTX_NEAR(x.ref, x.dev, 1.2 * this->tol(x));
+            });
+    });
+}
+
+
+TYPED_TEST(Solver, ApplyWithLinOpWrapperIsEquivalentToRef)
+{
+    using value_type = typename TestFixture::value_type;
+    this->forall_matrix_scenarios([this](auto mtx) {
+        this->forall_vector_and_solver_scenarios(
+            mtx, [this, &mtx](auto solver, auto b, auto x) {
+                using vec_value_type =
+                    typename std::decay_t<decltype(*b.ref)>::value_type;
+                solver.ref->apply(b.ref, x.ref);
+                auto b_mv = gko::batch::MultiVector<vec_value_type>::create(
+                                b.dev->get_executor(),
+                                gko::batch_dim<2>(1, b.dev->get_size()),
+                                gko::array<vec_value_type>::view(
+                                    b.dev->get_executor(),
+                                    b.dev->get_size()[0] * b.dev->get_stride(),
+                                    b.dev->get_values()))
+                                .release();
+                auto b_wrapped = VectorWrapper<vec_value_type>::create(
+                    b.dev->get_executor(), b.dev->get_size(), b_mv);
+                auto x_mv = gko::batch::MultiVector<vec_value_type>::create(
+                                x.dev->get_executor(),
+                                gko::batch_dim<2>(1, x.dev->get_size()),
+                                gko::array<vec_value_type>::view(
+                                    x.dev->get_executor(),
+                                    x.dev->get_size()[0] * x.dev->get_stride(),
+                                    x.dev->get_values()))
+                                .release();
+                auto x_wrapped = VectorWrapper<vec_value_type>::create(
+                    x.dev->get_executor(), x.dev->get_size(), x_mv);
+                auto solver_wrapped =
+                    OperatorWrapper<value_type, vec_value_type>::create(
+                        solver.dev->get_executor(), solver.dev->get_size()[0],
+                        solver.dev.get());
+                solver_wrapped->apply(b_wrapped, x_wrapped);
 
                 GKO_ASSERT_MTX_NEAR(x.ref, x.dev, 1.2 * this->tol(x));
             });
