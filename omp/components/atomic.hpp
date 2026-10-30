@@ -121,31 +121,31 @@ inline void atomic_add(bfloat16& out, bfloat16 val)
 // There is an error in Clang 17 which prevents us from merging the
 // implementation of double and float. The compiler will throw an error if the
 // templated version is implemented. GCC doesn't throw an error.
-inline void store(double* addr, double val)
+inline void store_relaxed(double* addr, double val)
 {
 #pragma omp atomic write relaxed
     *addr = val;
 }
 
-inline void store(float* addr, float val)
+inline void store_relaxed(float* addr, float val)
 {
 #pragma omp atomic write relaxed
     *addr = val;
 }
 
-inline void store(int32* addr, int32 val)
+inline void store_relaxed(int32* addr, int32 val)
 {
 #pragma omp atomic write relaxed
     *addr = val;
 }
 
-inline void store(int64* addr, int64 val)
+inline void store_relaxed(int64* addr, int64 val)
 {
 #pragma omp atomic write relaxed
     *addr = val;
 }
 
-inline void store(float16* addr, float16 val)
+inline void store_relaxed(float16* addr, float16 val)
 {
     auto uint_addr = copy_cast<uint16_t*>(addr);
     auto uint_val = copy_cast<uint16_t>(val);
@@ -153,7 +153,7 @@ inline void store(float16* addr, float16 val)
     *uint_addr = uint_val;
 }
 
-inline void store(bfloat16* addr, bfloat16 val)
+inline void store_relaxed(bfloat16* addr, bfloat16 val)
 {
     auto uint_addr = copy_cast<uint16_t*>(addr);
     auto uint_val = copy_cast<uint16_t>(val);
@@ -162,16 +162,16 @@ inline void store(bfloat16* addr, bfloat16 val)
 }
 
 template <typename T>
-inline void store(std::complex<T>* addr, std::complex<T> val)
+inline void store_relaxed(std::complex<T>* addr, std::complex<T> val)
 {
     auto values = reinterpret_cast<T*>(addr);
-    store(values + 0, real(val));
-    store(values + 1, imag(val));
+    store_relaxed(values + 0, real(val));
+    store_relaxed(values + 1, imag(val));
 }
 
 
 // Same issue as with the store_helper
-inline float load(float* addr)
+inline float load_relaxed(float* addr)
 {
     float val;
 #pragma omp atomic read relaxed
@@ -179,7 +179,7 @@ inline float load(float* addr)
     return val;
 }
 
-inline double load(double* addr)
+inline double load_relaxed(double* addr)
 {
     double val;
 #pragma omp atomic read relaxed
@@ -187,7 +187,7 @@ inline double load(double* addr)
     return val;
 }
 
-inline int32 load(int32* addr)
+inline int32 load_relaxed(int32* addr)
 {
     int32 val;
 #pragma omp atomic read relaxed
@@ -195,7 +195,7 @@ inline int32 load(int32* addr)
     return val;
 }
 
-inline int64 load(int64* addr)
+inline int64 load_relaxed(int64* addr)
 {
     int64 val;
 #pragma omp atomic read relaxed
@@ -203,7 +203,7 @@ inline int64 load(int64* addr)
     return val;
 }
 
-inline float16 load(float16* addr)
+inline float16 load_relaxed(float16* addr)
 {
     uint16_t uint_val;
     auto uint_addr = copy_cast<uint16_t*>(addr);
@@ -212,7 +212,7 @@ inline float16 load(float16* addr)
     return copy_cast<float16>(uint_val);
 }
 
-inline bfloat16 load(bfloat16* addr)
+inline bfloat16 load_relaxed(bfloat16* addr)
 {
     uint16_t uint_val;
     auto uint_addr = copy_cast<uint16_t*>(addr);
@@ -222,10 +222,28 @@ inline bfloat16 load(bfloat16* addr)
 }
 
 template <typename T>
-inline std::complex<T> load(std::complex<T>* addr)
+inline std::complex<T> load_relaxed(std::complex<T>* addr)
 {
     auto values = reinterpret_cast<T*>(addr);
-    return {load(values + 0), load(values + 1)};
+    return {load_relaxed(values + 0), load_relaxed(values + 1)};
+}
+
+
+template <typename ValueType>
+ValueType load_acquire(const ValueType& val)
+{
+    ValueType out{};
+#pragma omp atomic read acquire
+    out = val;
+    return out;
+}
+
+
+template <typename ValueType, typename ValueType2>
+void store_release(ValueType& out, ValueType2 val)
+{
+#pragma omp atomic write release
+    out = ValueType(val);
 }
 
 

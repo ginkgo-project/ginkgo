@@ -36,14 +36,14 @@ void match_edge(std::shared_ptr<const DefaultExecutor> exec,
     auto strongest_neighbor_vals = strongest_neighbor.get_const_data();
 #pragma omp parallel for
     for (int64 i = 0; i < static_cast<int64>(agg.get_size()); i++) {
-        if (load(agg_vals + i) != -1) {
+        if (load_relaxed(agg_vals + i) != -1) {
             continue;
         }
         auto neighbor = strongest_neighbor_vals[i];
         if (neighbor != -1 && strongest_neighbor_vals[neighbor] == i &&
             i <= neighbor) {
-            store(agg_vals + i, i);
-            store(agg_vals + neighbor, i);
+            store_relaxed(agg_vals + i, i);
+            store_relaxed(agg_vals + neighbor, i);
         }
     }
 }

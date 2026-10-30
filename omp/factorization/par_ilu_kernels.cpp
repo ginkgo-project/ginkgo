@@ -57,8 +57,8 @@ void compute_l_u_factors(
                 auto col_l = col_idxs_l[row_l];
                 auto col_u = col_idxs_u[row_u];
                 if (col_l == col_u) {
-                    last_operation =
-                        load(vals_l + row_l) * load(vals_u + row_u);
+                    last_operation = load_relaxed(vals_l + row_l) *
+                                     load_relaxed(vals_u + row_u);
                     sum -= last_operation;
                 } else {
                     last_operation = zero<ValueType>();
@@ -75,14 +75,15 @@ void compute_l_u_factors(
             sum += last_operation;  // undo the last operation
 
             if (row > col) {  // modify entry in L
-                auto to_write = sum / load(vals_u + row_ptrs_u[col + 1] - 1);
+                auto to_write =
+                    sum / load_relaxed(vals_u + row_ptrs_u[col + 1] - 1);
                 if (is_finite(to_write)) {
-                    store(vals_l + row_l - 1, to_write);
+                    store_relaxed(vals_l + row_l - 1, to_write);
                 }
             } else {  // modify entry in U
                 auto to_write = sum;
                 if (is_finite(to_write)) {
-                    store(vals_u + row_u - 1, to_write);
+                    store_relaxed(vals_u + row_u - 1, to_write);
                 }
             }
         }

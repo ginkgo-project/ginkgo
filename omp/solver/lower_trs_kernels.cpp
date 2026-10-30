@@ -89,7 +89,7 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
                 auto col = col_idxs[k];
                 if (col < row) {
                     OutputValueType xval{};
-                    while (is_nan_exact(xval = load(&x(col, j)))) {
+                    while (is_nan_exact(xval = load_relaxed(&x(col, j)))) {
                     }
                     val = val - static_cast<ArithmeticType>(vals[k]) *
                                     static_cast<ArithmeticType>(xval);
@@ -104,7 +104,7 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
             if (is_nan_exact(val)) {
                 val = zero<ArithmeticType>();
             }
-            store(&x(row, j), static_cast<OutputValueType>(val));
+            store_relaxed(&x(row, j), static_cast<OutputValueType>(val));
         }
     }
 }
