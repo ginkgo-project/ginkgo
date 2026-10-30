@@ -28,10 +28,54 @@
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "core/base/array_access.hpp"
 #include "core/matrix/dense_kernels.hpp"
+#include "core/solver/common_trs_helpers.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 
 
 namespace gko {
+
+
+template <>
+struct float_to_unsigned_impl<__half> {
+    using type = uint16;
+};
+
+template <>
+struct float_to_unsigned_impl<__nv_bfloat16> {
+    using type = uint16;
+};
+
+
+template <>
+GKO_INLINE GKO_ATTRIBUTES bool is_nan_exact<__half>(const __half& value)
+{
+    using type = typename float_to_unsigned_impl<__half>::type;
+    type value_bytes{};
+    type nan_bytes{};
+    // we use nan from gko::half
+    auto nan_value = nan<gko::half>();
+    using std::memcpy;
+    memcpy(&value_bytes, &value, sizeof(value));
+    memcpy(&nan_bytes, &nan_value, sizeof(value));
+    return value_bytes == nan_bytes;
+}
+
+template <>
+GKO_INLINE GKO_ATTRIBUTES bool is_nan_exact<__nv_bfloat16>(
+    const __nv_bfloat16& value)
+{
+    using type = typename float_to_unsigned_impl<__nv_bfloat16>::type;
+    type value_bytes{};
+    type nan_bytes{};
+    // we use nan from gko::bfloat16
+    auto nan_value = nan<gko::bfloat16>();
+    using std::memcpy;
+    memcpy(&value_bytes, &value, sizeof(value));
+    memcpy(&nan_bytes, &nan_value, sizeof(value));
+    return value_bytes == nan_bytes;
+}
+
+
 namespace solver {
 
 
@@ -336,89 +380,6 @@ void solve_kernel(std::shared_ptr<const CudaExecutor> exec,
 
 constexpr int default_block_size = 512;
 constexpr int fallback_block_size = 32;
-
-
-/** Returns an unsigned type matching the size of the given float type. */
-template <typename T>
-struct float_to_unsigned_impl {};
-
-template <>
-struct float_to_unsigned_impl<double> {
-    using type = uint64;
-};
-
-template <>
-struct float_to_unsigned_impl<float> {
-    using type = uint32;
-};
-
-template <>
-struct float_to_unsigned_impl<__half> {
-    using type = uint16;
-};
-
-template <>
-struct float_to_unsigned_impl<__nv_bfloat16> {
-    using type = uint16;
-};
-
-/**
- * Checks if a floating point number representation matches the representation
- * of the quiet NaN with value gko::nan() exactly.
- */
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
-is_nan_exact(const T& value)
-{
-    using type = typename float_to_unsigned_impl<T>::type;
-    type value_bytes{};
-    type nan_bytes{};
-    auto nan_value = nan<T>();
-    using std::memcpy;
-    memcpy(&value_bytes, &value, sizeof(value));
-    memcpy(&nan_bytes, &nan_value, sizeof(value));
-    return value_bytes == nan_bytes;
-}
-
-template <>
-GKO_INLINE GKO_ATTRIBUTES bool is_nan_exact<__half>(const __half& value)
-{
-    using type = typename float_to_unsigned_impl<__half>::type;
-    type value_bytes{};
-    type nan_bytes{};
-    // we use nan from gko::half
-    auto nan_value = nan<gko::half>();
-    using std::memcpy;
-    memcpy(&value_bytes, &value, sizeof(value));
-    memcpy(&nan_bytes, &nan_value, sizeof(value));
-    return value_bytes == nan_bytes;
-}
-
-template <>
-GKO_INLINE GKO_ATTRIBUTES bool is_nan_exact<__nv_bfloat16>(
-    const __nv_bfloat16& value)
-{
-    using type = typename float_to_unsigned_impl<__nv_bfloat16>::type;
-    type value_bytes{};
-    type nan_bytes{};
-    // we use nan from gko::bfloat16
-    auto nan_value = nan<gko::bfloat16>();
-    using std::memcpy;
-    memcpy(&value_bytes, &value, sizeof(value));
-    memcpy(&nan_bytes, &nan_value, sizeof(value));
-    return value_bytes == nan_bytes;
-}
-
-/**
- * Checks if any component of the complex value matches the quiet NaN with
- * value gko::nan() exactly.
- */
-template <typename T>
-GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<is_complex_s<T>::value, bool>
-is_nan_exact(const T& value)
-{
-    return is_nan_exact(value.real()) || is_nan_exact(value.imag());
-}
 
 
 template <bool is_upper, typename ArithmeticType, typename InputValueType,
