@@ -135,6 +135,46 @@ public:
     void set_krylov_dim(size_type other) { parameters_.krylov_dim = other; }
 
     /**
+     * Returns the restart ratio.
+     *
+     * @return the restart ratio
+     */
+    remove_complex<ValueType> get_restart_ratio() const
+    {
+        return parameters_.restart_ratio;
+    }
+
+    /**
+     * Sets the restart ratio.
+     *
+     * @param other  the new restart ratio
+     */
+    void set_restart_ratio(remove_complex<ValueType> other)
+    {
+        parameters_.restart_ratio = other;
+    }
+
+    /**
+     * Returns the maximum number of re-orthogonalization passes.
+     *
+     * @return the maximum number of re-orthogonalization passes
+     */
+    size_type get_max_reorth_steps() const
+    {
+        return parameters_.max_reorth_steps;
+    }
+
+    /**
+     * Sets the maximum number of re-orthogonalization passes.
+     *
+     * @param other  the new maximum
+     */
+    void set_max_reorth_steps(size_type other)
+    {
+        parameters_.max_reorth_steps = other;
+    }
+
+    /**
      * Returns the storage precision used internally.
      *
      * @return the storage precision used internally
@@ -157,8 +197,50 @@ public:
 
         /**
          * Krylov dimension factory.
+         *
+         * When restart_ratio is zero this is the restart length: a cycle always
+         * ends after krylov_dim steps. When restart_ratio is positive this acts
+         * instead as a cap on the size of the Krylov basis, and a cycle ends at
+         * whichever of the two criteria is met first.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(krylov_dim, 100u);
+
+        /**
+         * Restart ratio.
+         *
+         * A cycle ends once the residual has fallen to this fraction of its
+         * value at the start of the cycle, that is, once
+         * \f$ \|r_i - A d_i\| \leq \text{restart\_ratio} \cdot \|r_i\| \f$
+         * holds for every right-hand side still running, with \f$r_i\f$ the
+         * residual at the start of the cycle and \f$d_i\f$ the correction
+         * built so far. This bounds the normwise backward error of the
+         * correction; a cycle cut short by krylov_dim carries no such bound.
+         *
+         * It is a per-cycle reduction, not a convergence tolerance, so useful
+         * values are far larger than a stopping criterion's. It must lie in
+         * [0, 1) and must exceed the reduction a krylov_dim-step cycle
+         * achieves, or it never fires: use 1e-3 to 1e-1 when a cycle gains
+         * orders of magnitude, and around 0.9 when it gains only a few
+         * percent. Zero, the default, disables the criterion.
+         *
+         * For the criterion and its analysis, see sec. 4.2 of
+         * <a href="https://doi.org/10.1093/imanum/draf049">A Modular Framework
+         * for the Backward Error Analysis of GMRES</a>.
+         */
+        remove_complex<ValueType> GKO_FACTORY_PARAMETER_SCALAR(restart_ratio,
+                                                               0.0);
+
+        /**
+         * Maximum number of re-orthogonalization passes per Arnoldi step.
+         *
+         * The Arnoldi step uses classical Gram-Schmidt and re-orthogonalizes
+         * only when the norm of the new vector has dropped by more than a
+         * factor \f$\sqrt{2}\f$, which indicates cancellation. This bounds how
+         * many such passes are taken. Zero leaves plain classical
+         * Gram-Schmidt, and the default of two reproduces the published
+         * algorithm.
+         */
+        size_type GKO_FACTORY_PARAMETER_SCALAR(max_reorth_steps, 2u);
     };
 
     GKO_ENABLE_LIN_OP_FACTORY(CbGmres, parameters, Factory);
@@ -201,7 +283,12 @@ protected:
           EnablePreconditionedIterativeSolver<ValueType, CbGmres<ValueType>>{
               std::move(system_matrix), factory->get_parameters()},
           parameters_{factory->get_parameters()}
-    {}
+    {
+        GKO_THROW_IF_INVALID(
+            parameters_.restart_ratio >= zero<remove_complex<ValueType>>() &&
+                parameters_.restart_ratio < one<remove_complex<ValueType>>(),
+            "restart_ratio must lie in [0, 1); zero disables the criterion");
+    }
 };
 
 

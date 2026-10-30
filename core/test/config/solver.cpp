@@ -356,6 +356,11 @@ struct CbGmres : SolverConfigTest<gko::solver::CbGmres<float>,
         config_map["storage_precision"] = pnode{"reduce2"};
         param.with_storage_precision(
             gko::solver::cb_gmres::storage_precision::reduce2);
+        config_map["restart_ratio"] = pnode{0.5};
+        param.with_restart_ratio(
+            static_cast<decltype(param.restart_ratio)>(0.5));
+        config_map["max_reorth_steps"] = pnode{1};
+        param.with_max_reorth_steps(1u);
     }
 
     template <bool from_reg, typename AnswerType>
@@ -367,6 +372,8 @@ struct CbGmres : SolverConfigTest<gko::solver::CbGmres<float>,
         solver_config_test::template validate<from_reg>(result, answer);
         ASSERT_EQ(res_param.krylov_dim, ans_param.krylov_dim);
         ASSERT_EQ(res_param.storage_precision, ans_param.storage_precision);
+        ASSERT_EQ(res_param.restart_ratio, ans_param.restart_ratio);
+        ASSERT_EQ(res_param.max_reorth_steps, ans_param.max_reorth_steps);
     }
 };
 

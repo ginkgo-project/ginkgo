@@ -35,7 +35,8 @@ void finish_arnoldi_CGS(
     matrix::view::dense<ValueType> hessenberg_iter,
     matrix::view::dense<ValueType> buffer_iter,
     matrix::view::dense<remove_complex<ValueType>> arnoldi_norm, size_type iter,
-    const stopping_status* stop_status)
+    const stopping_status* stop_status, size_type max_reorth_steps,
+    size_type* reorth_passes, cb_gmres_psi_stats* psi_stats)
 {
     using rc_vtype = remove_complex<ValueType>;
     constexpr bool has_scalar =
@@ -98,12 +99,18 @@ void finish_arnoldi_CGS(
         nrm = result_pair.first;
         inf = result_pair.second;
         arnoldi_norm(1, i) = sqrt(nrm);
-        if (has_scalar) {
+        // The scaled accessor needs the infinity norm for its scale, and a
+        // diagnostic run needs it at every format.
+        if (has_scalar || psi_stats != nullptr) {
             arnoldi_norm(2, i) = inf;
         }
 
-        for (size_type l = 1;
-             (arnoldi_norm(1, i)) < (arnoldi_norm(0, i)) && l < 3; l++) {
+        for (size_type l = 1; (arnoldi_norm(1, i)) < (arnoldi_norm(0, i)) &&
+                              l <= max_reorth_steps;
+             l++) {
+            if (reorth_passes != nullptr) {
+                ++(*reorth_passes);
+            }
             arnoldi_norm(0, i) = eta * arnoldi_norm(1, i);
             // nrmP = nrmN
 #pragma omp parallel for
@@ -118,6 +125,24 @@ void finish_arnoldi_CGS(
             // for i in 1:iter
             //     buffer(iter, i) = next_krylov_basis' * krylov_bases(:, i)
             // end
+            if (psi_stats != nullptr && l == 1) {
+                // buffer_iter holds V_j^T w for the vector the first pass
+                // left, arnoldi_norm(1, i) is its norm h_{j+1,j}, and
+                // hessenberg_iter still holds that pass's column h_{1:j,j}.
+                rc_vtype t_norm = zero<rc_vtype>();
+                rc_vtype h_norm = zero<rc_vtype>();
+                for (size_type k = 0; k < iter + 1; ++k) {
+                    t_norm += squared_norm(buffer_iter(k, i));
+                    h_norm += squared_norm(hessenberg_iter(k, i));
+                }
+                t_norm = sqrt(t_norm);
+                h_norm = sqrt(h_norm);
+                if (arnoldi_norm(1, i) > zero<rc_vtype>()) {
+                    psi_stats->add(
+                        static_cast<double>(t_norm / arnoldi_norm(1, i)),
+                        static_cast<double>(h_norm / arnoldi_norm(1, i)));
+                }
+            }
             for (size_type k = 0; k < iter + 1; ++k) {
 #pragma omp parallel for
                 for (size_type j = 0; j < next_krylov_basis.size[0]; ++j) {
@@ -147,11 +172,17 @@ void finish_arnoldi_CGS(
             nrm = result_pair.first;
             inf = result_pair.second;
             arnoldi_norm(1, i) = sqrt(nrm);
-            if (has_scalar) {
+            if (has_scalar || psi_stats != nullptr) {
                 arnoldi_norm(2, i) = inf;
             }
             // nrmN = norm(next_krylov_basis)
             // nrmI = infnorm(next_krylov_basis)
+        }
+        if (psi_stats != nullptr && arnoldi_norm(1, i) > zero<rc_vtype>()) {
+            // What the scaled accessor stores as its scale, which for a
+            // vector about to be normalized is ||v||_inf.
+            psi_stats->add_loc(
+                static_cast<double>(arnoldi_norm(2, i) / arnoldi_norm(1, i)));
         }
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, iter + 1, i, arnoldi_norm(2, i) / arnoldi_norm(1, i));
@@ -413,7 +444,8 @@ void arnoldi(std::shared_ptr<const OmpExecutor> exec,
              matrix::view::dense<remove_complex<ValueType>> arnoldi_norm,
              size_type iter, array<size_type>& final_iter_nums,
              const array<stopping_status>& stop_status, array<stopping_status>&,
-             array<size_type>&)
+             array<size_type>&, size_type max_reorth_steps,
+             size_type* reorth_passes, cb_gmres_psi_stats* psi_stats)
 {
 #pragma omp parallel for
     for (size_type i = 0; i < final_iter_nums.get_size(); ++i) {
@@ -423,7 +455,8 @@ void arnoldi(std::shared_ptr<const OmpExecutor> exec,
     }
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
-                       stop_status.get_const_data());
+                       stop_status.get_const_data(), max_reorth_steps,
+                       reorth_passes, psi_stats);
     givens_rotation(givens_sin, givens_cos, hessenberg_iter, iter,
                     stop_status.get_const_data());
     calculate_next_residual_norm(givens_sin, givens_cos, residual_norm,
@@ -432,6 +465,29 @@ void arnoldi(std::shared_ptr<const OmpExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
+
+
+template <typename ValueType, typename ConstAccessor3d>
+void gram_column(std::shared_ptr<const OmpExecutor> exec,
+                 ConstAccessor3d krylov_bases,
+                 matrix::view::dense<ValueType> gram_col, size_type iter)
+{
+    const auto num_rows = krylov_bases.length(1);
+    const auto num_rhs = gram_col.size[1];
+    for (size_type i = 0; i < num_rhs; ++i) {
+#pragma omp parallel for
+        for (size_type k = 0; k <= iter; ++k) {
+            ValueType dot = zero<ValueType>();
+            for (size_type j = 0; j < num_rows; ++j) {
+                dot += krylov_bases(iter, j, i) * conj(krylov_bases(k, j, i));
+            }
+            gram_col(k, i) = dot;
+        }
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
+    GKO_DECLARE_CB_GMRES_GRAM_COLUMN_KERNEL);
 
 
 template <typename ValueType, typename ConstAccessor3d>

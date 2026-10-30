@@ -180,6 +180,116 @@ TYPED_TEST(CbGmres, CanUseSetKrylovDim)
 }
 
 
+TYPED_TEST(CbGmres, RestartRatioIsZeroByDefault)
+{
+    using Solver = typename TestFixture::Solver;
+    using nc_value_type = typename TestFixture::nc_value_type;
+    auto cb_gmres_factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
+
+    ASSERT_EQ(solver->get_restart_ratio(), nc_value_type{0});
+}
+
+
+TYPED_TEST(CbGmres, CanSetRestartRatio)
+{
+    using Solver = typename TestFixture::Solver;
+    using nc_value_type = typename TestFixture::nc_value_type;
+    const nc_value_type new_restart_ratio{0.25};
+
+    auto cb_gmres_factory =
+        Solver::build()
+            .with_restart_ratio(new_restart_ratio)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
+
+    ASSERT_EQ(solver->get_restart_ratio(), new_restart_ratio);
+}
+
+
+TYPED_TEST(CbGmres, CanUseSetRestartRatio)
+{
+    using Solver = typename TestFixture::Solver;
+    using nc_value_type = typename TestFixture::nc_value_type;
+    const nc_value_type new_restart_ratio{0.5};
+    auto cb_gmres_factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
+
+    solver->set_restart_ratio(new_restart_ratio);
+
+    ASSERT_EQ(solver->get_restart_ratio(), new_restart_ratio);
+}
+
+
+TYPED_TEST(CbGmres, RejectsRestartRatioOutsideUnitInterval)
+{
+    using Solver = typename TestFixture::Solver;
+    using nc_value_type = typename TestFixture::nc_value_type;
+    auto build_with = [this](nc_value_type ratio) {
+        return Solver::build()
+            .with_restart_ratio(ratio)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    };
+
+    ASSERT_THROW(build_with(nc_value_type{1.0})->generate(this->mtx),
+                 gko::InvalidStateError);
+    ASSERT_THROW(build_with(nc_value_type{2.0})->generate(this->mtx),
+                 gko::InvalidStateError);
+    ASSERT_THROW(build_with(-nc_value_type{0.5})->generate(this->mtx),
+                 gko::InvalidStateError);
+}
+
+
+TYPED_TEST(CbGmres, MaxReorthStepsDefaultsToTwo)
+{
+    using Solver = typename TestFixture::Solver;
+    auto cb_gmres_factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
+
+    ASSERT_EQ(solver->get_max_reorth_steps(), 2u);
+}
+
+
+TYPED_TEST(CbGmres, CanSetMaxReorthSteps)
+{
+    using Solver = typename TestFixture::Solver;
+    auto cb_gmres_factory =
+        Solver::build()
+            .with_max_reorth_steps(0u)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
+
+    ASSERT_EQ(solver->get_max_reorth_steps(), 0u);
+}
+
+
+TYPED_TEST(CbGmres, CanUseSetMaxReorthSteps)
+{
+    using Solver = typename TestFixture::Solver;
+    auto cb_gmres_factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(4u))
+            .on(this->exec);
+    auto solver = cb_gmres_factory->generate(this->mtx);
+
+    solver->set_max_reorth_steps(1u);
+
+    ASSERT_EQ(solver->get_max_reorth_steps(), 1u);
+}
+
+
 TYPED_TEST(CbGmres, CanSetPreconditionerInFactory)
 {
     using Solver = typename TestFixture::Solver;

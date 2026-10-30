@@ -5,6 +5,7 @@
 #include "core/solver/cb_gmres_kernels.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -361,6 +362,47 @@ __global__ __launch_bounds__(dot_dim* dot_dim) void multidot_kernel(
         !stop_status[new_col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + new_col_idx;
         atomic_add(hessenberg_iter + hessenberg_idx, sum);
+    }
+}
+
+
+// One column of the Gram matrix of the stored basis, as multidot_kernel
+// computes the Hessenberg column but with both operands read through the
+// accessor: gram_col(k) = <krylov_bases(k, :), krylov_bases(iter, :)>.
+template <int dot_dim, typename ValueType, typename Accessor3d>
+__global__ __launch_bounds__(dot_dim* dot_dim) void gram_column_kernel(
+    size_type num_rows, size_type num_cols, const Accessor3d krylov_bases,
+    size_type iter, ValueType* __restrict__ gram_col, size_type stride_gram)
+{
+    const size_type tidx = threadIdx.x;
+    const size_type tidy = threadIdx.y;
+    const size_type col_idx = blockIdx.x * blockDim.x + threadIdx.x;
+    const size_type num_rows_per_thread = ceildiv(num_rows, gridDim.y);
+    const size_type start_row = blockIdx.y * num_rows_per_thread + threadIdx.y;
+    const auto end_row = min((blockIdx.y + 1) * num_rows_per_thread, num_rows);
+    const size_type k = blockIdx.z;
+    __shared__ uninitialized_array<ValueType, dot_dim * dot_dim>
+        reduction_helper_array;
+    ValueType* __restrict__ reduction_helper = reduction_helper_array;
+
+    ValueType local_res = zero<ValueType>();
+    if (col_idx < num_cols) {
+        for (size_type i = start_row; i < end_row; i += blockDim.y) {
+            local_res += krylov_bases(iter, i, col_idx) *
+                         conj(krylov_bases(k, i, col_idx));
+        }
+    }
+    reduction_helper[tidx * dot_dim + tidy] = local_res;
+    auto thread_block = group::this_thread_block();
+    thread_block.sync();
+    local_res = reduction_helper[tidy * dot_dim + tidx];
+    const auto new_col_idx = blockIdx.x * blockDim.x + tidy;
+    const auto tile_block = group::tiled_partition<dot_dim>(thread_block);
+    const auto sum =
+        reduce(tile_block, local_res,
+               [](const ValueType& a, const ValueType& b) { return a + b; });
+    if (tidx == 0 && new_col_idx < num_cols) {
+        atomic_add(gram_col + k * stride_gram + new_col_idx, sum);
     }
 }
 
@@ -722,7 +764,8 @@ void finish_arnoldi_CGS(
     matrix::view::dense<ValueType> buffer_iter,
     matrix::view::dense<remove_complex<ValueType>> arnoldi_norm, size_type iter,
     const stopping_status* stop_status, stopping_status* reorth_status,
-    array<size_type>& num_reorth)
+    array<size_type>& num_reorth, size_type max_reorth_steps,
+    size_type* reorth_passes, cb_gmres_psi_stats* psi_stats)
 {
     const auto dim_size = next_krylov_basis.size;
     if (dim_size[1] == 0) {
@@ -733,6 +776,9 @@ void finish_arnoldi_CGS(
     constexpr int singledot_block_size = default_dot_dim;
     constexpr bool use_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3dim>::value;
+    // The scaled accessor needs the infinity norm for its scale, and a
+    // diagnostic run needs it at every format.
+    const bool want_inf = use_scalar || psi_stats != nullptr;
     const auto stride_next_krylov = next_krylov_basis.stride;
     const auto stride_hessenberg = hessenberg_iter.stride;
     const auto stride_buffer = buffer_iter.stride;
@@ -794,17 +840,27 @@ void finish_arnoldi_CGS(
     // end
     components::fill_array(exec, arnoldi_norm.values + stride_arnoldi,
                            dim_size[1], zero<non_complex>());
-    if (use_scalar) {
+    if (want_inf) {
         components::fill_array(exec, arnoldi_norm.values + 2 * stride_arnoldi,
                                dim_size[1], zero<non_complex>());
     }
-    multinorm2_inf_kernel<use_scalar>
-        <<<grid_size, block_size, 0, exec->get_stream()>>>(
-            dim_size[0], dim_size[1], as_device_type(next_krylov_basis.values),
-            stride_next_krylov,
-            as_device_type(arnoldi_norm.values + stride_arnoldi),
-            as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
-            as_device_type(stop_status));
+    if (want_inf) {
+        multinorm2_inf_kernel<true>
+            <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                dim_size[0], dim_size[1],
+                as_device_type(next_krylov_basis.values), stride_next_krylov,
+                as_device_type(arnoldi_norm.values + stride_arnoldi),
+                as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
+                as_device_type(stop_status));
+    } else {
+        multinorm2_inf_kernel<false>
+            <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                dim_size[0], dim_size[1],
+                as_device_type(next_krylov_basis.values), stride_next_krylov,
+                as_device_type(arnoldi_norm.values + stride_arnoldi),
+                as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
+                as_device_type(stop_status));
+    }
     // nrmN = norm(next_krylov_basis)
     components::fill_array(exec, num_reorth.get_data(), 1, zero<size_type>());
     check_arnoldi_norms<default_block_size>
@@ -815,9 +871,13 @@ void finish_arnoldi_CGS(
             acc::as_device_range(krylov_bases), as_device_type(stop_status),
             as_device_type(reorth_status),
             as_device_type(num_reorth.get_data()));
-    num_reorth_host = get_element(num_reorth, 0);
+    num_reorth_host = max_reorth_steps > 0 ? get_element(num_reorth, 0) : 0;
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
-    for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
+    for (size_type l = 1; (num_reorth_host > 0) && (l <= max_reorth_steps);
+         l++) {
+        if (reorth_passes != nullptr) {
+            *reorth_passes += num_reorth_host;
+        }
         zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
                     buffer_iter.values);
         if (dim_size[1] > 1) {
@@ -840,6 +900,41 @@ void finish_arnoldi_CGS(
         // for i in 1:iter
         //     hessenberg(iter, i) = next_krylov_basis' * krylov_bases(:, i)
         // end
+        if (psi_stats != nullptr && l == 1) {
+            // buffer_iter now holds V_j^T w for the vector w the first pass
+            // left, arnoldi_norm(1, :) still holds its norm h_{j+1,j}, and
+            // hessenberg_iter still holds that pass's column h_{1:j,j}. The
+            // three blocks are (iter+1) x nrhs twice and nrhs values.
+            const auto host = exec->get_master();
+            const auto n_buf = (iter + 1) * stride_buffer;
+            const auto n_hes = (iter + 1) * stride_hessenberg;
+            array<ValueType> h_buf{host, n_buf};
+            array<ValueType> h_hes{host, n_hes};
+            array<remove_complex<ValueType>> h_nrm{host, dim_size[1]};
+            host->copy_from(exec, n_buf, buffer_iter.values, h_buf.get_data());
+            host->copy_from(exec, n_hes, hessenberg_iter.values,
+                            h_hes.get_data());
+            host->copy_from(exec, dim_size[1],
+                            arnoldi_norm.values + stride_arnoldi,
+                            h_nrm.get_data());
+            for (size_type c = 0; c < dim_size[1]; ++c) {
+                remove_complex<ValueType> t_norm = 0;
+                remove_complex<ValueType> h_norm = 0;
+                for (size_type k = 0; k < iter + 1; ++k) {
+                    t_norm += gko::squared_norm(
+                        h_buf.get_const_data()[k * stride_buffer + c]);
+                    h_norm += gko::squared_norm(
+                        h_hes.get_const_data()[k * stride_hessenberg + c]);
+                }
+                t_norm = std::sqrt(t_norm);
+                h_norm = std::sqrt(h_norm);
+                const auto hnext = h_nrm.get_const_data()[c];
+                if (hnext > 0) {
+                    psi_stats->add(static_cast<double>(t_norm / hnext),
+                                   static_cast<double>(h_norm / hnext));
+                }
+            }
+        }
         update_next_krylov_and_add_kernel<default_block_size>
             <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
                default_block_size, 0, exec->get_stream()>>>(
@@ -854,18 +949,30 @@ void finish_arnoldi_CGS(
         // end
         components::fill_array(exec, arnoldi_norm.values + stride_arnoldi,
                                dim_size[1], zero<non_complex>());
-        if (use_scalar) {
+        if (want_inf) {
             components::fill_array(exec,
                                    arnoldi_norm.values + 2 * stride_arnoldi,
                                    dim_size[1], zero<non_complex>());
         }
-        multinorm2_inf_kernel<use_scalar>
-            <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                dim_size[0], dim_size[1],
-                as_device_type(next_krylov_basis.values), stride_next_krylov,
-                as_device_type(arnoldi_norm.values + stride_arnoldi),
-                as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
-                as_device_type(stop_status));
+        if (want_inf) {
+            multinorm2_inf_kernel<true>
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                    dim_size[0], dim_size[1],
+                    as_device_type(next_krylov_basis.values),
+                    stride_next_krylov,
+                    as_device_type(arnoldi_norm.values + stride_arnoldi),
+                    as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
+                    as_device_type(stop_status));
+        } else {
+            multinorm2_inf_kernel<false>
+                <<<grid_size, block_size, 0, exec->get_stream()>>>(
+                    dim_size[0], dim_size[1],
+                    as_device_type(next_krylov_basis.values),
+                    stride_next_krylov,
+                    as_device_type(arnoldi_norm.values + stride_arnoldi),
+                    as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
+                    as_device_type(stop_status));
+        }
         // nrmN = norm(next_krylov_basis)
         components::fill_array(exec, num_reorth.get_data(), 1,
                                zero<size_type>());
@@ -880,6 +987,24 @@ void finish_arnoldi_CGS(
         num_reorth_host = get_element(num_reorth, 0);
         // num_reorth_host := number of next_krylov vector to be
         // reorthogonalization
+    }
+    if (psi_stats != nullptr) {
+        // ||w||_inf / ||w||_2, what the scaled accessor is about to store as
+        // its scale, two values per step.
+        const auto host = exec->get_master();
+        array<remove_complex<ValueType>> h_nrm{host, 2 * dim_size[1]};
+        host->copy_from(exec, dim_size[1], arnoldi_norm.values + stride_arnoldi,
+                        h_nrm.get_data());
+        host->copy_from(exec, dim_size[1],
+                        arnoldi_norm.values + 2 * stride_arnoldi,
+                        h_nrm.get_data() + dim_size[1]);
+        for (size_type c = 0; c < dim_size[1]; ++c) {
+            const auto n2 = h_nrm.get_const_data()[c];
+            const auto ni = h_nrm.get_const_data()[dim_size[1] + c];
+            if (n2 > 0) {
+                psi_stats->add_loc(static_cast<double>(ni / n2));
+            }
+        }
     }
     update_krylov_next_krylov_kernel<default_block_size>
         <<<ceildiv(dim_size[0] * stride_next_krylov, default_block_size),
@@ -938,7 +1063,8 @@ void arnoldi(std::shared_ptr<const DefaultExecutor> exec,
              size_type iter, array<size_type>& final_iter_nums,
              const array<stopping_status>& stop_status,
              array<stopping_status>& reorth_status,
-             array<size_type>& num_reorth)
+             array<size_type>& num_reorth, size_type max_reorth_steps,
+             size_type* reorth_passes, cb_gmres_psi_stats* psi_stats)
 {
     if (final_iter_nums.get_size() != 0) {
         increase_final_iteration_numbers_kernel<<<
@@ -951,12 +1077,36 @@ void arnoldi(std::shared_ptr<const DefaultExecutor> exec,
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status.get_const_data(), reorth_status.get_data(),
-                       num_reorth);
+                       num_reorth, max_reorth_steps, reorth_passes, psi_stats);
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
                     residual_norm, residual_norm_collection, iter, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
+
+
+template <typename ValueType, typename ConstAccessor3d>
+void gram_column(std::shared_ptr<const DefaultExecutor> exec,
+                 ConstAccessor3d krylov_bases,
+                 matrix::view::dense<ValueType> gram_col, size_type iter)
+{
+    const auto num_rows = krylov_bases.length(1);
+    const auto num_cols = gram_col.size[1];
+    if (num_cols == 0 || num_rows == 0) {
+        return;
+    }
+    zero_matrix(exec, iter + 1, num_cols, gram_col.stride, gram_col.values);
+    const dim3 grid_size(ceildiv(num_cols, default_dot_dim),
+                         exec->get_num_multiprocessor() * 2, iter + 1);
+    const dim3 block_size(default_dot_dim, default_dot_dim);
+    gram_column_kernel<default_dot_dim>
+        <<<grid_size, block_size, 0, exec->get_stream()>>>(
+            num_rows, num_cols, acc::as_device_range(krylov_bases), iter,
+            as_device_type(gram_col.values), gram_col.stride);
+}
+
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
+    GKO_DECLARE_CB_GMRES_GRAM_COLUMN_KERNEL);
 
 
 template <typename ValueType>

@@ -986,7 +986,8 @@ void finish_arnoldi_CGS(
     matrix::view::dense<ValueType> buffer_iter,
     matrix::view::dense<remove_complex<ValueType>> arnoldi_norm, size_type iter,
     const stopping_status* stop_status, stopping_status* reorth_status,
-    array<size_type>& num_reorth)
+    array<size_type>& num_reorth, size_type max_reorth_steps,
+    size_type* reorth_passes, cb_gmres_psi_stats*)
 {
     const auto dim_size = next_krylov_basis.size;
     if (dim_size[1] == 0) {
@@ -1065,9 +1066,13 @@ void finish_arnoldi_CGS(
         exec->get_queue(), dim_size[1], arnoldi_norm.values, stride_arnoldi,
         hessenberg_iter.values, stride_hessenberg, iter + 1, krylov_bases,
         stop_status, reorth_status, num_reorth.get_data());
-    num_reorth_host = get_element(num_reorth, 0);
+    num_reorth_host = max_reorth_steps > 0 ? get_element(num_reorth, 0) : 0;
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
-    for (size_type l = 1; (num_reorth_host > 0) && (l < 3); l++) {
+    for (size_type l = 1; (num_reorth_host > 0) && (l <= max_reorth_steps);
+         l++) {
+        if (reorth_passes != nullptr) {
+            *reorth_passes += num_reorth_host;
+        }
         zero_matrix(exec, iter + 1, dim_size[1], stride_buffer,
                     buffer_iter.values);
         if (dim_size[1] > 1) {
@@ -1169,7 +1174,8 @@ void arnoldi(std::shared_ptr<const DpcppExecutor> exec,
              size_type iter, array<size_type>& final_iter_nums,
              const array<stopping_status>& stop_status,
              array<stopping_status>& reorth_status,
-             array<size_type>& num_reorth)
+             array<size_type>& num_reorth, size_type max_reorth_steps,
+             size_type* reorth_passes, cb_gmres_psi_stats* psi_stats)
 {
     increase_final_iteration_numbers_kernel(
         static_cast<unsigned int>(
@@ -1179,12 +1185,76 @@ void arnoldi(std::shared_ptr<const DpcppExecutor> exec,
     finish_arnoldi_CGS(exec, next_krylov_basis, krylov_bases, hessenberg_iter,
                        buffer_iter, arnoldi_norm, iter,
                        stop_status.get_const_data(), reorth_status.get_data(),
-                       num_reorth);
+                       num_reorth, max_reorth_steps, reorth_passes, psi_stats);
     givens_rotation(exec, givens_sin, givens_cos, hessenberg_iter,
                     residual_norm, residual_norm_collection, iter, stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_CB_GMRES_TYPE(GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL);
+
+
+// Must be called with at least `(iter + 1) * num_cols` threads in total.
+template <size_type block_size, typename ValueType, typename Accessor3d>
+void gram_column_kernel(size_type num_rows, size_type num_cols,
+                        const Accessor3d krylov_bases, size_type iter,
+                        ValueType* __restrict__ gram_col, size_type stride_gram,
+                        sycl::nd_item<3> item_ct1)
+{
+    const auto global_id = thread::get_thread_id_flat(item_ct1);
+    const auto k = global_id / num_cols;
+    const auto col_id = global_id % num_cols;
+
+    if (k <= iter && col_id < num_cols) {
+        ValueType dot = zero<ValueType>();
+        for (size_type j = 0; j < num_rows; ++j) {
+            dot += krylov_bases(iter, j, col_id) *
+                   conj(krylov_bases(k, j, col_id));
+        }
+        gram_col[k * stride_gram + col_id] = dot;
+    }
+}
+
+template <size_type block_size, typename ValueType, typename Accessor3d>
+void gram_column_kernel(dim3 grid, dim3 block, size_type dynamic_shared_memory,
+                        sycl::queue* queue, size_type num_rows,
+                        size_type num_cols, const Accessor3d krylov_bases,
+                        size_type iter, ValueType* gram_col,
+                        size_type stride_gram)
+{
+    queue->submit([&](sycl::handler& cgh) {
+        cgh.parallel_for(
+            sycl_nd_range(grid, block), [=](sycl::nd_item<3> item_ct1) {
+                gram_column_kernel<block_size>(num_rows, num_cols, krylov_bases,
+                                               iter, gram_col, stride_gram,
+                                               item_ct1);
+            });
+    });
+}
+
+
+template <typename ValueType, typename ConstAccessor3d>
+void gram_column(std::shared_ptr<const DpcppExecutor> exec,
+                 ConstAccessor3d krylov_bases,
+                 matrix::view::dense<ValueType> gram_col, size_type iter)
+{
+    const auto num_rows = krylov_bases.length(1);
+    const auto num_cols = gram_col.size[1];
+    if (num_cols == 0 || num_rows == 0) {
+        return;
+    }
+    constexpr auto block_size = default_block_size;
+    const dim3 block_dim{block_size, 1, 1};
+    const dim3 grid_dim{
+        static_cast<unsigned int>(ceildiv((iter + 1) * num_cols, block_size)),
+        1, 1};
+
+    gram_column_kernel<block_size>(
+        grid_dim, block_dim, 0, exec->get_queue(), num_rows, num_cols,
+        krylov_bases, iter, as_device_type(gram_col.values), gram_col.stride);
+}
+
+GKO_INSTANTIATE_FOR_EACH_CB_GMRES_CONST_TYPE(
+    GKO_DECLARE_CB_GMRES_GRAM_COLUMN_KERNEL);
 
 
 template <typename ValueType>

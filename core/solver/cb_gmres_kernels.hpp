@@ -96,6 +96,57 @@ namespace gko {
 namespace kernels {
 
 
+/**
+ * Per-cycle statistics of the orthogonalization, with w the vector the first
+ * pass left and h = h_{1:j,j} the Hessenberg column it wrote:
+ *
+ *     psi_j   = ||V_j^T w||_2 / h_{j+1,j},   what one pass leaves,
+ *     chi_j   = ||h||_2 / h_{j+1,j},         the cancellation ratio,
+ *     theta_j >= ||V_j^T w||_2 / ||h||_2,    a lower bound on the loss of
+ *                                            orthogonality of the basis,
+ *
+ * the last because V_j^T w = (I - V_j^T V_j) h up to rounding. The
+ * localization ratio ||w||_inf / ||w||_2 is collected beside them, since it
+ * decides how an absolute storage perturbation compares with a relative one.
+ *
+ * The second orthogonalization pass forms V_j^T w anyway, so this costs one
+ * reduction of j+1 values per step. A null pointer turns it off.
+ */
+struct cb_gmres_psi_stats {
+    double max = 0.0;
+    double sum = 0.0;
+    size_type count = 0;
+    double lb_max = 0.0;
+    double lb_sum = 0.0;
+    double chi_max = 0.0;
+    double chi_sum = 0.0;
+    double loc_max = 0.0;
+    double loc_sum = 0.0;
+    size_type loc_count = 0;
+
+    /** @param psi  ||V^T w|| / ||w||, @param chi  ||h|| / ||w||. */
+    void add(double psi, double chi)
+    {
+        max = psi > max ? psi : max;
+        sum += psi;
+        ++count;
+        chi_max = chi > chi_max ? chi : chi_max;
+        chi_sum += chi;
+        const double lb = chi > 0.0 ? psi / chi : 0.0;
+        lb_max = lb > lb_max ? lb : lb_max;
+        lb_sum += lb;
+    }
+
+    /** @param loc  ||w||_inf / ||w||_2 of one basis vector. */
+    void add_loc(double loc)
+    {
+        loc_max = loc > loc_max ? loc : loc_max;
+        loc_sum += loc;
+        ++loc_count;
+    }
+};
+
+
 #define GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType)        \
     void initialize(std::shared_ptr<const DefaultExecutor> exec, \
                     matrix::view::dense<const ValueType> b,      \
@@ -131,7 +182,22 @@ namespace kernels {
                  size_type iter, array<size_type>& final_iter_nums,            \
                  const array<stopping_status>& stop_status,                    \
                  array<stopping_status>& reorth_status,                        \
-                 array<size_type>& num_reorth)
+                 array<size_type>& num_reorth, size_type max_reorth_steps,     \
+                 size_type* reorth_passes, cb_gmres_psi_stats* psi_stats)
+
+/**
+ * One column of the Gram matrix of the stored basis:
+ *     gram_col(k) = <krylov_bases(k, :), krylov_bases(iter, :)>,  k <= iter.
+ *
+ * Over a cycle these give I - Vbar^T Vbar, and with it the loss of
+ * orthogonality itself rather than a bound on it. Each call traverses the
+ * stored basis, so this runs only when the cycle log asks for it.
+ */
+#define GKO_DECLARE_CB_GMRES_GRAM_COLUMN_KERNEL(ValueType, Accessor3d) \
+    void gram_column(std::shared_ptr<const DefaultExecutor> exec,      \
+                     Accessor3d krylov_bases,                          \
+                     matrix::view::dense<ValueType> gram_col, size_type iter)
+
 
 #define GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType, Accessor3d) \
     void solve_krylov(                                                  \
@@ -144,14 +210,16 @@ namespace kernels {
         const array<size_type>& final_iter_nums)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                            \
-    template <typename ValueType>                               \
-    GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType);          \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>          \
-    GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(ValueType, Accessor3d); \
-    template <typename ValueType, typename Accessor3d>          \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                \
+    template <typename ValueType>                                   \
+    GKO_DECLARE_CB_GMRES_INITIALIZE_KERNEL(ValueType);              \
+    template <typename ValueType, typename Accessor3d>              \
+    GKO_DECLARE_CB_GMRES_RESTART_KERNEL(ValueType, Accessor3d);     \
+    template <typename ValueType, typename Accessor3d>              \
+    GKO_DECLARE_CB_GMRES_ARNOLDI_KERNEL(ValueType, Accessor3d);     \
+    template <typename ValueType, typename Accessor3d>              \
+    GKO_DECLARE_CB_GMRES_GRAM_COLUMN_KERNEL(ValueType, Accessor3d); \
+    template <typename ValueType, typename Accessor3d>              \
     GKO_DECLARE_CB_GMRES_SOLVE_KRYLOV_KERNEL(ValueType, Accessor3d)
 
 

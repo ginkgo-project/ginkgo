@@ -498,6 +498,65 @@ TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestart)
 }
 
 
+TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithRestartRatio)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using gmres_type = typename TestFixture::gmres_type;
+    const auto half_tol = std::sqrt(this->assert_precision());
+    // A loose restart tolerance ends every cycle well before the cap of 4, so
+    // this exercises the tolerance-based restart rather than the step count.
+    auto cb_gmres_factory_restart =
+        gmres_type::build()
+            .with_krylov_dim(4u)
+            .with_restart_ratio(gko::remove_complex<value_type>{0.5})
+            .with_storage_precision(this->storage_prec)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_baseline(gko::stop::mode::initial_resnorm)
+                               .with_reduction_factor(this->reduction_factor()))
+            .on(this->exec);
+    auto solver = cb_gmres_factory_restart->generate(this->mtx_medium);
+    auto b = gko::initialize<Mtx>(
+        {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
+                        half_tol);
+}
+
+
+TYPED_TEST(CbGmres, SolvesBigDenseSystem1WithoutReorthogonalization)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using gmres_type = typename TestFixture::gmres_type;
+    const auto half_tol = std::sqrt(this->assert_precision());
+    // Plain classical Gram-Schmidt, with the conditional re-orthogonalization
+    // of the published algorithm switched off.
+    auto cb_gmres_factory_no_reorth =
+        gmres_type::build()
+            .with_max_reorth_steps(0u)
+            .with_storage_precision(this->storage_prec)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(200u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_baseline(gko::stop::mode::initial_resnorm)
+                               .with_reduction_factor(this->reduction_factor()))
+            .on(this->exec);
+    auto solver = cb_gmres_factory_no_reorth->generate(this->mtx_medium);
+    auto b = gko::initialize<Mtx>(
+        {-13945.16, 11205.66, 16132.96, 24342.18, -10910.98}, this->exec);
+    auto x = gko::initialize<Mtx>({0.0, 0.0, 0.0, 0.0, 0.0}, this->exec);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, l({-140.20, -142.20, 48.80, -17.70, -19.60}),
+                        half_tol);
+}
+
+
 TYPED_TEST(CbGmres, SolvesWithPreconditioner)
 {
     using Mtx = typename TestFixture::Mtx;

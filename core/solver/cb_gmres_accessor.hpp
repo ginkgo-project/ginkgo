@@ -87,6 +87,16 @@ public:
 
     gko::array<StorageType>& get_bases() { return bases_; }
 
+    // Whether this helper carries a per-vector scale, so that a caller can
+    // branch on it at compile time.
+    static constexpr bool has_scale = true;
+
+    // The per-vector scales, one per (krylov vector, right-hand side). The
+    // Arnoldi kernel writes ||v||_inf / ||v||_2 here, times a format-dependent
+    // correction, which is what a fixed-point format needs in order to use its
+    // full range.
+    gko::array<ValueType>& get_scale() { return scale_; }
+
 private:
     std::array<acc::size_type, 3> krylov_dim_;
     array<StorageType> bases_;
@@ -112,6 +122,8 @@ public:
     Range get_range() { return Range(krylov_dim_, bases_.get_data()); }
 
     gko::array<StorageType>& get_bases() { return bases_; }
+
+    static constexpr bool has_scale = false;
 
 private:
     std::array<acc::size_type, 3> krylov_dim_;

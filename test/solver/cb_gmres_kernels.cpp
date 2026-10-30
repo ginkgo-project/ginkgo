@@ -252,7 +252,7 @@ TEST_F(CbGmres, CbGmresStep1IsEquivalentToRef)
         residual_norm_collection->get_device_view(), range_helper.get_range(),
         hessenberg_iter->get_device_view(), buffer_iter->get_device_view(),
         arnoldi_norm->get_device_view(), iter, final_iter_nums, stop_status,
-        reorth_status, num_reorth);
+        reorth_status, num_reorth, 2u, nullptr, nullptr);
     gko::kernels::GKO_DEVICE_NAMESPACE::cb_gmres::arnoldi(
         exec, d_next_krylov_basis->get_device_view(),
         d_givens_sin->get_device_view(), d_givens_cos->get_device_view(),
@@ -260,7 +260,8 @@ TEST_F(CbGmres, CbGmresStep1IsEquivalentToRef)
         d_residual_norm_collection->get_device_view(),
         d_range_helper.get_range(), d_hessenberg_iter->get_device_view(),
         d_buffer_iter->get_device_view(), d_arnoldi_norm->get_device_view(),
-        iter, d_final_iter_nums, d_stop_status, d_reorth_status, d_num_reorth);
+        iter, d_final_iter_nums, d_stop_status, d_reorth_status, d_num_reorth,
+        2u, nullptr, nullptr);
 
     GKO_ASSERT_MTX_NEAR(d_arnoldi_norm, arnoldi_norm, r<value_type>::value);
     GKO_ASSERT_MTX_NEAR(d_next_krylov_basis, next_krylov_basis,
@@ -275,6 +276,53 @@ TEST_F(CbGmres, CbGmresStep1IsEquivalentToRef)
     assert_krylov_bases_near();
     GKO_ASSERT_ARRAY_EQ(d_final_iter_nums, final_iter_nums);
 }
+
+TEST_F(CbGmres, CbGmresGramColumnMatchesDirectProduct)
+{
+    initialize_data();
+    const int iter = 7;
+    auto gram_col = gen_mtx(default_krylov_dim_mixed + 1, 1);
+    auto range = range_helper.get_range();
+    auto bases = range.get_accessor().to_const();
+
+    gko::kernels::reference::cb_gmres::gram_column(
+        ref, bases, gram_col->get_device_view(), iter);
+
+    // The same inner products, formed directly from the stored basis.
+    for (int k = 0; k <= iter; ++k) {
+        value_type expected{};
+        for (gko::size_type j = 0; j < next_krylov_basis->get_size()[0]; ++j) {
+            expected += bases(iter, j, 0) * bases(k, j, 0);
+        }
+        ASSERT_NEAR(
+            gram_col->at(k, 0), expected,
+            std::abs(expected) * r<value_type>::value + r<value_type>::value);
+    }
+}
+
+
+TEST_F(CbGmres, CbGmresGramColumnIsEquivalentToRef)
+{
+    initialize_data();
+    const int iter = 7;
+    auto gram_col = gen_mtx(default_krylov_dim_mixed + 1, 1);
+    auto d_gram_col = gko::clone(exec, gram_col);
+
+    gko::kernels::reference::cb_gmres::gram_column(
+        ref, range_helper.get_range().get_accessor().to_const(),
+        gram_col->get_device_view(), iter);
+    gko::kernels::GKO_DEVICE_NAMESPACE::cb_gmres::gram_column(
+        exec, d_range_helper.get_range().get_accessor().to_const(),
+        d_gram_col->get_device_view(), iter);
+
+    auto h_gram_col = gko::clone(ref, d_gram_col);
+    for (int k = 0; k <= iter; ++k) {
+        ASSERT_NEAR(h_gram_col->at(k, 0), gram_col->at(k, 0),
+                    std::abs(gram_col->at(k, 0)) * r<value_type>::value +
+                        r<value_type>::value);
+    }
+}
+
 
 TEST_F(CbGmres, CbGmresStep2IsEquivalentToRef)
 {
