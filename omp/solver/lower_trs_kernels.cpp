@@ -18,6 +18,9 @@
 #include <ginkgo/core/solver/triangular.hpp>
 
 #include "core/base/mixed_precision_types.hpp"
+#include "core/matrix/dense_kernels.hpp"
+#include "core/solver/common_trs_helpers.hpp"
+#include "omp/components/atomic.hpp"
 
 
 namespace gko {
@@ -73,28 +76,35 @@ void solve(std::shared_ptr<const OmpExecutor> exec,
     auto row_ptrs = matrix.row_ptrs;
     auto col_idxs = matrix.col_idxs;
     auto vals = matrix.values;
+    const auto num_rows = matrix.size[0];
+    const auto num_rhs = b.size[1];
+    dense::fill(exec, x, nan<OutputValueType>());
 
-#pragma omp parallel for
-    for (size_type j = 0; j < b.size[1]; ++j) {
-        for (size_type row = 0; row < matrix.size[0]; ++row) {
+#pragma omp parallel for schedule(monotonic : auto) collapse(2)
+    for (size_type row = 0; row < num_rows; ++row) {
+        for (size_type j = 0; j < num_rhs; ++j) {
             auto diag = one<ArithmeticType>();
-            x(row, j) = static_cast<OutputValueType>(b(row, j));
+            auto val = static_cast<ArithmeticType>(b(row, j));
             for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 auto col = col_idxs[k];
                 if (col < row) {
-                    x(row, j) = static_cast<OutputValueType>(
-                        static_cast<ArithmeticType>(x(row, j)) -
-                        static_cast<ArithmeticType>(vals[k]) *
-                            static_cast<ArithmeticType>(x(col, j)));
+                    OutputValueType xval{};
+                    while (is_nan_exact(xval = load(&x(col, j)))) {
+                    }
+                    val = val - static_cast<ArithmeticType>(vals[k]) *
+                                    static_cast<ArithmeticType>(xval);
                 }
                 if (col == row) {
                     diag = static_cast<ArithmeticType>(vals[k]);
                 }
             }
             if (!unit_diag) {
-                x(row, j) = static_cast<OutputValueType>(
-                    static_cast<ArithmeticType>(x(row, j)) / diag);
+                val /= diag;
             }
+            if (is_nan_exact(val)) {
+                val = zero<ArithmeticType>();
+            }
+            store(&x(row, j), static_cast<OutputValueType>(val));
         }
     }
 }
