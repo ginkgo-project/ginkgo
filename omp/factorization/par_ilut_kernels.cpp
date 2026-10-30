@@ -282,7 +282,8 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
             auto l_col = l_col_idxs[l_begin];
             auto u_row = ut_row_idxs[u_begin];
             if (l_col == u_row && l_col < last_entry) {
-                sum += load(l_vals + l_begin) * load(ut_vals + u_begin);
+                sum += load_relaxed(l_vals + l_begin) *
+                       load_relaxed(ut_vals + u_begin);
             }
             if (u_row == row) {
                 ut_nz = u_begin;
@@ -298,7 +299,7 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
         for (size_type l_nz = l_row_ptrs[row]; l_nz < l_row_ptrs[row + 1] - 1;
              ++l_nz) {
             auto col = l_col_idxs[l_nz];
-            auto u_diag = load(ut_vals + ut_col_ptrs[col + 1] - 1);
+            auto u_diag = load_relaxed(ut_vals + ut_col_ptrs[col + 1] - 1);
             auto new_val = compute_sum(row, col).first / u_diag;
             if (is_finite(new_val)) {
                 l_vals[l_nz] = new_val;
@@ -311,8 +312,8 @@ void compute_l_u_factors(std::shared_ptr<const DefaultExecutor> exec,
             auto new_val = result.first;
             auto ut_nz = result.second;
             if (is_finite(new_val)) {
-                store(u_vals + u_nz, new_val);
-                store(ut_vals + ut_nz, new_val);
+                store_relaxed(u_vals + u_nz, new_val);
+                store_relaxed(ut_vals + ut_nz, new_val);
             }
         }
     }
