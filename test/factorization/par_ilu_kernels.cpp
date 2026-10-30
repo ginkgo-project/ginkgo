@@ -36,13 +36,24 @@ protected:
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
 
+    const gko::dim<2> mtx_size;
     std::default_random_engine rand_engine;
     std::shared_ptr<const Csr> mtx;
     std::shared_ptr<const Csr> dmtx;
 
-    ParIlu() : rand_engine(18)
+    ParIlu()
+#ifdef GINKGO_FAST_TESTS
+        : mtx_size(100, 80),
+#else
+        : mtx_size(600, 500),
+#endif
+          rand_engine(18)
     {
+#ifdef GINKGO_FAST_TESTS
+        std::string file_name(gko::matrices::location_ani1_mtx);
+#else
         std::string file_name(gko::matrices::location_ani4_mtx);
+#endif
         auto input_file = std::ifstream(file_name, std::ios::in);
         auto mtx_temp = gko::read<Csr>(input_file, ref);
         // Make sure there are diagonal elements present
@@ -155,7 +166,8 @@ TYPED_TEST_SUITE(ParIlu, gko::test::ValueIndexTypes, PairTypenameNameGenerator);
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = this->template gen_mtx<Csr>(600, 600);
+    auto mtx =
+        this->template gen_mtx<Csr>(this->mtx_size[0], this->mtx_size[0]);
     auto dmtx = gko::clone(this->exec, mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
@@ -171,7 +183,7 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsSortedEquivalentToRef)
 
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsortedEquivalentToRef)
 {
-    auto mtx = this->gen_unsorted_mtx(600, 600);
+    auto mtx = this->gen_unsorted_mtx(this->mtx_size[0], this->mtx_size[0]);
     auto dmtx = gko::clone(this->exec, mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(
@@ -188,7 +200,8 @@ TYPED_TEST(ParIlu, KernelAddDiagonalElementsUnsortedEquivalentToRef)
 TYPED_TEST(ParIlu, KernelAddDiagonalElementsNonSquareEquivalentToRef)
 {
     using Csr = typename TestFixture::Csr;
-    auto mtx = this->template gen_mtx<Csr>(600, 500);
+    auto mtx =
+        this->template gen_mtx<Csr>(this->mtx_size[0], this->mtx_size[1]);
     auto dmtx = gko::clone(this->exec, mtx);
 
     gko::kernels::reference::factorization::add_diagonal_elements(

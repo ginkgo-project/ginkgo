@@ -54,7 +54,8 @@ jobs:
           cmake --build build -j4
           ccache --show-stats
 
-      # MPI tests run one at a time after the other tests, even if some of those failed
+      # MPI tests run one at a time after the other tests, even if some of those failed;
+      # CTest's default limit of 25 minutes per test is too short for this -O0 build
       - name: test
         env:
           # threads updating the same coverage counters slow each other down, and gcov
@@ -62,7 +63,7 @@ jobs:
           OMP_NUM_THREADS: 1
         run: |
           status=0
-          ctest --test-dir build -j4 --output-on-failure --label-exclude distributed || status=1
+          ctest --test-dir build -j4 --timeout 3600 --output-on-failure --label-exclude distributed || status=1
           ctest --test-dir build --output-on-failure --label-regex distributed || status=1
           exit $status
 

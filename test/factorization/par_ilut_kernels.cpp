@@ -65,8 +65,17 @@ protected:
             mtx_size[0], true,
             std::uniform_int_distribution<index_type>(1, mtx_size[0]),
             std::normal_distribution<>(0.0, 1.0), rand_engine, ref);
+        // stays above the basecase size of threshold_select on GPUs
+#ifdef GINKGO_FAST_TESTS
+        const index_type l3_size = 200;
+        const index_type l3_row_nnz = 64;
+#else
+        const index_type l3_size = 800;
+        const index_type l3_row_nnz = 256;
+#endif
         mtx_l3 = gko::test::generate_random_lower_triangular_matrix<Csr>(
-            800, false, std::uniform_int_distribution<index_type>(256, 256),
+            l3_size, false,
+            std::uniform_int_distribution<index_type>(l3_row_nnz, l3_row_nnz),
             std::normal_distribution<>(-0.667, 3.333), rand_engine, ref);
         mtx_u = gko::test::generate_random_upper_triangular_matrix<Csr>(
             mtx_size[0], false,
@@ -85,7 +94,11 @@ protected:
         dmtx_l3 = gko::clone(exec, mtx_l3);
         dmtx_u = gko::clone(exec, mtx_u);
 
+#ifdef GINKGO_FAST_TESTS
+        std::string file_name(gko::matrices::location_ani1_mtx);
+#else
         std::string file_name(gko::matrices::location_ani4_mtx);
+#endif
         auto input_file = std::ifstream(file_name, std::ios::in);
         mtx_ani = gko::read<Csr>(input_file, ref);
         mtx_ani->sort_by_column_index();

@@ -31,8 +31,9 @@ concurrency:
   cancel-in-progress: true
 
 # The label conditions are defined once in the first job and reused by the
-# other jobs through the YAML anchors &run and &with. The platform workflows
-# only check inputs.full to decide whether to run their full set of jobs.
+# other jobs through the YAML anchors &run and &with; only the coverage job has
+# its own copy. The platform workflows only check inputs.full to decide whether
+# to run their full set of jobs.
 permissions:
   contents: read
 
@@ -66,9 +67,18 @@ jobs:
     uses: ./.github/workflows/windows-msvc-mpi.yml
     with: *with
 
-  # pushes get coverage in CI
+  # unlike the other jobs, this one also runs on pushes and manual runs; an anchor
+  # can't be extended, so the part in parentheses is a copy of &run
   coverage:
-    if: *run
+    if: >-
+      github.event_name != 'pull_request' || (
+      !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI') && (
+      (github.event.action != 'labeled' && (contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test')
+                                            || contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge')))
+      || (github.event.action == 'labeled' && ((github.event.label.name == '1:ST:ready-to-merge'
+                                                && !contains(github.event.pull_request.labels.*.name, '1:ST:run-full-test'))
+                                               || (github.event.label.name == '1:ST:run-full-test'
+                                                   && !contains(github.event.pull_request.labels.*.name, '1:ST:ready-to-merge'))))))
     permissions:
       contents: read
       id-token: write

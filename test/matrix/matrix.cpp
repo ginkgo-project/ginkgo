@@ -635,6 +635,13 @@ protected:
     template <typename TestFunction>
     void forall_matrix_data_scenarios(TestFunction fn)
     {
+#ifdef GINKGO_FAST_TESTS
+        const int num_rows = 100;
+        const int num_cols = 50;
+#else
+        const int num_rows = 200;
+        const int num_cols = 100;
+#endif
         auto guarded_fn = [&](auto data) {
             try {
                 Config::modify_data(data);
@@ -656,8 +663,8 @@ protected:
             guarded_fn(gen_mtx_data(2, 0, 0, 0));
         }
         {
-            SCOPED_TRACE("Zero matrix (200x100)");
-            guarded_fn(gen_mtx_data(200, 100, 0, 0));
+            SCOPED_TRACE("Zero matrix (large)");
+            guarded_fn(gen_mtx_data(num_rows, num_cols, 0, 0));
         }
         {
             SCOPED_TRACE("Small Sparse Matrix with variable row nnz (10x10)");
@@ -668,22 +675,25 @@ protected:
             guarded_fn(gen_mtx_data(10, 10, 10, 10));
         }
         {
-            SCOPED_TRACE("Sparse Matrix with some zeros rows (200x100)");
-            guarded_fn(gen_mtx_data(200, 100, 0, 50));
+            SCOPED_TRACE("Sparse Matrix with some zeros rows (large)");
+            guarded_fn(gen_mtx_data(num_rows, num_cols, 0, num_cols / 2));
         }
         {
-            SCOPED_TRACE("Sparse Matrix with fixed row nnz (200x100)");
-            guarded_fn(gen_mtx_data(200, 100, 50, 50));
+            SCOPED_TRACE("Sparse Matrix with fixed row nnz (large)");
+            guarded_fn(
+                gen_mtx_data(num_rows, num_cols, num_cols / 2, num_cols / 2));
         }
         {
-            SCOPED_TRACE("Sparse Matrix with variable row nnz (200x100)");
-            guarded_fn(gen_mtx_data(200, 100, 10, 50));
+            SCOPED_TRACE("Sparse Matrix with variable row nnz (large)");
+            guarded_fn(
+                gen_mtx_data(num_rows, num_cols, num_cols / 10, num_cols / 2));
         }
         {
             SCOPED_TRACE(
                 "Sparse Matrix with variable row nnz and some numerical zeros "
-                "(200x100)");
-            auto data = gen_mtx_data(200, 100, 10, 50);
+                "(large)");
+            auto data =
+                gen_mtx_data(num_rows, num_cols, num_cols / 10, num_cols / 2);
             for (int i = 0; i < data.nonzeros.size() / 4; i++) {
                 data.nonzeros[i * 4].value = gko::zero<value_type>();
             }
@@ -691,13 +701,13 @@ protected:
         }
         {
             SCOPED_TRACE(
-                "Sparse Matrix with heavily imbalanced row nnz (200x100)");
-            guarded_fn(
-                gen_mtx_data(200, 100, std::poisson_distribution<>{1.5}));
+                "Sparse Matrix with heavily imbalanced row nnz (large)");
+            guarded_fn(gen_mtx_data(num_rows, num_cols,
+                                    std::poisson_distribution<>{1.5}));
         }
         {
-            SCOPED_TRACE("Dense matrix (200x100)");
-            guarded_fn(gen_mtx_data(200, 100, 100, 100));
+            SCOPED_TRACE("Dense matrix (large)");
+            guarded_fn(gen_mtx_data(num_rows, num_cols, num_cols, num_cols));
         }
     }
 

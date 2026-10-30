@@ -151,7 +151,7 @@ build/cuda120/openmpi/gcc/cuda/release/static:
     BUILD_TYPE: "Release"
     MODULE_LOAD: "cmake/3.18.6 cuda/12.0.1 gcc/12.4.0 openmpi/4.1.8"
 
-build/cuda122/openmpi/gcc/cuda/release/shared:
+build/cuda122/nompi/gcc/cuda/release/shared:
   extends:
     - .build_and_test_tum_template
     - .default_variables
@@ -161,7 +161,7 @@ build/cuda122/openmpi/gcc/cuda/release/shared:
     BUILD_CUDA: "ON"
     ENABLE_HALF: "ON"
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.20.6 cuda/12.2.2 gcc/12.4.0 openmpi/5.0.7"
+    MODULE_LOAD: "cmake/3.20.6 cuda/12.2.2 gcc/12.4.0"
 
 build/cuda124/mpich/gcc/cuda/release/shared:
   extends:
@@ -175,7 +175,7 @@ build/cuda124/mpich/gcc/cuda/release/shared:
     ENABLE_HALF: "ON"
     ENABLE_BFLOAT16: "ON"
     BUILD_TYPE: "Release"
-    MODULE_LOAD: "cmake/3.30.8 cuda/12.6.3 gcc/13.3.0 mpich"
+    MODULE_LOAD: "cmake/3.30.8 cuda/12.4.1 gcc/13.3.0 mpich"
 
 build/cuda126/nompi/gcc/cuda/release/shared:
   extends:
