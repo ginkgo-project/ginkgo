@@ -62,12 +62,25 @@ void solve(std::shared_ptr<const HipExecutor> exec,
            std::optional<matrix::view::dense<InputValueType>> trans_b,
            std::optional<matrix::view::dense<OutputValueType>> trans_x,
            matrix::view::dense<const InputValueType> b,
-           matrix::view::dense<OutputValueType> x) GKO_NOT_IMPLEMENTED;
-// {
-//     solve_kernel<MatrixValueType, IndexType>(exec, matrix, solve_struct,
-//     *trans_b,
-//                                        *trans_x, b, x);
-// }
+           matrix::view::dense<OutputValueType> x)
+{
+    constexpr bool all_same_value_type =
+        std::is_same<MatrixValueType, InputValueType>::value &&
+        std::is_same<MatrixValueType, OutputValueType>::value;
+
+    if (algorithm == solver::trisolve_algorithm::sparselib) {
+        if constexpr (all_same_value_type) {
+            solve_kernel<MatrixValueType, IndexType>(exec, matrix, solve_struct,
+                                                     b, x);
+            return;
+        }
+    } else if (algorithm == solver::trisolve_algorithm::syncfree) {
+        sptrsv_naive_caching<true>(exec, matrix, unit_diag, b, x);
+        return;
+    }
+
+    GKO_NOT_IMPLEMENTED;
+}
 
 GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_UPPER_TRS_SOLVE_KERNEL);
