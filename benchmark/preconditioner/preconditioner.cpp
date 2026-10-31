@@ -10,6 +10,7 @@
 
 #include <ginkgo/ginkgo.hpp>
 
+#include "benchmark/utils/config_json.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
@@ -183,8 +184,12 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
             precond_case[stage]["components"] = json::object();
         }
 
+        precond_case["parameters"] =
+            parameters_json(*precond_factory.at(decoded_precond_name)(exec));
+
         IterationControl ic_gen{get_timer(exec, FLAGS_gpu_timer)};
         IterationControl ic_apply{get_timer(exec, FLAGS_gpu_timer)};
+        json levels;
 
         {
             // fast run, gets total time
@@ -214,20 +219,26 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
             }
 
             write_times(precond_case["apply"], ic_apply);
+
+            // the timed AMG's levels: coarsening may differ between generates
+            levels = describe_levels(precond_op.get());
         }
 
         {
             // untimed generate to measure the preconditioner's storage
             auto storage_logger = std::make_shared<StorageLogger>();
-            exec->add_logger(storage_logger);
-            auto precond = precond_factory.at(decoded_precond_name)(exec);
-            auto precond_op = precond->generate(state.system_matrix);
-            exec->remove_logger(storage_logger);
-            storage_logger->write_data(precond_case);
-            auto levels = describe_levels(precond_op.get());
-            if (!levels.is_null()) {
-                precond_case["levels"] = levels;
+            std::unique_ptr<gko::LinOpFactory> precond;
+            std::unique_ptr<gko::LinOp> precond_op;
+            {
+                auto range = annotate("storage generate");
+                scoped_logger logged{exec, storage_logger};
+                precond = precond_factory.at(decoded_precond_name)(exec);
+                precond_op = precond->generate(state.system_matrix);
             }
+            storage_logger->write_data(precond_case);
+        }
+        if (!levels.is_null()) {
+            precond_case["levels"] = levels;
         }
 
         if (FLAGS_detailed) {

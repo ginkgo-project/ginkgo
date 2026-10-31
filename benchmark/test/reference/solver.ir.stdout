@@ -51,6 +51,38 @@
                         1.0
                     ]
                 },
+                "parameters": {
+                    "criteria": [
+                        {
+                            "baseline": "rhs_norm",
+                            "reduction_factor": 1e-06,
+                            "type": "ResidualNorm",
+                            "value_type": "float64"
+                        },
+                        {
+                            "max_iters": 50,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "default_initial_guess": "provided",
+                    "inner_initial_guess": "zero",
+                    "relaxation_factor": 1.0,
+                    "solver": {
+                        "accuracy": 0.1,
+                        "aggregate_l1": false,
+                        "max_block_size": 1,
+                        "max_block_stride": 0,
+                        "skip_sorting": true,
+                        "storage_optimization": [
+                            0,
+                            0
+                        ],
+                        "type": "preconditioner::Jacobi",
+                        "value_type": "float64"
+                    },
+                    "type": "solver::Ir",
+                    "value_type": "float64"
+                },
                 "residual_norm": 1.0,
                 "repetitions": 1,
                 "completed": true

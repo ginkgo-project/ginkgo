@@ -1,0 +1,27 @@
+[
+    {
+        "size": 100,
+        "stencil": "7pt",
+        "spmv": {
+            "sellp": {
+                "storage": 10792,
+                "max_relative_norm2": 1.0,
+                "format_parameters": {
+                    "slice_size": 64,
+                    "stride_factor": 1,
+                    "total_cols": 14
+                },
+                "time": 1.0,
+                "repetitions": 10,
+                "repetition_times": [],
+                "completed": true
+            }
+        },
+        "rows": 125,
+        "cols": 125,
+        "nonzeros": 725,
+        "optimal": {
+            "spmv": "sellp"
+        }
+    }
+]

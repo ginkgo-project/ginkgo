@@ -6,8 +6,10 @@
 #define GINKGO_BENCHMARK_UTILS_STRUCTURE_HPP
 
 
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -36,7 +38,29 @@ inline std::pair<std::string, json> describe_operator(const gko::LinOp* op)
 
 
 /**
- * The rows and nonzeros of each multigrid level, null for other operators.
+ * The type of a generated smoother of a multigrid and, for an IR smoother,
+ * of its inner solver; null if there is none.
+ */
+inline std::pair<json, json> describe_smoother(
+    const std::vector<std::shared_ptr<const gko::LinOp>>& smoothers,
+    gko::size_type level)
+{
+    if (level >= smoothers.size() || !smoothers[level]) {
+        return {nullptr, nullptr};
+    }
+    const auto& smoother = smoothers[level];
+    json solver = nullptr;
+    if (auto ir = dynamic_cast<const gko::solver::Ir<etype>*>(smoother.get());
+        ir && ir->get_solver()) {
+        solver = gko::name_demangling::get_dynamic_type(*ir->get_solver());
+    }
+    return {gko::name_demangling::get_dynamic_type(*smoother), solver};
+}
+
+
+/**
+ * The rows, nonzeros and smoothers of each multigrid level, null for other
+ * operators.
  */
 inline json describe_levels(const gko::LinOp* op)
 {
@@ -44,8 +68,14 @@ inline json describe_levels(const gko::LinOp* op)
     if (!mg) {
         return nullptr;
     }
+    const auto smoothers = {
+        std::make_pair("pre_smoother", mg->get_pre_smoother_list()),
+        std::make_pair("mid_smoother", mg->get_mid_smoother_list()),
+        std::make_pair("post_smoother", mg->get_post_smoother_list())};
     auto levels = json::array();
-    for (const auto& level : mg->get_mg_level_list()) {
+    const auto& level_list = mg->get_mg_level_list();
+    for (gko::size_type i = 0; i < level_list.size(); ++i) {
+        const auto& level = level_list[i];
         json entry;
         entry["fine_rows"] = level->get_fine_op()->get_size()[0];
         entry["coarse_rows"] = level->get_coarse_op()->get_size()[0];
@@ -57,6 +87,11 @@ inline json describe_levels(const gko::LinOp* op)
         entry["restrict_nonzeros"] = restrict_op.second;
         entry["prolong_type"] = prolong_op.first;
         entry["prolong_nonzeros"] = prolong_op.second;
+        for (const auto& [name, list] : smoothers) {
+            auto [type, solver] = describe_smoother(list, i);
+            entry[name] = type;
+            entry[std::string{name} + "_solver"] = solver;
+        }
         levels.push_back(entry);
     }
     return levels;

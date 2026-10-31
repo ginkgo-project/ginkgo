@@ -6,6 +6,7 @@
 #define GINKGO_BENCHMARK_SOLVER_SOLVER_COMMON_HPP
 
 
+#include "benchmark/utils/config_json.hpp"
 #include "benchmark/utils/formats.hpp"
 #include "benchmark/utils/general.hpp"
 #include "benchmark/utils/general_matrix.hpp"
@@ -276,10 +277,13 @@ std::unique_ptr<gko::LinOpFactory> generate_solver(
 }
 
 
+// Writes the info of a Jacobi preconditioner; the others write nothing.
 void write_precond_info(const gko::LinOp* precond, json& precond_info)
 {
-    if (const auto jacobi =
+    if (const auto device_jacobi =
             dynamic_cast<const gko::preconditioner::Jacobi<etype>*>(precond)) {
+        const auto jacobi = gko::clone(
+            device_jacobi->get_executor()->get_master(), device_jacobi);
         // extract block sizes
         const auto bdata =
             jacobi->get_parameters().block_pointers.get_const_data();
@@ -540,14 +544,8 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
             if (auto prec = dynamic_cast<const gko::Preconditionable*>(
                     detailed_solver.get())) {
                 solver_case["preconditioner"] = json::object();
-                // only Jacobi has info to write, and Multigrid can't be cloned
-                if (dynamic_cast<const gko::preconditioner::Jacobi<etype>*>(
-                        prec->get_preconditioner().get())) {
-                    write_precond_info(
-                        clone(exec->get_master(), prec->get_preconditioner())
-                            .get(),
-                        solver_case["preconditioner"]);
-                }
+                write_precond_info(prec->get_preconditioner().get(),
+                                   solver_case["preconditioner"]);
             }
 
             {
@@ -583,6 +581,13 @@ struct SolverBenchmark : Benchmark<solver_benchmark_state<Generator>> {
                 }
             }
             exec->synchronize();
+        }
+
+        // the parameters of the factory used for the timed run
+        {
+            auto precond = precond_factory.at(precond_name)(exec);
+            solver_case["parameters"] = parameters_json(*generate_solver(
+                exec, give(precond), solver_name, FLAGS_max_iters));
         }
 
         // timed run
