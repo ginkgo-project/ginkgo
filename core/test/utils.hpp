@@ -13,7 +13,10 @@
 #include <tuple>
 #include <type_traits>
 
-#ifdef __linux__
+// nvcc 11.0 cannot parse the __int128 typedefs that sys/prctl.h pulls in
+// through linux/types.h
+#if defined(__linux__) && !defined(__CUDACC__)
+#define GKO_HAVE_PRCTL
 #include <sys/prctl.h>
 #endif
 
@@ -521,7 +524,7 @@ inline bool check_assertion_exit_code(int exit_code)
 // a program, see `man 5 core`.
 inline void disable_core_dump()
 {
-#ifdef __linux__
+#ifdef GKO_HAVE_PRCTL
     prctl(PR_SET_DUMPABLE, 0);
 #endif
 }

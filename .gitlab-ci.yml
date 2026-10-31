@@ -91,16 +91,22 @@ trigger_pipeline:
 # cuda 11.4 and friends
 build/cuda110/nompi/gcc/cuda/release/shared:
   extends:
-    - .build_and_test_template
+    - .build_and_test_tum_template
     - .default_variables
     - .quick_test_condition
-    - .use_gko_cuda110-mvapich-gnu9-llvm9
+    - .use_tum-nvidia-p100
   variables:
     BUILD_OMP: "ON"
     BUILD_CUDA: "ON"
     BUILD_MPI: "OFF"
     BUILD_TYPE: "Release"
     FAST_TESTS: "ON"
+    # gcc 9 has no C++20, so this job gets the C++17 Umpire
+    BUILD_UMPIRE: "ON"
+    MODULE_LOAD: "cmake/3.30.8 cuda/11.0.3 gcc/9.5.0 umpire/2025.12.0-cuda11.0.3"
+    # Auto detection lists every GPU of the node, and rocinante has an A2
+    # (sm_86) that CUDA 11.0 cannot target
+    CUDA_ARCH: "60;80"
     # fix gtest issue https://github.com/google/googletest/issues/3514
     CXX_FLAGS: "-Wno-error=maybe-uninitialized"
     # disable spurious unused argument warning
@@ -241,7 +247,10 @@ build/amd/openmpi/gcc/rocm620/debug/shared:
     BUILD_OMP: "ON"
     BUILD_TYPE: "Debug"
     BUILD_SHARED_LIBS: "ON"
-    MODULE_LOAD: "cmake/3.24.4 rocm/6.2.0 gcc/13.3.0 openmpi/5.0.7"
+    # a HIP-enabled Umpire aborts without a visible AMD GPU, so only GPU jobs
+    # can enable this
+    BUILD_UMPIRE: "ON"
+    MODULE_LOAD: "cmake/3.24.4 rocm/6.2.0 gcc/13.3.0 openmpi/5.0.7 umpire/2026.07.1-rocm6.2.0"
 
 # rocm 6.3.x is the last version support MI50 officially
 build/amd/openmpi/gcc/rocm634_wo_omp/release/shared:

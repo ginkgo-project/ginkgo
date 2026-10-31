@@ -61,6 +61,12 @@
     - nvidia-gpus
     - tum
 
+.use_tum-nvidia-p100:
+  image: rocky_tum
+  tags:
+    - nvidia-gpus-p100
+    - tum
+
 .use_tum-amd:
   image: rocky_tum
   tags:

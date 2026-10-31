@@ -1,0 +1,16 @@
+<h1>Results</h1>
+This is the expected output:
+
+@code{.cpp}
+
+The application reserved 128 MiB in its Umpire pool and was holding 1 MiB of it before Ginkgo started.
+During the solve the pool was holding 1501 KiB in 19 live allocations, one of them the application's own.
+CG stopped after 132 iterations at a relative residual of 9.28544e-11.
+PASS: Ginkgo allocated from the application's pool
+PASS: Ginkgo only used memory the application had reserved
+PASS: Ginkgo returned everything it had allocated
+PASS: the solve converged
+
+@endcode
+
+<h3> Comments about programming and debugging </h3>

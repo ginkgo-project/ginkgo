@@ -12,7 +12,8 @@
     - export CCACHE_DIR=${CCACHE_DIR}
     - export CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
     - source /storage/apps/opt/spack/share/spack/setup-env.sh
-    - export MODULEPATH="$(pwd)/lmod":/storage/apps/opt/rocm-modules:/storage/apps/opt/spack/share/spack/lmod/linux-rocky9-x86_64/Core
+    # umpire-modules is not on the login node's default MODULEPATH
+    - export MODULEPATH="$(pwd)/lmod":/storage/apps/opt/rocm-modules:/storage/apps/opt/umpire-modules:/storage/apps/opt/spack/share/spack/lmod/linux-rocky9-x86_64/Core
 
 .before_script_git_template:
   before_script:
@@ -50,6 +51,7 @@
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
         -DGINKGO_BUILD_MPI=${BUILD_MPI}
+        -DGINKGO_BUILD_UMPIRE=${BUILD_UMPIRE}
         -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
@@ -91,6 +93,7 @@
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
         -DGINKGO_BUILD_MPI=${BUILD_MPI}
+        -DGINKGO_BUILD_UMPIRE=${BUILD_UMPIRE}
         -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}
@@ -170,6 +173,7 @@
         -DGINKGO_BUILD_OMP=${BUILD_OMP} -DGINKGO_BUILD_CUDA=${BUILD_CUDA}
         -DGINKGO_BUILD_HIP=${BUILD_HIP} -DGINKGO_BUILD_SYCL=${BUILD_SYCL}
         -DGINKGO_BUILD_MPI=${BUILD_MPI}
+        -DGINKGO_BUILD_UMPIRE=${BUILD_UMPIRE}
         -DGINKGO_BUILD_PAPI_SDE=${BUILD_PAPI_SDE}
         -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=ON
         -DGINKGO_FAST_TESTS=${FAST_TESTS}

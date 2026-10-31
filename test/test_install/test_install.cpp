@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <cstddef>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -13,6 +14,11 @@
 #include <type_traits>
 #include <utility>
 #include <vector>
+
+#if defined(HAS_UMPIRE)
+#include <umpire/ResourceManager.hpp>
+#include <umpire/strategy/QuickPool.hpp>
+#endif
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -581,6 +587,29 @@ int main()
                 .with_criteria(std::move(time), std::move(iteration))
                 .on(exec);
     }
+    // core/base/memory.hpp
+#if defined(HAS_UMPIRE)
+    {
+        // The application creates and names the pool, Ginkgo looks it up by
+        // that name. The umpire-shared-pool example does the same on a device.
+        auto& resource_manager = umpire::ResourceManager::getInstance();
+        auto pool = resource_manager.makeAllocator<umpire::strategy::QuickPool>(
+            "test_install_pool", resource_manager.getAllocator("HOST"),
+            std::size_t{16} << 20, std::size_t{4} << 20, 256);
+        const auto in_use_before = pool.getCurrentSize();
+        auto pooled_exec = gko::ReferenceExecutor::create(
+            std::make_shared<gko::UmpireCpuAllocator>("test_install_pool"));
+        gko::array<double> pooled{pooled_exec, 4096};
+        if (pool.getCurrentSize() <= in_use_before) {
+            std::cerr << "test_install" << extra_info
+                      << ": Ginkgo did not allocate from the application's "
+                         "Umpire pool."
+                      << std::endl;
+            return 1;
+        }
+    }
+#endif  // defined(HAS_UMPIRE)
+
     std::cout << "test_install" << extra_info
               << ": the Ginkgo installation was correctly detected "
                  "and is complete."

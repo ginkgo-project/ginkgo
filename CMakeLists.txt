@@ -58,6 +58,7 @@ option(
     "Compile kernels for AMD or NVIDIA GPUs"
     ${GINKGO_HAS_HIP}
 )
+option(GINKGO_BUILD_UMPIRE "Enable Umpire-backed allocators" OFF)
 option(GINKGO_BUILD_DOC "Generate documentation" OFF)
 option(
     GINKGO_FAST_TESTS
@@ -252,6 +253,7 @@ include(cmake/build_type_helpers.cmake)
 # Load other CMake helpers
 include(cmake/build_helpers.cmake)
 include(cmake/install_helpers.cmake)
+include(cmake/umpire_helpers.cmake)
 include(cmake/compiler_features.cmake)
 include(cmake/generate_ginkgo_hpp.cmake)
 
@@ -395,6 +397,9 @@ find_package(METIS)
 if(METIS_FOUND)
     set(GINKGO_HAVE_METIS 1)
 endif()
+# Umpire is opt-in rather than auto-detected, because enabling it compiles one
+# translation unit at C++20 while the rest of Ginkgo stays at C++17.
+ginkgo_find_umpire()
 # Automatically detect ROCTX (see hip.cmake)
 set(GINKGO_HAVE_ROCTX 0)
 if(GINKGO_BUILD_HIP AND ROCTX_FOUND)
@@ -475,6 +480,8 @@ endif()
 
 # Bundled third party libraries
 add_subdirectory(third_party) # Third-party tools and libraries
+
+ginkgo_resolve_umpire_target()
 
 if(MSVC)
     if(BUILD_SHARED_LIBS)
