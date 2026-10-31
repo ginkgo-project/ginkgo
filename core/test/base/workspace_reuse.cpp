@@ -1,0 +1,682 @@
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
+//
+// SPDX-License-Identifier: BSD-3-Clause
+
+#include <memory>
+#include <sstream>
+#include <string>
+
+#include <gtest/gtest.h>
+
+#include <ginkgo/core/base/composition.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/workspace.hpp>
+#include <ginkgo/core/factorization/lu.hpp>
+#include <ginkgo/core/log/logger.hpp>
+#include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/preconditioner/gauss_seidel.hpp>
+#include <ginkgo/core/preconditioner/ic.hpp>
+#include <ginkgo/core/preconditioner/ilu.hpp>
+#include <ginkgo/core/preconditioner/isai.hpp>
+#include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/preconditioner/nullspace_projection.hpp>
+#include <ginkgo/core/preconditioner/sor.hpp>
+#include <ginkgo/core/reorder/rcm.hpp>
+#include <ginkgo/core/reorder/scaled_reordered.hpp>
+#include <ginkgo/core/solver/cg.hpp>
+#include <ginkgo/core/solver/direct.hpp>
+#include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/solver/ir.hpp>
+#include <ginkgo/core/solver/multigrid.hpp>
+#include <ginkgo/core/solver/nullspace.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
+
+#include "core/test/utils.hpp"
+
+
+namespace {
+
+
+using Vec = gko::matrix::Dense<double>;
+using Csr = gko::matrix::Csr<double, int>;
+using Cg = gko::solver::Cg<double>;
+using Gmres = gko::solver::Gmres<double>;
+using Ir = gko::solver::Ir<double>;
+
+
+// tridiagonal (-1, diag, -1) matrix of size n
+std::shared_ptr<Csr> laplacian_1d(std::shared_ptr<const gko::Executor> exec,
+                                  gko::size_type n, double diag = 2.0)
+{
+    gko::matrix_data<double, int> data{gko::dim<2>{n, n}};
+    for (int i = 0; i < static_cast<int>(n); i++) {
+        if (i > 0) {
+            data.nonzeros.emplace_back(i, i - 1, -1.0);
+        }
+        data.nonzeros.emplace_back(i, i, diag);
+        if (i + 1 < static_cast<int>(n)) {
+            data.nonzeros.emplace_back(i, i + 1, -1.0);
+        }
+    }
+    auto mtx = gko::share(Csr::create(exec));
+    mtx->read(data);
+    return mtx;
+}
+
+
+// the singular Neumann Laplacian, whose nullspace is the constant vector
+std::shared_ptr<Csr> neumann_laplacian_1d(
+    std::shared_ptr<const gko::Executor> exec, gko::size_type n)
+{
+    gko::matrix_data<double, int> data{gko::dim<2>{n, n}};
+    for (int i = 0; i < static_cast<int>(n); i++) {
+        const bool boundary = i == 0 || i + 1 == static_cast<int>(n);
+        if (i > 0) {
+            data.nonzeros.emplace_back(i, i - 1, -1.0);
+        }
+        data.nonzeros.emplace_back(i, i, boundary ? 1.0 : 2.0);
+        if (i + 1 < static_cast<int>(n)) {
+            data.nonzeros.emplace_back(i, i + 1, -1.0);
+        }
+    }
+    auto mtx = gko::share(Csr::create(exec));
+    mtx->read(data);
+    return mtx;
+}
+
+
+struct AllocationCounter : gko::log::Logger {
+    AllocationCounter()
+        : gko::log::Logger(gko::log::Logger::allocation_completed_mask)
+    {}
+
+    void on_allocation_completed(const gko::Executor*, const gko::size_type&,
+                                 const gko::uintptr&) const override
+    {
+        ++count;
+    }
+
+    mutable int count = 0;
+};
+
+
+struct ReapplyAllocations {
+    // allocations of the first apply after regenerating with the workspace
+    int first;
+    // allocations of the following apply
+    int steady;
+};
+
+
+// Generates from `factory` with a workspace, applies, extracts the
+// workspace, regenerates on `regenerate_matrix` (or `matrix`) and applies
+// twice, counting the allocations of these two applies. With `reuse_data`,
+// both generations go through generate_reuse().
+ReapplyAllocations reapply_allocations(
+    std::shared_ptr<gko::Executor> exec, const gko::LinOpFactory* factory,
+    std::shared_ptr<const gko::LinOp> matrix, gko::size_type num_rhs = 1,
+    std::shared_ptr<const gko::LinOp> regenerate_matrix = nullptr,
+    gko::LinOpFactory::ReuseData* reuse_data = nullptr)
+{
+    if (!regenerate_matrix) {
+        regenerate_matrix = matrix;
+    }
+    auto apply = [&](gko::LinOp* solver, const gko::LinOp* mtx) {
+        auto b = Vec::create(exec, gko::dim<2>{mtx->get_size()[0], num_rhs});
+        b->fill(1.0);
+        auto x = Vec::create(exec, b->get_size());
+        x->fill(0.0);
+        auto counter = std::make_shared<AllocationCounter>();
+        exec->add_logger(counter);
+        solver->apply(b, x);
+        exec->remove_logger(counter);
+        return counter->count;
+    };
+    auto generate = [&](std::shared_ptr<const gko::LinOp> mtx,
+                        std::unique_ptr<gko::Workspace> ws) {
+        return reuse_data
+                   ? factory->generate_reuse(mtx, *reuse_data, std::move(ws))
+                   : factory->generate(mtx, std::move(ws));
+    };
+    auto solver = generate(matrix, gko::Workspace::create(exec));
+    apply(solver.get(), matrix.get());
+    auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
+    solver = generate(regenerate_matrix, std::move(ws));
+    const auto first = apply(solver.get(), regenerate_matrix.get());
+    const auto steady = apply(solver.get(), regenerate_matrix.get());
+    return {first, steady};
+}
+
+
+// describe() of the workspace after generate, apply and extraction
+std::string describe_after_apply(std::shared_ptr<const gko::Executor> exec,
+                                 const gko::LinOpFactory* factory,
+                                 std::shared_ptr<const gko::LinOp> matrix)
+{
+    std::unique_ptr<gko::LinOp> solver =
+        factory->generate(matrix, gko::Workspace::create(exec));
+    auto b = Vec::create(exec, gko::dim<2>{matrix->get_size()[0], 1});
+    b->fill(1.0);
+    auto x = Vec::create(exec, b->get_size());
+    x->fill(0.0);
+    solver->apply(b, x);
+    auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
+    std::ostringstream oss;
+    ws->describe(oss);
+    return oss.str();
+}
+
+
+// generates from `factory` with a workspace, applies, move-constructs a Type
+// from the result and extracts the workspace from the moved-to object
+template <typename Type>
+std::unique_ptr<gko::Workspace> extract_after_move(
+    std::shared_ptr<const gko::Executor> exec, const gko::LinOpFactory* factory,
+    std::shared_ptr<const gko::LinOp> matrix)
+{
+    std::unique_ptr<gko::LinOp> op =
+        factory->generate(matrix, gko::Workspace::create(exec));
+    auto b = Vec::create(exec, gko::dim<2>{matrix->get_size()[0], 1});
+    b->fill(1.0);
+    auto x = Vec::create(exec, b->get_size());
+    x->fill(0.0);
+    op->apply(b, x);
+    std::unique_ptr<gko::LinOp> moved =
+        std::make_unique<Type>(std::move(*gko::as<Type>(op.get())));
+    return gko::invalidate_and_extract_workspace(std::move(moved));
+}
+
+
+class WorkspaceReuse : public ::testing::Test {
+protected:
+    WorkspaceReuse()
+        : exec(gko::ReferenceExecutor::create()), mtx(laplacian_1d(exec, 10))
+    {}
+
+    static auto iterations(gko::size_type n)
+    {
+        return gko::stop::Iteration::build().with_max_iters(n);
+    }
+
+    std::shared_ptr<gko::ReferenceExecutor> exec;
+    std::shared_ptr<Csr> mtx;
+};
+
+
+TEST_F(WorkspaceReuse, CgWithSpdIsaiReusesCompositionStorage)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(gko::preconditioner::SpdIsai<double>::build())
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+}
+
+
+TEST_F(WorkspaceReuse, SpdIsaiGivesItsCompositionANode)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(gko::preconditioner::SpdIsai<double>::build())
+            .on(exec);
+
+    auto tree = describe_after_apply(exec, factory.get(), mtx);
+
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=1)\n"
+              "    Workspace [approximate_inverse] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, GmresWithSymmetricSorReusesTriangularSolvers)
+{
+    auto factory =
+        Gmres::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(
+                gko::preconditioner::Sor<double, int>::build().with_symmetric(
+                    true))
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+    auto tree = describe_after_apply(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=2)\n"
+              "    Workspace [l_solver] (children=0)\n"
+              "    Workspace [u_solver] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, IrWithGaussSeidelReusesComposition)
+{
+    auto factory =
+        Ir::build()
+            .with_criteria(iterations(5u))
+            .with_solver(gko::preconditioner::GaussSeidel<double, int>::build()
+                             .with_symmetric(true))
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+}
+
+
+TEST_F(WorkspaceReuse, TopLevelSorCanBeExtracted)
+{
+    auto sor =
+        gko::preconditioner::Sor<double, int>::build().with_symmetric(true).on(
+            exec);
+    auto b = Vec::create(exec, gko::dim<2>{10, 1});
+    b->fill(1.0);
+    auto x = Vec::create(exec, b->get_size());
+    x->fill(0.0);
+    std::unique_ptr<gko::LinOp> precond =
+        sor->gko::LinOpFactory::generate(mtx, gko::Workspace::create(exec));
+    precond->apply(b, x);
+
+    auto ws = gko::invalidate_and_extract_workspace(std::move(precond));
+
+    ASSERT_TRUE(ws->has_child("l_solver"));
+    ASSERT_TRUE(ws->has_child("u_solver"));
+}
+
+
+TEST_F(WorkspaceReuse, CompositionFollowsNumberOfRhs)
+{
+    auto comp = gko::Composition<double>::create(mtx, mtx);
+    auto check = [&](gko::size_type num_rhs) {
+        auto b = Vec::create(exec, gko::dim<2>{10, num_rhs});
+        b->fill(1.0);
+        auto tmp = Vec::create(exec, b->get_size());
+        auto expected = Vec::create(exec, b->get_size());
+        mtx->apply(b, tmp);
+        mtx->apply(tmp, expected);
+        auto x = Vec::create(exec, b->get_size());
+
+        comp->apply(b, x);
+
+        GKO_ASSERT_MTX_NEAR(x, expected, 0.0);
+    };
+
+    check(1);
+    check(2);
+    check(1);
+}
+
+
+TEST_F(WorkspaceReuse, RegenerationWithLargerMatrixIsCorrect)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(30u))
+            .with_preconditioner(gko::preconditioner::SpdIsai<double>::build())
+            .on(exec);
+    auto large = laplacian_1d(exec, 20);
+    auto b = Vec::create(exec, gko::dim<2>{20, 1});
+    b->fill(1.0);
+    auto expected = Vec::create(exec, b->get_size());
+    expected->fill(0.0);
+    factory->generate(large)->apply(b, expected);
+    std::unique_ptr<gko::LinOp> solver =
+        factory->generate(mtx, gko::Workspace::create(exec));
+    auto small_b = Vec::create(exec, gko::dim<2>{10, 1});
+    small_b->fill(1.0);
+    auto small_x = Vec::create(exec, small_b->get_size());
+    small_x->fill(0.0);
+    solver->apply(small_b, small_x);
+    auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
+    solver = factory->generate(large, std::move(ws));
+    auto x = Vec::create(exec, b->get_size());
+    x->fill(0.0);
+
+    solver->apply(b, x);
+
+    GKO_ASSERT_MTX_NEAR(x, expected, r<double>::value);
+}
+
+
+TEST_F(WorkspaceReuse, GmresWithIluReusesIntermediate)
+{
+    auto factory =
+        Gmres::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(
+                gko::preconditioner::Ilu<double, false, int>::build())
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+    auto tree = describe_after_apply(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=2)\n"
+              "    Workspace [l_solver] (children=0)\n"
+              "    Workspace [u_solver] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, CgWithIcReusesIntermediate)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(gko::preconditioner::Ic<double, int>::build())
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+    auto tree = describe_after_apply(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=2)\n"
+              "    Workspace [l_solver] (children=0)\n"
+              "    Workspace [lh_solver] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, TopLevelIluAdvancedApplyAfterRegeneration)
+{
+    auto factory =
+        gko::preconditioner::Ilu<double, false, int>::build().on(exec);
+    auto b = Vec::create(exec, gko::dim<2>{10, 1});
+    b->fill(1.0);
+    auto x0 = Vec::create(exec, b->get_size());
+    x0->fill(0.5);
+    auto alpha = gko::initialize<Vec>({2.0}, exec);
+    auto beta = gko::initialize<Vec>({-1.0}, exec);
+    // expected = 2 * Ilu(b) - x0
+    auto expected = gko::clone(x0);
+    factory->generate(mtx)->apply(alpha, b, beta, expected);
+    std::unique_ptr<gko::LinOp> precond =
+        factory->generate(mtx, gko::Workspace::create(exec));
+    auto x = gko::clone(x0);
+    precond->apply(alpha, b, beta, x);
+    auto ws = gko::invalidate_and_extract_workspace(std::move(precond));
+    precond = factory->generate(mtx, std::move(ws));
+    x = gko::clone(x0);
+
+    precond->apply(alpha, b, beta, x);
+
+    GKO_ASSERT_MTX_NEAR(x, expected, r<double>::value);
+}
+
+
+TEST_F(WorkspaceReuse, CgWithNullspaceReusesProjectionVectors)
+{
+    auto singular = neumann_laplacian_1d(exec, 10);
+    auto ns = gko::share(gko::solver::Nullspace<double>::create_from_constant(
+        exec, singular->get_size()));
+    auto factory = Cg::build()
+                       .with_criteria(iterations(5u))
+                       .with_preconditioner(
+                           gko::preconditioner::Jacobi<double, int>::build()
+                               .with_max_block_size(1u))
+                       .with_nullspace(ns)
+                       .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), singular);
+    auto tree = describe_after_apply(exec, factory.get(), singular);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=3)\n"
+              "  Workspace [nullspace] (children=0)\n"
+              "  Workspace [nullspace_projection] (children=1)\n"
+              "    Workspace [nullspace] (children=0)\n"
+              "  Workspace [preconditioner] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, CgWithProjectionFactoryReusesVectors)
+{
+    auto singular = neumann_laplacian_1d(exec, 10);
+    auto ns = gko::share(gko::solver::Nullspace<double>::create_from_constant(
+        exec, singular->get_size()));
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(
+                gko::preconditioner::NullspaceProjection<double>::build()
+                    .with_nullspace(ns)
+                    .with_left_nullspace(ns)
+                    .with_preconditioner(
+                        gko::preconditioner::Jacobi<double, int>::build()
+                            .with_max_block_size(1u)))
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), singular);
+    auto tree = describe_after_apply(exec, factory.get(), singular);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=3)\n"
+              "    Workspace [left_nullspace] (children=0)\n"
+              "    Workspace [nullspace] (children=0)\n"
+              "    Workspace [preconditioner] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, CgWithScaledReorderedReusesInnerVectors)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(
+                gko::experimental::reorder::ScaledReordered<double,
+                                                            int>::build()
+                    .with_reordering(
+                        gko::reorder::Rcm<double, int>::build().on(exec))
+                    .with_inner_operator(
+                        gko::preconditioner::Jacobi<double, int>::build()
+                            .with_max_block_size(1u)
+                            .on(exec)))
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+    auto tree = describe_after_apply(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=1)\n"
+              "    Workspace [inner_operator] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, DirectGivesTriangularSolversNodes)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(5u))
+            .with_preconditioner(
+                gko::experimental::solver::Direct<double, int>::build()
+                    .with_factorization(
+                        gko::experimental::factorization::Lu<double,
+                                                             int>::build()))
+            .on(exec);
+
+    auto allocs = reapply_allocations(exec, factory.get(), mtx);
+    auto tree = describe_after_apply(exec, factory.get(), mtx);
+
+    ASSERT_EQ(allocs.first, allocs.steady);
+    ASSERT_EQ(tree,
+              "Workspace (children=1)\n"
+              "  Workspace [preconditioner] (children=2)\n"
+              "    Workspace [lower_solver] (children=0)\n"
+              "    Workspace [upper_solver] (children=0)\n");
+}
+
+
+TEST_F(WorkspaceReuse, MultigridReusesComponentStorage)
+{
+    auto factory =
+        gko::solver::Multigrid::build()
+            .with_mg_level(gko::multigrid::Pgm<double, int>::build())
+            .with_coarsest_solver(Cg::build().with_criteria(iterations(4u)))
+            .with_min_coarse_rows(2u)
+            .with_criteria(iterations(1u))
+            .on(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+
+    const auto generated = reapply_allocations(exec, factory.get(), mtx);
+    const auto reused = reapply_allocations(exec, factory.get(), mtx, 1,
+                                            nullptr, reuse_data.get());
+
+    ASSERT_EQ(generated.first, generated.steady);
+    ASSERT_EQ(reused.first, reused.steady);
+}
+
+
+TEST_F(WorkspaceReuse, CgWithMultigridKeepsStorageWithReuseData)
+{
+    auto factory =
+        Cg::build()
+            .with_criteria(iterations(2u))
+            .with_preconditioner(
+                gko::solver::Multigrid::build()
+                    .with_mg_level(gko::multigrid::Pgm<double, int>::build())
+                    .with_coarsest_solver(
+                        Cg::build().with_criteria(iterations(4u)))
+                    .with_min_coarse_rows(2u)
+                    .with_criteria(iterations(1u)))
+            .on(exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+
+    const auto reused = reapply_allocations(exec, factory.get(), mtx, 1,
+                                            nullptr, reuse_data.get());
+
+    ASSERT_EQ(reused.first, reused.steady);
+}
+
+
+TEST_F(WorkspaceReuse, MovedIluKeepsWorkspace)
+{
+    using Ilu = gko::preconditioner::Ilu<double, false, int>;
+    auto factory = Ilu::build().on(exec);
+
+    auto ws = extract_after_move<Ilu>(exec, factory.get(), mtx);
+
+    ASSERT_FALSE(ws->empty());
+    ASSERT_TRUE(ws->has_child("l_solver"));
+}
+
+
+TEST_F(WorkspaceReuse, MovedIcKeepsWorkspace)
+{
+    using Ic = gko::preconditioner::Ic<double, int>;
+    auto factory = Ic::build().on(exec);
+
+    auto ws = extract_after_move<Ic>(exec, factory.get(), mtx);
+
+    ASSERT_FALSE(ws->empty());
+    ASSERT_TRUE(ws->has_child("lh_solver"));
+}
+
+
+TEST_F(WorkspaceReuse, MovedIsaiKeepsWorkspace)
+{
+    using Isai = gko::preconditioner::SpdIsai<double, int>;
+    auto factory = Isai::build().on(exec);
+
+    auto ws = extract_after_move<Isai>(exec, factory.get(), mtx);
+
+    ASSERT_TRUE(ws->has_child("approximate_inverse"));
+    ASSERT_FALSE(ws->get_child("approximate_inverse")->empty());
+}
+
+
+TEST_F(WorkspaceReuse, MovedNullspaceProjectionKeepsWorkspace)
+{
+    using Projection = gko::preconditioner::NullspaceProjection<double>;
+    auto singular = neumann_laplacian_1d(exec, 10);
+    auto ns = gko::share(gko::solver::Nullspace<double>::create_from_constant(
+        exec, singular->get_size()));
+    auto factory = Projection::build()
+                       .with_nullspace(ns)
+                       .with_left_nullspace(ns)
+                       .with_preconditioner(
+                           gko::preconditioner::Jacobi<double, int>::build()
+                               .with_max_block_size(1u))
+                       .on(exec);
+
+    auto ws = extract_after_move<Projection>(exec, factory.get(), singular);
+
+    ASSERT_FALSE(ws->empty());
+    ASSERT_TRUE(ws->has_child("nullspace"));
+}
+
+
+TEST_F(WorkspaceReuse, MoveAssignedCgTakesWorkspace)
+{
+    auto factory = Cg::build().with_criteria(iterations(2u)).on(exec);
+    auto source_root = gko::Workspace::create(exec);
+    auto* source_node = source_root.get();
+    std::unique_ptr<gko::LinOp> target =
+        factory->generate(mtx, gko::Workspace::create(exec));
+    std::unique_ptr<gko::LinOp> source =
+        factory->generate(mtx, std::move(source_root));
+
+    *gko::as<Cg>(target.get()) = std::move(*gko::as<Cg>(source.get()));
+
+    ASSERT_EQ(gko::invalidate_and_extract_workspace(std::move(target)).get(),
+              source_node);
+}
+
+
+TEST_F(WorkspaceReuse, MovedCompositionKeepsWorkspace)
+{
+    auto root = gko::Workspace::create(exec);
+    auto* node = root.get();
+    auto comp = gko::Composition<double>::create(mtx, mtx);
+    gko::detail::give_workspace(comp.get(), std::move(root));
+    auto b = Vec::create(exec, gko::dim<2>{10, 1});
+    b->fill(1.0);
+    auto x = Vec::create(exec, b->get_size());
+    comp->apply(b, x);
+    std::unique_ptr<gko::LinOp> moved =
+        std::make_unique<gko::Composition<double>>(std::move(*comp));
+
+    auto ws = gko::invalidate_and_extract_workspace(std::move(moved));
+
+    ASSERT_EQ(ws.get(), node);
+    ASSERT_FALSE(ws->empty());
+}
+
+
+TEST_F(WorkspaceReuse, MovedNullspaceKeepsWorkspace)
+{
+    auto root = gko::Workspace::create(exec);
+    auto* node = root.get();
+    auto ns = gko::solver::Nullspace<double>::create_from_constant(
+        exec, mtx->get_size());
+    gko::detail::give_workspace(ns.get(), std::move(root));
+    auto b = Vec::create(exec, gko::dim<2>{10, 1});
+    b->fill(1.0);
+    auto x = Vec::create(exec, b->get_size());
+    ns->apply(b, x);
+    std::unique_ptr<gko::LinOp> moved =
+        std::make_unique<gko::solver::Nullspace<double>>(std::move(*ns));
+
+    auto ws = gko::invalidate_and_extract_workspace(std::move(moved));
+
+    ASSERT_EQ(ws.get(), node);
+    ASSERT_FALSE(ws->empty());
+}
+
+
+}  // namespace

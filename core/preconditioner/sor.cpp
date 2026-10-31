@@ -7,6 +7,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
@@ -91,6 +92,35 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
     auto exec = this->get_executor();
+
+    // the resulting Composition keeps the workspace, the triangular solvers
+    // get its children
+    std::unique_ptr<Workspace> owned_root;
+    Workspace* node = nullptr;
+    if (components.has_owned_workspace()) {
+        owned_root = components.take_owned_workspace();
+        owned_root->reset(exec);
+        node = owned_root.get();
+    } else if (components.has_view_workspace()) {
+        node = components.get_view_workspace();
+    }
+    auto generate_trs = [&](const LinOpFactory* factory,
+                            std::shared_ptr<const LinOp> mtx,
+                            const char* tag) -> std::unique_ptr<LinOp> {
+        if (node) {
+            return gko::detail::generate_with_view(
+                factory, std::move(mtx), node->get_or_create_child(tag));
+        }
+        return factory->generate(std::move(mtx));
+    };
+    auto keep_workspace = [&](std::unique_ptr<composition_type> result) {
+        if (owned_root) {
+            gko::detail::give_workspace(result.get(), std::move(owned_root));
+        } else if (node) {
+            gko::detail::attach_workspace(result.get(), node);
+        }
+        return result;
+    };
     auto size = system_matrix->get_size();
 
     auto csr_matrix = convert_to_with_sorting<Csr>(exec, system_matrix,
@@ -132,12 +162,15 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
         diag->inverse_apply(u_mtx, u_mtx);
 
         // invert the triangular matrices with triangular solvers
-        auto l_trs = l_trs_factory->generate(std::move(l_mtx));
-        auto u_trs = u_trs_factory->generate(std::move(u_mtx));
+        auto l_trs =
+            generate_trs(l_trs_factory.get(), std::move(l_mtx), "l_solver");
+        auto u_trs =
+            generate_trs(u_trs_factory.get(), std::move(u_mtx), "u_solver");
 
         // return (1/(w * (1 - w)) (D + wL) D^-1 (D + wU))^-1
         // because of the inversion, the factor order is switched
-        return composition_type::create(std::move(u_trs), std::move(l_trs));
+        return keep_workspace(
+            composition_type::create(std::move(u_trs), std::move(l_trs)));
     } else {
         array<index_type> l_row_ptrs{exec, size[0] + 1};
         exec->run(make_initialize_row_ptrs_l(
@@ -156,9 +189,10 @@ std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
             l_mtx->get_device_view()));
 
         // invert the triangular matrices with triangular solvers
-        auto l_trs = l_trs_factory->generate(std::move(l_mtx));
+        auto l_trs =
+            generate_trs(l_trs_factory.get(), std::move(l_mtx), "l_solver");
 
-        return composition_type::create(std::move(l_trs));
+        return keep_workspace(composition_type::create(std::move(l_trs)));
     }
 }
 

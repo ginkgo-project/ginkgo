@@ -1,0 +1,16 @@
+<a name="Intro"></a>
+<h1>This example checks that solvers reuse their workspace.</h1>
+
+<h3> In this example, a CG solver preconditioned by multigrid solves a 2D
+Poisson problem, while a custom logger counts the allocations of the executor.
+The solver is first applied several times, and then regenerated in every step,
+as in time stepping, once with the workspace extracted from the previous solver
+and once without. After the first apply, the applies should only allocate a
+small, constant amount of memory, also after regenerating the solver with the
+extracted workspace. The options after the grid size are <tt>profile</tt>,
+which additionally prints a nested profile showing where the allocations
+happen, <tt>cudss</tt>, which solves the coarsest level with cuDSS instead of
+CG with an SPD ISAI preconditioner on the cuda executor, and <tt>reuse</tt>,
+which regenerates the solver with <tt>generate_reuse()</tt> in both variants,
+so that the multigrid reuses its hierarchy. The cuDSS option requires Ginkgo's
+cuDSS extension, and the memory cuDSS allocates itself is not counted.</h3>

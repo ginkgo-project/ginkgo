@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -41,7 +42,7 @@ namespace reorder {
  * @tparam IndexType  Type of the indices of all matrices used in this class
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class ScaledReordered : public LinOp {
+class ScaledReordered : public LinOp, public gko::detail::WorkspaceHolder {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
@@ -98,12 +99,15 @@ protected:
      * Creates an empty scaled reordered operator (0x0 operator).
      */
     explicit ScaledReordered(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec)), permutation_array_{exec}
+        : LinOp(std::move(exec)),
+          gko::detail::WorkspaceHolder(this->get_executor()),
+          permutation_array_{this->get_executor()}
     {}
 
     explicit ScaledReordered(const Factory* factory,
                              LinOpGenerateComponents components)
         : LinOp(factory->get_executor(), components.system_matrix->get_size()),
+          gko::detail::WorkspaceHolder(factory->get_executor(), components),
           parameters_{factory->get_parameters()},
           permutation_array_{factory->get_executor()}
     {
@@ -141,8 +145,10 @@ protected:
         // Generate the inner operator with the scaled and reordered system
         // matrix. If none is provided, use the Identity.
         if (parameters_.inner_operator) {
-            inner_operator_ =
-                parameters_.inner_operator->generate(system_matrix_);
+            inner_operator_ = gko::detail::generate_with_view(
+                parameters_.inner_operator.get(), system_matrix_,
+                this->get_workspace_node()->get_or_create_child(
+                    "inner_operator"));
         } else {
             inner_operator_ = gko::matrix::Identity<value_type>::create(
                 exec, this->get_size()[0]);
@@ -154,33 +160,34 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
+    /** The vectors the inner operator works on, from the workspace. */
+    struct inner_vectors {
+        matrix::Dense<value_type>* b;
+        matrix::Dense<value_type>* x;
+        matrix::Dense<value_type>* intermediate;
+    };
+
     /**
-     * Prepares the intermediate right hand side, solution and intermediate
-     * vectors for the inner operator by creating them and making sure they
-     * have the same sizes as `b` and `x`.
-     *
-     * @param b  Right hand side for the overall operator. Will be scaled and
-     * reordered and then serve as the right hand side for the inner operator.
-     * @param x  Solution vector and initial guess for the overall operator. In
-     * case the inner operator uses an initial guess, will be scaled and
-     * permuted accordingly.
+     * Returns the intermediate right hand side, solution and intermediate
+     * vectors for the inner operator, sized like `b` and `x`, with `b` (and
+     * `x`, if the inner operator uses an initial guess) copied in.
      */
-    void set_cache_to(const LinOp* b, const LinOp* x) const
+    inner_vectors set_cache_to(const LinOp* b, const LinOp* x) const
     {
-        if (cache_.inner_b == nullptr ||
-            cache_.inner_b->get_size() != b->get_size()) {
-            const auto size = b->get_size();
-            cache_.inner_b =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-            cache_.inner_x =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-            cache_.intermediate =
-                matrix::Dense<value_type>::create(this->get_executor(), size);
-        }
-        cache_.inner_b->copy_from(as<Cloneable>(b));
+        using vec = matrix::Dense<value_type>;
+        this->set_workspace_size(3, 0);
+        const auto size = b->get_size();
+        auto get = [&](int id) {
+            return this->template create_workspace_op_if<vec>(
+                id, [size](const vec& v) { return v.get_size() != size; },
+                [&] { return vec::create(this->get_executor(), size); });
+        };
+        inner_vectors vecs{get(0), get(1), get(2)};
+        vecs.b->copy_from(as<Cloneable>(b));
         if (inner_operator_->apply_uses_initial_guess()) {
-            cache_.inner_x->copy_from(as<Cloneable>(x));
+            vecs.x->copy_from(as<Cloneable>(x));
         }
+        return vecs;
     }
 
 private:
@@ -189,34 +196,6 @@ private:
     std::shared_ptr<const matrix::Diagonal<value_type>> row_scaling_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> col_scaling_{};
     array<index_type> permutation_array_{};
-
-    /**
-     * Manages three vectors as a cache, so there is no need to allocate them
-     * every time an intermediate vector is required. Copying an instance
-     * will only yield an empty object since copying the cached vector would
-     * not make sense.
-     *
-     * @internal  The struct is present so the whole class can be copyable
-     *            (could also be done with writing `operator=` and copy
-     *            constructor of the enclosing class by hand)
-     */
-    mutable struct cache_struct {
-        cache_struct() = default;
-
-        ~cache_struct() = default;
-
-        cache_struct(const cache_struct&) {}
-
-        cache_struct(cache_struct&&) noexcept {}
-
-        cache_struct& operator=(const cache_struct&) { return *this; }
-
-        cache_struct& operator=(cache_struct&&) noexcept { return *this; }
-
-        std::unique_ptr<matrix::Dense<value_type>> inner_b{};
-        std::unique_ptr<matrix::Dense<value_type>> inner_x{};
-        std::unique_ptr<matrix::Dense<value_type>> intermediate{};
-    } cache_;
 };
 
 
