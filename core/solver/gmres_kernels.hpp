@@ -30,6 +30,13 @@ namespace gmres {
         size_type* final_iter_nums)
 
 
+#define GKO_DECLARE_GMRES_NORMALIZE_KERNEL(ValueType)           \
+    void normalize(std::shared_ptr<const DefaultExecutor> exec, \
+                   matrix::view::dense<const ValueType> norm,   \
+                   matrix::view::dense<ValueType> vector,       \
+                   const stopping_status* stop_status)
+
+
 #define GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType)                    \
     void multi_axpy(std::shared_ptr<const DefaultExecutor> exec,          \
                     matrix::view::dense<const ValueType> krylov_bases,    \
@@ -49,6 +56,8 @@ namespace gmres {
 #define GKO_DECLARE_ALL_AS_TEMPLATES                \
     template <typename ValueType>                   \
     GKO_DECLARE_GMRES_RESTART_KERNEL(ValueType);    \
+    template <typename ValueType>                   \
+    GKO_DECLARE_GMRES_NORMALIZE_KERNEL(ValueType);  \
     template <typename ValueType>                   \
     GKO_DECLARE_GMRES_MULTI_AXPY_KERNEL(ValueType); \
     template <typename ValueType>                   \

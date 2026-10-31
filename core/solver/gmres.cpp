@@ -32,8 +32,13 @@ namespace gmres {
 namespace {
 
 
+GKO_REGISTER_OPERATION(check_initial_residual,
+                       common_gmres::check_initial_residual);
+GKO_REGISTER_OPERATION(check_initial_residual_values,
+                       common_gmres::check_initial_residual_values);
 GKO_REGISTER_OPERATION(initialize, common_gmres::initialize);
 GKO_REGISTER_OPERATION(restart, gmres::restart);
+GKO_REGISTER_OPERATION(normalize, gmres::normalize);
 GKO_REGISTER_OPERATION(hessenberg_qr, common_gmres::hessenberg_qr);
 GKO_REGISTER_OPERATION(solve_krylov, common_gmres::solve_krylov);
 GKO_REGISTER_OPERATION(multi_axpy, gmres::multi_axpy);
@@ -487,6 +492,30 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         this->project_nullspace(dense_x);
     }
 
+    bool initially_solved{};
+    // Restart resets final_iter_nums after this reduction reuses its storage.
+    if (::gko::detail::is_distributed(residual)) {
+        // The norm must be global, including ranks with no local rows.
+        residual->compute_norm1(residual_norm, reduction_tmp);
+        exec->run(gmres::make_check_initial_residual(
+            residual_norm->get_const_device_view(), RelativeStoppingId,
+            stop_status.get_data(), final_iter_nums, reduction_tmp,
+            &initially_solved));
+    } else {
+        // Reuse residual_norm for zero/nonzero markers until compute_norm2.
+        exec->run(gmres::make_check_initial_residual_values(
+            gko::detail::get_local(residual)->get_const_device_view(),
+            residual_norm->get_device_view(), RelativeStoppingId,
+            stop_status.get_data(), final_iter_nums, reduction_tmp,
+            &initially_solved));
+    }
+    if (initially_solved) {
+        this->template log<log::Logger::iteration_complete>(
+            this, dense_b, dense_x, 0, residual, residual_norm, nullptr,
+            &stop_status, true);
+        return;
+    }
+
     // residual_norm = norm(residual)
     residual->compute_norm2(residual_norm, reduction_tmp);
     // residual_norm_collection = {residual_norm, unchanged}
@@ -644,7 +673,10 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
             next_krylov.get(), hessenberg_norm_entry.get(),
             next_krylov_norm_tmp, reduction_tmp);
-        next_krylov->inv_scale(hessenberg_norm_entry);
+        exec->run(gmres::make_normalize(
+            hessenberg_norm_entry->get_const_device_view(),
+            gko::detail::get_local(next_krylov.get())->get_device_view(),
+            stop_status.get_const_data()));
         // End of Arnoldi
 
         // update QR factorization and Krylov RHS for last column:
