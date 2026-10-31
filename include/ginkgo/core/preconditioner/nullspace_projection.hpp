@@ -144,7 +144,7 @@ protected:
     explicit NullspaceProjection(std::shared_ptr<const Executor> exec);
 
     NullspaceProjection(const Factory* factory,
-                        std::shared_ptr<const LinOp> system_matrix);
+                        LinOpGenerateComponents components);
 
     NullspaceProjection(
         std::shared_ptr<const Executor> exec, dim<2> size,

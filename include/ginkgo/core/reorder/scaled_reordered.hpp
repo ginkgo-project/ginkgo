@@ -102,11 +102,12 @@ protected:
     {}
 
     explicit ScaledReordered(const Factory* factory,
-                             std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(), system_matrix->get_size()),
+                             LinOpGenerateComponents components)
+        : LinOp(factory->get_executor(), components.system_matrix->get_size()),
           parameters_{factory->get_parameters()},
           permutation_array_{factory->get_executor()}
     {
+        auto system_matrix = std::move(components.system_matrix);
         // For now only support square matrices.
         GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 

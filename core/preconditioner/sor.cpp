@@ -81,8 +81,9 @@ Sor<ValueType, IndexType>::generate(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Sor<ValueType, IndexType>::generate_impl(
-    std::shared_ptr<const LinOp> system_matrix) const
+    LinOpGenerateComponents components) const
 {
+    auto system_matrix = std::move(components.system_matrix);
     using Csr = matrix::Csr<ValueType, IndexType>;
     using LTrs = solver::LowerTrs<value_type, index_type>;
     using UTrs = solver::UpperTrs<value_type, index_type>;

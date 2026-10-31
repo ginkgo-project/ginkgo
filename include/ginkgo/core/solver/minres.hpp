@@ -100,7 +100,10 @@ public:
         : enable_preconditioned_iterative_solver_factory_parameters<
               parameters_type, Factory> {};
 
-    GKO_ENABLE_LIN_OP_FACTORY(Minres, parameters, Factory);
+    using reuse_data_type = typename EnablePreconditionedIterativeSolver<
+        ValueType, Minres<ValueType>>::reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Minres, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -132,8 +135,11 @@ protected:
 
     explicit Minres(std::shared_ptr<const Executor> exec);
 
-    explicit Minres(const Factory* factory,
-                    std::shared_ptr<const LinOp> system_matrix);
+    explicit Minres(const Factory* factory, LinOpGenerateComponents components,
+                    reuse_data_type* reuse_data = nullptr);
+
+    Minres(const Factory* factory, LinOpGenerateComponents components,
+           reuse_data_type& reuse_data);
 };
 
 
