@@ -15,6 +15,7 @@ if len(sys.argv) > 2 and sys.argv[2] == "--generate":
     generate = True
 denumberify_paths = [
     "time",
+    "repetition_times",
     "bandwidth",
     "flops",
     "components",
@@ -28,7 +29,7 @@ denumberify_paths = [
     "hyperskewness",
     "hyperflatness"
 ]
-detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check("]
+detypenameify_key_starts = ["generate(", "apply(", "advanced_apply(", "copy(", "check(", "move("]
 empty_string_paths = ["filename"]
 empty_array_paths = [
     "recurrent_residuals",
@@ -61,6 +62,12 @@ def sanitize_json_value(key: str, value, sanitize_all: bool):
         return ""
     if key in denumberify_paths and isinstance(value, float):
         return 1.0
+    if key in denumberify_paths and isinstance(value, list):
+        return [
+            1.0 if isinstance(e, (int, float)) and not isinstance(e, bool)
+            else sanitize_json(e, True)
+            for e in value
+        ]
     if key in denumberify_paths and isinstance(value, dict):
         return sanitize_json(value, True)
     if key in empty_array_paths and isinstance(value, list):
@@ -87,6 +94,43 @@ def sanitize_json(parsed_input, sanitize_all: bool = False):
         return 1.0
     else:
         return parsed_input
+
+
+def is_number(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def check_repetition_times(obj, path: str = "$", in_components: bool = False):
+    """Checks that every numeric "time" is accompanied by "repetition_times".
+
+    The list must contain non-negative numbers. If the same object has
+    "repetitions", the list must have this length, unless it is empty (when
+    repetitions are grouped into a single timing, e.g. repetitions=auto).
+    Objects below a "components" key and tuning entries, where "time" is a
+    list, are exempt.
+    """
+
+    if isinstance(obj, dict):
+        if not in_components and is_number(obj.get("time")):
+            assert "repetition_times" in obj, (
+                f"{path}: numeric 'time' without 'repetition_times'"
+            )
+            times = obj["repetition_times"]
+            assert isinstance(times, list) and all(
+                is_number(t) and t >= 0 for t in times
+            ), f"{path}.repetition_times: not a list of non-negative numbers"
+            if "repetitions" in obj and len(times) != 0:
+                assert len(times) == obj["repetitions"], (
+                    f"{path}.repetition_times: has {len(times)} entries, "
+                    f"but repetitions is {obj['repetitions']}"
+                )
+        for key, value in obj.items():
+            check_repetition_times(
+                value, f"{path}.{key}", in_components or key == "components"
+            )
+    elif isinstance(obj, list):
+        for i, value in enumerate(obj):
+            check_repetition_times(value, f"{path}[{i}]", in_components)
 
 
 def sanitize_json_text(input: str) -> List[str]:
@@ -188,6 +232,7 @@ def compare_output_impl(
         )
         print("GENERATED")
         return
+    check_repetition_times(json.loads(result.stdout.decode()))
     result_stdout_processed = sanitize_json_text(result.stdout.decode())
     result_stderr_processed = sanitize_text(
         result.stderr.decode(),

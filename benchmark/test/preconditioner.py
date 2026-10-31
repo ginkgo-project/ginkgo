@@ -74,3 +74,15 @@ test_framework.compare_output(
     expected_stderr="preconditioner_dcomplex.simple.stderr",
     use_complex=True
 )
+
+# syncfree and amg preconditioners
+test_framework.compare_output(
+    [
+        "-preconditioners",
+        "jacobi,ilu-syncfree,ic-syncfree,mg-pgm,mg-pmis,mg-uniform",
+        "-input",
+        '[{"size": 1000, "stencil": "7pt"}]',
+    ],
+    expected_stdout="preconditioner.cb.stdout",
+    expected_stderr="preconditioner.cb.stderr",
+)

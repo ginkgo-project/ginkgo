@@ -18,6 +18,7 @@
 #include "benchmark/utils/loggers.hpp"
 #include "benchmark/utils/preconditioners.hpp"
 #include "benchmark/utils/runner.hpp"
+#include "benchmark/utils/structure.hpp"
 #include "benchmark/utils/timer.hpp"
 #include "benchmark/utils/types.hpp"
 
@@ -156,10 +157,11 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
 
         state.system_matrix =
             formats::matrix_factory(FLAGS_formats, exec, data);
+        // one column: gko::dim<2>{n} alone is n x n
         state.b = Generator::create_multi_vector_random(
-            exec, gko::dim<2>{data.size[0]}, local_size);
+            exec, gko::dim<2>{data.size[0], 1}, local_size);
         state.x = Generator::create_multi_vector(
-            exec, gko::dim<2>{data.size[0]}, local_size, gko::zero<etype>());
+            exec, gko::dim<2>{data.size[0], 1}, local_size, gko::zero<etype>());
 
         std::cerr << "Matrix is of size (" << data.size[0] << ", "
                   << data.size[1] << "), " << data.nonzeros.size() << std::endl;
@@ -204,20 +206,28 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
                 precond_op = precond->generate(state.system_matrix);
             }
 
-            precond_case["generate"]["time"] =
-                ic_gen.compute_time(FLAGS_timer_method);
-            precond_case["generate"]["repetitions"] =
-                ic_gen.get_num_repetitions();
+            write_times(precond_case["generate"], ic_gen);
 
             for (auto _ : ic_apply.run()) {
                 auto range = annotate("repetition apply");
                 precond_op->apply(state.b, x_clone);
             }
 
-            precond_case["apply"]["time"] =
-                ic_apply.compute_time(FLAGS_timer_method);
-            precond_case["apply"]["repetitions"] =
-                ic_apply.get_num_repetitions();
+            write_times(precond_case["apply"], ic_apply);
+        }
+
+        {
+            // untimed generate to measure the preconditioner's storage
+            auto storage_logger = std::make_shared<StorageLogger>();
+            exec->add_logger(storage_logger);
+            auto precond = precond_factory.at(decoded_precond_name)(exec);
+            auto precond_op = precond->generate(state.system_matrix);
+            exec->remove_logger(storage_logger);
+            storage_logger->write_data(precond_case);
+            auto levels = describe_levels(precond_op.get());
+            if (!levels.is_null()) {
+                precond_case["levels"] = levels;
+            }
         }
 
         if (FLAGS_detailed) {

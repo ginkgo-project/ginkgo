@@ -59,3 +59,35 @@ test_framework.compare_output(
     expected_stderr="solver_dcomplex.simple.stderr",
     use_complex=True
 )
+
+# ir
+test_framework.compare_output(
+    [
+        "-solvers",
+        "ir",
+        "-preconditioners",
+        "jacobi",
+        "-jacobi_max_block_size",
+        "1",
+        "-max_iters",
+        "50",
+        "-input",
+        '[{"size": 100, "stencil": "7pt", "optimal": {"spmv": "csr"}}]',
+    ],
+    expected_stdout="solver.ir.stdout",
+    expected_stderr="solver.ir.stderr",
+)
+
+# amg preconditioners
+test_framework.compare_output(
+    [
+        "-solvers",
+        "cg",
+        "-preconditioners",
+        "jacobi,mg-pgm,mg-pmis,mg-uniform",
+        "-input",
+        '[{"size": 1000, "stencil": "7pt", "optimal": {"spmv": "csr"}}]',
+    ],
+    expected_stdout="solver.amg.stdout",
+    expected_stderr="solver.amg.stderr",
+)
