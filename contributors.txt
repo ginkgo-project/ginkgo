@@ -6,6 +6,7 @@ Anzt Hartwig <hartwig.anzt@kit.edu> Karlsruhe Institute of Technology, The Unive
 Beams Natalie <nbeams@icl.utk.edu> University of Tennessee, Knoxville
 Boman Erik <egboman@sandia.gov> Sandia National Laboratories
 Castelli Fabian <fabian.castelli@kit.edu> Karlsruhe Institute of Technology
+Chandrasekar Nathan <322284620+vera-rubin@users.noreply.github.com> Donmakino LLC
 Chen Yen-Chen <yanjen224@gmail.com> National Taiwan University
 Cojean Terry <terry.cojean@kit.edu> Karlsruhe Institute of Technology
 Conen Niklas <niklas.conen@student.kit.edu> Karlsruhe Institute of Technology
