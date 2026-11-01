@@ -98,6 +98,11 @@
 // clang-format on
 #endif
 
+/* Is Umpire available for memory allocation? */
+// clang-format off
+#define GKO_HAVE_UMPIRE @GINKGO_HAVE_UMPIRE@
+// clang-format on
+
 /* Is ROCTX available for Profiling? */
 // clang-format off
 #define GKO_HAVE_ROCTX @GINKGO_HAVE_ROCTX@
