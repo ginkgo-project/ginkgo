@@ -219,8 +219,8 @@ __global__ void sptrsv_naive_legacy_kernel(
 {
     __shared__ IndexType block_base_idx;
     if (threadIdx.x == 0) {
-        block_base_idx =
-            atomic_add(atomic_counter, IndexType{1}) * default_block_size;
+        block_base_idx = atomic_add_relaxed(atomic_counter, IndexType{1}) *
+                         default_block_size;
     }
     __syncthreads();
     const auto full_gid = static_cast<IndexType>(threadIdx.x) + block_base_idx;
