@@ -70,7 +70,6 @@ is_nan_exact(const T& value)
     type value_bytes{};
     type nan_bytes{};
     auto nan_value = nan<float_to_nan_impl_t<T>>();
-    using std::memcpy;
     memcpy(&value_bytes, &value, sizeof(value));
     memcpy(&nan_bytes, &nan_value, sizeof(value));
     return value_bytes == nan_bytes;
