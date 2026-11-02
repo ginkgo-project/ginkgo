@@ -244,13 +244,13 @@ __global__ void sptrsv_naive_legacy_kernel(
     auto j = row_begin;
     while (j != row_diag + row_step) {
         auto col = colidxs[j];
-        auto x_val = load_relaxed(x, col * x_stride + rhs);
+        auto x_val = load_relaxed(x + col * x_stride + rhs);
         while (!is_nan(x_val)) {
             sum += static_cast<ArithmeticType>(vals[j]) *
                    static_cast<ArithmeticType>(x_val);
             j += row_step;
             col = colidxs[j];
-            x_val = load(x, col * x_stride + rhs);
+            x_val = load_relaxed(x + col * x_stride + rhs);
         }
         if (row == col) {
             auto diag = unit_diag ? one<ArithmeticType>()
@@ -258,11 +258,12 @@ __global__ void sptrsv_naive_legacy_kernel(
             const auto r =
                 (static_cast<ArithmeticType>(b[row * b_stride + rhs]) - sum) /
                 diag;
-            store_relaxed(x, row * x_stride + rhs,
+            store_relaxed(x + row * x_stride + rhs,
                           static_cast<OutputValueType>(r));
             j += row_step;
             if (is_nan(r)) {
-                store_relaxed(x, row * x_stride + rhs, zero<OutputValueType>());
+                store_relaxed(x + row * x_stride + rhs,
+                              zero<OutputValueType>());
                 *nan_produced = true;
             }
         }
