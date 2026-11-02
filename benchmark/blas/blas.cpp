@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -76,6 +76,16 @@ std::map<std::string, std::function<std::unique_ptr<BenchmarkOperation>(
              return std::make_unique<AdvancedApplyOperation<Generator>>(
                  exec, Generator{}, dims.n, dims.k, dims.m, dims.stride_A,
                  dims.stride_B, dims.stride_C);
+         }},
+        {"add_diag",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<AddDiagOperation<Generator>>(
+                 exec, Generator{}, dims.n, dims.stride_A);
+         }},
+        {"sub_diag",
+         [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
+             return std::make_unique<SubDiagOperation<Generator>>(
+                 exec, Generator{}, dims.n, dims.stride_A);
          }},
         {"prefix_sum32",
          [](std::shared_ptr<const gko::Executor> exec, dimensions dims) {
