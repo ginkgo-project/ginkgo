@@ -51,7 +51,7 @@ struct float_to_nan_impl {
 
 template <typename T>
 struct float_to_nan_impl<std::complex<T>> {
-    using type = std::complex<float_to_nan_impl<T>::type>;
+    using type = std::complex<typename float_to_nan_impl<T>::type>;
 };
 
 template <typename T>
