@@ -71,7 +71,8 @@ void solve(std::shared_ptr<const HipExecutor> exec,
     if (algorithm == solver::trisolve_algorithm::sparselib) {
         if constexpr (all_same_value_type) {
             solve_kernel<MatrixValueType, IndexType>(exec, matrix, solve_struct,
-                                                     trans_b, trans_x, b, x);
+                                                     trans_b.value(),
+                                                     trans_x.value(), b, x);
             return;
         }
     } else if (algorithm == solver::trisolve_algorithm::syncfree) {

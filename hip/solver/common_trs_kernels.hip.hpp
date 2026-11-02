@@ -19,6 +19,7 @@
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/memory.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 
@@ -206,46 +207,6 @@ void solve_kernel(std::shared_ptr<const HipExecutor> exec,
 constexpr int default_block_size = 32;
 
 
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__
-    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType>
-    load(const ValueType* values, IndexType index)
-{
-    const volatile ValueType* val = values + index;
-    return *val;
-}
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ std::enable_if_t<
-    std::is_floating_point<ValueType>::value, thrust::complex<ValueType>>
-load(const thrust::complex<ValueType>* values, IndexType index)
-{
-    auto real = reinterpret_cast<const ValueType*>(values);
-    auto imag = real + 1;
-    return {load(real, 2 * index), load(imag, 2 * index)};
-}
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void store(
-    ValueType* values, IndexType index,
-    std::enable_if_t<std::is_floating_point<ValueType>::value, ValueType> value)
-{
-    volatile ValueType* val = values + index;
-    *val = value;
-}
-
-template <typename ValueType, typename IndexType>
-__device__ __forceinline__ void store(thrust::complex<ValueType>* values,
-                                      IndexType index,
-                                      thrust::complex<ValueType> value)
-{
-    auto real = reinterpret_cast<ValueType*>(values);
-    auto imag = real + 1;
-    store(real, 2 * index, value.real());
-    store(imag, 2 * index, value.imag());
-}
-
-
 template <bool is_upper, typename ArithmeticType, typename InputValueType,
           typename MatrixValueType, typename OutputValueType,
           typename IndexType>
@@ -253,8 +214,8 @@ __global__ void sptrsv_naive_legacy_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
     const MatrixValueType* const vals, const InputValueType* const b,
     size_type b_stride, OutputValueType* const x, size_type x_stride,
-    const size_type n, const size_type nrhs, bool* nan_produced,
-    IndexType* atomic_counter)
+    const size_type n, const size_type nrhs, const bool unit_diag,
+    bool* nan_produced, IndexType* atomic_counter)
 {
     __shared__ IndexType block_base_idx;
     if (threadIdx.x == 0) {
@@ -283,7 +244,7 @@ __global__ void sptrsv_naive_legacy_kernel(
     auto j = row_begin;
     while (j != row_diag + row_step) {
         auto col = colidxs[j];
-        auto x_val = load(x, col * x_stride + rhs);
+        auto x_val = load_relaxed(x, col * x_stride + rhs);
         while (!is_nan(x_val)) {
             sum += static_cast<ArithmeticType>(vals[j]) *
                    static_cast<ArithmeticType>(x_val);
@@ -292,13 +253,16 @@ __global__ void sptrsv_naive_legacy_kernel(
             x_val = load(x, col * x_stride + rhs);
         }
         if (row == col) {
+            auto diag = unit_diag ? one<ArithmeticType>()
+                                  : static_cast<ArithmeticType>(vals[row_diag]);
             const auto r =
                 (static_cast<ArithmeticType>(b[row * b_stride + rhs]) - sum) /
-                static_cast<ArithmeticType>(vals[row_diag]);
-            store(x, row * x_stride + rhs, static_cast<OutputValueType>(r));
+                diag;
+            store_relaxed(x, row * x_stride + rhs,
+                          static_cast<OutputValueType>(r));
             j += row_step;
             if (is_nan(r)) {
-                store(x, row * x_stride + rhs, zero<OutputValueType>());
+                store_relaxed(x, row * x_stride + rhs, zero<OutputValueType>());
                 *nan_produced = true;
             }
         }
@@ -317,16 +281,17 @@ __global__ void sptrsv_init_kernel(bool* const nan_produced,
 
 template <bool is_upper, typename InputValueType, typename MatrixValueType,
           typename OutputValueType, typename IndexType>
-void sptrsv_naive_caching(std::shared_ptr<const HipExecutor> exec,
-                          const matrix::Csr<MatrixValueType, IndexType>* matrix,
-                          const matrix::Dense<InputValueType>* b,
-                          matrix::Dense<OutputValueType>* x)
+void sptrsv_naive_caching(
+    std::shared_ptr<const HipExecutor> exec,
+    matrix::view::csr<const MatrixValueType, const IndexType> matrix,
+    bool unit_diag, matrix::view::dense<const InputValueType> b,
+    matrix::view::dense<OutputValueType> x)
 {
     using ArithmeticType =
         highest_precision<InputValueType, MatrixValueType, OutputValueType>;
 
-    const auto n = matrix->get_size()[0];
-    const auto nrhs = b->get_size()[1];
+    const auto n = matrix.size[0];
+    const auto nrhs = b.size[1];
 
     // Initialize x to all NaNs.
     dense::fill(exec, x, nan<OutputValueType>());
@@ -341,11 +306,10 @@ void sptrsv_naive_caching(std::shared_ptr<const HipExecutor> exec,
 
     sptrsv_naive_legacy_kernel<is_upper, hip_type<ArithmeticType>>
         <<<grid_size, block_size>>>(
-            matrix->get_const_row_ptrs(), matrix->get_const_col_idxs(),
-            as_hip_type(matrix->get_const_values()),
-            as_hip_type(b->get_const_values()), b->get_stride(),
-            as_hip_type(x->get_values()), x->get_stride(), n, nrhs,
-            nan_produced.get_data(), atomic_counter.get_data());
+            matrix.row_ptrs, matrix.col_idxs, as_hip_type(matrix.values),
+            as_hip_type(b.values), b.stride, as_hip_type(x.values), x.stride, n,
+            nrhs, unit_diag, nan_produced.get_data(),
+            atomic_counter.get_data());
 
 #if GKO_VERBOSE_LEVEL >= 1
     if (exec->copy_val_to_host(nan_produced.get_const_data())) {
