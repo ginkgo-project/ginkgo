@@ -36,6 +36,27 @@ struct float_to_unsigned_impl<bfloat16> {
     using type = uint16;
 };
 
+template <typename T>
+using float_to_unsigned_impl_t = typename float_to_unsigned_impl<T>::type;
+
+
+/**
+ * Type mapping from T to the type used for NaN comparisons.
+ * Only different for device types.
+ */
+template <typename T>
+struct float_to_nan_impl {
+    using type = T;
+};
+
+template <typename T>
+struct float_to_nan_impl<std::complex<T>> {
+    using type = std::complex<float_to_nan_impl<T>::type>;
+};
+
+template <typename T>
+using float_to_nan_impl_t = typename float_to_nan_impl<T>::type;
+
 
 /**
  * Checks if a floating point number representation matches the representation
@@ -45,10 +66,10 @@ template <typename T>
 GKO_INLINE GKO_ATTRIBUTES std::enable_if_t<!is_complex_s<T>::value, bool>
 is_nan_exact(const T& value)
 {
-    using type = typename float_to_unsigned_impl<T>::type;
+    using type = float_to_unsigned_impl_t<T>;
     type value_bytes{};
     type nan_bytes{};
-    auto nan_value = nan<T>();
+    auto nan_value = nan<float_to_nan_impl_t<T>>();
     using std::memcpy;
     memcpy(&value_bytes, &value, sizeof(value));
     memcpy(&nan_bytes, &nan_value, sizeof(value));
