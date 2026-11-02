@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
+#include "common/cuda_hip/base/bf16_alias.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/pointer_mode_guard.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
@@ -21,10 +22,34 @@
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "core/matrix/dense_kernels.hpp"
+#include "core/solver/common_trs_helpers.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
 
 
 namespace gko {
+
+
+template <>
+struct float_to_unsigned_impl<__half> {
+    using type = uint16;
+};
+
+template <>
+struct float_to_unsigned_impl<vendor_bf16> {
+    using type = uint16;
+};
+
+template <>
+struct float_to_nan_impl<__half> {
+    using type = uint16;
+};
+
+template <>
+struct float_to_nan_impl<vendor_bf16> {
+    using type = uint16;
+};
+
+
 namespace solver {
 
 
@@ -245,7 +270,7 @@ __global__ void sptrsv_naive_legacy_kernel(
     while (j != row_diag + row_step) {
         auto col = colidxs[j];
         auto x_val = load_relaxed(x + col * x_stride + rhs);
-        while (!is_nan(x_val)) {
+        while (!is_nan_exact(x_val)) {
             sum += static_cast<ArithmeticType>(vals[j]) *
                    static_cast<ArithmeticType>(x_val);
             j += row_step;
@@ -261,7 +286,7 @@ __global__ void sptrsv_naive_legacy_kernel(
             store_relaxed(x + row * x_stride + rhs,
                           static_cast<OutputValueType>(r));
             j += row_step;
-            if (is_nan(r)) {
+            if (is_nan_exact(r)) {
                 store_relaxed(x + row * x_stride + rhs,
                               zero<OutputValueType>());
                 *nan_produced = true;
