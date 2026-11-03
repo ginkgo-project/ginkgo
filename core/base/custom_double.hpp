@@ -223,7 +223,7 @@ struct numeric_limits<gko::custom_double> {
     static constexpr gko::custom_double epsilon()
     {
         constexpr auto bits = static_cast<std::uint64_t>(
-            0b0'00000000101'0000000000000000000000000000000000000000000000000000ull);
+            0b0'01111001011'0000000000000000000000000000000000000000000000000000ull);
         return gko::custom_double::create_from_bits(bits);
     }
 
@@ -243,21 +243,21 @@ struct numeric_limits<gko::custom_double> {
 
     static constexpr gko::custom_double max()
     {
-        constexpr auto bits = static_cast<std::uint16_t>(
+        constexpr auto bits = static_cast<std::uint64_t>(
             0b0'11111111110'1111111111111111111111111111111111111111111111111111ull);
         return gko::custom_double::create_from_bits(bits);
     }
 
     static constexpr gko::custom_double lowest()
     {
-        constexpr auto bits = static_cast<std::uint16_t>(
+        constexpr auto bits = static_cast<std::uint64_t>(
             0b1'11111111110'1111111111111111111111111111111111111111111111111111ull);
         return gko::custom_double::create_from_bits(bits);
     };
 
     static constexpr gko::custom_double quiet_NaN()
     {
-        constexpr auto bits = static_cast<std::uint16_t>(
+        constexpr auto bits = static_cast<std::uint64_t>(
             0b0'11111111111'1111111111111111111111111111111111111111111111111111ull);
         return gko::custom_double::create_from_bits(bits);
     }
