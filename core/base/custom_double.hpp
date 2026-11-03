@@ -6,6 +6,8 @@
 #define GKO_CORE_BASE_DOUBLE_HPP_
 
 
+#include <cstring>
+
 #include <ginkgo/core/base/half.hpp>
 #include <ginkgo/core/base/types.hpp>
 
@@ -145,6 +147,10 @@ public:
     static GKO_ATTRIBUTES GKO_INLINE std::uint64_t native_to_custom(
         const double& val) noexcept
     {
+// hip does not allow std::memcpy in __host__ __device__
+#ifndef HIP_VERSION
+        using std::memcpy;
+#endif
         std::uint64_t data;
         memcpy(&data, &val, sizeof(double));
         return data;
@@ -153,6 +159,10 @@ public:
     static GKO_ATTRIBUTES GKO_INLINE custom_double
     to_custom(const double& val) noexcept
     {
+        // hip does not allow std::memcpy in __host__ __device__
+#ifndef HIP_VERSION
+        using std::memcpy;
+#endif
         custom_double data;
         memcpy(&data.data_, &val, sizeof(double));
         return data;
@@ -161,6 +171,10 @@ public:
     static GKO_ATTRIBUTES GKO_INLINE double custom_to_native(
         const std::uint64_t& data) noexcept
     {
+// hip does not allow std::memcpy in __host__ __device__
+#ifndef HIP_VERSION
+        using std::memcpy;
+#endif
         double result;
         memcpy(&result, &data, sizeof(double));
         return result;
