@@ -643,7 +643,9 @@ protected:
             gko::array<global_index_type>(exec, bounds.begin(), bounds.end())));
     }
 
-    std::shared_ptr<dist_mtx_type> matrix(std::shared_ptr<part_type> part)
+    std::shared_ptr<dist_mtx_type> matrix(
+        std::shared_ptr<part_type> part,
+        const gko::experimental::mpi::communicator& mtx_comm)
     {
         gko::matrix_data<value_type, global_index_type> data{gko::dim<2>(n, n)};
         for (global_index_type i = 0; i < n; i++) {
@@ -655,20 +657,21 @@ protected:
                 data.nonzeros.emplace_back(i, i + 1, -1.0);
             }
         }
-        auto mtx = gko::share(dist_mtx_type::create(exec, comm));
+        auto mtx = gko::share(dist_mtx_type::create(exec, mtx_comm));
         mtx->read_distributed(data, part);
         return mtx;
     }
 
-    std::unique_ptr<dist_vec_type> vector(std::shared_ptr<part_type> part,
-                                          bool rhs)
+    std::unique_ptr<dist_vec_type> vector(
+        std::shared_ptr<part_type> part, bool rhs,
+        const gko::experimental::mpi::communicator& vec_comm)
     {
         gko::matrix_data<value_type, global_index_type> data{gko::dim<2>(n, 1)};
         for (global_index_type i = 0; i < n; i++) {
             data.nonzeros.emplace_back(i, 0,
                                        rhs ? std::sin(0.3 * i + 0.1) : 0.5);
         }
-        auto vec = dist_vec_type::create(exec, comm);
+        auto vec = dist_vec_type::create(exec, vec_comm);
         vec->read_distributed(data, part);
         return vec;
     }
@@ -689,22 +692,51 @@ protected:
         }
         auto part1 = partition(uniform);
         auto part2 = partition(shifted);
-        auto mtx1 = matrix(part1);
-        auto mtx2 = matrix(part2);
-        auto expected = vector(part2, false);
-        factory->generate(mtx2)->apply(vector(part2, true), expected);
+        auto mtx1 = matrix(part1, comm);
+        auto mtx2 = matrix(part2, comm);
+        auto expected = vector(part2, false, comm);
+        factory->generate(mtx2)->apply(vector(part2, true, comm), expected);
         std::unique_ptr<gko::LinOp> solver =
             factory->generate(mtx1, gko::Workspace::create(exec));
-        auto x1 = vector(part1, false);
-        solver->apply(vector(part1, true), x1);
+        auto x1 = vector(part1, false, comm);
+        solver->apply(vector(part1, true, comm), x1);
         auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
         solver = factory->generate(mtx2, std::move(ws));
-        auto x2 = vector(part2, false);
+        auto x2 = vector(part2, false, comm);
 
-        solver->apply(vector(part2, true), x2);
+        solver->apply(vector(part2, true, comm), x2);
 
         GKO_ASSERT_MTX_NEAR(x2->get_local_vector(),
                             expected->get_local_vector(), r<value_type>::value);
+    }
+
+    // Generates from `factory` with a workspace, applies it, extracts the
+    // workspace and regenerates on the same matrix on a congruent copy of the
+    // communicator, then checks that the distributed vector in operator slot
+    // `op_id` was recreated on the copy.
+    void check_vector_recreated_on_other_communicator(
+        const gko::LinOpFactory* factory, int op_id)
+    {
+        const auto size = static_cast<global_index_type>(comm.size());
+        std::vector<global_index_type> uniform(size + 1);
+        for (global_index_type i = 0; i <= size; i++) {
+            uniform[i] = i * n / size;
+        }
+        auto part = partition(uniform);
+        gko::experimental::mpi::communicator other_comm(comm, 0, comm.rank());
+        std::unique_ptr<gko::LinOp> solver =
+            factory->generate(matrix(part, comm), gko::Workspace::create(exec));
+        auto x = vector(part, false, comm);
+        solver->apply(vector(part, true, comm), x);
+        auto ws = gko::invalidate_and_extract_workspace(std::move(solver));
+        solver = factory->generate(matrix(part, other_comm), std::move(ws));
+        auto other_x = vector(part, false, other_comm);
+
+        solver->apply(vector(part, true, other_comm), other_x);
+
+        ws = gko::invalidate_and_extract_workspace(std::move(solver));
+        auto vec = gko::as<dist_vec_type>(ws->get_const_op(op_id));
+        ASSERT_TRUE(vec->get_communicator().is_identical(other_comm));
     }
 };
 
@@ -728,4 +760,31 @@ TEST_F(WorkspaceRepartition, GmresRegeneratesOnRepartitionedMatrix)
             .on(exec);
 
     check_regeneration_on_repartitioned_matrix(factory.get());
+}
+
+
+TEST_F(WorkspaceRepartition, CgRecreatesVectorsOnOtherCommunicator)
+{
+    using solver_type = gko::solver::Cg<value_type>;
+    auto factory =
+        solver_type::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(5u))
+            .on(exec);
+
+    check_vector_recreated_on_other_communicator(
+        factory.get(), gko::solver::workspace_traits<solver_type>::r);
+}
+
+
+TEST_F(WorkspaceRepartition, GmresRecreatesKrylovBasesOnOtherCommunicator)
+{
+    using solver_type = gko::solver::Gmres<value_type>;
+    auto factory =
+        solver_type::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(5u))
+            .on(exec);
+
+    check_vector_recreated_on_other_communicator(
+        factory.get(),
+        gko::solver::workspace_traits<solver_type>::krylov_bases);
 }

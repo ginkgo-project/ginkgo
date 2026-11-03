@@ -69,6 +69,19 @@ dim<2> get_local_size(const VectorType& vec)
 }
 
 
+// whether `op` is on another communicator than `vec`, which only distributed
+// vectors can be
+template <typename VectorType>
+bool has_other_communicator(const VectorType& op, const VectorType& vec)
+{
+    if constexpr (has_local_vector<VectorType>::value) {
+        return op.get_communicator() != vec.get_communicator();
+    } else {
+        return false;
+    }
+}
+
+
 /**
  * Type-erased container for any gko::array<T>. Used internally by Workspace
  * to back the workspace_array slots without templating the workspace itself
@@ -354,14 +367,16 @@ protected:
                                                   const LinOpType* vec) const
     {
         // distributed vectors of the same global size may be partitioned
-        // differently, so the local size is compared as well
+        // differently or be on another communicator, so the local size and
+        // the communicator are compared as well
         return this->template create_workspace_op_if<LinOpType>(
             vector_id,
             [vec](const LinOpType& op) {
                 return typeid(op) != typeid(*vec) ||
                        op.get_size() != vec->get_size() ||
                        op.get_stride() != vec->get_stride() ||
-                       get_local_size(op) != get_local_size(*vec);
+                       get_local_size(op) != get_local_size(*vec) ||
+                       has_other_communicator(op, *vec);
             },
             [vec] { return LinOpType::create_with_config_of(vec); });
     }
@@ -389,14 +404,15 @@ protected:
     {
         auto node = this->get_workspace_node();
         // the local size changes when the same global size is partitioned
-        // differently
+        // differently, and the communicator may change as well
         return this->template create_workspace_op_if<LinOpType>(
             vector_id,
             [&](const LinOpType& op) {
                 return typeid(op) != typeid(*vec) ||
                        op.get_size() != global_size ||
                        op.get_stride() != local_size[1] ||
-                       get_local_size(op) != local_size;
+                       get_local_size(op) != local_size ||
+                       has_other_communicator(op, *vec);
             },
             [&] {
                 return LinOpType::create_with_type_of(vec, node->get_executor(),
