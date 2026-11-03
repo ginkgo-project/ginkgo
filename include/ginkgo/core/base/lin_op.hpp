@@ -287,6 +287,20 @@ private:
 
 
 /**
+ * The inputs a LinOpFactory generates a LinOp from, i.e. the ComponentsType of
+ * its AbstractFactory. For now this is only the system matrix, e.g. the matrix
+ * a solver solves with or a preconditioner approximates the inverse of.
+ */
+struct LinOpGenerateComponents {
+    std::shared_ptr<const LinOp> system_matrix;
+
+    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix)
+        : system_matrix{std::move(matrix)}
+    {}
+};
+
+
+/**
  * A LinOpFactory represents a higher order mapping which transforms one
  * linear operator into another.
  *
@@ -340,19 +354,6 @@ private:
  *
  * @ingroup LinOp
  */
-/**
- * Components needed to generate a LinOp product from a factory: the system
- * matrix the product is generated for.
- */
-struct LinOpGenerateComponents {
-    std::shared_ptr<const LinOp> system_matrix;
-
-    LinOpGenerateComponents(std::shared_ptr<const LinOp> matrix)
-        : system_matrix{std::move(matrix)}
-    {}
-};
-
-
 class LinOpFactory : public AbstractFactory<LinOp, LinOpGenerateComponents> {
 public:
     using AbstractFactory::AbstractFactory;
