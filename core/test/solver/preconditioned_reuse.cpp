@@ -174,6 +174,22 @@ TYPED_TEST(PreconditionedReuse, ChecksReuseDataOfPreconditioner)
 }
 
 
+TYPED_TEST(PreconditionedReuse, FailedGenerateReuseKeepsReuseDataEmpty)
+{
+    auto non_square = gko::share(gko::initialize<typename TestFixture::Mtx>(
+        {{2.0, -1.0}, {-1.0, 2.0}, {0.0, -1.0}}, this->exec));
+    auto reuse_data = this->factory->create_empty_reuse_data();
+
+    ASSERT_THROW(this->factory->generate_reuse(non_square, *reuse_data),
+                 gko::DimensionMismatch);
+
+    ASSERT_NO_THROW(this->factory->check_reuse_consistent(
+        this->other_size.get(), *reuse_data));
+    ASSERT_FALSE(this->reused(
+        this->factory->generate_reuse(this->mtx, *reuse_data).get()));
+}
+
+
 TYPED_TEST(PreconditionedReuse, GenerateReuseWithoutPreconditionerFactory)
 {
     using Solver = typename TestFixture::Solver;

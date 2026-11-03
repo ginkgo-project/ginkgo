@@ -934,7 +934,8 @@ public:
 
     /**
      * Creates the base of a solver with executor `exec` from its factory
-     * parameters. With `reuse_data`, the preconditioner is generated through
+     * parameters. The preconditioner is generated last, once the system
+     * matrix and the nullspaces are checked, and with `reuse_data` through
      * generate_reuse().
      */
     template <typename FactoryParameters>
@@ -942,9 +943,9 @@ public:
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const LinOp> system_matrix,
         const FactoryParameters& params, reuse_data_type* reuse_data = nullptr)
-        : EnablePreconditionedIterativeSolver{
-              exec, system_matrix, stop::combine(params.criteria),
-              generate_preconditioner(system_matrix, params, reuse_data)}
+        : EnablePreconditionedIterativeSolver{exec, system_matrix,
+                                              stop::combine(params.criteria),
+                                              std::shared_ptr<const LinOp>{}}
     {
         using traits = nullspace_traits<DerivedType>;
         if ((params.nullspace || params.left_nullspace) &&
@@ -969,12 +970,9 @@ public:
                 nullspace_ = left_nullspace_;
             }
         }
-        if (nullspace_) {
-            // wraps the preconditioner in the nullspace projection
-            this->store_projected_preconditioner(exec,
-                                                 get_solver_size(system_matrix),
-                                                 this->get_preconditioner());
-        }
+        this->store_projected_preconditioner(
+            exec, get_solver_size(system_matrix),
+            generate_preconditioner(system_matrix, params, reuse_data));
     }
 
     EnablePreconditionedIterativeSolver(
