@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/types.hpp>
 
 #ifdef GKO_COMPILING_CUDA
+#include <cuda_bf16.h>
 #include <cuda_fp16.h>
 #endif
 
@@ -81,6 +82,11 @@ public:
     GKO_ATTRIBUTES GKO_INLINE operator __half() const noexcept
     {
         return static_cast<__half>(custom_to_native(data_));
+    }
+
+    GKO_ATTRIBUTES GKO_INLINE operator __nv_bfloat16() const noexcept
+    {
+        return static_cast<__nv_bfloat16>(custom_to_native(data_));
     }
 #endif
 
