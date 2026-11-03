@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,8 @@
 #include <type_traits>
 
 #include <thrust/complex.h>
+
+#include <ginkgo/config.hpp>
 
 #include "block_col_major.hpp"
 #include "reduced_row_major.hpp"
@@ -51,10 +53,13 @@ struct cuda_type<gko::bfloat16> {
     using type = __nv_bfloat16;
 };
 
+#if GINKGO_EMULATE_DOUBLE
+// has to match gko::kernels::cuda::cuda_type<double>
 template <>
 struct cuda_type<double> {
     using type = gko::custom_double;
 };
+#endif
 
 // Unpack cv and reference / pointer qualifiers
 template <typename T>

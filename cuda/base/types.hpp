@@ -188,10 +188,14 @@ struct cuda_type_impl<bfloat16> {
     using type = __nv_bfloat16;
 };
 
+#if GINKGO_EMULATE_DOUBLE
+// replace double by the emulated type in all kernels, see
+// GINKGO_EMULATE_DOUBLE. The double-based mappings below follow this one.
 template <>
 struct cuda_type_impl<double> {
     using type = gko::custom_double;
 };
+#endif
 
 template <typename T>
 struct cuda_type_impl<std::complex<T>> {
@@ -200,7 +204,7 @@ struct cuda_type_impl<std::complex<T>> {
 
 template <>
 struct cuda_type_impl<cuDoubleComplex> {
-    using type = thrust::complex<gko::custom_double>;
+    using type = thrust::complex<typename cuda_type_impl<double>::type>;
 };
 
 template <>
@@ -240,7 +244,7 @@ struct cuda_struct_member_type_impl<gko::bfloat16> {
 
 template <>
 struct cuda_struct_member_type_impl<double> {
-    using type = gko::custom_double;
+    using type = typename cuda_type_impl<double>::type;
 };
 
 template <typename ValueType, typename IndexType>

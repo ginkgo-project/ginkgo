@@ -96,6 +96,17 @@ if(MSVC OR MINGW)
         FORCE
     )
 endif()
+option(
+    GINKGO_EMULATE_DOUBLE
+    "Replace double by the emulated gko::custom_double in the CUDA kernels"
+    OFF
+)
+if(GINKGO_EMULATE_DOUBLE)
+    message(
+        STATUS
+        "Emulating double in the CUDA kernels, the other backends use native double"
+    )
+endif()
 
 option(
     GINKGO_SKIP_DEPENDENCY_UPDATE
