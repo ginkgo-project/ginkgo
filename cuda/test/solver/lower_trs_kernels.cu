@@ -126,16 +126,18 @@ TEST_F(LowerTrs, CudaSingleRhsMixedApplySyncfreeIsEquivalentToRef1)
 {
     initialize_data(50, 1);
     auto solver = gko::solver::LowerTrs<>::build().on(ref)->generate(csr_mtx);
-    auto d_solver =
-        gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
-            .on(exec)
-            ->generate(d_csr_mtx);
+    for (auto alg : {gko::solver::trisolve_algorithm::sparselib,
+                     gko::solver::trisolve_algorithm::syncfree}) {
+        auto d_solver = gko::solver::LowerTrs<>::build()
+                            .with_algorithm(alg)
+                            .on(exec)
+                            ->generate(d_csr_mtx);
 
-    solver->apply(b2, x2);
-    d_solver->apply(d_b2, d_x2);
+        solver->apply(b2, x2);
+        d_solver->apply(d_b2, d_x2);
 
-    GKO_ASSERT_MTX_NEAR(d_x2, x2, 1e-6);
+        GKO_ASSERT_MTX_NEAR(d_x2, x2, 1e-6);
+    }
 }
 
 
@@ -143,16 +145,18 @@ TEST_F(LowerTrs, CudaSingleRhsMixedApplySyncfreeIsEquivalentToRef2)
 {
     initialize_data(50, 1);
     auto solver = gko::solver::LowerTrs<>::build().on(ref)->generate(csr_mtx);
-    auto d_solver =
-        gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
-            .on(exec)
-            ->generate(d_csr_mtx);
+    for (auto alg : {gko::solver::trisolve_algorithm::sparselib,
+                     gko::solver::trisolve_algorithm::syncfree}) {
+        auto d_solver = gko::solver::LowerTrs<>::build()
+                            .with_algorithm(alg)
+                            .on(exec)
+                            ->generate(d_csr_mtx);
 
-    solver->apply(b2, x);
-    d_solver->apply(d_b2, d_x);
+        solver->apply(b2, x);
+        d_solver->apply(d_b2, d_x);
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
+        GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
+    }
 }
 
 
@@ -160,16 +164,18 @@ TEST_F(LowerTrs, CudaSingleRhsMixedApplySyncfreeIsEquivalentToRef3)
 {
     initialize_data(50, 1);
     auto solver = gko::solver::LowerTrs<>::build().on(ref)->generate(csr_mtx);
-    auto d_solver =
-        gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
-            .on(exec)
-            ->generate(d_csr_mtx);
+    for (auto alg : {gko::solver::trisolve_algorithm::sparselib,
+                     gko::solver::trisolve_algorithm::syncfree}) {
+        auto d_solver = gko::solver::LowerTrs<>::build()
+                            .with_algorithm(alg)
+                            .on(exec)
+                            ->generate(d_csr_mtx);
 
-    solver->apply(b, x2);
-    d_solver->apply(d_b, d_x2);
+        solver->apply(b, x2);
+        d_solver->apply(d_b, d_x2);
 
-    GKO_ASSERT_MTX_NEAR(d_x2, x2, 1e-6);
+        GKO_ASSERT_MTX_NEAR(d_x2, x2, 1e-6);
+    }
 }
 
 
@@ -202,20 +208,22 @@ TEST_F(LowerTrs, CudaMultipleRhsMixedApplySyncfreeIsEquivalentToRef1)
     auto solver =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref)->generate(
             csr_mtx);
-    auto d_solver =
-        gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
-            .with_num_rhs(3u)
-            .on(exec)
-            ->generate(d_csr_mtx);
-    auto db2_strided = Mtx2::create(exec, b->get_size(), 4);
-    d_b2->convert_to(db2_strided);
-    auto dx2_strided = Mtx2::create(exec, x->get_size(), 5);
+    for (auto alg : {gko::solver::trisolve_algorithm::sparselib,
+                     gko::solver::trisolve_algorithm::syncfree}) {
+        auto d_solver = gko::solver::LowerTrs<>::build()
+                            .with_algorithm(alg)
+                            .with_num_rhs(3u)
+                            .on(exec)
+                            ->generate(d_csr_mtx);
+        auto db2_strided = Mtx2::create(exec, b->get_size(), 4);
+        d_b2->convert_to(db2_strided);
+        auto dx2_strided = Mtx2::create(exec, x->get_size(), 5);
 
-    solver->apply(b2, x2);
-    d_solver->apply(db2_strided, dx2_strided);
+        solver->apply(b2, x2);
+        d_solver->apply(db2_strided, dx2_strided);
 
-    GKO_ASSERT_MTX_NEAR(dx2_strided, x2, 1e-6);
+        GKO_ASSERT_MTX_NEAR(dx2_strided, x2, 1e-6);
+    }
 }
 
 
@@ -225,20 +233,22 @@ TEST_F(LowerTrs, CudaMultipleRhsMixedApplySyncfreeIsEquivalentToRef2)
     auto solver =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref)->generate(
             csr_mtx);
-    auto d_solver =
-        gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
-            .with_num_rhs(3u)
-            .on(exec)
-            ->generate(d_csr_mtx);
-    auto db2_strided = Mtx2::create(exec, b->get_size(), 4);
-    d_b2->convert_to(db2_strided);
-    auto dx_strided = Mtx::create(exec, x->get_size(), 5);
+    for (auto alg : {gko::solver::trisolve_algorithm::sparselib,
+                     gko::solver::trisolve_algorithm::syncfree}) {
+        auto d_solver = gko::solver::LowerTrs<>::build()
+                            .with_algorithm(alg)
+                            .with_num_rhs(3u)
+                            .on(exec)
+                            ->generate(d_csr_mtx);
+        auto db2_strided = Mtx2::create(exec, b->get_size(), 4);
+        d_b2->convert_to(db2_strided);
+        auto dx_strided = Mtx::create(exec, x->get_size(), 5);
 
-    solver->apply(b2, x);
-    d_solver->apply(db2_strided, dx_strided);
+        solver->apply(b2, x);
+        d_solver->apply(db2_strided, dx_strided);
 
-    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-6);
+        GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-6);
+    }
 }
 
 
@@ -248,20 +258,22 @@ TEST_F(LowerTrs, CudaMultipleRhsMixedApplySyncfreeIsEquivalentToRef3)
     auto solver =
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(ref)->generate(
             csr_mtx);
-    auto d_solver =
-        gko::solver::LowerTrs<>::build()
-            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
-            .with_num_rhs(3u)
-            .on(exec)
-            ->generate(d_csr_mtx);
-    auto db_strided = Mtx::create(exec, b->get_size(), 4);
-    d_b->convert_to(db_strided);
-    auto dx2_strided = Mtx2::create(exec, x->get_size(), 5);
+    for (auto alg : {gko::solver::trisolve_algorithm::sparselib,
+                     gko::solver::trisolve_algorithm::syncfree}) {
+        auto d_solver = gko::solver::LowerTrs<>::build()
+                            .with_algorithm(alg)
+                            .with_num_rhs(3u)
+                            .on(exec)
+                            ->generate(d_csr_mtx);
+        auto db_strided = Mtx::create(exec, b->get_size(), 4);
+        d_b->convert_to(db_strided);
+        auto dx2_strided = Mtx2::create(exec, x->get_size(), 5);
 
-    solver->apply(b, x2);
-    d_solver->apply(db_strided, dx2_strided);
+        solver->apply(b, x2);
+        d_solver->apply(db_strided, dx2_strided);
 
-    GKO_ASSERT_MTX_NEAR(dx2_strided, x2, 1e-6);
+        GKO_ASSERT_MTX_NEAR(dx2_strided, x2, 1e-6);
+    }
 }
 
 
