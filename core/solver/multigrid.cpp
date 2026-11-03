@@ -237,11 +237,10 @@ public:
      * @param system_matrix_in  the system matrix
      * @param multigrid_in  the multigrid information
      * @param nrhs_in  the number of right hand side
-     * @param ws_node_in  the workspace node (may be nullptr)
+     * @param ws_node_in  the workspace node of the multigrid
      */
     void generate(const LinOp* system_matrix_in, const Multigrid* multigrid_in,
-                  const size_type nrhs_in,
-                  gko::Workspace* ws_node_in = nullptr);
+                  const size_type nrhs_in, gko::Workspace* ws_node_in);
 
     /**
      * allocate_memory is a helper function to allocate the memory of one level
