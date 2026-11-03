@@ -248,10 +248,13 @@ struct numeric_limits<gko::custom_double> {
         return gko::custom_double::create_from_bits(bits);
     };
 
+    // same bits as std::numeric_limits<double>::quiet_NaN(), such that nan()
+    // created on the host and on the device can be compared bitwise (e.g.
+    // is_nan_exact in the syncfree triangular solver)
     static constexpr gko::custom_double quiet_NaN()
     {
         constexpr auto bits = static_cast<std::uint64_t>(
-            0b0'11111111111'1111111111111111111111111111111111111111111111111111ull);
+            0b0'11111111111'1000000000000000000000000000000000000000000000000000ull);
         return gko::custom_double::create_from_bits(bits);
     }
 };
