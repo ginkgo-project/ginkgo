@@ -41,3 +41,4 @@ ginkgo_create_test(types)
 ginkgo_create_test(umpire_allocator)
 ginkgo_create_test(utils)
 ginkgo_create_test(version EXECUTABLE_NAME version_test) # version collides with C++ stdlib header
+ginkgo_create_test(workspace)
