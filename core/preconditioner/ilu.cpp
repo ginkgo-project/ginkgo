@@ -122,7 +122,7 @@ Ilu<ValueType, ReverseApply, IndexType>::operator=(Ilu&& other)
 
 {
     if (&other != this) {
-        LinOp::operator=(other);
+        LinOp::operator=(std::move(other));
         gko::detail::WorkspaceHolder::operator=(std::move(other));
         auto exec = this->get_executor();
         l_solver_ = std::move(other.l_solver_);
