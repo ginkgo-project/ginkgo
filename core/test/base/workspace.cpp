@@ -119,6 +119,26 @@ TEST_F(Workspace, AnyArrayClearAfterInitWorks)
 }
 
 
+TEST_F(Workspace, CreatedWorkspaceHasNoSlots)
+{
+    auto ws = gko::Workspace::create(exec);
+
+    ASSERT_EQ(ws->get_num_operators(), 0);
+    ASSERT_EQ(ws->get_num_arrays(), 0);
+}
+
+
+TEST_F(Workspace, SetSizeSetsTheNumberOfSlots)
+{
+    auto ws = gko::Workspace::create(exec);
+
+    ws->set_size(2, 3);
+
+    ASSERT_EQ(ws->get_num_operators(), 2);
+    ASSERT_EQ(ws->get_num_arrays(), 3);
+}
+
+
 TEST_F(Workspace, CanCreateArrays)
 {
     auto ws_ptr = gko::Workspace::create(exec);

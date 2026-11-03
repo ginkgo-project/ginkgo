@@ -78,6 +78,18 @@ void Workspace::set_size(int num_operators, int num_arrays)
 }
 
 
+int Workspace::get_num_operators() const
+{
+    return static_cast<int>(operators_.size());
+}
+
+
+int Workspace::get_num_arrays() const
+{
+    return static_cast<int>(arrays_.size());
+}
+
+
 const LinOp* Workspace::get_const_op(int op_id) const
 {
     GKO_ASSERT(op_id >= 0 && op_id < operators_.size());

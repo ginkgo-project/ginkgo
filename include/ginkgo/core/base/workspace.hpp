@@ -214,6 +214,10 @@ public:
 
     void set_size(int num_operators, int num_arrays);
 
+    int get_num_operators() const;
+
+    int get_num_arrays() const;
+
     template <typename LinOpType, typename CreateOperation>
     LinOpType* create_or_get_op(int op_id, CreateOperation create,
                                 const std::type_info& expected_type,
