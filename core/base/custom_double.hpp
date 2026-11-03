@@ -96,20 +96,19 @@ public:
     // custom_double + custom_double operation will cast it to float and then do
     // float operation such that it becomes float in the end.
     // TODO replace by proper simulation
-#define CUSTOM_DOUBLE_OPERATOR(_op, _opeq)                       \
-    friend GKO_ATTRIBUTES GKO_INLINE custom_double operator _op( \
-        const custom_double& lhf, const custom_double& rhf)      \
-    {                                                            \
-        return custom_double::native_to_custom(                  \
-            custom_double::custom_to_native(lhf.data_)           \
-                _op custom_double::custom_to_native(rhf.data_)); \
-    }                                                            \
-    GKO_ATTRIBUTES GKO_INLINE custom_double& operator _opeq(     \
-        const custom_double& hf)                                 \
-    {                                                            \
-        auto result = *this _op hf;                              \
-        data_ = result.data_;                                    \
-        return *this;                                            \
+#define CUSTOM_DOUBLE_OPERATOR(_op, _opeq)                               \
+    friend GKO_ATTRIBUTES GKO_INLINE custom_double operator _op(         \
+        const custom_double& lhf, const custom_double& rhf)              \
+    {                                                                    \
+        return custom_double::to_custom(custom_double::custom_to_native( \
+            lhf.data_) _op custom_double::custom_to_native(rhf.data_));  \
+    }                                                                    \
+    GKO_ATTRIBUTES GKO_INLINE custom_double& operator _opeq(             \
+        const custom_double& hf)                                         \
+    {                                                                    \
+        auto result = *this _op hf;                                      \
+        data_ = result.data_;                                            \
+        return *this;                                                    \
     }
 
     CUSTOM_DOUBLE_OPERATOR(+, +=)
@@ -124,7 +123,7 @@ public:
     {
         // TODO: simulate by int64
         auto val = 0.0 - custom_to_native(data_);
-        return native_to_custom(val);
+        return to_custom(val);
     }
 
 #define CUSTOM_DOUBLE_COMPARTOR(_op)                        \
@@ -159,13 +158,9 @@ public:
     static GKO_ATTRIBUTES GKO_INLINE custom_double
     to_custom(const double& val) noexcept
     {
-        // hip does not allow std::memcpy in __host__ __device__
-#ifndef HIP_VERSION
-        using std::memcpy;
-#endif
-        custom_double data;
-        memcpy(&data.data_, &val, sizeof(double));
-        return data;
+        custom_double result;
+        result.data_ = native_to_custom(val);
+        return result;
     }
 
     static GKO_ATTRIBUTES GKO_INLINE double custom_to_native(
@@ -183,9 +178,7 @@ public:
     static GKO_ATTRIBUTES GKO_INLINE double custom_to_native(
         const custom_double& val) noexcept
     {
-        double result;
-        memcpy(&result, &val.data_, sizeof(double));
-        return result;
+        return custom_to_native(val.data_);
     }
 
 private:
