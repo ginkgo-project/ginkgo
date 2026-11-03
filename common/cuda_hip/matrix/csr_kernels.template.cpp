@@ -103,9 +103,12 @@ __host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
 }
 
 
+// ind and val must not be __restrict__: the threads exchange values through
+// them across the barriers, and with __restrict__ the compiler may assume the
+// barriers do not access them and drop the intermediate stores to val.
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__ bool block_segment_scan_reverse(
-    const IndexType* __restrict__ ind, ValueType* __restrict__ val)
+__device__ __forceinline__ bool block_segment_scan_reverse(const IndexType* ind,
+                                                           ValueType* val)
 {
     bool last = true;
     const auto reg_ind = ind[threadIdx.x];
