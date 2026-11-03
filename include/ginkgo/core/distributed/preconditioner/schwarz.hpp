@@ -95,6 +95,7 @@ public:
             coarse_solver_ = other.coarse_solver_;
             coarse_weight_ = other.coarse_weight_;
             local_weight_ = other.local_weight_;
+            gko::detail::WorkspaceHolder::operator=(other);
         }
         return *this;
     }
