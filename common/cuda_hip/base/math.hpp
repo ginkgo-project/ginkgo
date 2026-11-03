@@ -151,6 +151,14 @@ struct truncate_type_impl<thrust::complex<T>> {
 };
 
 
+// custom_double replaces double on the device, so it needs to be reduced to
+// float like double (used by the block Jacobi storage precision)
+template <>
+struct reduce_precision_impl<gko::custom_double> {
+    using type = float;
+};
+
+
 template <typename T>
 struct type_size_impl<thrust::complex<T>> {
     static constexpr auto value = sizeof(T) * byte_size;
@@ -222,6 +230,36 @@ struct highest_precision_impl<vendor_bf16, double> {
 template <>
 struct highest_precision_impl<double, vendor_bf16> {
     using type = double;
+};
+
+template <>
+struct highest_precision_impl<__half, custom_double> {
+    using type = custom_double;
+};
+
+template <>
+struct highest_precision_impl<custom_double, __half> {
+    using type = custom_double;
+};
+
+template <>
+struct highest_precision_impl<vendor_bf16, custom_double> {
+    using type = custom_double;
+};
+
+template <>
+struct highest_precision_impl<custom_double, vendor_bf16> {
+    using type = custom_double;
+};
+
+template <>
+struct highest_precision_impl<float, custom_double> {
+    using type = custom_double;
+};
+
+template <>
+struct highest_precision_impl<custom_double, float> {
+    using type = custom_double;
 };
 
 
@@ -303,6 +341,27 @@ GKO_ATTRIBUTES GKO_INLINE gko::custom_double abs<gko::custom_double>(
         abs(complex<double>(gko::custom_double::custom_to_native(z.real()),
                             gko::custom_double::custom_to_native(z.imag())));
     return gko::custom_double::to_custom(result);
+}
+
+
+// The generic complex division of thrust calls ::cuda::std::abs on the
+// components (CCCL in CUDA 13.4), which only accepts builtin arithmetic types.
+// This non-template overload is preferred over the thrust template and forwards
+// the division to complex<double>.
+// TODO: only complex<custom_double> / complex<custom_double> is covered. A
+// lower precision complex divided by complex<custom_double> (e.g.
+// complex<__half> / complex<custom_double>) still uses the thrust template.
+GKO_ATTRIBUTES GKO_INLINE complex<gko::custom_double> operator/(
+    const complex<gko::custom_double>& x, const complex<gko::custom_double>& y)
+{
+    auto result =
+        complex<double>(gko::custom_double::custom_to_native(x.real()),
+                        gko::custom_double::custom_to_native(x.imag())) /
+        complex<double>(gko::custom_double::custom_to_native(y.real()),
+                        gko::custom_double::custom_to_native(y.imag()));
+    return complex<gko::custom_double>(
+        gko::custom_double::to_custom(result.real()),
+        gko::custom_double::to_custom(result.imag()));
 }
 
 
