@@ -5,6 +5,7 @@
 #include <memory>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -293,26 +294,30 @@ TEST_F(WorkspaceReuse, TopLevelSorCanBeExtracted)
 }
 
 
-TEST_F(WorkspaceReuse, CompositionFollowsNumberOfRhs)
+TEST_F(WorkspaceReuse, CompositionResizesStorageWithNumberOfRhs)
 {
-    auto comp = gko::Composition<double>::create(mtx, mtx);
-    auto check = [&](gko::size_type num_rhs) {
-        auto b = Vec::create(exec, gko::dim<2>{10, num_rhs});
-        b->fill(1.0);
-        auto tmp = Vec::create(exec, b->get_size());
-        auto expected = Vec::create(exec, b->get_size());
-        mtx->apply(b, tmp);
-        mtx->apply(tmp, expected);
-        auto x = Vec::create(exec, b->get_size());
-
-        comp->apply(b, x);
-
-        GKO_ASSERT_MTX_NEAR(x, expected, 0.0);
+    // applies a Composition with each number of right-hand sides, checking
+    // the results, and returns the size of its storage afterwards
+    auto storage_size = [&](const std::vector<gko::size_type>& rhs_counts) {
+        std::unique_ptr<gko::LinOp> comp =
+            gko::Composition<double>::create(mtx, mtx);
+        for (auto num_rhs : rhs_counts) {
+            auto b = Vec::create(exec, gko::dim<2>{10, num_rhs});
+            b->fill(1.0);
+            auto tmp = Vec::create(exec, b->get_size());
+            auto expected = Vec::create(exec, b->get_size());
+            mtx->apply(b, tmp);
+            mtx->apply(tmp, expected);
+            auto x = Vec::create(exec, b->get_size());
+            comp->apply(b, x);
+            GKO_EXPECT_MTX_NEAR(x, expected, 0.0);
+        }
+        auto ws = gko::invalidate_and_extract_workspace(std::move(comp));
+        return ws->init_or_get_array<double>(0).get_size();
     };
 
-    check(1);
-    check(2);
-    check(1);
+    ASSERT_EQ(storage_size({1, 2}), 20u);
+    ASSERT_EQ(storage_size({1, 2, 1}), 10u);
 }
 
 
