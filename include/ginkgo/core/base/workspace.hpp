@@ -150,8 +150,9 @@ private:
  * a flat slot container (operators and arrays sized by the solver) plus a map
  * of named child Workspaces for sub-solvers. Every node is bound to an
  * executor at construction; children initially inherit their parent's
- * executor, and an inner solver may rebind its child node via reset(exec)
- * (used by Multigrid to bind each level to its level executor).
+ * executor, and an inner solver may rebind its child node via
+ * set_executor(exec) (used by Multigrid to bind each level to its level
+ * executor).
  *
  * Top-level workspaces are constructed via Workspace::create and passed into
  * LinOpFactory::generate(matrix, unique_ptr<Workspace>). The outer solver
@@ -209,7 +210,7 @@ public:
      * When the executor is unchanged, this is a no-op and slot contents are
      * preserved.
      */
-    void reset(std::shared_ptr<const Executor> exec);
+    void set_executor(std::shared_ptr<const Executor> exec);
 
     void set_size(int num_operators, int num_arrays);
 
@@ -271,6 +272,10 @@ public:
 
     bool empty() const;
 
+    /**
+     * Drops the contents of all slots. The number of slots and the children
+     * are kept.
+     */
     void clear();
 
 private:

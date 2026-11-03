@@ -314,20 +314,20 @@ TEST_F(Workspace, MoveTransfersOperatorsToDestination)
 }
 
 
-TEST_F(Workspace, ResetUpdatesExecutor)
+TEST_F(Workspace, SetExecutorChangesExecutor)
 {
     auto exec1 = gko::ReferenceExecutor::create();
     auto exec2 = gko::ReferenceExecutor::create();
     auto ws_ptr = gko::Workspace::create(exec1);
     auto& ws = *ws_ptr;
 
-    ws.reset(exec2);
+    ws.set_executor(exec2);
 
     ASSERT_EQ(ws.get_executor(), exec2);
 }
 
 
-TEST_F(Workspace, ResetClearsSlotsWhenExecutorChanges)
+TEST_F(Workspace, SetExecutorClearsSlotsWhenExecutorChanges)
 {
     auto exec1 = gko::ReferenceExecutor::create();
     auto exec2 = gko::ReferenceExecutor::create();
@@ -338,14 +338,14 @@ TEST_F(Workspace, ResetClearsSlotsWhenExecutorChanges)
         0, [&] { return DummyLinOp::create(exec1); }, typeid(DummyLinOp), {},
         0);
 
-    ws.reset(exec2);
+    ws.set_executor(exec2);
 
     ASSERT_EQ(ws.get_executor(), exec2);
     ASSERT_EQ(ws.get_const_op(0), nullptr);
 }
 
 
-TEST_F(Workspace, ResetPreservesSlotsWhenExecutorUnchanged)
+TEST_F(Workspace, SetExecutorPreservesSlotsWhenExecutorUnchanged)
 {
     auto ws_ptr = gko::Workspace::create(exec);
     auto& ws = *ws_ptr;
@@ -353,7 +353,7 @@ TEST_F(Workspace, ResetPreservesSlotsWhenExecutorUnchanged)
     auto op1 = ws.template create_or_get_op<DummyLinOp>(
         0, [&] { return DummyLinOp::create(exec); }, typeid(DummyLinOp), {}, 0);
 
-    ws.reset(exec);
+    ws.set_executor(exec);
 
     ASSERT_EQ(ws.get_const_op(0), op1);
 }

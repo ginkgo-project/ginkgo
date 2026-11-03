@@ -61,7 +61,7 @@ bool Workspace::has_child(const std::string& tag) const
 }
 
 
-void Workspace::reset(std::shared_ptr<const Executor> exec)
+void Workspace::set_executor(std::shared_ptr<const Executor> exec)
 {
     if (exec_ == exec) {
         return;
@@ -209,7 +209,7 @@ void WorkspaceHolder::set_workspace_size(int num_operators,
 {
     auto node = this->get_workspace_node();
     // another user of a shared node may have bound it to its own executor
-    node->reset(exec_);
+    node->set_executor(exec_);
     claim_workspace(*node, typeid(*this));
     node->set_size(num_operators, num_arrays);
 }
@@ -217,7 +217,7 @@ void WorkspaceHolder::set_workspace_size(int num_operators,
 
 void WorkspaceHolder::own(std::unique_ptr<Workspace> root)
 {
-    root->reset(exec_);
+    root->set_executor(exec_);
     borrowed_.reset();
     owned_ = std::move(root);
     node_ = owned_.get();
@@ -229,7 +229,7 @@ void WorkspaceHolder::borrow(Workspace* node)
 {
     GKO_THROW_IF_INVALID(!node->weak_from_this().expired(),
                          "only child nodes of a workspace can be borrowed");
-    node->reset(exec_);
+    node->set_executor(exec_);
     owned_.reset();
     borrowed_ = node->shared_from_this();
     node_ = node;
