@@ -9,6 +9,7 @@ GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 #include <memory>
+#include <type_traits>
 
 #include <gtest/gtest.h>
 
@@ -83,6 +84,19 @@ TEST_F(IcFactory, DeferredFactoryParameter)
                             ic_type::Factory);
 }
 
+
+TEST_F(IcFactory, IcCannotBeCopied)
+{
+    ASSERT_FALSE(std::is_copy_constructible<ic_prec_type>::value);
+    ASSERT_FALSE(std::is_copy_assignable<ic_prec_type>::value);
+}
+
+
+TEST_F(IcFactory, IcCannotBeMoved)
+{
+    ASSERT_FALSE(std::is_move_constructible<ic_prec_type>::value);
+    ASSERT_FALSE(std::is_move_assignable<ic_prec_type>::value);
+}
 
 }  // namespace
 

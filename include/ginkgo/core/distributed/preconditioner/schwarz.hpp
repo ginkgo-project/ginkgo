@@ -160,16 +160,15 @@ public:
             config::make_type_descriptor<ValueType, LocalIndexType,
                                          GlobalIndexType>());
 
-protected:
-    /**
-     * Creates an empty Schwarz preconditioner.
-     *
-     * @param exec  the executor this object is assigned to
-     */
-    explicit Schwarz(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
-    {}
+    Schwarz(const Schwarz&) = delete;
 
+    Schwarz(Schwarz&&) = delete;
+
+    Schwarz& operator=(const Schwarz&) = delete;
+
+    Schwarz& operator=(Schwarz&&) = delete;
+
+protected:
     /**
      * Creates a Schwarz preconditioner from a matrix using a Schwarz::Factory.
      *
