@@ -52,6 +52,7 @@ This also applies to custom solvers derived from `EnableSolverBase`, and to the 
 Solvers and preconditioners are created by their factories, so move or share the pointer to them instead.
 To get a second solver for the same system, generate it again from the factory. `experimental::solver::Direct` reuses a factorization passed as its system matrix, so `factory->generate(solver->get_system_matrix())` creates a second solver that shares the factors.
 `Isai` applies its approximate inverse, so to use a general, lower or upper `Isai` on another executor, clone the `Csr` matrix returned by `get_approximate_inverse()`.
+Like the other factories, the `GaussSeidel` factory is no longer `Cloneable`.
 
 ## Remove HWLOC related stuff [#2060](https://github.com/ginkgo-project/ginkgo/pull/2060)
 It removes the HWLOC usage in Ginkgo, `struct machine_topology`, `get_closest_pus()`,  and `get_closest_numa()`.
