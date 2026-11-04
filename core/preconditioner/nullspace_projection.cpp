@@ -72,13 +72,6 @@ NullspaceProjection<ValueType>::parse(
 
 template <typename ValueType>
 NullspaceProjection<ValueType>::NullspaceProjection(
-    std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
-{}
-
-
-template <typename ValueType>
-NullspaceProjection<ValueType>::NullspaceProjection(
     const Factory* factory, std::shared_ptr<const LinOp> system_matrix)
     : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size())),
       parameters_{factory->get_parameters()}
@@ -178,7 +171,7 @@ void NullspaceProjection<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_b, auto dense_x) {
             if (left_nullspace_) {
-                auto projected = get_like(projected_input_.vec, dense_b);
+                auto projected = get_like(projected_input_, dense_b);
                 left_nullspace_->apply(dense_b, projected);
                 preconditioner_->apply(projected, dense_x);
             } else {
@@ -200,70 +193,12 @@ void NullspaceProjection<ValueType>::apply_impl(const LinOp* alpha,
 {
     experimental::precision_dispatch_real_complex_distributed<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto result = get_like(result_.vec, dense_x);
+            auto result = get_like(result_, dense_x);
             this->apply_impl(dense_b, result);
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, result);
         },
         alpha, b, beta, x);
-}
-
-
-template <typename ValueType>
-NullspaceProjection<ValueType>& NullspaceProjection<ValueType>::operator=(
-    const NullspaceProjection& other)
-{
-    if (&other != this) {
-        LinOp::operator=(other);
-        auto exec = this->get_executor();
-        parameters_ = other.parameters_;
-        preconditioner_ = other.preconditioner_;
-        nullspace_ = other.nullspace_;
-        left_nullspace_ = other.left_nullspace_;
-        if (other.get_executor() != exec) {
-            if (preconditioner_) {
-                preconditioner_ = gko::clone(exec, preconditioner_);
-            }
-            if (nullspace_) {
-                nullspace_ = gko::clone(exec, nullspace_);
-            }
-            if (left_nullspace_) {
-                left_nullspace_ = gko::clone(exec, left_nullspace_);
-            }
-        }
-    }
-    return *this;
-}
-
-
-template <typename ValueType>
-NullspaceProjection<ValueType>& NullspaceProjection<ValueType>::operator=(
-    NullspaceProjection&& other)
-{
-    if (&other != this) {
-        *this = static_cast<const NullspaceProjection&>(other);
-        other.preconditioner_ = nullptr;
-        other.nullspace_ = nullptr;
-        other.left_nullspace_ = nullptr;
-    }
-    return *this;
-}
-
-
-template <typename ValueType>
-NullspaceProjection<ValueType>::NullspaceProjection(
-    const NullspaceProjection& other)
-    : NullspaceProjection(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType>
-NullspaceProjection<ValueType>::NullspaceProjection(NullspaceProjection&& other)
-    : NullspaceProjection(other.get_executor())
-{
-    *this = std::move(other);
 }
 
 

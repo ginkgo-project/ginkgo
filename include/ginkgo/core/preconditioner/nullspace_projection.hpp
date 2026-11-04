@@ -47,17 +47,10 @@ namespace preconditioner {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class NullspaceProjection
-    : public LinOp,
-      public EnableCloneable<NullspaceProjection<ValueType>>,
-      public Transposable {
-    friend class EnableCloneable<NullspaceProjection>;
+class NullspaceProjection : public LinOp, public Transposable {
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<NullspaceProjection>::convert_to;
-    using EnableCloneable<NullspaceProjection>::move_to;
-
     using value_type = ValueType;
 
     /** @return the wrapped preconditioner */
@@ -80,13 +73,13 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    NullspaceProjection& operator=(const NullspaceProjection& other);
+    NullspaceProjection(const NullspaceProjection&) = delete;
 
-    NullspaceProjection& operator=(NullspaceProjection&& other);
+    NullspaceProjection(NullspaceProjection&&) = delete;
 
-    NullspaceProjection(const NullspaceProjection& other);
+    NullspaceProjection& operator=(const NullspaceProjection&) = delete;
 
-    NullspaceProjection(NullspaceProjection&& other);
+    NullspaceProjection& operator=(NullspaceProjection&&) = delete;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -141,8 +134,6 @@ public:
                                      config::make_type_descriptor<ValueType>());
 
 protected:
-    explicit NullspaceProjection(std::shared_ptr<const Executor> exec);
-
     NullspaceProjection(const Factory* factory,
                         std::shared_ptr<const LinOp> system_matrix);
 
@@ -158,23 +149,12 @@ protected:
                     LinOp* x) const override;
 
 private:
-    // a vector of the same kind as the input, which is not copied along with
-    // the object
-    struct vector_cache {
-        vector_cache() = default;
-        vector_cache(const vector_cache&) {}
-        vector_cache(vector_cache&&) noexcept {}
-        vector_cache& operator=(const vector_cache&) { return *this; }
-        vector_cache& operator=(vector_cache&&) noexcept { return *this; }
-
-        mutable std::unique_ptr<LinOp> vec;
-    };
-
     std::shared_ptr<const LinOp> preconditioner_;
     std::shared_ptr<const solver::Nullspace<ValueType>> nullspace_;
     std::shared_ptr<const solver::Nullspace<ValueType>> left_nullspace_;
-    vector_cache projected_input_;
-    vector_cache result_;
+    // vectors of the same kind as the input
+    mutable std::unique_ptr<LinOp> projected_input_;
+    mutable std::unique_ptr<LinOp> result_;
 };
 
 
