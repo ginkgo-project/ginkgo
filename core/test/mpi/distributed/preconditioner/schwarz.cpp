@@ -2,6 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <type_traits>
+
 #include <gtest/gtest.h>
 
 #include <ginkgo/config.hpp>
@@ -148,4 +150,22 @@ TYPED_TEST(SchwarzFactory, ApplyUsesInitialGuessAsLocalSolver)
 
     ASSERT_EQ(schwarz_with_jacobi->apply_uses_initial_guess(), false);
     ASSERT_EQ(schwarz_with_cg->apply_uses_initial_guess(), true);
+}
+
+
+TYPED_TEST(SchwarzFactory, SchwarzCannotBeCopied)
+{
+    using Schwarz = typename TestFixture::Schwarz;
+
+    ASSERT_FALSE(std::is_copy_constructible<Schwarz>::value);
+    ASSERT_FALSE(std::is_copy_assignable<Schwarz>::value);
+}
+
+
+TYPED_TEST(SchwarzFactory, SchwarzCannotBeMoved)
+{
+    using Schwarz = typename TestFixture::Schwarz;
+
+    ASSERT_FALSE(std::is_move_constructible<Schwarz>::value);
+    ASSERT_FALSE(std::is_move_assignable<Schwarz>::value);
 }
