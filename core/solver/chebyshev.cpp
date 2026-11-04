@@ -71,12 +71,6 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
 
 
 template <typename ValueType>
-Chebyshev<ValueType>::Chebyshev(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
-{}
-
-
-template <typename ValueType>
 Chebyshev<ValueType>::Chebyshev(const Factory* factory,
                                 std::shared_ptr<const LinOp> system_matrix)
     : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size())),
@@ -95,54 +89,6 @@ Chebyshev<ValueType>::Chebyshev(const Factory* factory,
         (right_foci - left_foci) / solver::detail::coeff_type<ValueType>{2};
     // if the center is zero then the alpha will be inf
     GKO_ASSERT(is_nonzero(center_));
-}
-
-
-template <typename ValueType>
-Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(const Chebyshev& other)
-{
-    if (&other != this) {
-        LinOp::operator=(other);
-        EnablePreconditionedIterativeSolver<
-            ValueType, Chebyshev<ValueType>>::operator=(other);
-        this->parameters_ = other.parameters_;
-        this->center_ = other.center_;
-        this->foci_direction_ = other.foci_direction_;
-    }
-    return *this;
-}
-
-
-template <typename ValueType>
-Chebyshev<ValueType>& Chebyshev<ValueType>::operator=(Chebyshev&& other)
-{
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        EnablePreconditionedIterativeSolver<
-            ValueType, Chebyshev<ValueType>>::operator=(std::move(other));
-        this->parameters_ = std::exchange(other.parameters_, parameters_type{});
-        this->center_ = std::exchange(other.center_,
-                                      solver::detail::coeff_type<ValueType>{});
-        this->foci_direction_ = std::exchange(
-            other.foci_direction_, solver::detail::coeff_type<ValueType>{});
-    }
-    return *this;
-}
-
-
-template <typename ValueType>
-Chebyshev<ValueType>::Chebyshev(const Chebyshev& other)
-    : Chebyshev(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType>
-Chebyshev<ValueType>::Chebyshev(Chebyshev&& other)
-    : Chebyshev(other.get_executor())
-{
-    *this = std::move(other);
 }
 
 

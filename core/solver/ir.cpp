@@ -95,52 +95,6 @@ void Ir<ValueType>::set_relaxation_factor(
 
 
 template <typename ValueType>
-Ir<ValueType>& Ir<ValueType>::operator=(const Ir& other)
-{
-    if (&other != this) {
-        LinOp::operator=(other);
-        EnableSolverBase<Ir>::operator=(other);
-        EnableIterativeBase<Ir>::operator=(other);
-        this->parameters_ = other.parameters_;
-        this->set_solver(other.get_solver());
-        this->set_relaxation_factor(other.relaxation_factor_);
-    }
-    return *this;
-}
-
-
-template <typename ValueType>
-Ir<ValueType>& Ir<ValueType>::operator=(Ir&& other)
-{
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        EnableSolverBase<Ir>::operator=(std::move(other));
-        EnableIterativeBase<Ir>::operator=(std::move(other));
-        this->parameters_ = std::exchange(other.parameters_, parameters_type{});
-        this->set_solver(other.get_solver());
-        this->set_relaxation_factor(other.relaxation_factor_);
-        other.set_solver(nullptr);
-        other.set_relaxation_factor(nullptr);
-    }
-    return *this;
-}
-
-
-template <typename ValueType>
-Ir<ValueType>::Ir(const Ir& other) : Ir(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType>
-Ir<ValueType>::Ir(Ir&& other) : Ir(other.get_executor())
-{
-    *this = std::move(other);
-}
-
-
-template <typename ValueType>
 std::unique_ptr<LinOp> Ir<ValueType>::transpose() const
 {
     return build()
