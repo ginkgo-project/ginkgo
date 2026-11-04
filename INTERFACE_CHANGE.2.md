@@ -46,6 +46,12 @@ If users previously rely on calling `source->clone([exec,] target)`, please use 
 Factory does not support clone, either. 
 Users, who want to create the same factory for different executors, please create a factory without specifying executor in the components' factory.
 
+## Solvers can no longer be copied or moved [#2159](https://github.com/ginkgo-project/ginkgo/pull/2159)
+Like `clone`, the copy and move constructors and assignment operators of the solvers are removed, for example of `Cg`, `Ir`, `LowerTrs`, `Multigrid` and `experimental::solver::Direct`.
+This also applies to custom solvers derived from `EnableSolverBase`.
+Solvers are created by their factories, so move or share the pointer to the solver instead.
+To get a second solver for the same system, generate it again from the factory. `experimental::solver::Direct` reuses a factorization passed as its system matrix, so `factory->generate(solver->get_system_matrix())` creates a second solver that shares the factors.
+
 ## Remove HWLOC related stuff [#2060](https://github.com/ginkgo-project/ginkgo/pull/2060)
 It removes the HWLOC usage in Ginkgo, `struct machine_topology`, `get_closest_pus()`,  and `get_closest_numa()`.
 

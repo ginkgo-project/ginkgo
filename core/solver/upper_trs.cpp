@@ -52,54 +52,6 @@ UpperTrs<ValueType, IndexType>::parse(
 
 
 template <typename ValueType, typename IndexType>
-UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
-    : LinOp(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-UpperTrs<ValueType, IndexType>::UpperTrs(UpperTrs&& other)
-    : LinOp(other.get_executor())
-{
-    *this = std::move(other);
-}
-
-
-template <typename ValueType, typename IndexType>
-UpperTrs<ValueType, IndexType>& UpperTrs<ValueType, IndexType>::operator=(
-    const UpperTrs& other)
-{
-    if (this != &other) {
-        LinOp::operator=(other);
-        EnableSolverBase<UpperTrs, CsrMatrix>::operator=(other);
-        this->parameters_ = other.parameters_;
-        this->generate();
-    }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-UpperTrs<ValueType, IndexType>& UpperTrs<ValueType, IndexType>::operator=(
-    UpperTrs&& other)
-{
-    if (this != &other) {
-        LinOp::operator=(std::move(other));
-        EnableSolverBase<UpperTrs, CsrMatrix>::operator=(std::move(other));
-        this->parameters_ = std::exchange(other.parameters_, parameters_type{});
-        if (this->get_executor() == other.get_executor()) {
-            this->solve_struct_ = std::exchange(other.solve_struct_, nullptr);
-        } else {
-            this->generate();
-        }
-    }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> UpperTrs<ValueType, IndexType>::transpose() const
 {
     return transposed_type::build()
