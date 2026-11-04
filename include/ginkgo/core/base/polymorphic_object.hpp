@@ -87,9 +87,8 @@ protected:
 
     // preserve the executor of the object
     explicit PolymorphicObject(const PolymorphicObject& other)
-    {
-        *this = other;
-    }
+        : exec_{other.exec_}
+    {}
 
 private:
     std::shared_ptr<const Executor> exec_;
