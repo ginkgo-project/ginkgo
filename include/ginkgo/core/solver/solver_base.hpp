@@ -657,13 +657,23 @@ public:
         set_stop_criterion_factory(std::move(stop_factory));
     }
 
+    /**
+     * Sets the stopping criterion of the solver. Stopping criterion factories
+     * can't be cloned, so this throws NotSupported if the factory is on
+     * another executor.
+     *
+     * @param new_stop_factory  the new stopping criterion factory
+     */
     void set_stop_criterion_factory(
         std::shared_ptr<const stop::CriterionFactory> new_stop_factory) override
     {
-        auto exec = self()->get_executor();
-        if (new_stop_factory && new_stop_factory->get_executor() != exec) {
-            // no stopping criterion support clone currently though.
-            new_stop_factory = gko::clone(exec, new_stop_factory);
+        if (new_stop_factory &&
+            new_stop_factory->get_executor() != self()->get_executor()) {
+            const auto& factory = *new_stop_factory;
+            throw NotSupported(
+                __FILE__, __LINE__,
+                std::string{__func__} + " with a factory on another executor",
+                name_demangling::get_type_name(typeid(factory)));
         }
         IterativeBase::set_stop_criterion_factory(new_stop_factory);
     }

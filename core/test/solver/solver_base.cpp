@@ -2,10 +2,14 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <string>
 #include <type_traits>
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/exception.hpp>
+#include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
@@ -22,6 +26,7 @@
 #include <ginkgo/core/solver/multigrid.hpp>
 #include <ginkgo/core/solver/pipe_cg.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -54,4 +59,31 @@ TYPED_TEST(SolverBase, CannotBeMoved)
 {
     ASSERT_FALSE(std::is_move_constructible<TypeParam>::value);
     ASSERT_FALSE(std::is_move_assignable<TypeParam>::value);
+}
+
+
+TEST(EnableIterativeBase, ThrowsClearlyForAStopFactoryOnAnotherExecutor)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto solver =
+        gko::solver::Cg<double>::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(exec)
+            ->generate(
+                gko::matrix::Dense<double>::create(exec, gko::dim<2>{1}));
+    auto stop_factory = solver->get_stop_criterion_factory();
+    auto other_factory =
+        gko::share(gko::stop::Iteration::build().with_max_iters(2u).on(
+            gko::ReferenceExecutor::create()));
+
+    try {
+        solver->set_stop_criterion_factory(other_factory);
+        FAIL() << "expected NotSupported";
+    } catch (const gko::NotSupported& error) {
+        ASSERT_NE(std::string{error.what()}.find(
+                      "set_stop_criterion_factory with a factory on another "
+                      "executor"),
+                  std::string::npos);
+    }
+    ASSERT_EQ(solver->get_stop_criterion_factory(), stop_factory);
 }
