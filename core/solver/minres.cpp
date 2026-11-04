@@ -333,12 +333,6 @@ void Minres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-Minres<ValueType>::Minres(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
-{}
-
-
-template <typename ValueType>
 Minres<ValueType>::Minres(const Factory* factory,
                           std::shared_ptr<const LinOp> system_matrix)
     : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size())),

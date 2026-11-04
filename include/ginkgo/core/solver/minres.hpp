@@ -130,8 +130,6 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Minres(std::shared_ptr<const Executor> exec);
-
     explicit Minres(const Factory* factory,
                     std::shared_ptr<const LinOp> system_matrix);
 };

@@ -297,54 +297,11 @@ public:
         Preconditionable::set_preconditioner(new_precond);
     }
 
-    /**
-     * Creates a shallow copy of the provided preconditioner, clones it onto
-     * this executor if executors don't match.
-     */
-    EnablePreconditionable& operator=(const EnablePreconditionable& other)
-    {
-        if (&other != this) {
-            set_preconditioner(other.get_preconditioner());
-        }
-        return *this;
-    }
-
-    /**
-     * Moves the provided preconditioner, clones it onto this executor if
-     * executors don't match. The moved-from object has a nullptr
-     * preconditioner.
-     */
-    EnablePreconditionable& operator=(EnablePreconditionable&& other)
-    {
-        if (&other != this) {
-            set_preconditioner(other.get_preconditioner());
-            other.set_preconditioner(nullptr);
-        }
-        return *this;
-    }
-
     EnablePreconditionable() = default;
 
     EnablePreconditionable(std::shared_ptr<const LinOp> preconditioner)
     {
         set_preconditioner(std::move(preconditioner));
-    }
-
-    /**
-     * Creates a shallow copy of the provided preconditioner.
-     */
-    EnablePreconditionable(const EnablePreconditionable& other)
-    {
-        *this = other;
-    }
-
-    /**
-     * Moves the provided preconditioner. The moved-from object has a nullptr
-     * preconditioner.
-     */
-    EnablePreconditionable(EnablePreconditionable&& other)
-    {
-        *this = std::move(other);
     }
 
 private:
@@ -375,6 +332,14 @@ public:
     {}
 
     virtual ~SolverBaseLinOp() = default;
+
+    SolverBaseLinOp(const SolverBaseLinOp&) = delete;
+
+    SolverBaseLinOp(SolverBaseLinOp&&) = delete;
+
+    SolverBaseLinOp& operator=(const SolverBaseLinOp&) = delete;
+
+    SolverBaseLinOp& operator=(SolverBaseLinOp&&) = delete;
 
     /**
      * Returns the system matrix used by the solver.
@@ -564,56 +529,12 @@ protected:
 template <typename DerivedType, typename MatrixType = LinOp>
 class EnableSolverBase : public SolverBase<MatrixType> {
 public:
-    /**
-     * Creates a shallow copy of the provided system matrix, clones it onto
-     * this executor if executors don't match.
-     */
-    EnableSolverBase& operator=(const EnableSolverBase& other)
-    {
-        if (&other != this) {
-            set_system_matrix(other.get_system_matrix());
-        }
-        return *this;
-    }
-
-    /**
-     * Moves the provided system matrix, clones it onto this executor if
-     * executors don't match. The moved-from object has a nullptr system matrix.
-     */
-    EnableSolverBase& operator=(EnableSolverBase&& other)
-    {
-        if (&other != this) {
-            set_system_matrix(other.get_system_matrix());
-            other.set_system_matrix(nullptr);
-        }
-        return *this;
-    }
-
     EnableSolverBase() : SolverBase<MatrixType>{self()->get_executor()} {}
 
     EnableSolverBase(std::shared_ptr<const MatrixType> system_matrix)
         : SolverBase<MatrixType>{self()->get_executor()}
     {
         set_system_matrix(std::move(system_matrix));
-    }
-
-    /**
-     * Creates a shallow copy of the provided system matrix.
-     */
-    EnableSolverBase(const EnableSolverBase& other)
-        : SolverBase<MatrixType>{other.self()->get_executor()}
-    {
-        *this = other;
-    }
-
-    /**
-     * Moves the provided system matrix. The moved-from object has a nullptr
-     * system matrix.
-     */
-    EnableSolverBase(EnableSolverBase&& other)
-        : SolverBase<MatrixType>{other.self()->get_executor()}
-    {
-        *this = std::move(other);
     }
 
     int get_num_workspace_ops() const override
@@ -728,52 +649,12 @@ private:
 template <typename DerivedType>
 class EnableIterativeBase : public IterativeBase {
 public:
-    /**
-     * Creates a shallow copy of the provided stopping criterion, clones it onto
-     * this executor if executors don't match.
-     */
-    EnableIterativeBase& operator=(const EnableIterativeBase& other)
-    {
-        if (&other != this) {
-            set_stop_criterion_factory(other.get_stop_criterion_factory());
-        }
-        return *this;
-    }
-
-    /**
-     * Moves the provided stopping criterion, clones it onto this executor if
-     * executors don't match. The moved-from object has a nullptr
-     * stopping criterion.
-     */
-    EnableIterativeBase& operator=(EnableIterativeBase&& other)
-    {
-        if (&other != this) {
-            set_stop_criterion_factory(other.get_stop_criterion_factory());
-            other.set_stop_criterion_factory(nullptr);
-        }
-        return *this;
-    }
-
     EnableIterativeBase() = default;
 
     EnableIterativeBase(
         std::shared_ptr<const stop::CriterionFactory> stop_factory)
     {
         set_stop_criterion_factory(std::move(stop_factory));
-    }
-
-    /**
-     * Creates a shallow copy of the provided stopping criterion.
-     */
-    EnableIterativeBase(const EnableIterativeBase& other) { *this = other; }
-
-    /**
-     * Moves the provided stopping criterion. The moved-from object has a
-     * nullptr stopping criterion.
-     */
-    EnableIterativeBase(EnableIterativeBase&& other)
-    {
-        *this = std::move(other);
     }
 
     void set_stop_criterion_factory(
@@ -891,47 +772,6 @@ public:
             // wraps the preconditioner in the nullspace projection
             this->set_preconditioner(this->get_preconditioner());
         }
-    }
-
-    EnablePreconditionedIterativeSolver(
-        const EnablePreconditionedIterativeSolver&) = default;
-
-    EnablePreconditionedIterativeSolver(EnablePreconditionedIterativeSolver&&) =
-        default;
-
-    /**
-     * Copies the solver state, cloning the nullspaces onto this executor if
-     * the executors don't match.
-     */
-    EnablePreconditionedIterativeSolver& operator=(
-        const EnablePreconditionedIterativeSolver& other)
-    {
-        if (&other != this) {
-            nullspace_ = on_executor(other.nullspace_);
-            left_nullspace_ = on_executor(other.left_nullspace_);
-            EnableSolverBase<DerivedType>::operator=(other);
-            EnableIterativeBase<DerivedType>::operator=(other);
-            EnablePreconditionable<DerivedType>::operator=(other);
-        }
-        return *this;
-    }
-
-    /**
-     * Moves the solver state, cloning the nullspaces onto this executor if
-     * the executors don't match. The moved-from object has no nullspaces.
-     */
-    EnablePreconditionedIterativeSolver& operator=(
-        EnablePreconditionedIterativeSolver&& other)
-    {
-        if (&other != this) {
-            nullspace_ = on_executor(std::exchange(other.nullspace_, nullptr));
-            left_nullspace_ =
-                on_executor(std::exchange(other.left_nullspace_, nullptr));
-            EnableSolverBase<DerivedType>::operator=(std::move(other));
-            EnableIterativeBase<DerivedType>::operator=(std::move(other));
-            EnablePreconditionable<DerivedType>::operator=(std::move(other));
-        }
-        return *this;
     }
 
     /**
@@ -1074,16 +914,6 @@ private:
     std::shared_ptr<const Executor> get_solver_executor() const
     {
         return static_cast<const DerivedType*>(this)->get_executor();
-    }
-
-    std::shared_ptr<const Nullspace<ValueType>> on_executor(
-        std::shared_ptr<const Nullspace<ValueType>> ns) const
-    {
-        auto exec = get_solver_executor();
-        if (ns && ns->get_executor() != exec) {
-            return gko::clone(exec, ns);
-        }
-        return ns;
     }
 
     // wraps the preconditioner M into P M or, for two-sided solvers, P M Q

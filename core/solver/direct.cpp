@@ -51,60 +51,6 @@ std::unique_ptr<LinOp> Direct<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
-Direct<ValueType, IndexType>::Direct(const Direct& other)
-    : LinOp{other.get_executor()}
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-Direct<ValueType, IndexType>::Direct(Direct&& other)
-    : LinOp{other.get_executor()}
-{
-    *this = std::move(other);
-}
-
-
-template <typename ValueType, typename IndexType>
-Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
-    const Direct& other)
-{
-    if (this != &other) {
-        LinOp::operator=(other);
-        gko::solver::EnableSolverBase<Direct, factorization_type>::operator=(
-            other);
-        const auto exec = this->get_executor();
-        lower_solver_ = clone(exec, other.lower_solver_);
-        upper_solver_ = clone(exec, other.upper_solver_);
-    }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Direct<ValueType, IndexType>& Direct<ValueType, IndexType>::operator=(
-    Direct&& other)
-{
-    if (this != &other) {
-        LinOp::operator=(std::move(other));
-        gko::solver::EnableSolverBase<Direct, factorization_type>::operator=(
-            std::move(other));
-        const auto exec = this->get_executor();
-        lower_solver_ = std::move(other.lower_solver_);
-        upper_solver_ = std::move(other.upper_solver_);
-    }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Direct<ValueType, IndexType>::Direct(std::shared_ptr<const Executor> exec)
-    : LinOp{exec}
-{}
-
-
-template <typename ValueType, typename IndexType>
 static std::shared_ptr<const factorization::Factorization<ValueType, IndexType>>
 generate_factorization(
     std::shared_ptr<const LinOpFactory> factorization_factory,
