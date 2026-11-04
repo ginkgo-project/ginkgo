@@ -75,56 +75,6 @@ std::unique_ptr<LinOp> Ic<ValueType, IndexType>::conj_transpose() const
 
 
 template <typename ValueType, typename IndexType>
-Ic<ValueType, IndexType>& Ic<ValueType, IndexType>::operator=(const Ic& other)
-{
-    if (&other != this) {
-        LinOp::operator=(other);
-        auto exec = this->get_executor();
-        l_solver_ = other.l_solver_;
-        lh_solver_ = other.lh_solver_;
-        parameters_ = other.parameters_;
-        if (other.get_executor() != exec) {
-            l_solver_ = gko::clone(exec, l_solver_);
-            lh_solver_ = gko::clone(exec, lh_solver_);
-        }
-    }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Ic<ValueType, IndexType>& Ic<ValueType, IndexType>::operator=(Ic&& other)
-{
-    if (&other != this) {
-        LinOp::operator=(other);
-        auto exec = this->get_executor();
-        l_solver_ = std::move(other.l_solver_);
-        lh_solver_ = std::move(other.lh_solver_);
-        parameters_ = std::exchange(other.parameters_, parameters_type{});
-        if (other.get_executor() != exec) {
-            l_solver_ = gko::clone(exec, l_solver_);
-            lh_solver_ = gko::clone(exec, lh_solver_);
-        }
-    }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Ic<ValueType, IndexType>::Ic(const Ic& other) : Ic{other.get_executor()}
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-Ic<ValueType, IndexType>::Ic(Ic&& other) : Ic{other.get_executor()}
-{
-    *this = std::move(other);
-}
-
-
-template <typename ValueType, typename IndexType>
 void Ic<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
 
 {
@@ -132,11 +82,11 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_b, auto dense_x) {
             this->set_cache_to(dense_b);
-            l_solver_->apply(dense_b, cache_.intermediate);
+            l_solver_->apply(dense_b, intermediate_);
             if (lh_solver_->apply_uses_initial_guess()) {
-                dense_x->copy_from(as<Cloneable>(cache_.intermediate.get()));
+                dense_x->copy_from(as<Cloneable>(intermediate_.get()));
             }
-            lh_solver_->apply(cache_.intermediate, dense_x);
+            lh_solver_->apply(intermediate_, dense_x);
         },
         b, x);
 }
@@ -150,9 +100,8 @@ void Ic<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
     precision_dispatch_real_complex<value_type>(
         [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             this->set_cache_to(dense_b);
-            l_solver_->apply(dense_b, cache_.intermediate);
-            lh_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
-                              dense_x);
+            l_solver_->apply(dense_b, intermediate_);
+            lh_solver_->apply(dense_alpha, intermediate_, dense_beta, dense_x);
         },
         alpha, b, beta, x);
 }
@@ -224,12 +173,11 @@ template <typename ValueType, typename IndexType>
 void Ic<ValueType, IndexType>::set_cache_to(const LinOp* b) const
 
 {
-    if (cache_.intermediate == nullptr) {
-        cache_.intermediate =
-            matrix::Dense<value_type>::create(this->get_executor());
+    if (intermediate_ == nullptr) {
+        intermediate_ = matrix::Dense<value_type>::create(this->get_executor());
     }
     // Use b as the initial guess for the first triangular solve
-    as<Cloneable>(cache_.intermediate.get())->copy_from(as<Cloneable>(b));
+    as<Cloneable>(intermediate_.get())->copy_from(as<Cloneable>(b));
 }
 
 

@@ -200,33 +200,13 @@ public:
 
     std::unique_ptr<LinOp> conj_transpose() const override;
 
-    /**
-     * Copy-assigns an ILU preconditioner. Preserves the executor,
-     * shallow-copies the solvers and parameters. Creates a clone of the solvers
-     * if they are on the wrong executor.
-     */
-    Ilu& operator=(const Ilu& other);
+    Ilu(const Ilu&) = delete;
 
-    /**
-     * Move-assigns an ILU preconditioner. Preserves the executor,
-     * moves the solvers and parameters. Creates a clone of the solvers
-     * if they are on the wrong executor. The moved-from object is empty (0x0
-     * with nullptr solvers and default parameters)
-     */
-    Ilu& operator=(Ilu&& other);
+    Ilu(Ilu&&) = delete;
 
-    /**
-     * Copy-constructs an ILU preconditioner. Inherits the executor,
-     * shallow-copies the solvers and parameters.
-     */
-    Ilu(const Ilu& other);
+    Ilu& operator=(const Ilu&) = delete;
 
-    /**
-     * Move-constructs an ILU preconditioner. Inherits the executor,
-     * moves the solvers and parameters. The moved-from object is empty (0x0
-     * with nullptr solvers and default parameters)
-     */
-    Ilu(Ilu&& other);
+    Ilu& operator=(Ilu&&) = delete;
 
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
@@ -253,22 +233,8 @@ private:
     /**
      * Manages a vector as a cache, so there is no need to allocate one every
      * time an intermediate vector is required.
-     * Copying an instance will only yield an empty object since copying the
-     * cached vector would not make sense.
-     *
-     * @internal  The struct is present so the whole class can be copyable
-     *            (could also be done with writing `operator=` and copy
-     *            constructor of the enclosing class by hand)
      */
-    mutable struct cache_struct {
-        cache_struct() = default;
-        ~cache_struct() = default;
-        cache_struct(const cache_struct&) {}
-        cache_struct(cache_struct&&) noexcept {}
-        cache_struct& operator=(const cache_struct&) { return *this; }
-        cache_struct& operator=(cache_struct&&) noexcept { return *this; }
-        std::unique_ptr<LinOp> intermediate{};
-    } cache_;
+    mutable std::unique_ptr<LinOp> intermediate_;
 };
 
 

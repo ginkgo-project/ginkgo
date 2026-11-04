@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <memory>
+#include <type_traits>
 
 #include <gtest/gtest.h>
 
@@ -351,5 +352,40 @@ TYPED_TEST(IsaiFactory, ThrowsNoConversionCsrU)
     ASSERT_THROW(this->upper_isai_factory->generate(mtx), gko::NotSupported);
 }
 
+
+TYPED_TEST(IsaiFactory, IsaiCannotBeCopied)
+{
+    using GeneralIsai = typename TestFixture::GeneralIsai;
+    using SpdIsai = typename TestFixture::SpdIsai;
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using UpperIsai = typename TestFixture::UpperIsai;
+
+    ASSERT_FALSE(std::is_copy_constructible<GeneralIsai>::value);
+    ASSERT_FALSE(std::is_copy_assignable<GeneralIsai>::value);
+    ASSERT_FALSE(std::is_copy_constructible<SpdIsai>::value);
+    ASSERT_FALSE(std::is_copy_assignable<SpdIsai>::value);
+    ASSERT_FALSE(std::is_copy_constructible<LowerIsai>::value);
+    ASSERT_FALSE(std::is_copy_assignable<LowerIsai>::value);
+    ASSERT_FALSE(std::is_copy_constructible<UpperIsai>::value);
+    ASSERT_FALSE(std::is_copy_assignable<UpperIsai>::value);
+}
+
+
+TYPED_TEST(IsaiFactory, IsaiCannotBeMoved)
+{
+    using GeneralIsai = typename TestFixture::GeneralIsai;
+    using SpdIsai = typename TestFixture::SpdIsai;
+    using LowerIsai = typename TestFixture::LowerIsai;
+    using UpperIsai = typename TestFixture::UpperIsai;
+
+    ASSERT_FALSE(std::is_move_constructible<GeneralIsai>::value);
+    ASSERT_FALSE(std::is_move_assignable<GeneralIsai>::value);
+    ASSERT_FALSE(std::is_move_constructible<SpdIsai>::value);
+    ASSERT_FALSE(std::is_move_assignable<SpdIsai>::value);
+    ASSERT_FALSE(std::is_move_constructible<LowerIsai>::value);
+    ASSERT_FALSE(std::is_move_assignable<LowerIsai>::value);
+    ASSERT_FALSE(std::is_move_constructible<UpperIsai>::value);
+    ASSERT_FALSE(std::is_move_assignable<UpperIsai>::value);
+}
 
 }  // namespace
