@@ -604,6 +604,7 @@ GKO_ATTRIBUTES GKO_INLINE word_array<T, N> handle_special_values(
 {
     bool finite = is_finite(result[0]);
     if constexpr (!Normalized) {
+#pragma unroll
         for (int i = 1; i < N; ++i) {
             finite = finite && is_finite(result[i]);
         }
@@ -847,6 +848,7 @@ public:
     GKO_ATTRIBUTES constexpr multi_word operator-() const noexcept
     {
         words_type result{};
+#pragma unroll
         for (int i = 0; i < N; ++i) {
             result[i] = -words_[i];
         }
@@ -1001,6 +1003,7 @@ public:
     {
         const auto a = comparable_words(x.words_);
         const auto b = comparable_words(y.words_);
+#pragma unroll
         for (int i = 0; i < N; ++i) {
             if (a[i] != b[i]) {
                 return false;
@@ -1079,6 +1082,7 @@ private:
     static GKO_ATTRIBUTES GKO_INLINE words_type round_to_words(U value)
     {
         words_type words{};
+#pragma unroll
         for (int i = 0; i < N; ++i) {
             words[i] = static_cast<T>(value);
             // exact if U has at least as many significand bits as T,
@@ -1104,6 +1108,7 @@ private:
                                                const words_type& y,
                                                bool or_equal)
     {
+#pragma unroll
         for (int i = 0; i < N; ++i) {
             // also true if one of them is NaN, which then compares false
             if (x[i] != y[i]) {
@@ -1141,6 +1146,7 @@ template <typename U, typename T, int N, typename Policy>
 GKO_ATTRIBUTES constexpr U eval(const multi_word<T, N, Policy>& x) noexcept
 {
     U sum{};
+#pragma unroll
     for (int i = N - 1; i >= 0; --i) {
         sum += static_cast<U>(x.word(i));
     }
