@@ -16,7 +16,10 @@
                         "generate(<typename>)": 1.0,
                         "overhead": 1.0
                     },
-                    "time": 1.0
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
                 },
                 "apply": {
                     "components": {
@@ -43,9 +46,28 @@
                         "overhead": 1.0
                     },
                     "iterations": 27,
-                    "time": 1.0
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
                 },
                 "preconditioner": {},
+                "parameters": {
+                    "criteria": [
+                        {
+                            "baseline": "rhs_norm",
+                            "reduction_factor": 1e-06,
+                            "type": "ResidualNorm",
+                            "value_type": "float64"
+                        },
+                        {
+                            "max_iters": 1000,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "type": "solver::Cg",
+                    "value_type": "float64"
+                },
                 "residual_norm": 1.0,
                 "repetitions": 1,
                 "completed": true

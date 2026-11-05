@@ -24,7 +24,8 @@
     "A comma-separated list of preconditioners to use. "              \
     "Supported values are: none, jacobi, mg, paric, parict, parilu, " \
     "parilut, ic, ilu, paric-isai, parict-isai, parilu-isai, "        \
-    "parilut-isai, ic-isai, ilu-isai, sor, overhead"
+    "parilut-isai, ic-isai, ilu-isai, ilu-syncfree, ic-syncfree, "    \
+    "mg-pgm, mg-pmis, mg-uniform, sor, overhead"
 #if GINKGO_BUILD_MPI
 DEFINE_string(preconditioners, "none",
               PRECONDITIONERS_COMMON
@@ -70,13 +71,17 @@ DEFINE_bool(pgm_deterministic, false,
             "Use deterministic computation of the aggregated group within PGM");
 
 DEFINE_uint32(
-    mg_max_num_levels, false,
-    "The maximum number of levels to use for the Multigrid preconditioner");
+    mg_max_num_levels, 10,
+    "The maximum number of levels to use for the Multigrid preconditioners");
 
 DEFINE_double(mg_tolerance, false, "The tolerance for the coarse solver");
 
 DEFINE_uint32(mg_max_iters, false,
               "The max number of iterations for the coarse solver");
+
+DEFINE_uint32(mg_coarse_iters, 20,
+              "The fixed number of iterations of the coarse CG solver of the "
+              "mg-pgm, mg-pmis and mg-uniform preconditioners");
 
 
 // parses the Jacobi storage optimization command line argument
@@ -91,6 +96,28 @@ gko::precision_reduction parse_storage_optimization(const std::string& flag)
             "storage_optimization has to be a list of two integers");
     }
     return gko::precision_reduction(std::stoi(parts[0]), std::stoi(parts[1]));
+}
+
+
+/**
+ * One V-cycle of AMG with the given coarsening and a coarse CG running
+ * -mg_coarse_iters iterations.
+ */
+template <typename LevelParameters>
+std::unique_ptr<gko::LinOpFactory> make_amg(
+    std::shared_ptr<const gko::Executor> exec, LevelParameters level)
+{
+    return gko::solver::Multigrid::build()
+        .with_mg_level(level)
+        .with_coarsest_solver(
+            gko::solver::Cg<etype>::build()
+                .with_preconditioner(
+                    gko::preconditioner::Jacobi<etype, itype>::build())
+                .with_criteria(gko::stop::Iteration::build().with_max_iters(
+                    FLAGS_mg_coarse_iters)))
+        .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+        .with_max_levels(FLAGS_mg_max_num_levels)
+        .on(exec);
 }
 
 
@@ -159,12 +186,14 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_factorization(fact)
                  .on(exec);
          }},
+        // explicit default trisolvers, so that "parameters" records them
         {"ic",
          [](std::shared_ptr<const gko::Executor> exec) {
              auto fact = gko::share(
                  gko::factorization::Ic<etype, itype>::build().on(exec));
              return gko::preconditioner::Ic<etype, itype>::build()
                  .with_factorization(fact)
+                 .with_l_solver(gko::solver::LowerTrs<etype, itype>::build())
                  .on(exec);
          }},
         {"ilu",
@@ -173,6 +202,8 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  gko::factorization::Ilu<etype, itype>::build().on(exec));
              return gko::preconditioner::Ilu<etype, false, itype>::build()
                  .with_factorization(fact)
+                 .with_l_solver(gko::solver::LowerTrs<etype, itype>::build())
+                 .with_u_solver(gko::solver::UpperTrs<etype, itype>::build())
                  .on(exec);
          }},
         {"paric-isai",
@@ -283,6 +314,57 @@ const std::map<std::string, std::function<std::unique_ptr<gko::LinOpFactory>(
                  .with_l_solver(lisai)
                  .with_u_solver(uisai)
                  .on(exec);
+         }},
+        {"ilu-syncfree",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = gko::share(
+                 gko::factorization::Ilu<etype, itype>::build()
+                     .with_algorithm(
+                         gko::factorization::incomplete_algorithm::syncfree)
+                     .on(exec));
+             return gko::preconditioner::Ilu<etype, false, itype>::build()
+                 .with_factorization(fact)
+                 .with_l_solver(
+                     gko::solver::LowerTrs<etype, itype>::build()
+                         .with_algorithm(
+                             gko::solver::trisolve_algorithm::syncfree))
+                 .with_u_solver(
+                     gko::solver::UpperTrs<etype, itype>::build()
+                         .with_algorithm(
+                             gko::solver::trisolve_algorithm::syncfree))
+                 .on(exec);
+         }},
+        {"ic-syncfree",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             auto fact = gko::share(
+                 gko::factorization::Ic<etype, itype>::build()
+                     .with_algorithm(
+                         gko::factorization::incomplete_algorithm::syncfree)
+                     .on(exec));
+             return gko::preconditioner::Ic<etype, itype>::build()
+                 .with_factorization(fact)
+                 .with_l_solver(
+                     gko::solver::LowerTrs<etype, itype>::build()
+                         .with_algorithm(
+                             gko::solver::trisolve_algorithm::syncfree))
+                 .on(exec);
+         }},
+        {"mg-pgm",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return make_amg(
+                 exec,
+                 gko::multigrid::Pgm<etype, itype>::build().with_deterministic(
+                     FLAGS_pgm_deterministic));
+         }},
+        {"mg-pmis",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return make_amg(exec, gko::multigrid::Pmis<etype, itype>::build());
+         }},
+        {"mg-uniform",
+         [](std::shared_ptr<const gko::Executor> exec) {
+             return make_amg(
+                 exec,
+                 gko::multigrid::UniformCoarsening<etype, itype>::build());
          }},
         {"general-isai",
          [](std::shared_ptr<const gko::Executor> exec) {

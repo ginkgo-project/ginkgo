@@ -1,0 +1,94 @@
+[
+    {
+        "size": 100,
+        "stencil": "7pt",
+        "optimal": {
+            "spmv": "csr"
+        },
+        "solver": {
+            "ir-jacobi": {
+                "recurrent_residuals": [],
+                "true_residuals": [],
+                "iteration_timestamps": [],
+                "rhs_norm": 1.0,
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "components::fill_array": 1.0,
+                        "csr::extract_diagonal": 1.0,
+                        "jacobi::invert_diagonal": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "iteration": 1.0,
+                        "allocate": 1.0,
+                        "dense::fill": 1.0,
+                        "ir::initialize": 1.0,
+                        "copy(<typename>)": 1.0,
+                        "dense::copy": 1.0,
+                        "advanced_apply(<typename>)": 1.0,
+                        "csr::advanced_spmv": 1.0,
+                        "dense::compute_norm2_dispatch": 1.0,
+                        "check(<typename>)": 1.0,
+                        "residual_norm::residual_norm": 1.0,
+                        "jacobi::scalar_apply": 1.0,
+                        "set_all_statuses::set_all_statuses": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "iterations": 50,
+                    "time": 1.0,
+                    "repetition_times": [
+                        1.0
+                    ]
+                },
+                "parameters": {
+                    "criteria": [
+                        {
+                            "baseline": "rhs_norm",
+                            "reduction_factor": 1e-06,
+                            "type": "ResidualNorm",
+                            "value_type": "float64"
+                        },
+                        {
+                            "max_iters": 50,
+                            "type": "Iteration"
+                        }
+                    ],
+                    "default_initial_guess": "provided",
+                    "inner_initial_guess": "zero",
+                    "relaxation_factor": 1.0,
+                    "solver": {
+                        "accuracy": 0.1,
+                        "aggregate_l1": false,
+                        "max_block_size": 1,
+                        "max_block_stride": 0,
+                        "skip_sorting": true,
+                        "storage_optimization": [
+                            0,
+                            0
+                        ],
+                        "type": "preconditioner::Jacobi",
+                        "value_type": "float64"
+                    },
+                    "type": "solver::Ir",
+                    "value_type": "float64"
+                },
+                "residual_norm": 1.0,
+                "repetitions": 1,
+                "completed": true
+            }
+        },
+        "rows": 125,
+        "cols": 125
+    }
+]

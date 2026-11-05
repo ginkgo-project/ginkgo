@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -9,6 +9,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <ginkgo/ginkgo.hpp>
 
@@ -147,6 +148,21 @@ public:
     }
 
     IndexType get_num_repetitions() const { return status_run_.cur_it; }
+
+    /**
+     * Get the time of each repetition in seconds, or an empty vector if the
+     * timer did not record each repetition. Repetitions timed in one group
+     * (see repetition_growth_factor) each get the average time of the group,
+     * as in compute_time.
+     */
+    std::vector<double> get_time_detail() const
+    {
+        const auto& timer = status_run_.managed_timer.timer;
+        if (timer->get_num_repetitions() == this->get_num_repetitions()) {
+            return timer->get_time_detail();
+        }
+        return {};
+    }
 
 private:
     struct TimerManager {
@@ -291,6 +307,21 @@ private:
     status status_warmup_;
     status status_run_;
 };
+
+
+inline void write_times(json& output, const IterationControl& ic)
+{
+    output["time"] = ic.compute_time(FLAGS_timer_method);
+    output["repetitions"] = ic.get_num_repetitions();
+    output["repetition_times"] = ic.get_time_detail();
+}
+
+
+inline void write_times(json& output, const Timer& timer)
+{
+    output["time"] = timer.compute_time(FLAGS_timer_method);
+    output["repetition_times"] = timer.get_time_detail();
+}
 
 
 #endif  // GKO_BENCHMARK_UTILS_ITERATION_CONTROL_HPP_
