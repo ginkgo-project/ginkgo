@@ -1,0 +1,120 @@
+name: Linux-GCC-CUDA-Sim (simulated H100)
+
+# Optional, non-required check. The hosted runners have no GPU, so this builds a
+# small subset of the CUDA tests and runs it on a simulated NVIDIA H100
+# (https://github.com/pantheongpu/pantheonsim). A simulator cannot reproduce
+# hardware-specific behaviour or timing, so it complements real-GPU testing and
+# does not replace it.
+
+on:
+  push:
+    branches:
+      - 'develop'
+  pull_request:
+    types: [opened, synchronize]
+    paths-ignore:
+      - 'doc/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  cuda_sim:
+    name: gcc/cuda-13.0/release/shared (simulated H100)
+    if: ${{ !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI') }}
+    runs-on: [ubuntu-24.04]
+    timeout-minutes: 90
+    env:
+      # compiled objects are cached between runs, see the ccache steps
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 2G
+    steps:
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v7
+
+      - name: Set up the simulated GPU and CUDA toolkit
+        uses: pantheongpu/setup-pantheonsim@dda0c8df8d72627c295edbae525354ba2bcb1687 # v0.1.4
+        with:
+          gpu: nvidia/h100
+          cuda-toolkit: "13.0"
+          # the tests link against the toolkit's own cuBLAS, cuSPARSE, ... and
+          # are run with `vgpu run`
+          library-path: 'false'
+
+      # the NVTX headers are not part of the toolkit packages installed above
+      - name: Install build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ccache ninja-build cuda-nvtx-13-0
+
+      # restores the cache of this branch or, as a fallback, of any branch
+      # (e.g. develop for a new pull request)
+      - name: restore ccache
+        uses: actions/cache/restore@v6
+        with:
+          path: .ccache
+          key: ccache-linux-cuda-sim-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-linux-cuda-sim-${{ github.ref_name }}-
+            ccache-linux-cuda-sim-
+
+      # 80-virtual embeds PTX only: the simulator JIT-compiles PTX and does not
+      # run SASS. The CUDA runtime has to be shared for the simulator to
+      # intercept it. Half and bfloat16 are disabled to keep the build small.
+      - name: configure
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DGINKGO_BUILD_CUDA=ON \
+            -DCMAKE_CUDA_ARCHITECTURES=80-virtual \
+            -DCMAKE_CUDA_RUNTIME_LIBRARY=Shared \
+            -DGINKGO_BUILD_OMP=OFF \
+            -DGINKGO_BUILD_EXAMPLES=OFF \
+            -DGINKGO_BUILD_BENCHMARKS=OFF \
+            -DGINKGO_ENABLE_HALF=OFF \
+            -DGINKGO_ENABLE_BFLOAT16=OFF
+
+      # only a subset of the tests that exercise the CUDA kernels is built
+      - name: build
+        run: |
+          ccache --zero-stats
+          cmake --build build -j4 --target \
+            cuda_test_base_math \
+            cuda_test_base_cuda_executor \
+            cuda_test_components_cooperative_groups \
+            cuda_test_components_merging \
+            cuda_test_components_sorting \
+            cuda_test_solver_lower_trs_kernels \
+            test_base_kernel_launch_generic_cuda \
+            test_components_fill_array_kernels_cuda \
+            test_components_prefix_sum_kernels_cuda \
+            test_components_reduce_array_kernels_cuda \
+            test_matrix_csr_kernels_cuda \
+            test_matrix_dense_kernels_cuda \
+            test_matrix_ell_kernels_cuda
+          ccache --show-stats
+
+      # `searching` is left out, as it takes about 20 minutes on the simulator.
+      # GTEST_BRIEF keeps the verbose ctest output to the failures and the
+      # summary of every test binary.
+      - name: test
+        working-directory: build
+        env:
+          GTEST_BRIEF: 1
+        run: |
+          vgpu run ctest -V --timeout 1800 -R \
+            'cuda/test/(base/(math|cuda_executor)|components/(cooperative_groups|merging|sorting)|solver/lower_trs_kernels)$|test/base/kernel_launch_generic_cuda$|test/components/(fill_array|prefix_sum|reduce_array)_kernels_cuda$|test/matrix/(csr|dense|ell)_kernels_cuda$'
+
+      # saved even if the build fails or times out, so the next run is faster
+      - name: save ccache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: .ccache
+          key: ccache-linux-cuda-sim-${{ github.ref_name }}-${{ github.run_id }}
