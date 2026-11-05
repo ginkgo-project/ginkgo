@@ -654,12 +654,26 @@ struct arithmetic<T, 2, Policy> {
     static constexpr bool fma = Policy::fma;
 
     /**
-     * TwoSum, which unlike Fast2Sum is exact also if the second word is
-     * larger than the first one, as it can be in pair arithmetic.
+     * Normalizes words whose leading word has the largest exponent, e.g. the
+     * words of a value rounded word by word. For them, Fast2Sum is exact.
+     */
+    static GKO_ATTRIBUTES GKO_INLINE words normalize_ordered(const words& x)
+    {
+        return fast_two_sum(x[0], x[1]);
+    }
+
+    /**
+     * Normalizes the words of a result. The double-word algorithms keep the
+     * leading word the largest, so Fast2Sum suffices. Pair arithmetic can
+     * leave a second word with a larger exponent, which needs TwoSum.
      */
     static GKO_ATTRIBUTES GKO_INLINE words normalize(const words& x)
     {
-        return two_sum(x[0], x[1]);
+        if constexpr (pair) {
+            return two_sum(x[0], x[1]);
+        } else {
+            return normalize_ordered(x);
+        }
     }
 
     static GKO_ATTRIBUTES GKO_INLINE words add(const words& x, const words& y)
@@ -825,6 +839,7 @@ public:
 
     /**
      * Creates a number from its N words as they are, without normalizing them.
+     * With eager normalization, the operations expect normalized words.
      *
      * @param words  the words, the most significant one first
      */
@@ -981,6 +996,10 @@ public:
      * representation the eager normalization keeps after every operation. In
      * pair arithmetic, it lets the kernels choose when to normalize, e.g. once
      * per iteration.
+     *
+     * With eager normalization, this uses Fast2Sum, so the leading word must
+     * have the largest exponent, as it has after every operation. Pair
+     * arithmetic uses TwoSum, which normalizes any words.
      */
     friend GKO_ATTRIBUTES GKO_INLINE multi_word normalize(const multi_word& x)
     {
@@ -1091,7 +1110,8 @@ private:
         }
         // the words can sum up to a tie that rounds away from the leading
         // word
-        return checked(arithmetic::normalize(words), [&] { return words[0]; });
+        return checked(arithmetic::normalize_ordered(words),
+                       [&] { return words[0]; });
     }
 
     static GKO_ATTRIBUTES GKO_INLINE words_type

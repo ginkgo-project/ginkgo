@@ -379,11 +379,18 @@ TYPED_TEST(MultiWord, NormalizeMovesExcessIntoLeadingWord)
     using MW = TypeParam;
 
     ASSERT_TRUE(has_words(normalize(MW::from_words(1.0f, 1.0f)), 2.0f, 0.0f));
-    // a second word larger than the first, as in pair arithmetic
+    // a second word larger than the first, but with the same exponent, which
+    // Fast2Sum still handles
     ASSERT_TRUE(has_words(normalize(MW::from_words(0x1p-24f, 0x1.4p-24f)),
                           0x1.2p-23f, 0.0f));
     ASSERT_TRUE(
         has_words(normalize(MW::from_words(1.0f, 0x1p-30f)), 1.0f, 0x1p-30f));
+    if constexpr (TestFixture::pair) {
+        // a second word with a larger exponent, as pair arithmetic can leave
+        // it, needs TwoSum: Fast2Sum would lose the first word
+        ASSERT_TRUE(has_words(normalize(MW::from_words(0x1p-30f, 1.0f)), 1.0f,
+                              0x1p-30f));
+    }
 }
 
 
