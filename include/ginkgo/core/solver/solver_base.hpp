@@ -304,6 +304,14 @@ public:
         set_preconditioner(std::move(preconditioner));
     }
 
+    EnablePreconditionable(const EnablePreconditionable&) = delete;
+
+    EnablePreconditionable(EnablePreconditionable&&) = delete;
+
+    EnablePreconditionable& operator=(const EnablePreconditionable&) = delete;
+
+    EnablePreconditionable& operator=(EnablePreconditionable&&) = delete;
+
 private:
     DerivedType* self() { return static_cast<DerivedType*>(this); }
 
@@ -656,6 +664,14 @@ public:
     {
         set_stop_criterion_factory(std::move(stop_factory));
     }
+
+    EnableIterativeBase(const EnableIterativeBase&) = delete;
+
+    EnableIterativeBase(EnableIterativeBase&&) = delete;
+
+    EnableIterativeBase& operator=(const EnableIterativeBase&) = delete;
+
+    EnableIterativeBase& operator=(EnableIterativeBase&&) = delete;
 
     /**
      * Sets the stopping criterion of the solver. Stopping criterion factories
