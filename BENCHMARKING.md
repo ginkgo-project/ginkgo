@@ -428,3 +428,29 @@ The supported environment variables are described in the following list:
     benchmark. The default is '32'.
 * `SOLVERS_GMRES_RESTART` - the maximum dimension of the Krylov space to use in
     GMRES. The default is `100`.
+
+### 8: Continuous benchmarking with CodSpeed
+
+In addition to the benchmark suite described above, `benchmark/codspeed`
+contains a small set of [Google Benchmark](https://github.com/google/benchmark)
+micro-benchmarks that run on every pull request through
+[CodSpeed](https://codspeed.io/) (see `.github/workflows/codspeed.yml`). They
+use the single-threaded `reference` executor on generated 2D Laplacian
+matrices, so they need no input data, and cover SpMV in all sparse formats,
+dense BLAS-1/2/3 operations, SpGEMM, format conversions, preconditioner and
+factorization generation/application, and the main Krylov solvers with a fixed
+number of iterations.
+
+This is a standalone CMake project that builds a minimal Ginkgo (reference
+executor only, double precision) as a subdirectory:
+
+```sh
+cmake -S benchmark/codspeed -B build-codspeed -DCMAKE_BUILD_TYPE=RelWithDebInfo
+cmake --build build-codspeed --target ginkgo_codspeed_bench -j
+./build-codspeed/ginkgo_codspeed_bench
+```
+
+Without `-DCODSPEED_MODE=...`, the executable behaves like a regular Google
+Benchmark binary. With `-DCODSPEED_MODE=simulation`, the measurements can be
+taken with the [CodSpeed CLI](https://codspeed.io/docs/cli), e.g.
+`codspeed run --mode simulation -- ./build-codspeed/ginkgo_codspeed_bench`.

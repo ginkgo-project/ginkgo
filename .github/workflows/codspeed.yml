@@ -1,0 +1,79 @@
+name: CodSpeed
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'master'
+      - 'develop'
+  pull_request:
+    types: [opened,synchronize]
+    paths-ignore:
+      - 'doc/**'
+  # `workflow_dispatch` allows CodSpeed to trigger backtest
+  # performance analysis in order to generate initial data.
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read # required for actions/checkout
+  id-token: write # required for OIDC authentication with CodSpeed
+
+jobs:
+  benchmarks:
+    name: Run CodSpeed benchmarks
+    if: ${{ !contains(github.event.pull_request.labels.*.name, '1:ST:SKIP_ALL_CI') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      # compiled objects are cached between runs, see the ccache steps
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 500M
+
+    steps:
+      - name: Checkout the latest code (shallow clone)
+        uses: actions/checkout@v7
+
+      - name: setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build ccache
+
+      # restores the cache of this branch or, as a fallback, of any branch
+      # (e.g. develop for a new pull request)
+      - name: restore ccache
+        uses: actions/cache/restore@v6
+        with:
+          path: .ccache
+          key: ccache-codspeed-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-codspeed-${{ github.ref_name }}-
+            ccache-codspeed-
+
+      - name: build benchmarks
+        run: |
+          cmake -S benchmark/codspeed -B build-codspeed -G Ninja \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCODSPEED_MODE=simulation
+          ccache --zero-stats
+          cmake --build build-codspeed -j4 --target ginkgo_codspeed_bench
+          ccache --show-stats
+
+      # saved even if the build fails, so the next run is faster
+      - name: save ccache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: .ccache
+          key: ccache-codspeed-${{ github.ref_name }}-${{ github.run_id }}
+
+      - name: run benchmarks
+        uses: CodSpeedHQ/action@v5
+        with:
+          mode: simulation
+          run: ./build-codspeed/ginkgo_codspeed_bench
