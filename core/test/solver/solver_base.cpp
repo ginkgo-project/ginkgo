@@ -62,6 +62,28 @@ TYPED_TEST(SolverBase, CannotBeMoved)
 }
 
 
+TEST(EnablePreconditionable, CannotBeCopiedOrMoved)
+{
+    using Mixin = gko::solver::EnablePreconditionable<gko::solver::Cg<double>>;
+
+    ASSERT_FALSE(std::is_copy_constructible<Mixin>::value);
+    ASSERT_FALSE(std::is_copy_assignable<Mixin>::value);
+    ASSERT_FALSE(std::is_move_constructible<Mixin>::value);
+    ASSERT_FALSE(std::is_move_assignable<Mixin>::value);
+}
+
+
+TEST(EnableIterativeBase, CannotBeCopiedOrMoved)
+{
+    using Mixin = gko::solver::EnableIterativeBase<gko::solver::Ir<double>>;
+
+    ASSERT_FALSE(std::is_copy_constructible<Mixin>::value);
+    ASSERT_FALSE(std::is_copy_assignable<Mixin>::value);
+    ASSERT_FALSE(std::is_move_constructible<Mixin>::value);
+    ASSERT_FALSE(std::is_move_assignable<Mixin>::value);
+}
+
+
 TEST(EnableIterativeBase, ThrowsClearlyForAStopFactoryOnAnotherExecutor)
 {
     auto exec = gko::ReferenceExecutor::create();
