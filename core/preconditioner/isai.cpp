@@ -274,20 +274,11 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
 template <isai_type IsaiType, typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::transpose() const
 {
-    auto is_spd = IsaiType == isai_type::spd;
-    if (is_spd) {
-        auto transp = std::unique_ptr<Isai>(new Isai{this->get_executor()});
-        transp->set_size(this->get_size());
-        transp->parameters_ = parameters_;
-        transp->approximate_inverse_ = approximate_inverse_;
-        return transp;
-    }
-
     std::unique_ptr<transposed_type> transp{
         new transposed_type{this->get_executor()}};
     transp->set_size(gko::transpose(this->get_size()));
     transp->approximate_inverse_ =
-        share(as<Csr>(this->get_approximate_inverse())->transpose());
+        share(as<Transposable>(approximate_inverse_)->transpose());
 
     return std::move(transp);
 }
@@ -297,20 +288,11 @@ template <isai_type IsaiType, typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Isai<IsaiType, ValueType, IndexType>::conj_transpose()
     const
 {
-    auto is_spd = IsaiType == isai_type::spd;
-    if (is_spd) {
-        auto transp = std::unique_ptr<Isai>(new Isai{this->get_executor()});
-        transp->set_size(this->get_size());
-        transp->parameters_ = parameters_;
-        transp->approximate_inverse_ = approximate_inverse_;
-        return transp;
-    }
-
     std::unique_ptr<transposed_type> transp{
         new transposed_type{this->get_executor()}};
     transp->set_size(gko::transpose(this->get_size()));
     transp->approximate_inverse_ =
-        share(as<Csr>(this->get_approximate_inverse())->conj_transpose());
+        share(as<Transposable>(approximate_inverse_)->conj_transpose());
 
     return std::move(transp);
 }
