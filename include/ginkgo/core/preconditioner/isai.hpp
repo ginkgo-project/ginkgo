@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -86,7 +87,9 @@ enum struct isai_type { lower, upper, general, spd };
  * @ingroup LinOp
  */
 template <isai_type IsaiType, typename ValueType, typename IndexType>
-class Isai : public LinOp, public Transposable {
+class Isai : public LinOp,
+             public Transposable,
+             public gko::detail::WorkspaceHolder {
     friend class Isai<isai_type::general, ValueType, IndexType>;
     friend class Isai<isai_type::lower, ValueType, IndexType>;
     friend class Isai<isai_type::upper, ValueType, IndexType>;
@@ -225,7 +228,9 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
 protected:
-    explicit Isai(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
+    explicit Isai(std::shared_ptr<const Executor> exec)
+        : LinOp(std::move(exec)),
+          gko::detail::WorkspaceHolder(this->get_executor())
     {}
 
     /**
@@ -236,6 +241,7 @@ protected:
      */
     explicit Isai(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(), components.system_matrix->get_size()),
+          gko::detail::WorkspaceHolder(factory->get_executor(), components),
           parameters_{factory->get_parameters()}
     {
         auto system_matrix = std::move(components.system_matrix);
@@ -248,8 +254,11 @@ protected:
         if (IsaiType == isai_type::spd) {
             auto inv = share(as<Csr>(approximate_inverse_));
             auto inv_transp = share(inv->conj_transpose());
-            approximate_inverse_ =
-                Composition<ValueType>::create(inv_transp, inv);
+            auto comp = Composition<ValueType>::create(inv_transp, inv);
+            gko::detail::attach_workspace(
+                comp.get(), this->get_workspace_node()->get_or_create_child(
+                                "approximate_inverse"));
+            approximate_inverse_ = std::move(comp);
         }
     }
 

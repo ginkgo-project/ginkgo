@@ -105,6 +105,18 @@ TYPED_TEST(Ilu, BuildsCustomWithoutThrowing2)
 }
 
 
+TYPED_TEST(Ilu, MoveAssignmentEmptiesTheMovedFromObject)
+{
+    auto ilu = this->ilu_pre_factory->generate(this->mtx);
+    auto target = this->ilu_pre_factory->generate(this->mtx);
+
+    *target = std::move(*ilu);
+
+    ASSERT_EQ(target->get_size(), this->mtx->get_size());
+    ASSERT_EQ(ilu->get_size(), gko::dim<2>{});
+}
+
+
 TYPED_TEST(Ilu, ThrowOnWrongCompositionInput)
 {
     using Composition = typename TestFixture::Composition;

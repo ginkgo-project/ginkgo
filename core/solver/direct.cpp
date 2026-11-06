@@ -158,6 +158,13 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
                                    .with_num_rhs(num_rhs)
                                    .with_unit_diagonal(upper_unit_diag)
                                    .on(exec);
+    auto generate_trs = [this](const LinOpFactory* factory,
+                               std::shared_ptr<const LinOp> factor,
+                               const char* tag) {
+        return gko::detail::generate_with_view(
+            factory, std::move(factor),
+            this->get_workspace_node()->get_or_create_child(tag));
+    };
     switch (type) {
     case storage_type::empty:
         // remove the factor storage entirely
@@ -168,15 +175,19 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
     case storage_type::composition:
     case storage_type::symm_composition:
         // TODO handle diagonal
-        lower_solver_ = lower_factory->generate(factors->get_lower_factor());
-        upper_solver_ = upper_factory->generate(factors->get_upper_factor());
+        lower_solver_ = gko::as<lower_type>(generate_trs(
+            lower_factory.get(), factors->get_lower_factor(), "lower_solver"));
+        upper_solver_ = gko::as<upper_type>(generate_trs(
+            upper_factory.get(), factors->get_upper_factor(), "upper_solver"));
         break;
     case storage_type::combined_lu:
     case storage_type::combined_ldu:
     case storage_type::symm_combined_cholesky:
     case storage_type::symm_combined_ldl:
-        lower_solver_ = lower_factory->generate(factors->get_combined());
-        upper_solver_ = upper_factory->generate(factors->get_combined());
+        lower_solver_ = gko::as<lower_type>(generate_trs(
+            lower_factory.get(), factors->get_combined(), "lower_solver"));
+        upper_solver_ = gko::as<upper_type>(generate_trs(
+            upper_factory.get(), factors->get_combined(), "upper_solver"));
         break;
     }
 }
