@@ -11,6 +11,7 @@
 
 #include <ginkgo/core/base/math.hpp>
 
+#include "common/cuda_hip/base/bf16_alias.hpp"
 #include "common/cuda_hip/base/types.hpp"
 
 
@@ -57,6 +58,18 @@ struct gcc_atomic_intrinsic_type_map<int64> {
 template <>
 struct gcc_atomic_intrinsic_type_map<double> {
     using type = int64;
+};
+
+
+template <>
+struct gcc_atomic_intrinsic_type_map<__half> {
+    using type = int16;
+};
+
+
+template <>
+struct gcc_atomic_intrinsic_type_map<vendor_bf16> {
+    using type = int16;
 };
 
 
