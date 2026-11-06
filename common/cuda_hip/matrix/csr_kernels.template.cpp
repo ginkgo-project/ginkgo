@@ -104,8 +104,8 @@ __host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
 
 
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__ bool block_segment_scan_reverse(
-    const IndexType* __restrict__ ind, ValueType* __restrict__ val)
+__device__ __forceinline__ bool block_segment_scan_reverse(const IndexType* ind,
+                                                           ValueType* val)
 {
     bool last = true;
     const auto reg_ind = ind[threadIdx.x];
