@@ -75,8 +75,9 @@ Cholesky<ValueType, IndexType>::generate(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> Cholesky<ValueType, IndexType>::generate_impl(
-    std::shared_ptr<const LinOp> system_matrix) const
+    LinOpGenerateComponents components) const
 {
+    auto system_matrix = std::move(components.system_matrix);
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
     const auto exec = this->get_executor();
     const auto mtx = copy_and_convert_to<matrix_type>(exec, system_matrix);

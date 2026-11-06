@@ -65,3 +65,24 @@ For example, `std::make_shared<Csr<>>(exec, std::make_shared<Csr<>::classical>()
 `csr->get_strategy` will now return the enum value instead of a shared_ptr.
 We use `automatic` in enum not `automatical` like old shared_ptr usage.
 **Note:** It is not possible to have a custom load_balance strategy with the new interface. (Please let us know if you need it)
+
+## Solver mixins take the executor in their constructors [#2127](https://github.com/ginkgo-project/ginkgo/pull/2127)
+The constructors of the solver mixins used to take the executor and size from the derived solver, which is not constructed yet at that point ([#2135](https://github.com/ginkgo-project/ginkgo/issues/2135)).
+They now take the executor of the solver as their first argument:
+- `EnableSolverBase()` and `EnableSolverBase(system_matrix)` are replaced by `EnableSolverBase(exec)` and `EnableSolverBase(exec, system_matrix)`.
+- `EnableIterativeBase(stop_factory)` is replaced by `EnableIterativeBase(exec, stop_factory)`.
+- `EnablePreconditionable(preconditioner)` is replaced by `EnablePreconditionable(exec, size, preconditioner)`, where `size` is the size of the solver.
+- `EnablePreconditionedIterativeSolver()`, `EnablePreconditionedIterativeSolver(system_matrix, stop_factory, preconditioner)` and `EnablePreconditionedIterativeSolver(system_matrix, params)` are replaced by the same constructors with `exec` as first argument.
+
+A custom solver using these mixins passes its executor, e.g.
+```c++
+explicit MySolver(std::shared_ptr<const Executor> exec)
+    : LinOp(exec), EnablePreconditionedIterativeSolver<ValueType, MySolver>{std::move(exec)}
+{}
+
+MySolver(const Factory* factory, LinOpGenerateComponents components)
+    : LinOp(factory->get_executor(), gko::transpose(components.system_matrix->get_size())),
+      EnablePreconditionedIterativeSolver<ValueType, MySolver>{
+          factory->get_executor(), std::move(components.system_matrix), factory->get_parameters()}
+{}
+```
