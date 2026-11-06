@@ -129,7 +129,7 @@
 #cmakedefine01 GINKGO_ENABLE_BFLOAT16
 // clang-format on
 
-/* Is double replaced by gko::custom_double in the CUDA kernels? */
+/* Do the accessor-based CUDA and HIP kernels compute double in two float words? */
 // clang-format off
 #cmakedefine01 GINKGO_EMULATE_DOUBLE
 // clang-format on

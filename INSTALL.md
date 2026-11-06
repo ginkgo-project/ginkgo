@@ -31,9 +31,10 @@ Ginkgo adds the following additional switches to control what is being built:
 *   `-DGINKGO_ENABLE_BFLOAT16={ON, OFF}` enable half precision support in Ginkgo, default is `ON`.
     It is `OFF` when the compiler is MSVC or MSYS2 system. If compiling is done with the CUDA backend before CUDA 12.2, 
     we only support bfloat16 precision after compute capability 8.0. CUDA 12.2+ compilers waive the compute capability limitation.
-*   `-DGINKGO_EMULATE_DOUBLE={ON, OFF}` replaces `double` by the emulated
-    `gko::custom_double` in the CUDA kernels, default is `OFF`. The other
-    backends always use native `double`.
+*   `-DGINKGO_EMULATE_DOUBLE={ON, OFF}` computes `double` in two `float` words
+    in the accessor-based CUDA and HIP kernels, default
+    is `OFF`. The values stay `double` in memory, all other kernels compute in
+    native `double`.
 *   `-DGINKGO_BUILD_TESTS={ON, OFF}` builds Ginkgo's tests
     (will download googletest), default is `ON`.
 *   `-DGINKGO_FAST_TESTS={ON, OFF}` reduces the input sizes for a few slow tests

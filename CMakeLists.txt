@@ -98,13 +98,13 @@ if(MSVC OR MINGW)
 endif()
 option(
     GINKGO_EMULATE_DOUBLE
-    "Replace double by the emulated gko::custom_double in the CUDA kernels"
+    "Compute double in two float words in the accessor-based CUDA and HIP kernels, the values stay double in memory"
     OFF
 )
 if(GINKGO_EMULATE_DOUBLE)
     message(
         STATUS
-        "Emulating double in the CUDA kernels, the other backends use native double"
+        "Computing double in two float words in the accessor-based CUDA and HIP kernels, all other kernels use native double"
     )
 endif()
 

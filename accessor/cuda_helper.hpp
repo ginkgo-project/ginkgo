@@ -10,8 +10,6 @@
 
 #include <thrust/complex.h>
 
-#include <ginkgo/config.hpp>
-
 #include "block_col_major.hpp"
 #include "reduced_row_major.hpp"
 #include "row_major.hpp"
@@ -30,8 +28,6 @@ namespace gko {
 class half;
 
 class bfloat16;
-
-class custom_double;
 
 
 namespace acc {
@@ -52,14 +48,6 @@ template <>
 struct cuda_type<gko::bfloat16> {
     using type = __nv_bfloat16;
 };
-
-#if GINKGO_EMULATE_DOUBLE
-// has to match gko::kernels::cuda::cuda_type<double>
-template <>
-struct cuda_type<double> {
-    using type = gko::custom_double;
-};
-#endif
 
 // Unpack cv and reference / pointer qualifiers
 template <typename T>

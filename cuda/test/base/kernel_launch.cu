@@ -26,10 +26,6 @@ using gko::size_type;
 using std::is_same;
 
 
-// the type that double is mapped to in the kernels
-using device_double = gko::kernels::cuda::cuda_type<double>;
-
-
 struct move_only_type {
     move_only_type() {}
 
@@ -150,12 +146,10 @@ void run1d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<>* m)
         exec,
         [] GKO_KERNEL(auto i, auto d, auto d2, auto d_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), device_double&>::value,
+            static_assert(is_same<decltype(d(0, 0)), double&>::value, "type");
+            static_assert(is_same<decltype(d2(0, 0)), const double&>::value,
                           "type");
-            static_assert(
-                is_same<decltype(d2(0, 0)), const device_double&>::value,
-                "type");
-            static_assert(is_same<decltype(d_ptr), const device_double*>::value,
+            static_assert(is_same<decltype(d_ptr), const double*>::value,
                           "type");
             static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             bool pointers_correct = d.values == d_ptr && d2.values == d_ptr;
@@ -240,20 +234,15 @@ void run2d(std::shared_ptr<gko::CudaExecutor> exec, gko::matrix::Dense<>* m1,
         [] GKO_KERNEL(auto i, auto j, auto d, auto d2, auto d_ptr, auto d3,
                       auto d4, auto d2_ptr, auto d3_ptr, auto dummy) {
             static_assert(is_same<decltype(i), int64>::value, "index");
-            static_assert(is_same<decltype(d(0, 0)), device_double&>::value,
+            static_assert(is_same<decltype(d(0, 0)), double&>::value, "type");
+            static_assert(is_same<decltype(d2(0, 0)), const double&>::value,
                           "type");
-            static_assert(
-                is_same<decltype(d2(0, 0)), const device_double&>::value,
-                "type");
-            static_assert(is_same<decltype(d_ptr), const device_double*>::value,
+            static_assert(is_same<decltype(d_ptr), const double*>::value,
                           "type");
-            static_assert(is_same<decltype(d3(0, 0)), device_double&>::value,
-                          "type");
-            static_assert(is_same<decltype(d4), device_double*>::value, "type");
-            static_assert(is_same<decltype(d2_ptr), device_double*>::value,
-                          "type");
-            static_assert(is_same<decltype(d3_ptr), device_double*>::value,
-                          "type");
+            static_assert(is_same<decltype(d3(0, 0)), double&>::value, "type");
+            static_assert(is_same<decltype(d4), double*>::value, "type");
+            static_assert(is_same<decltype(d2_ptr), double*>::value, "type");
+            static_assert(is_same<decltype(d3_ptr), double*>::value, "type");
             static_assert(is_same<decltype(dummy), int64>::value, "dummy");
             bool pointers_correct = d.values == d_ptr && d2.values == d_ptr &&
                                     d3.values == d2_ptr && d4 == d3_ptr;

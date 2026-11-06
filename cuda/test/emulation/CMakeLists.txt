@@ -1,0 +1,2 @@
+ginkgo_create_cuda_test(double_word)
+ginkgo_create_cuda_test(multi_word)
