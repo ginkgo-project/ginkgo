@@ -17,6 +17,7 @@
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/types.hpp"
+#include "core/base/mixed_precision_types.hpp"
 #include "cuda/solver/common_trs_kernels.cuh"
 
 
@@ -54,24 +55,36 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_GENERATE_KERNEL);
 
 
-template <typename ValueType, typename IndexType>
+template <typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void solve(std::shared_ptr<const CudaExecutor> exec,
-           matrix::view::csr<const ValueType, const IndexType> matrix,
+           matrix::view::csr<const MatrixValueType, const IndexType> matrix,
            const solver::SolveStruct* solve_struct, bool unit_diag,
            const solver::trisolve_algorithm algorithm,
-           std::optional<matrix::view::dense<ValueType>> trans_b,
-           std::optional<matrix::view::dense<ValueType>> trans_x,
-           matrix::view::dense<const ValueType> b,
-           matrix::view::dense<ValueType> x)
+           std::optional<matrix::view::dense<InputValueType>> trans_b,
+           std::optional<matrix::view::dense<OutputValueType>> trans_x,
+           matrix::view::dense<const InputValueType> b,
+           matrix::view::dense<OutputValueType> x)
 {
+    constexpr bool all_same_value_type =
+        std::is_same<MatrixValueType, InputValueType>::value &&
+        std::is_same<MatrixValueType, OutputValueType>::value;
+
     if (algorithm == solver::trisolve_algorithm::sparselib) {
-        solve_kernel<ValueType, IndexType>(exec, matrix, solve_struct, b, x);
-    } else {
+        if constexpr (all_same_value_type) {
+            solve_kernel<MatrixValueType, IndexType>(exec, matrix, solve_struct,
+                                                     b, x);
+            return;
+        }
+    } else if (algorithm == solver::trisolve_algorithm::syncfree) {
         sptrsv_naive_caching<false>(exec, matrix, unit_diag, b, x);
+        return;
     }
+
+    GKO_NOT_IMPLEMENTED;
 }
 
-GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+GKO_INSTANTIATE_FOR_EACH_MIXED_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_LOWER_TRS_SOLVE_KERNEL);
 
 
