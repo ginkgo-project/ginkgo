@@ -98,37 +98,6 @@ public:
                initial_guess_mode::provided;
     }
 
-    /**
-     * Copy-assigns a Chebyshev solver. Preserves the executor, shallow-copies
-     * inner solver, stopping criterion and system matrix. If the executors
-     * mismatch, clones inner solver, stopping criterion and system matrix onto
-     * this executor.
-     */
-    Chebyshev& operator=(const Chebyshev&);
-
-    /**
-     * Move-assigns a Chebyshev solver. Preserves the executor, moves inner
-     * solver, stopping criterion and system matrix. If the executors mismatch,
-     * clones inner solver, stopping criterion and system matrix onto this
-     * executor. The moved-from object is empty (0x0 and nullptr inner solver,
-     * stopping criterion and system matrix)
-     */
-    Chebyshev& operator=(Chebyshev&&);
-
-    /**
-     * Copy-constructs an Chebyshev solver. Inherits the executor,
-     * shallow-copies inner solver, stopping criterion and system matrix.
-     */
-    Chebyshev(const Chebyshev&);
-
-    /**
-     * Move-constructs an Chebyshev solver. Preserves the executor, moves inner
-     * solver, stopping criterion and system matrix. The moved-from object is
-     * empty (0x0 and nullptr inner solver, stopping criterion and system
-     * matrix)
-     */
-    Chebyshev(Chebyshev&&);
-
     class Factory;
 
     struct parameters_type
@@ -192,8 +161,6 @@ protected:
     void apply_with_initial_guess_impl(const LinOp* alpha, const LinOp* b,
                                        const LinOp* beta, LinOp* x,
                                        initial_guess_mode guess) const override;
-
-    explicit Chebyshev(std::shared_ptr<const Executor> exec);
 
     explicit Chebyshev(const Factory* factory,
                        std::shared_ptr<const LinOp> system_matrix);

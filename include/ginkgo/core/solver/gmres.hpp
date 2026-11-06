@@ -244,10 +244,6 @@ protected:
                                        const LinOp* beta, LinOp* x,
                                        initial_guess_mode guess) const override;
 
-    explicit Gmres(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
-    {}
-
     explicit Gmres(const Factory* factory,
                    std::shared_ptr<const LinOp> system_matrix)
         : LinOp(factory->get_executor(),

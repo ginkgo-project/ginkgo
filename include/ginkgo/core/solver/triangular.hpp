@@ -124,35 +124,6 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
-    /**
-     * Copy-assigns a triangular solver. Preserves the executor, shallow-copies
-     * the system matrix. If the executors mismatch, clones system matrix onto
-     * this executor. Solver analysis information will be regenerated.
-     */
-    LowerTrs(const LowerTrs&);
-
-    /**
-     * Move-assigns a triangular solver. Preserves the executor, moves
-     * the system matrix. If the executors mismatch, clones system matrix onto
-     * this executor and regenerates solver analysis information. Moved-from
-     * object is empty (0x0 and nullptr system matrix)
-     */
-    LowerTrs(LowerTrs&&);
-
-    /**
-     * Copy-constructs a triangular solver. Preserves the executor,
-     * shallow-copies the system matrix. Solver analysis information will be
-     * regenerated.
-     */
-    LowerTrs& operator=(const LowerTrs&);
-
-    /**
-     * Move-constructs a triangular solver. Preserves the executor, moves
-     * the system matrix and solver analysis information. Moved-from
-     * object is empty (0x0 and nullptr system matrix)
-     */
-    LowerTrs& operator=(LowerTrs&&);
-
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
@@ -166,10 +137,6 @@ protected:
      * hand side needed for the level solver.
      */
     void generate();
-
-    explicit LowerTrs(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
-    {}
 
     explicit LowerTrs(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)
@@ -291,35 +258,6 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
-    /**
-     * Copy-assigns a triangular solver. Preserves the executor, shallow-copies
-     * the system matrix. If the executors mismatch, clones system matrix onto
-     * this executor. Solver analysis information will be regenerated.
-     */
-    UpperTrs(const UpperTrs&);
-
-    /**
-     * Move-assigns a triangular solver. Preserves the executor, moves
-     * the system matrix. If the executors mismatch, clones system matrix onto
-     * this executor and regenerates solver analysis information. Moved-from
-     * object is empty (0x0 and nullptr system matrix)
-     */
-    UpperTrs(UpperTrs&&);
-
-    /**
-     * Copy-constructs a triangular solver. Preserves the executor,
-     * shallow-copies the system matrix. Solver analysis information will be
-     * regenerated.
-     */
-    UpperTrs& operator=(const UpperTrs&);
-
-    /**
-     * Move-constructs a triangular solver. Preserves the executor, moves
-     * the system matrix and solver analysis information. Moved-from
-     * object is empty (0x0 and nullptr system matrix)
-     */
-    UpperTrs& operator=(UpperTrs&&);
-
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
@@ -333,10 +271,6 @@ protected:
      * hand side(only dimensional info needed) needed for the level solver.
      */
     void generate();
-
-    explicit UpperTrs(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
-    {}
 
     explicit UpperTrs(const Factory* factory,
                       std::shared_ptr<const LinOp> system_matrix)

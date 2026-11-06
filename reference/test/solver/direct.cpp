@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -89,5 +89,19 @@ TYPED_TEST(Direct, SolvesAni1AmdMultipleRhs)
 
     this->solver->apply(this->b, this->x);
 
+    GKO_ASSERT_MTX_NEAR(this->x, this->x_ref, r<value_type>::value);
+}
+
+
+TYPED_TEST(Direct, SolverGeneratedFromTheFactorizationSharesIt)
+{
+    using value_type = typename TestFixture::value_type;
+    this->setup(gko::matrices::location_ani1_mtx);
+    auto factory = this->solver->get_parameters().on(this->exec);
+
+    auto second = factory->generate(this->solver->get_system_matrix());
+    second->apply(this->b, this->x);
+
+    ASSERT_EQ(second->get_system_matrix(), this->solver->get_system_matrix());
     GKO_ASSERT_MTX_NEAR(this->x, this->x_ref, r<value_type>::value);
 }

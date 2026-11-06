@@ -122,33 +122,13 @@ public:
                                             Csr>::type>(approximate_inverse_);
     }
 
-    /**
-     * Copy-assigns an ISAI preconditioner. Preserves the executor,
-     * shallow-copies the matrix and parameters. Creates a clone of the matrix
-     * if it is on the wrong executor.
-     */
-    Isai& operator=(const Isai& other);
+    Isai(const Isai&) = delete;
 
-    /**
-     * Move-assigns an ISAI preconditioner. Preserves the executor,
-     * moves the matrix and parameters. Creates a clone of the matrix
-     * if it is on the wrong executor. The moved-from object is empty (0x0
-     * with nullptr matrix and default parameters)
-     */
-    Isai& operator=(Isai&& other);
+    Isai(Isai&&) = delete;
 
-    /**
-     * Copy-constructs an ISAI preconditioner. Inherits the executor,
-     * shallow-copies the matrix and parameters.
-     */
-    Isai(const Isai& other);
+    Isai& operator=(const Isai&) = delete;
 
-    /**
-     * Move-constructs an ISAI preconditioner. Inherits the executor,
-     * moves the matrix and parameters. The moved-from object is empty (0x0
-     * with nullptr matrix and default parameters)
-     */
-    Isai(Isai&& other);
+    Isai& operator=(Isai&&) = delete;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {

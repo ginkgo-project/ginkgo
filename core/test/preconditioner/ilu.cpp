@@ -9,6 +9,7 @@ GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 #include <memory>
+#include <type_traits>
 
 #include <gtest/gtest.h>
 
@@ -98,6 +99,19 @@ TEST_F(IluFactory, DeferredFactoryParameter)
                             ilu_type::Factory);
 }
 
+
+TEST_F(IluFactory, IluCannotBeCopied)
+{
+    ASSERT_FALSE(std::is_copy_constructible<ilu_prec_type>::value);
+    ASSERT_FALSE(std::is_copy_assignable<ilu_prec_type>::value);
+}
+
+
+TEST_F(IluFactory, IluCannotBeMoved)
+{
+    ASSERT_FALSE(std::is_move_constructible<ilu_prec_type>::value);
+    ASSERT_FALSE(std::is_move_assignable<ilu_prec_type>::value);
+}
 
 }  // namespace
 
