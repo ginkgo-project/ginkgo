@@ -130,11 +130,11 @@ struct ParIctState {
                                           lh->get_device_view()));
     }
 
-    std::unique_ptr<Composition<ValueType>> to_factors() &&
+    std::pair<std::shared_ptr<LinOp>, std::shared_ptr<LinOp>> to_factors() &&
     {
         l->set_strategy(l_strategy);
         lh->set_strategy(lh_strategy);
-        return Composition<ValueType>::create(std::move(l), std::move(lh));
+        return {std::move(l), std::move(lh)};
     }
 
     void iterate();
@@ -178,9 +178,10 @@ ParIct<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>>
-ParIct<ValueType, IndexType>::generate_l_lt(
-    const std::shared_ptr<const LinOp>& system_matrix) const
+ParIct<ValueType, IndexType>::ParIct(const Factory* factory,
+                                     std::shared_ptr<const LinOp> system_matrix)
+    : Composition<ValueType>(factory->get_executor()),
+      parameters_{factory->get_parameters()}
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
@@ -229,7 +230,8 @@ ParIct<ValueType, IndexType>::generate_l_lt(
         state.iterate();
     }
 
-    return std::move(state).to_factors();
+    auto [l_factor, lh_factor] = std::move(state).to_factors();
+    this->add_operators(std::move(l_factor), std::move(lh_factor));
 }
 
 
