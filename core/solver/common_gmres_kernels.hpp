@@ -20,6 +20,25 @@ namespace kernels {
 namespace common_gmres {
 
 
+#define GKO_DECLARE_COMMON_GMRES_CHECK_INITIAL_RESIDUAL_KERNEL(ValueType) \
+    void check_initial_residual(                                          \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        matrix::view::dense<const ValueType> norm, uint8 stopping_id,     \
+        stopping_status* stop_status, array<size_type>& num_active,       \
+        array<char>& reduction_tmp, bool* all_stopped)
+
+
+#define GKO_DECLARE_COMMON_GMRES_CHECK_INITIAL_RESIDUAL_VALUES_KERNEL( \
+    ValueType)                                                         \
+    void check_initial_residual_values(                                \
+        std::shared_ptr<const DefaultExecutor> exec,                   \
+        matrix::view::dense<const ValueType> residual,                 \
+        matrix::view::dense<remove_complex<ValueType>> nonzero,        \
+        uint8 stopping_id, stopping_status* stop_status,               \
+        array<size_type>& num_active, array<char>& reduction_tmp,      \
+        bool* all_stopped)
+
+
 #define GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL(ValueType)    \
     void initialize(std::shared_ptr<const DefaultExecutor> exec, \
                     matrix::view::dense<const ValueType> b,      \
@@ -49,12 +68,16 @@ namespace common_gmres {
         const stopping_status* stop_status)
 
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                          \
-    template <typename ValueType>                             \
-    GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL(ValueType);    \
-    template <typename ValueType>                             \
-    GKO_DECLARE_COMMON_GMRES_HESSENBERG_QR_KERNEL(ValueType); \
-    template <typename ValueType>                             \
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_COMMON_GMRES_CHECK_INITIAL_RESIDUAL_KERNEL(ValueType);        \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_COMMON_GMRES_CHECK_INITIAL_RESIDUAL_VALUES_KERNEL(ValueType); \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_COMMON_GMRES_INITIALIZE_KERNEL(ValueType);                    \
+    template <typename ValueType>                                             \
+    GKO_DECLARE_COMMON_GMRES_HESSENBERG_QR_KERNEL(ValueType);                 \
+    template <typename ValueType>                                             \
     GKO_DECLARE_COMMON_GMRES_SOLVE_KRYLOV_KERNEL(ValueType)
 
 

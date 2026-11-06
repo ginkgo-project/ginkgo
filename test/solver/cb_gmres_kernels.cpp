@@ -12,6 +12,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -190,6 +191,96 @@ protected:
     gko::array<gko::size_type> d_final_iter_nums;
     gko::array<gko::size_type> d_num_reorth;
 };
+
+
+TEST_F(CbGmres, PreservesExactInitialSolutionWithoutResidualCriterion)
+{
+    using Solver = gko::solver::CbGmres<value_type>;
+    auto matrix =
+        gko::share(gko::initialize<Mtx>({{2.0, 0.0}, {0.0, 4.0}}, exec));
+    auto b = gko::initialize<Mtx>({2.0, 8.0}, exec);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, exec);
+    auto logger = gko::share(gko::log::Convergence<value_type>::create());
+    auto solver =
+        Solver::build()
+            .with_storage_precision(
+                gko::solver::cb_gmres::storage_precision::keep)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .on(exec)
+            ->generate(matrix);
+    solver->add_logger(logger);
+
+    solver->apply(b, x);
+
+    auto result = gko::clone(ref, x);
+    EXPECT_EQ(result->at(0, 0), value_type{1.0});
+    EXPECT_EQ(result->at(1, 0), value_type{2.0});
+    EXPECT_EQ(logger->get_num_iterations(), 0);
+}
+
+
+TEST_F(CbGmres, PreservesSolvedColumnWhileOtherColumnAdvances)
+{
+    using Solver = gko::solver::CbGmres<value_type>;
+    auto matrix =
+        gko::share(gko::initialize<Mtx>({{2.0, 0.0}, {0.0, 4.0}}, exec));
+    auto b = gko::initialize<Mtx>({{2.0, 2.0}, {8.0, 8.0}}, exec);
+    auto x = gko::initialize<Mtx>({{1.0, 0.0}, {2.0, 0.0}}, exec);
+    auto solver =
+        Solver::build()
+            .with_storage_precision(
+                gko::solver::cb_gmres::storage_precision::keep)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(exec)
+            ->generate(matrix);
+
+    solver->apply(b, x);
+
+    auto result = gko::clone(ref, x);
+    EXPECT_EQ(result->at(0, 0), value_type{1.0});
+    EXPECT_EQ(result->at(1, 0), value_type{2.0});
+    const auto alpha = (value_type{4.0} * value_type{2.0} +
+                        value_type{32.0} * value_type{8.0}) /
+                       (gko::squared_norm(value_type{4.0}) +
+                        gko::squared_norm(value_type{32.0}));
+    GKO_ASSERT_MTX_NEAR(result,
+                        l({{value_type{1.0}, alpha * value_type{2.0}},
+                           {value_type{2.0}, alpha * value_type{8.0}}}),
+                        r<value_type>::value * 100);
+}
+
+
+TEST_F(CbGmres, PreservesSolvedColumnWithResidualCriterion)
+{
+    using Solver = gko::solver::CbGmres<value_type>;
+    auto matrix =
+        gko::share(gko::initialize<Mtx>({{2.0, 0.0}, {0.0, 4.0}}, exec));
+    auto b = gko::initialize<Mtx>({{2.0, 2.0}, {8.0, 8.0}}, exec);
+    auto x = gko::initialize<Mtx>({{1.0, 0.0}, {2.0, 0.0}}, exec);
+    auto solver =
+        Solver::build()
+            .with_storage_precision(
+                gko::solver::cb_gmres::storage_precision::keep)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(1e-6))
+            .on(exec)
+            ->generate(matrix);
+
+    solver->apply(b, x);
+
+    auto result = gko::clone(ref, x);
+    EXPECT_EQ(result->at(0, 0), value_type{1.0});
+    EXPECT_EQ(result->at(1, 0), value_type{2.0});
+    const auto alpha = (value_type{4.0} * value_type{2.0} +
+                        value_type{32.0} * value_type{8.0}) /
+                       (gko::squared_norm(value_type{4.0}) +
+                        gko::squared_norm(value_type{32.0}));
+    GKO_ASSERT_MTX_NEAR(result,
+                        l({{value_type{1.0}, alpha * value_type{2.0}},
+                           {value_type{2.0}, alpha * value_type{8.0}}}),
+                        r<value_type>::value * 100);
+}
 
 
 TEST_F(CbGmres, CbGmresInitialize1IsEquivalentToRef)
