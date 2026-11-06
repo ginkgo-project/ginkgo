@@ -128,9 +128,11 @@ Direct<ValueType, IndexType>::Direct(const Factory* factory,
     : LinOp{factory->get_executor(), components.system_matrix->get_size()},
       gko::solver::EnableSolverBase<
           Direct, factorization::Factorization<ValueType, IndexType>>{
-          factory->get_executor(), generate_factorization<ValueType, IndexType>(
-                                       factory->get_parameters().factorization,
-                                       components.system_matrix)}
+          factory->get_executor(),
+          generate_factorization<ValueType, IndexType>(
+              factory->get_parameters().factorization,
+              components.system_matrix),
+          components}
 {
     using factorization::storage_type;
     const auto factors = this->get_system_matrix();
