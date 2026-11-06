@@ -1,0 +1,43 @@
+name: Benchmark trigger
+
+# Twice a week, starts the CSCS CI pipeline "benchmark"
+# (.gitlab/cscs-benchmark.yml) for develop's head, on the machines that have no
+# run of it on the results branch of ginkgo-project/cb-dashboard. The dashboard
+# at cb.gko-project.org imports the results. The logic is
+# `python -m automation trigger` in cb-dashboard.
+on:
+  schedule:
+    - cron: "17 3 * * 1,4"
+  workflow_dispatch:
+    inputs:
+      machines:
+        description: "Machines, comma-separated; empty for all"
+        default: ""
+      force:
+        description: "Trigger even if the commit has runs"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  trigger:
+    if: github.repository == 'ginkgo-project/ginkgo' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ginkgo-project/cb-dashboard
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Trigger the benchmark pipeline
+        env:
+          CSCS_CI_REPOSITORY_ID: ${{ secrets.CSCS_CI_REPOSITORY_ID }}
+          CSCS_CI_WEBHOOK_SECRET: ${{ secrets.CSCS_CI_WEBHOOK_SECRET }}
+          GITHUB_TOKEN: ${{ github.token }}
+          MACHINES: ${{ inputs.machines }}
+          FORCE: ${{ inputs.force && '--force' || '' }}
+        run: python -m automation trigger --sha "$GITHUB_SHA" ${MACHINES:+--machines "$MACHINES"} $FORCE
