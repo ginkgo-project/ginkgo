@@ -34,11 +34,13 @@ if(GINKGO_BUILD_MPI)
     add_benchmark_test(spmv_distributed)
     add_benchmark_test(solver_distributed)
     add_benchmark_test(preconditioner_distributed)
+    add_benchmark_test(sparse_blas_distributed)
     set_tests_properties(
         benchmark_multi_vector_distributed
         benchmark_spmv_distributed
         benchmark_solver_distributed
         benchmark_preconditioner_distributed
+        benchmark_sparse_blas_distributed
         PROPERTIES LABELS distributed
     )
 endif()
