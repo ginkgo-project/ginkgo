@@ -2,12 +2,16 @@ name: Benchmark trigger
 
 # Twice a week, starts the CSCS CI pipeline "benchmark"
 # (.gitlab/cscs-benchmark.yml) for develop's head, on the machines that have no
-# run of it on the results branch of ginkgo-project/cb-dashboard. The dashboard
-# at cb.gko-project.org imports the results. The logic is
+# run of it on the results branch of ginkgo-project/cb-dashboard. On Saturday
+# nights it starts the pipeline's distributed jobs instead (16 nodes, 1 to 64
+# GPUs), for the machines without a distributed run of develop's head. The
+# dashboard at cb.gko-project.org imports the results. The logic is
 # `python -m automation trigger` in cb-dashboard.
 on:
   schedule:
     - cron: "17 3 * * 1,4"
+    # the distributed jobs
+    - cron: "0 22 * * 6"
   workflow_dispatch:
     inputs:
       machines:
@@ -15,6 +19,10 @@ on:
         default: ""
       force:
         description: "Trigger even if the commit has runs"
+        type: boolean
+        default: false
+      distributed:
+        description: "The distributed jobs instead of the single-node ones"
         type: boolean
         default: false
 
@@ -40,4 +48,5 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           MACHINES: ${{ inputs.machines }}
           FORCE: ${{ inputs.force && '--force' || '' }}
-        run: python -m automation trigger --sha "$GITHUB_SHA" ${MACHINES:+--machines "$MACHINES"} $FORCE
+          DISTRIBUTED: ${{ (github.event.schedule == '0 22 * * 6' || inputs.distributed) && '--distributed' || '' }}
+        run: python -m automation trigger --sha "$GITHUB_SHA" ${MACHINES:+--machines "$MACHINES"} $FORCE $DISTRIBUTED
