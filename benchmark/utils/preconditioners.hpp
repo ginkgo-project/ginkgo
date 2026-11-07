@@ -101,18 +101,26 @@ gko::precision_reduction parse_storage_optimization(const std::string& flag)
 
 /**
  * One V-cycle of AMG with the given coarsening and a coarse CG running
- * -mg_coarse_iters iterations.
+ * -mg_coarse_iters iterations, Jacobi preconditioned. A distributed benchmark
+ * wraps the Jacobi in a Schwarz, since Jacobi needs a single-node matrix.
  */
 template <typename LevelParameters>
 std::unique_ptr<gko::LinOpFactory> make_amg(
     std::shared_ptr<const gko::Executor> exec, LevelParameters level)
 {
+#ifdef GKO_BENCHMARK_DISTRIBUTED
+    auto coarse_preconditioner =
+        gko::experimental::distributed::preconditioner::Schwarz<etype>::build()
+            .with_local_solver(gko::preconditioner::Jacobi<etype>::build());
+#else
+    auto coarse_preconditioner =
+        gko::preconditioner::Jacobi<etype, itype>::build();
+#endif
     return gko::solver::Multigrid::build()
         .with_mg_level(level)
         .with_coarsest_solver(
             gko::solver::Cg<etype>::build()
-                .with_preconditioner(
-                    gko::preconditioner::Jacobi<etype, itype>::build())
+                .with_preconditioner(coarse_preconditioner)
                 .with_criteria(gko::stop::Iteration::build().with_max_iters(
                     FLAGS_mg_coarse_iters)))
         .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))

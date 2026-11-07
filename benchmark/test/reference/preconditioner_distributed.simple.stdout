@@ -1,0 +1,62 @@
+[
+    {
+        "size": 1000,
+        "stencil": "7pt",
+        "comm_pattern": "stencil",
+        "preconditioner": {
+            "schwarz-jacobi": {
+                "generate": {
+                    "components": {
+                        "generate(<typename>)": 1.0,
+                        "allocate": 1.0,
+                        "jacobi::find_blocks": 1.0,
+                        "jacobi::generate": 1.0,
+                        "free": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                },
+                "apply": {
+                    "components": {
+                        "apply(<typename>)": 1.0,
+                        "jacobi::simple_apply": 1.0,
+                        "overhead": 1.0
+                    },
+                    "time": 1.0,
+                    "repetitions": 10,
+                    "repetition_times": [
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0,
+                        1.0
+                    ]
+                },
+                "parameters": null,
+                "storage": 274396,
+                "completed": true
+            }
+        },
+        "rows": 1000,
+        "cols": 1000,
+        "nonzeros": 6400
+    }
+]

@@ -18,8 +18,8 @@
 
 
 /**
- * The type and nonzeros of a csr, sparsity_csr or row_gatherer operator, or
- * "unknown" and null.
+ * The type and nonzeros of a csr, sparsity_csr, row_gatherer or distributed
+ * (global nonzeros) operator, or "unknown" and null.
  */
 inline std::pair<std::string, json> describe_operator(const gko::LinOp* op)
 {
@@ -33,6 +33,22 @@ inline std::pair<std::string, json> describe_operator(const gko::LinOp* op)
     if (auto rg = dynamic_cast<const gko::matrix::RowGatherer<itype>*>(op)) {
         return {"row_gatherer", rg->get_size()[0]};
     }
+#if GINKGO_BUILD_MPI
+    // the global count; every rank of the matrix's communicator must call this
+    if (auto dist = dynamic_cast<const gko::experimental::distributed::Matrix<
+            etype, itype, gko::int64>*>(op)) {
+        auto diag = describe_operator(dist->get_diag_matrix().get()).second;
+        auto off_diag =
+            describe_operator(dist->get_off_diag_matrix().get()).second;
+        if (!diag.is_number_integer() || !off_diag.is_number_integer()) {
+            return {"distributed", nullptr};
+        }
+        auto nonzeros = diag.get<gko::int64>() + off_diag.get<gko::int64>();
+        dist->get_communicator().all_reduce(dist->get_executor()->get_master(),
+                                            &nonzeros, 1, MPI_SUM);
+        return {"distributed", nonzeros};
+    }
+#endif
     return {"unknown", nullptr};
 }
 
