@@ -67,9 +67,9 @@ public:
     using value_type = ValueType;
     using absolute_type = remove_complex<ValueType>;
 
-    void convert_to(Nullspace* result) const override { *result = *this; }
+    void convert_to(Nullspace* result) const override;
 
-    void move_to(Nullspace* result) override { *result = std::move(*this); }
+    void move_to(Nullspace* result) override;
 
     /**
      * Creates a Nullspace from an explicit basis.
@@ -136,14 +136,6 @@ public:
      *           distribution) as that basis.
      */
     void project(ptr_param<LinOp> v) const;
-
-    Nullspace& operator=(const Nullspace& other);
-
-    Nullspace& operator=(Nullspace&& other);
-
-    Nullspace(const Nullspace& other);
-
-    Nullspace(Nullspace&& other);
 
 protected:
     explicit Nullspace(std::shared_ptr<const Executor> exec);

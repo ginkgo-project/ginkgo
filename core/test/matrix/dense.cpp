@@ -457,26 +457,22 @@ public:
 
     int get_data() const { return data_; }
 
-    void convert_to(CustomDense* result) const override { *result = *this; }
-
-    void move_to(CustomDense* result) override { *result = std::move(*this); }
-
-    CustomDense& operator=(const CustomDense& other)
+    void convert_to(CustomDense* result) const override
     {
-        if (&other != this) {
-            gko::matrix::Dense<>::operator=(other);
-            data_ = other.data_;
+        if (this != result) {
+            gko::matrix::Dense<>::convert_to(
+                static_cast<gko::matrix::Dense<>*>(result));
+            result->data_ = data_;
         }
-        return *this;
     }
 
-    CustomDense& operator=(CustomDense&& other)
+    void move_to(CustomDense* result) override
     {
-        if (&other != this) {
-            gko::matrix::Dense<>::operator=(std::move(other));
-            data_ = std::exchange(other.data_, 0);
+        if (this != result) {
+            gko::matrix::Dense<>::move_to(
+                static_cast<gko::matrix::Dense<>*>(result));
+            result->data_ = std::exchange(data_, 0);
         }
-        return *this;
     }
 
 protected:

@@ -444,50 +444,34 @@ void Nullspace<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-Nullspace<ValueType>& Nullspace<ValueType>::operator=(const Nullspace& other)
+void Nullspace<ValueType>::convert_to(Nullspace* result) const
 {
-    if (&other != this) {
-        LinOp::operator=(other);
-        auto exec = this->get_executor();
-        contains_constant_ = other.contains_constant_;
-        basis_ = other.basis_;
-        if (basis_ && other.get_executor() != exec) {
-            basis_ = gko::clone(exec, basis_);
+    if (this != result) {
+        result->set_size(this->get_size());
+        auto exec = result->get_executor();
+        result->contains_constant_ = this->contains_constant_;
+        result->basis_ = this->basis_;
+        if (result->basis_ && this->get_executor() != exec) {
+            result->basis_ = gko::clone(exec, result->basis_);
         }
     }
-    return *this;
 }
 
 
 template <typename ValueType>
-Nullspace<ValueType>& Nullspace<ValueType>::operator=(Nullspace&& other)
+void Nullspace<ValueType>::move_to(Nullspace* result)
 {
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        auto exec = this->get_executor();
-        contains_constant_ = std::exchange(other.contains_constant_, false);
-        basis_ = std::move(other.basis_);
-        if (basis_ && other.get_executor() != exec) {
-            basis_ = gko::clone(exec, basis_);
+    if (this != result) {
+        result->set_size(this->get_size());
+        this->set_size({});
+        auto exec = result->get_executor();
+        result->contains_constant_ =
+            std::exchange(this->contains_constant_, false);
+        result->basis_ = std::move(this->basis_);
+        if (result->basis_ && this->get_executor() != exec) {
+            result->basis_ = gko::clone(exec, result->basis_);
         }
     }
-    return *this;
-}
-
-
-template <typename ValueType>
-Nullspace<ValueType>::Nullspace(const Nullspace& other)
-    : Nullspace(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType>
-Nullspace<ValueType>::Nullspace(Nullspace&& other)
-    : Nullspace(other.get_executor())
-{
-    *this = std::move(other);
 }
 
 

@@ -51,55 +51,37 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
-Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
-    const Sellp& other)
+void Sellp<ValueType, IndexType>::convert_to(Sellp* result) const
 {
-    if (&other != this) {
-        LinOp::operator=(other);
-        values_ = other.values_;
-        col_idxs_ = other.col_idxs_;
-        slice_lengths_ = other.slice_lengths_;
-        slice_sets_ = other.slice_sets_;
-        slice_size_ = other.slice_size_;
-        stride_factor_ = other.stride_factor_;
+    if (this != result) {
+        result->set_size(this->get_size());
+        result->values_ = this->values_;
+        result->col_idxs_ = this->col_idxs_;
+        result->slice_lengths_ = this->slice_lengths_;
+        result->slice_sets_ = this->slice_sets_;
+        result->slice_size_ = this->slice_size_;
+        result->stride_factor_ = this->stride_factor_;
     }
-    return *this;
 }
 
 
 template <typename ValueType, typename IndexType>
-Sellp<ValueType, IndexType>& Sellp<ValueType, IndexType>::operator=(
-    Sellp&& other)
+void Sellp<ValueType, IndexType>::move_to(Sellp* result)
 {
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        values_ = std::move(other.values_);
-        col_idxs_ = std::move(other.col_idxs_);
-        slice_lengths_ = std::move(other.slice_lengths_);
-        slice_sets_ = std::move(other.slice_sets_);
+    if (this != result) {
+        result->set_size(this->get_size());
+        this->set_size({});
+        result->values_ = std::move(this->values_);
+        result->col_idxs_ = std::move(this->col_idxs_);
+        result->slice_lengths_ = std::move(this->slice_lengths_);
+        result->slice_sets_ = std::move(this->slice_sets_);
         // slice_size and stride_factor are immutable
-        slice_size_ = other.slice_size_;
-        stride_factor_ = other.stride_factor_;
-        // restore other invariant
-        other.slice_sets_.resize_and_reset(1);
-        other.slice_sets_.fill(0);
+        result->slice_size_ = this->slice_size_;
+        result->stride_factor_ = this->stride_factor_;
+        // restore this invariant
+        this->slice_sets_.resize_and_reset(1);
+        this->slice_sets_.fill(0);
     }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Sellp<ValueType, IndexType>::Sellp(const Sellp& other)
-    : Sellp(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-Sellp<ValueType, IndexType>::Sellp(Sellp&& other) : Sellp(other.get_executor())
-{
-    *this = std::move(other);
 }
 
 

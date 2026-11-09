@@ -69,17 +69,6 @@ protected:
 
     ~OnemklBase() = default;
 
-    OnemklBase(const OnemklBase& other) = delete;
-
-    OnemklBase& operator=(const OnemklBase& other)
-    {
-        if (this != &other) {
-            gko::LinOp::operator=(other);
-            this->initialize_mat_handle(this->get_device_exec());
-        }
-        return *this;
-    }
-
 private:
     template <typename T>
     using handle_manager = std::unique_ptr<T, std::function<void(T*)>>;

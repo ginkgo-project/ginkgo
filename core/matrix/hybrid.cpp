@@ -55,48 +55,27 @@ GKO_REGISTER_OPERATION(outplace_absolute_array,
 
 
 template <typename ValueType, typename IndexType>
-Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
-    const Hybrid& other)
+void Hybrid<ValueType, IndexType>::convert_to(Hybrid* result) const
 {
-    if (&other != this) {
-        LinOp::operator=(other);
-        auto exec = this->get_executor();
-        *coo_ = *other.coo_;
-        *ell_ = *other.ell_;
-        strategy_ = other.strategy_;
+    if (this != result) {
+        result->set_size(this->get_size());
+        this->coo_->convert_to(result->coo_.get());
+        this->ell_->convert_to(result->ell_.get());
+        result->strategy_ = this->strategy_;
     }
-    return *this;
 }
 
 
 template <typename ValueType, typename IndexType>
-Hybrid<ValueType, IndexType>& Hybrid<ValueType, IndexType>::operator=(
-    Hybrid&& other)
+void Hybrid<ValueType, IndexType>::move_to(Hybrid* result)
 {
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        auto exec = this->get_executor();
-        *coo_ = std::move(*other.coo_);
-        *ell_ = std::move(*other.ell_);
-        strategy_ = other.strategy_;
+    if (this != result) {
+        result->set_size(this->get_size());
+        this->set_size({});
+        this->coo_->move_to(result->coo_.get());
+        this->ell_->move_to(result->ell_.get());
+        result->strategy_ = this->strategy_;
     }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Hybrid<ValueType, IndexType>::Hybrid(const Hybrid& other)
-    : Hybrid(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-Hybrid<ValueType, IndexType>::Hybrid(Hybrid&& other)
-    : Hybrid(other.get_executor())
-{
-    *this = std::move(other);
 }
 
 
@@ -222,8 +201,8 @@ template <typename ValueType, typename IndexType>
 void Hybrid<ValueType, IndexType>::convert_to(
     Hybrid<next_precision<ValueType>, IndexType>* result) const
 {
-    this->ell_->convert_to(result->ell_);
-    this->coo_->convert_to(result->coo_);
+    this->ell_->convert_to(result->ell_.get());
+    this->coo_->convert_to(result->coo_.get());
     // TODO set strategy correctly
     // There is no way to correctly clone the strategy like in
     // Csr::convert_to

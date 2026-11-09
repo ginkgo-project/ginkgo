@@ -256,6 +256,7 @@ void Coo<ValueType, IndexType>::move_to(Coo* result)
         result->row_idxs_ = std::move(this->row_idxs_);
         result->col_idxs_ = std::move(this->col_idxs_);
         result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 

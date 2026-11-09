@@ -731,7 +731,7 @@ template <typename ValueType>
 void Vector<ValueType>::convert_to(Vector* result) const
 {
     if (this != result) {
-        result->local_ = this->local_;
+        this->local_.convert_to(&result->local_);
         result->set_size(this->get_size());
     }
 }
@@ -741,8 +741,9 @@ template <typename ValueType>
 void Vector<ValueType>::move_to(Vector* result)
 {
     if (this != result) {
-        result->local_ = std::move(this->local_);
+        this->local_.move_to(&result->local_);
         result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 

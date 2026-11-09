@@ -204,6 +204,7 @@ void Fft::move_to(Fft* result)
     if (this != result) {
         result->inverse_ = this->inverse_;
         result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 
@@ -316,6 +317,7 @@ void Fft2::move_to(Fft2* result)
         result->fft_size_ = this->fft_size_;
         result->inverse_ = this->inverse_;
         result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 
@@ -449,6 +451,7 @@ void Fft3::move_to(Fft3* result)
         result->fft_size_ = this->fft_size_;
         result->inverse_ = this->inverse_;
         result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 

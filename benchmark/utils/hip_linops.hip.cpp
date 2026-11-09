@@ -47,17 +47,6 @@ protected:
 
     ~HipsparseBase() = default;
 
-    HipsparseBase(const HipsparseBase& other) = delete;
-
-    HipsparseBase& operator=(const HipsparseBase& other)
-    {
-        if (this != &other) {
-            gko::LinOp::operator=(other);
-            this->initialize_descr();
-        }
-        return *this;
-    }
-
     void initialize_descr()
     {
         auto exec = this->get_gpu_exec();
@@ -276,10 +265,6 @@ public:
                       << e.what() << std::endl;
         }
     }
-
-    HipsparseHybrid(const HipsparseHybrid& other) = delete;
-
-    HipsparseHybrid& operator=(const HipsparseHybrid& other) = default;
 
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
