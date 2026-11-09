@@ -35,11 +35,7 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Perturbation : public LinOp,
-                     public EnableCloneable<Perturbation<ValueType>>,
-                     public EnableCreateMethod<Perturbation<ValueType>> {
-    friend class EnableCloneable<Perturbation>;
-    friend class EnableCreateMethod<Perturbation>;
+class Perturbation : public LinOp {
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -74,14 +70,6 @@ public:
     {
         return scalar_;
     }
-
-    Perturbation& operator=(const Perturbation& other);
-
-    Perturbation& operator=(Perturbation&& other);
-
-    Perturbation(const Perturbation& other);
-
-    Perturbation(Perturbation&& other);
 
     /**
      * Creates an empty perturbation operator (0x0 operator).
