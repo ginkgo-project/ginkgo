@@ -62,20 +62,5 @@ Combined::Factory::Factory(std::shared_ptr<const ::gko::Executor> exec,
 {}
 
 
-Combined::Factory& Combined::Factory::operator=(const Combined::Factory& other)
-{
-    if (this != &other) {
-        parameters_type new_parameters;
-        new_parameters.criteria.clear();
-        for (auto criterion : other.get_parameters().criteria) {
-            new_parameters.criteria.push_back(
-                gko::clone(this->get_executor(), criterion));
-        }
-        Base::operator=(Factory(this->get_executor(), new_parameters));
-    }
-    return *this;
-}
-
-
 }  // namespace stop
 }  // namespace gko

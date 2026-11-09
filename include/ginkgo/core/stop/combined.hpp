@@ -55,11 +55,6 @@ public:
         explicit Factory(std::shared_ptr<const ::gko::Executor> exec);
         explicit Factory(std::shared_ptr<const ::gko::Executor> exec,
                          const parameters_type& parameters);
-
-        Factory(const Factory& other) = default;
-        Factory(Factory&& other) = default;
-
-        Factory& operator=(const Factory& other);
     };
 
     static parameters_type build() { return {}; }
