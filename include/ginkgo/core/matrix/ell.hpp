@@ -75,8 +75,8 @@ class Ell : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<Ell>::convert_to;
-    using EnableCloneable<Ell>::move_to;
+    using ConvertibleTo<Ell>::convert_to;
+    using ConvertibleTo<Ell>::move_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -93,6 +93,10 @@ public:
     using device_view = matrix::view::ell<value_type, index_type>;
     using const_device_view =
         matrix::view::ell<const value_type, const index_type>;
+
+    void convert_to(Ell* result) const override { *result = *this; }
+
+    void move_to(Ell* result) override { *result = std::move(*this); }
 
     void convert_to(
         Ell<next_precision<ValueType>, IndexType>* result) const override;

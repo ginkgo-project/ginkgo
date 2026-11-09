@@ -727,6 +727,26 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_submatrix_impl(
 }
 
 
+template <typename ValueType>
+void Vector<ValueType>::convert_to(Vector* result) const
+{
+    if (this != result) {
+        result->local_ = this->local_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType>
+void Vector<ValueType>::move_to(Vector* result)
+{
+    if (this != result) {
+        result->local_ = std::move(this->local_);
+        result->set_size(this->get_size());
+    }
+}
+
+
 #define GKO_DECLARE_DISTRIBUTED_VECTOR(ValueType) class Vector<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DISTRIBUTED_VECTOR);
 

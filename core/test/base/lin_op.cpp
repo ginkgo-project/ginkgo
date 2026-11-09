@@ -79,6 +79,16 @@ public:
         : LinOp(exec, size)
     {}
 
+    void convert_to(DummyLinOp* result) const override
+    {
+        result->set_size(this->get_size());
+    }
+
+    void move_to(DummyLinOp* result) override
+    {
+        result->set_size(this->get_size());
+    }
+
     void access() const { last_access = this->get_executor(); }
 
     mutable std::shared_ptr<const gko::Executor> last_access;

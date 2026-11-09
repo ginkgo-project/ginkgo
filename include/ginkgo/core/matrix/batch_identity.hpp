@@ -40,6 +40,10 @@ public:
     using absolute_type = remove_complex<Identity>;
     using complex_type = to_complex<Identity>;
 
+    void convert_to(Identity* result) const override;
+
+    void move_to(Identity* result) override;
+
     /**
      * Apply the matrix to a multi-vector. Represents the matrix vector
      * multiplication, x = I * b, where x and b are both multi-vectors.

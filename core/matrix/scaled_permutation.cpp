@@ -172,6 +172,29 @@ void ScaledPermutation<ValueType, IndexType>::write(
 }
 
 
+template <typename ValueType, typename IndexType>
+void ScaledPermutation<ValueType, IndexType>::convert_to(
+    ScaledPermutation* result) const
+{
+    if (this != result) {
+        result->scale_ = this->scale_;
+        result->permutation_ = this->permutation_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void ScaledPermutation<ValueType, IndexType>::move_to(ScaledPermutation* result)
+{
+    if (this != result) {
+        result->scale_ = std::move(this->scale_);
+        result->permutation_ = std::move(this->permutation_);
+        result->set_size(this->get_size());
+    }
+}
+
+
 #define GKO_DECLARE_SCALED_PERMUTATION_MATRIX(ValueType, IndexType) \
     class ScaledPermutation<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

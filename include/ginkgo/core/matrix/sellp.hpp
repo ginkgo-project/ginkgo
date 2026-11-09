@@ -64,8 +64,8 @@ class Sellp
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<Sellp>::convert_to;
-    using EnableCloneable<Sellp>::move_to;
+    using ConvertibleTo<Sellp>::convert_to;
+    using ConvertibleTo<Sellp>::move_to;
     using ConvertibleTo<
         Sellp<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>::move_to;
@@ -83,6 +83,10 @@ public:
     using device_view = matrix::view::sellp<value_type, index_type>;
     using const_device_view =
         matrix::view::sellp<const value_type, const index_type>;
+
+    void convert_to(Sellp* result) const override { *result = *this; }
+
+    void move_to(Sellp* result) override { *result = std::move(*this); }
 
     friend class Sellp<previous_precision<ValueType>, IndexType>;
 

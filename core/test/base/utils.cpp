@@ -387,6 +387,10 @@ struct DummyObject : gko::PolymorphicObject,
         : PolymorphicObject(exec), data{value}
     {}
 
+    void convert_to(DummyObject* result) const override { result->data = data; }
+
+    void move_to(DummyObject* result) override { result->data = data; }
+
     int data;
 };
 

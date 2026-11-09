@@ -117,6 +117,10 @@ class RowGatherer final : public PolymorphicObject,
         gko::detail::GenericDenseCache& workspace);
 
 public:
+    void convert_to(RowGatherer* result) const override { *result = *this; }
+
+    void move_to(RowGatherer* result) override { *result = std::move(*this); }
+
     /**
      * Asynchronous version of LinOp::apply.
      *

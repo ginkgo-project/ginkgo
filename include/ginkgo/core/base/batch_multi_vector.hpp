@@ -72,8 +72,8 @@ class MultiVector
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<MultiVector>::convert_to;
-    using EnableCloneable<MultiVector>::move_to;
+    using ConvertibleTo<MultiVector>::convert_to;
+    using ConvertibleTo<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
 
@@ -82,6 +82,10 @@ public:
     using unbatch_type = gko::matrix::Dense<ValueType>;
     using absolute_type = remove_complex<MultiVector<ValueType>>;
     using complex_type = to_complex<MultiVector<ValueType>>;
+
+    void convert_to(MultiVector* result) const override;
+
+    void move_to(MultiVector* result) override;
 
     /**
      * Creates a MultiVector with the configuration of another

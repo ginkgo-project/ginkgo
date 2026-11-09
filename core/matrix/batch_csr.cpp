@@ -300,6 +300,30 @@ void Csr<ValueType, IndexType>::move_to(
 #endif
 
 
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::convert_to(Csr* result) const
+{
+    if (this != result) {
+        result->values_ = this->values_;
+        result->col_idxs_ = this->col_idxs_;
+        result->row_ptrs_ = this->row_ptrs_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::move_to(Csr* result)
+{
+    if (this != result) {
+        result->values_ = std::move(this->values_);
+        result->col_idxs_ = std::move(this->col_idxs_);
+        result->row_ptrs_ = std::move(this->row_ptrs_);
+        result->set_size(this->get_size());
+    }
+}
+
+
 #define GKO_DECLARE_BATCH_CSR_MATRIX(ValueType) class Csr<ValueType, int32>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_CSR_MATRIX);
 

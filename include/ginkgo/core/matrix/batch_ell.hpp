@@ -66,14 +66,18 @@ class Ell final
                   "IndexType must be a 32 bit integer");
 
 public:
-    using EnableCloneable<Ell>::convert_to;
-    using EnableCloneable<Ell>::move_to;
+    using ConvertibleTo<Ell>::convert_to;
+    using ConvertibleTo<Ell>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using unbatch_type = gko::matrix::Ell<value_type, index_type>;
     using absolute_type = remove_complex<Ell>;
     using complex_type = to_complex<Ell>;
+
+    void convert_to(Ell* result) const override;
+
+    void move_to(Ell* result) override;
 
     void convert_to(
         Ell<next_precision<ValueType>, IndexType>* result) const override;

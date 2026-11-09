@@ -141,8 +141,8 @@ class Dense
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Dense>::convert_to;
-    using EnableCloneable<Dense>::move_to;
+    using ConvertibleTo<Dense>::convert_to;
+    using ConvertibleTo<Dense>::move_to;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Dense<next_precision<ValueType>>>::move_to;
     using ConvertibleTo<Coo<ValueType, int32>>::convert_to;
@@ -190,6 +190,10 @@ public:
     using const_device_view = matrix::view::dense<const value_type>;
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
+
+    void convert_to(Dense* result) const override { *result = *this; }
+
+    void move_to(Dense* result) override { *result = std::move(*this); }
 
     /**
      * Creates a Dense matrix with the same size and stride as another Dense
