@@ -478,7 +478,10 @@ struct write_case<gko::multigrid::Pmis<ValueType, IndexType>> {
     {
         return gko::multigrid::Pmis<ValueType, IndexType>::build()
             .with_strength_threshold(gko::remove_complex<ValueType>{0.5})
+            .with_max_row_sum(gko::remove_complex<ValueType>{0.5})
+            .with_p_max_elmts(gko::size_type{4})
             .with_skip_sorting(true)
+            .with_interpolation(gko::multigrid::interpolation_type::ext_i)
             .on(exec);
     }
 };

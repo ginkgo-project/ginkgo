@@ -119,8 +119,14 @@ struct Pmis : MultigridLevelConfigTest<gko::multigrid::Pmis<float, int>,
     {
         config_map["strength_threshold"] = pnode{0.1};
         param.with_strength_threshold(decltype(param.strength_threshold){0.1});
+        config_map["max_row_sum"] = pnode{0.5};
+        param.with_max_row_sum(decltype(param.max_row_sum){0.5});
+        config_map["p_max_elmts"] = pnode{gko::size_type{4}};
+        param.with_p_max_elmts(decltype(param.p_max_elmts){4});
         config_map["skip_sorting"] = pnode{true};
         param.with_skip_sorting(true);
+        config_map["interpolation"] = pnode{"classical"};
+        param.with_interpolation(gko::multigrid::interpolation_type::classical);
     }
 
     template <typename AnswerType>
@@ -130,7 +136,10 @@ struct Pmis : MultigridLevelConfigTest<gko::multigrid::Pmis<float, int>,
         auto ans_param = answer->get_parameters();
 
         ASSERT_EQ(res_param.strength_threshold, ans_param.strength_threshold);
+        ASSERT_EQ(res_param.max_row_sum, ans_param.max_row_sum);
+        ASSERT_EQ(res_param.p_max_elmts, ans_param.p_max_elmts);
         ASSERT_EQ(res_param.skip_sorting, ans_param.skip_sorting);
+        ASSERT_EQ(res_param.interpolation, ans_param.interpolation);
     }
 };
 
@@ -208,6 +217,38 @@ TYPED_TEST(MultigridLevel, Set)
     auto ans = params.on(this->exec);
 
     Config::validate(res.get(), ans.get());
+}
+
+
+TEST(PmisConfig, ThrowWhenInterpolationIsInvalid)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    type_descriptor td("float64", "int32");
+    registry reg;
+    auto config_map = ::Pmis::setup_base();
+    config_map["interpolation"] = pnode{"unknown"};
+    auto config = pnode(config_map);
+
+    ASSERT_THROW(parse(config, reg, td).on(exec), gko::InvalidStateError);
+}
+
+
+TEST(PmisConfig, ParsesExtIInterpolation)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    type_descriptor td("float64", "int32");
+    registry reg;
+    auto config_map = ::Pmis::setup_base();
+    config_map["interpolation"] = pnode{"ext_i"};
+    auto config = pnode(config_map);
+
+    auto factory = parse(config, reg, td).on(exec);
+
+    auto pmis_factory =
+        gko::as<gko::multigrid::Pmis<double, gko::int32>::Factory>(
+            factory.get());
+    ASSERT_EQ(pmis_factory->get_parameters().interpolation,
+              gko::multigrid::interpolation_type::ext_i);
 }
 
 

@@ -179,6 +179,17 @@ inline pnode write_value(preconditioner::isai_type type)
 }
 
 
+inline pnode write_value(multigrid::interpolation_type type)
+{
+    switch (type) {
+        GKO_WRITE_ENUM_CASE(multigrid::interpolation_type, direct);
+        GKO_WRITE_ENUM_CASE(multigrid::interpolation_type, classical);
+        GKO_WRITE_ENUM_CASE(multigrid::interpolation_type, ext_i);
+    }
+    GKO_NOT_SUPPORTED(type);
+}
+
+
 inline pnode write_value(solver::multigrid::cycle cycle)
 {
     switch (cycle) {

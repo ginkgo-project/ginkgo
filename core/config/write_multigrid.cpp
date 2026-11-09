@@ -63,7 +63,10 @@ pnode parameter_writer<multigrid::Pmis<ValueType, IndexType>>::write(
 {
     auto map = make_config_map<ValueType>("multigrid::Pmis");
     map["strength_threshold"] = write_value(params.strength_threshold);
+    map["max_row_sum"] = write_value(params.max_row_sum);
+    map["p_max_elmts"] = write_value(params.p_max_elmts);
     map["skip_sorting"] = write_value(params.skip_sorting);
+    map["interpolation"] = write_value(params.interpolation);
     return pnode{map};
 }
 
