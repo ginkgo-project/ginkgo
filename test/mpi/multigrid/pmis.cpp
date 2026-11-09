@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <algorithm>
+#include <limits>
 #include <memory>
 #include <tuple>
 #include <vector>
@@ -14,6 +15,8 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/segmented_array.hpp>
+#include <ginkgo/core/distributed/index_map.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
@@ -29,6 +32,9 @@
 #include <ginkgo/core/stop/iteration.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
+#include "core/distributed/helpers.hpp"
+#include "core/multigrid/pmis_halo.hpp"
+#include "core/multigrid/pmis_kernels.hpp"
 #include "core/test/utils.hpp"
 #include "test/utils/mpi/common_fixture.hpp"
 
@@ -164,6 +170,94 @@ protected:
         }
         data.sort_row_major();
         return data;
+    }
+
+    template <typename IndexType>
+    static gko::matrix_data<value_type, IndexType> banded_dense_data(int n)
+    {
+        const auto weak = value_type{-1} / value_type{8};
+        gko::matrix_data<value_type, IndexType> data{gko::dim<2>(n, n)};
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                const auto dist = i > j ? i - j : j - i;
+                if (dist == 0) {
+                    data.nonzeros.emplace_back(i, j, value_type{4});
+                } else if (dist <= 2) {
+                    data.nonzeros.emplace_back(i, j, value_type{-1});
+                } else {
+                    data.nonzeros.emplace_back(i, j, weak);
+                }
+            }
+        }
+        data.sort_row_major();
+        return data;
+    }
+
+    template <typename IndexType>
+    static gko::matrix_data<value_type, IndexType> banded_dense_data_unsorted(
+        int n)
+    {
+        const auto weak = value_type{-1} / value_type{8};
+        gko::matrix_data<value_type, IndexType> data{gko::dim<2>(n, n)};
+        for (int i = 0; i < n; i++) {
+            for (int j = n - 1; j >= 0; j--) {
+                const auto dist = i > j ? i - j : j - i;
+                if (dist == 0) {
+                    data.nonzeros.emplace_back(i, j, value_type{4});
+                } else if (dist <= 2) {
+                    data.nonzeros.emplace_back(i, j, value_type{-1});
+                } else {
+                    data.nonzeros.emplace_back(i, j, weak);
+                }
+            }
+        }
+        return data;
+    }
+
+    std::shared_ptr<dist_mtx_type> build_banded_dense()
+    {
+        auto mat = gko::share(dist_mtx_type::create(exec, comm));
+        mat->read_distributed(
+            banded_dense_data<global_index_type>(static_cast<int>(size[0])),
+            row_part);
+        return mat;
+    }
+
+    std::shared_ptr<local_matrix_type> build_banded_dense_serial()
+    {
+        auto mat = gko::share(local_matrix_type::create(exec));
+        mat->read(
+            banded_dense_data<local_index_type>(static_cast<int>(size[0])));
+        return mat;
+    }
+
+    gko::size_type global_nnz(const dist_mtx_type* mat)
+    {
+        gko::size_type local =
+            gko::as<local_matrix_type>(mat->get_diag_matrix())
+                ->get_num_stored_elements() +
+            gko::as<local_matrix_type>(mat->get_off_diag_matrix())
+                ->get_num_stored_elements();
+        gko::size_type global = 0;
+        comm.all_reduce(ref, &local, &global, 1, MPI_SUM);
+        return global;
+    }
+
+    std::shared_ptr<dist_mtx_type> build_cross_boundary()
+    {
+        auto mat = gko::share(dist_mtx_type::create(exec, comm));
+        mat->read_distributed(
+            cross_boundary_data<global_index_type>(static_cast<int>(size[0])),
+            row_part);
+        return mat;
+    }
+
+    std::shared_ptr<local_matrix_type> build_cross_boundary_serial()
+    {
+        auto mat = gko::share(local_matrix_type::create(exec));
+        mat->read(
+            cross_boundary_data<local_index_type>(static_cast<int>(size[0])));
+        return mat;
     }
 
     Pmis() : size{12, 12}
@@ -304,6 +398,84 @@ protected:
             ASSERT_EQ(std::get<1>(mine[i]), std::get<1>(theirs[i]));
             ASSERT_NEAR(gko::abs(std::get<2>(mine[i]) - std::get<2>(theirs[i])),
                         0.0, r<value_type>::value);
+        }
+    }
+
+    struct host_rows {
+        std::unique_ptr<local_matrix_type> diag;
+        std::unique_ptr<local_matrix_type> off_diag;
+
+        gko::size_type num_rows() const { return diag->get_size()[0]; }
+
+        gko::size_type row_nnz(gko::size_type row) const
+        {
+            return static_cast<gko::size_type>(
+                       diag->get_const_row_ptrs()[row + 1] -
+                       diag->get_const_row_ptrs()[row]) +
+                   static_cast<gko::size_type>(
+                       off_diag->get_const_row_ptrs()[row + 1] -
+                       off_diag->get_const_row_ptrs()[row]);
+        }
+
+        real_type row_abs_sum(gko::size_type row) const
+        {
+            auto sum = gko::zero<real_type>();
+            for (auto k = diag->get_const_row_ptrs()[row];
+                 k < diag->get_const_row_ptrs()[row + 1]; k++) {
+                sum += gko::abs(diag->get_const_values()[k]);
+            }
+            for (auto k = off_diag->get_const_row_ptrs()[row];
+                 k < off_diag->get_const_row_ptrs()[row + 1]; k++) {
+                sum += gko::abs(off_diag->get_const_values()[k]);
+            }
+            return sum;
+        }
+
+        value_type row_sum(gko::size_type row) const
+        {
+            auto sum = gko::zero<value_type>();
+            for (auto k = diag->get_const_row_ptrs()[row];
+                 k < diag->get_const_row_ptrs()[row + 1]; k++) {
+                sum += diag->get_const_values()[k];
+            }
+            for (auto k = off_diag->get_const_row_ptrs()[row];
+                 k < off_diag->get_const_row_ptrs()[row + 1]; k++) {
+                sum += off_diag->get_const_values()[k];
+            }
+            return sum;
+        }
+    };
+
+    host_rows local_rows_of(const gko::LinOp* op)
+    {
+        auto mat = gko::as<dist_mtx_type>(op);
+        return {
+            gko::clone(ref, gko::as<local_matrix_type>(mat->get_diag_matrix())),
+            gko::clone(ref,
+                       gko::as<local_matrix_type>(mat->get_off_diag_matrix()))};
+    }
+
+    static void assert_csr_identical(const local_matrix_type* expected,
+                                     const local_matrix_type* actual,
+                                     const char* what)
+    {
+        ASSERT_EQ(actual->get_size(), expected->get_size()) << what;
+        ASSERT_EQ(actual->get_num_stored_elements(),
+                  expected->get_num_stored_elements())
+            << what;
+        for (gko::size_type i = 0; i <= expected->get_size()[0]; i++) {
+            ASSERT_EQ(actual->get_const_row_ptrs()[i],
+                      expected->get_const_row_ptrs()[i])
+                << what << " row_ptrs[" << i << "]";
+        }
+        for (gko::size_type k = 0; k < expected->get_num_stored_elements();
+             k++) {
+            ASSERT_EQ(actual->get_const_col_idxs()[k],
+                      expected->get_const_col_idxs()[k])
+                << what << " col_idxs[" << k << "]";
+            ASSERT_EQ(actual->get_const_values()[k],
+                      expected->get_const_values()[k])
+                << what << " values[" << k << "]";
         }
     }
 
@@ -732,4 +904,543 @@ TYPED_TEST(Pmis, HierarchyIsIndependentOfRankCount)
         ASSERT_EQ(global_nnz, s_coarse->get_num_stored_elements())
             << "level " << lvl;
     }
+}
+
+
+TYPED_TEST(Pmis, CombinedIndexSpacePlacesNonLocalAfterLocal)
+{
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_index_type = typename TestFixture::local_index_type;
+
+    const auto& imap = this->dist_mat->get_index_map();
+    const auto n_loc = imap.get_local_size();
+    const auto n_halo = imap.get_non_local_size();
+
+    gko::segmented_array<global_index_type> host_remote(
+        this->ref, imap.get_remote_global_idxs());
+    ASSERT_EQ(host_remote.get_size(), n_halo);
+    gko::array<global_index_type> remote_global(
+        this->exec, host_remote.get_const_flat_data(),
+        host_remote.get_const_flat_data() + host_remote.get_size());
+
+    auto mapped = imap.map_to_local(
+        remote_global, gko::experimental::distributed::index_space::combined);
+    gko::array<local_index_type> host_mapped(this->ref, mapped);
+
+    for (gko::size_type j = 0; j < n_halo; j++) {
+        ASSERT_EQ(host_mapped.get_const_data()[j],
+                  static_cast<local_index_type>(n_loc + j))
+            << "non-local index " << j;
+    }
+}
+
+
+TYPED_TEST(Pmis, HaloNegScaleBroadcastMatchesOwner)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+
+    const auto n = this->serial_mat->get_size()[0];
+    gko::array<real_type> ref_neg_scale(this->ref, n);
+    gko::array<real_type> ref_row_sum(this->ref, n);
+    gko::array<real_type> ref_diag_abs(this->ref, n);
+    ref_neg_scale.fill(gko::zero<real_type>());
+    ref_row_sum.fill(gko::zero<real_type>());
+    ref_diag_abs.fill(gko::zero<real_type>());
+    auto serial_ref = gko::clone(this->ref, this->serial_mat);
+    gko::kernels::reference::pmis::compute_row_scales(
+        this->ref, serial_ref.get(), true, ref_neg_scale.get_data(),
+        ref_row_sum.get_data(), ref_diag_abs.get_data());
+
+    auto diag = gko::clone(this->ref, gko::as<local_matrix_type>(
+                                          this->dist_mat->get_diag_matrix()));
+    auto off_diag = gko::clone(
+        this->ref,
+        gko::as<local_matrix_type>(this->dist_mat->get_off_diag_matrix()));
+    const auto n_loc = diag->get_size()[0];
+    const auto n_halo = off_diag->get_size()[1];
+    const auto n_ext = n_loc + n_halo;
+    gko::array<real_type> neg_scale(this->ref, n_ext);
+    gko::array<real_type> row_sum(this->ref, n_ext);
+    gko::array<real_type> diag_abs(this->ref, n_ext);
+    neg_scale.fill(gko::zero<real_type>());
+    row_sum.fill(gko::zero<real_type>());
+    diag_abs.fill(gko::zero<real_type>());
+    gko::kernels::reference::pmis::compute_row_scales(
+        this->ref, diag.get(), true, neg_scale.get_data(), row_sum.get_data(),
+        diag_abs.get_data());
+    gko::kernels::reference::pmis::compute_row_scales(
+        this->ref, off_diag.get(), false, neg_scale.get_data(),
+        row_sum.get_data(), diag_abs.get_data());
+
+    auto row_gatherer = this->dist_mat->get_row_gatherer();
+    auto coll_comm = row_gatherer->get_collective_communicator();
+    const auto n_send = row_gatherer->get_num_send_idxs();
+    gko::array<local_index_type> send_idxs(this->ref, n_send);
+    this->ref->copy_from(row_gatherer->get_executor(), n_send,
+                         row_gatherer->get_const_send_idxs(),
+                         send_idxs.get_data());
+    gko::array<real_type> send_buffer(this->ref, n_send);
+    for (gko::size_type i = 0; i < n_send; i++) {
+        send_buffer.get_data()[i] =
+            neg_scale.get_const_data()[send_idxs.get_const_data()[i]];
+    }
+    auto recv = gko::detail::exchange_with_neighbors(
+        this->ref, this->comm, coll_comm.get(), send_buffer);
+    ASSERT_EQ(recv.get_size(), n_halo);
+    this->ref->copy_from(this->ref, n_halo, recv.get_const_data(),
+                         neg_scale.get_data() + n_loc);
+
+    const auto& imap = this->dist_mat->get_index_map();
+    gko::segmented_array<global_index_type> host_remote(
+        this->ref, imap.get_remote_global_idxs());
+    ASSERT_EQ(host_remote.get_size(), n_halo);
+    for (gko::size_type j = 0; j < n_halo; j++) {
+        const auto g =
+            static_cast<gko::size_type>(host_remote.get_const_flat_data()[j]);
+        ASSERT_LT(g, n);
+        ASSERT_NEAR(neg_scale.get_const_data()[n_loc + j],
+                    ref_neg_scale.get_const_data()[g], r<value_type>::value)
+            << "halo local index " << j << ", global row " << g;
+    }
+}
+
+
+TYPED_TEST(Pmis, FetchHaloRowsDropsSecondHopColumnsAndSortsSurvivors)
+{
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+
+    auto cross_dist = this->build_cross_boundary();
+    auto serial_host =
+        gko::clone(this->ref, this->build_cross_boundary_serial());
+    auto diag = gko::as<local_matrix_type>(cross_dist->get_diag_matrix());
+    auto off_diag =
+        gko::as<local_matrix_type>(cross_dist->get_off_diag_matrix());
+    auto row_gatherer = cross_dist->get_row_gatherer();
+    const auto n_loc = diag->get_size()[0];
+    const auto n_halo = off_diag->get_size()[1];
+    const auto n_ext = n_loc + n_halo;
+
+    auto halo_rows = gko::multigrid::pmis::fetch_halo_rows(
+        this->exec, row_gatherer->get_collective_communicator().get(),
+        cross_dist->get_index_map(), diag.get(), off_diag.get(),
+        row_gatherer->get_const_send_idxs(), row_gatherer->get_num_send_idxs());
+
+    ASSERT_EQ(halo_rows->get_size(), gko::dim<2>(n_halo, n_ext));
+    ASSERT_TRUE(halo_rows->is_sorted_by_column_index());
+    auto host_halo = gko::clone(this->ref, halo_rows);
+    for (gko::size_type k = 0; k < host_halo->get_num_stored_elements(); k++) {
+        const auto col = host_halo->get_const_col_idxs()[k];
+        ASSERT_GE(col, 0);
+        ASSERT_LT(static_cast<gko::size_type>(col), n_ext);
+    }
+
+    const gko::size_type expected_halo[] = {1, 2, 1};
+    const gko::size_type expected_kept[] = {2, 4, 2};
+    const gko::size_type expected_dropped[] = {1, 2, 1};
+    const auto rank = static_cast<gko::size_type>(this->comm.rank());
+    ASSERT_EQ(n_halo, expected_halo[rank]);
+    ASSERT_EQ(halo_rows->get_num_stored_elements(), expected_kept[rank]);
+
+    gko::segmented_array<global_index_type> host_remote(
+        this->ref, cross_dist->get_index_map().get_remote_global_idxs());
+    ASSERT_EQ(host_remote.get_size(), n_halo);
+    const auto s_row_ptrs = serial_host->get_const_row_ptrs();
+    gko::size_type owner_nnz = 0;
+    for (gko::size_type j = 0; j < n_halo; j++) {
+        const auto g =
+            static_cast<gko::size_type>(host_remote.get_const_flat_data()[j]);
+        owner_nnz +=
+            static_cast<gko::size_type>(s_row_ptrs[g + 1] - s_row_ptrs[g]);
+    }
+    gko::size_type dropped = owner_nnz - halo_rows->get_num_stored_elements();
+    ASSERT_EQ(dropped, expected_dropped[rank]);
+    gko::size_type global_dropped = 0;
+    this->comm.all_reduce(this->ref, &dropped, &global_dropped, 1, MPI_SUM);
+    ASSERT_EQ(global_dropped, gko::size_type{4});
+}
+
+
+TYPED_TEST(Pmis, FetchedHaloRowEntriesMatchTheOwnersRow)
+{
+    using value_type = typename TestFixture::value_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+
+    auto cross_dist = this->build_cross_boundary();
+    auto serial_host =
+        gko::clone(this->ref, this->build_cross_boundary_serial());
+    auto diag = gko::as<local_matrix_type>(cross_dist->get_diag_matrix());
+    auto off_diag =
+        gko::as<local_matrix_type>(cross_dist->get_off_diag_matrix());
+    auto row_gatherer = cross_dist->get_row_gatherer();
+    const auto n_halo = off_diag->get_size()[1];
+
+    auto halo_rows = gko::multigrid::pmis::fetch_halo_rows(
+        this->exec, row_gatherer->get_collective_communicator().get(),
+        cross_dist->get_index_map(), diag.get(), off_diag.get(),
+        row_gatherer->get_const_send_idxs(), row_gatherer->get_num_send_idxs());
+
+    auto host_halo = gko::clone(this->ref, halo_rows);
+    const auto nnz = host_halo->get_num_stored_elements();
+    ASSERT_GT(nnz, 0);
+    const auto& imap = cross_dist->get_index_map();
+    gko::array<local_index_type> cols(this->exec,
+                                      host_halo->get_const_col_idxs(),
+                                      host_halo->get_const_col_idxs() + nnz);
+    const auto global_cols_dev = imap.map_to_global(
+        cols, gko::experimental::distributed::index_space::combined);
+    gko::array<global_index_type> global_cols(this->ref, global_cols_dev);
+    gko::segmented_array<global_index_type> host_remote(
+        this->ref, imap.get_remote_global_idxs());
+
+    const auto s_row_ptrs = serial_host->get_const_row_ptrs();
+    const auto s_col_idxs = serial_host->get_const_col_idxs();
+    const auto s_values = serial_host->get_const_values();
+    for (gko::size_type j = 0; j < n_halo; j++) {
+        const auto g =
+            static_cast<gko::size_type>(host_remote.get_const_flat_data()[j]);
+        bool saw_diagonal = false;
+        for (auto k = host_halo->get_const_row_ptrs()[j];
+             k < host_halo->get_const_row_ptrs()[j + 1]; k++) {
+            const auto gc =
+                static_cast<gko::size_type>(global_cols.get_const_data()[k]);
+            bool found = false;
+            for (auto s = s_row_ptrs[g]; s < s_row_ptrs[g + 1]; s++) {
+                if (static_cast<gko::size_type>(s_col_idxs[s]) == gc) {
+                    found = true;
+                    ASSERT_NEAR(gko::abs(host_halo->get_const_values()[k] -
+                                         s_values[s]),
+                                0.0, r<value_type>::value)
+                        << "halo row " << j << " (global " << g
+                        << "), global column " << gc;
+                }
+            }
+            ASSERT_TRUE(found) << "halo row " << j << " (global " << g
+                               << ") has no entry at global column " << gc
+                               << " in the owner's row";
+            saw_diagonal = saw_diagonal || gc == g;
+        }
+        ASSERT_TRUE(saw_diagonal)
+            << "halo row " << j << " (global " << g << ") lost its diagonal";
+    }
+}
+
+
+TYPED_TEST(Pmis, ClassicalInterpolationIsStillRejectedOnADistributedMatrix)
+{
+    using pmis = typename TestFixture::pmis;
+
+    ASSERT_THROW(
+        pmis::build()
+            .with_interpolation(gko::multigrid::interpolation_type::classical)
+            .on(this->exec)
+            ->generate(this->dist_mat),
+        gko::NotSupported);
+}
+
+
+TYPED_TEST(Pmis, ExtendedMatrixSplicesBothBlocksAndTheHaloRowsInSortedOrder)
+{
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+
+    auto cross_dist = this->build_cross_boundary();
+    auto diag = gko::as<local_matrix_type>(cross_dist->get_diag_matrix());
+    auto off_diag =
+        gko::as<local_matrix_type>(cross_dist->get_off_diag_matrix());
+    auto row_gatherer = cross_dist->get_row_gatherer();
+    const auto n_loc = diag->get_size()[0];
+    const auto n_halo = off_diag->get_size()[1];
+    const auto n_ext = n_loc + n_halo;
+
+    auto halo_rows = gko::multigrid::pmis::fetch_halo_rows(
+        this->exec, row_gatherer->get_collective_communicator().get(),
+        cross_dist->get_index_map(), diag.get(), off_diag.get(),
+        row_gatherer->get_const_send_idxs(), row_gatherer->get_num_send_idxs());
+    auto a_ext = gko::multigrid::pmis::splice_extended_matrix(
+        this->exec, diag.get(), off_diag.get(), halo_rows.get());
+
+    ASSERT_EQ(a_ext->get_size(), gko::dim<2>(n_ext, n_ext));
+    ASSERT_EQ(a_ext->get_num_stored_elements(),
+              diag->get_num_stored_elements() +
+                  off_diag->get_num_stored_elements() +
+                  halo_rows->get_num_stored_elements());
+    ASSERT_TRUE(a_ext->is_sorted_by_column_index());
+
+    auto host = gko::clone(this->ref, a_ext);
+    auto host_halo = gko::clone(this->ref, halo_rows);
+    const auto ptrs = host->get_const_row_ptrs();
+    gko::size_type shifted = 0;
+    for (gko::size_type row = 0; row < n_loc; row++) {
+        for (auto k = ptrs[row]; k < ptrs[row + 1]; k++) {
+            if (static_cast<gko::size_type>(host->get_const_col_idxs()[k]) >=
+                n_loc) {
+                shifted++;
+            }
+        }
+    }
+    ASSERT_EQ(shifted, off_diag->get_num_stored_elements());
+    const auto local_nnz = static_cast<gko::size_type>(ptrs[n_loc]);
+    ASSERT_EQ(local_nnz, diag->get_num_stored_elements() +
+                             off_diag->get_num_stored_elements());
+    for (gko::size_type k = 0; k < host_halo->get_num_stored_elements(); k++) {
+        ASSERT_EQ(host->get_const_col_idxs()[local_nnz + k],
+                  host_halo->get_const_col_idxs()[k])
+            << "halo entry " << k;
+    }
+}
+
+
+TYPED_TEST(Pmis, ExtendedInterpolationGeneratesAProlongationOverAllLocalRows)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    using pmis = typename TestFixture::pmis;
+
+    auto ext_level =
+        pmis::build()
+            .with_interpolation(gko::multigrid::interpolation_type::ext_i)
+            .on(this->exec)
+            ->generate(this->dist_mat);
+    auto direct_level = pmis::build().on(this->exec)->generate(this->dist_mat);
+
+    auto ext_p = gko::as<dist_mtx_type>(ext_level->get_prolong_op());
+    auto direct_p = gko::as<dist_mtx_type>(direct_level->get_prolong_op());
+    ASSERT_EQ(ext_p->get_size()[0], this->size[0]);
+    ASSERT_EQ(ext_p->get_size(), direct_p->get_size());
+    ASSERT_GT(ext_p->get_size()[1], 0);
+    ASSERT_LT(ext_p->get_size()[1], this->size[0]);
+
+    auto host_diag = gko::clone(
+        this->ref, gko::as<local_matrix_type>(ext_p->get_diag_matrix()));
+    auto host_off = gko::clone(
+        this->ref, gko::as<local_matrix_type>(ext_p->get_off_diag_matrix()));
+    for (gko::size_type row = 0; row < host_diag->get_size()[0]; row++) {
+        const auto n_diag = host_diag->get_const_row_ptrs()[row + 1] -
+                            host_diag->get_const_row_ptrs()[row];
+        const auto n_off = host_off->get_const_row_ptrs()[row + 1] -
+                           host_off->get_const_row_ptrs()[row];
+        ASSERT_GT(n_diag + n_off, 0)
+            << "row " << row << " has no coarse parent";
+    }
+    for (gko::size_type k = 0; k < host_diag->get_num_stored_elements(); k++) {
+        ASSERT_TRUE(gko::is_finite(host_diag->get_const_values()[k]))
+            << "diagonal-block entry " << k;
+    }
+    for (gko::size_type k = 0; k < host_off->get_num_stored_elements(); k++) {
+        ASSERT_TRUE(gko::is_finite(host_off->get_const_values()[k]))
+            << "off-diagonal-block entry " << k;
+    }
+    ASSERT_GE(this->global_nnz(ext_p.get()), this->global_nnz(direct_p.get()));
+}
+
+
+TYPED_TEST(Pmis, ExtendedInterpolationOnASingleOwningRankMatchesSerial)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using Partition = typename TestFixture::Partition;
+    using pmis = typename TestFixture::pmis;
+    const int n = static_cast<int>(this->size[0]);
+
+    auto all_on_rank_zero = gko::share(Partition::build_from_contiguous(
+        this->exec, gko::array<global_index_type>(
+                        this->exec, I<global_index_type>{0, 12, 12, 12})));
+    auto dist = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    dist->read_distributed(
+        TestFixture::template laplace_data<global_index_type>(n),
+        all_on_rank_zero);
+    auto serial = gko::share(local_matrix_type::create(this->exec));
+    serial->read(TestFixture::template laplace_data<local_index_type>(n));
+
+    auto factory =
+        pmis::build()
+            .with_interpolation(gko::multigrid::interpolation_type::ext_i)
+            .on(this->exec);
+    auto dist_level = factory->generate(dist);
+    auto serial_level = factory->generate(serial);
+
+    ASSERT_EQ(
+        gko::as<local_matrix_type>(dist->get_off_diag_matrix())->get_size()[1],
+        0u);
+    this->assert_coarse_matches_serial(dist_level->get_coarse_op().get(),
+                                       serial_level->get_coarse_op().get());
+}
+
+
+TYPED_TEST(Pmis, ExtendedInterpolationMatchesSerialWhenEveryNodeIsAddressable)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    using pmis = typename TestFixture::pmis;
+
+    auto dist = this->build_banded_dense();
+    auto serial = this->build_banded_dense_serial();
+    const auto n_loc =
+        gko::as<local_matrix_type>(dist->get_diag_matrix())->get_size()[0];
+    ASSERT_EQ(
+        gko::as<local_matrix_type>(dist->get_off_diag_matrix())->get_size()[1],
+        this->size[0] - n_loc);
+
+    auto factory =
+        pmis::build()
+            .with_interpolation(gko::multigrid::interpolation_type::ext_i)
+            .on(this->exec);
+    auto dist_level = factory->generate(dist);
+    auto serial_level = factory->generate(serial);
+
+    this->assert_coarse_matches_serial(dist_level->get_coarse_op().get(),
+                                       serial_level->get_coarse_op().get());
+
+    auto dist_p = gko::as<dist_mtx_type>(dist_level->get_prolong_op());
+    auto serial_p = gko::as<local_matrix_type>(serial_level->get_prolong_op());
+    ASSERT_EQ(this->global_nnz(dist_p.get()),
+              serial_p->get_num_stored_elements());
+    ASSERT_EQ(this->global_nnz(dist_p.get()), gko::size_type{19});
+    auto direct_level = pmis::build().on(this->exec)->generate(dist);
+    auto direct_p = gko::as<dist_mtx_type>(direct_level->get_prolong_op());
+    ASSERT_GT(this->global_nnz(dist_p.get()), this->global_nnz(direct_p.get()));
+}
+
+
+TYPED_TEST(Pmis, ExtendedInterpolationHandlesUnsortedInputTriplets)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    using global_index_type = typename TestFixture::global_index_type;
+    using local_matrix_type = typename TestFixture::local_matrix_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using pmis = typename TestFixture::pmis;
+    const int n = static_cast<int>(this->size[0]);
+
+    auto unsorted = gko::share(dist_mtx_type::create(this->exec, this->comm));
+    unsorted->read_distributed(
+        TestFixture::template banded_dense_data_unsorted<global_index_type>(n),
+        this->row_part);
+    ASSERT_FALSE(gko::as<local_matrix_type>(unsorted->get_diag_matrix())
+                     ->is_sorted_by_column_index());
+
+    auto serial = this->build_banded_dense_serial();
+    auto factory =
+        pmis::build()
+            .with_interpolation(gko::multigrid::interpolation_type::ext_i)
+            .on(this->exec);
+    auto dist_level = factory->generate(unsorted);
+    auto serial_level = factory->generate(serial);
+
+    this->assert_coarse_matches_serial(dist_level->get_coarse_op().get(),
+                                       serial_level->get_coarse_op().get());
+    auto dist_p = gko::as<dist_mtx_type>(dist_level->get_prolong_op());
+    ASSERT_EQ(this->global_nnz(dist_p.get()), gko::size_type{19});
+}
+
+
+TYPED_TEST(Pmis, TruncationCapsEveryLocalRowAndKeepsItsRowSum)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using pmis = typename TestFixture::pmis;
+    constexpr gko::size_type p_max_elmts = 2;
+    const auto tol = std::numeric_limits<real_type>::epsilon() * real_type{16};
+
+    auto mat = this->build_banded_dense();
+    auto full_level =
+        pmis::build()
+            .with_interpolation(gko::multigrid::interpolation_type::ext_i)
+            .on(this->exec)
+            ->generate(mat);
+    auto trunc_level =
+        pmis::build()
+            .with_interpolation(gko::multigrid::interpolation_type::ext_i)
+            .with_p_max_elmts(p_max_elmts)
+            .on(this->exec)
+            ->generate(mat);
+    auto full_p = gko::as<dist_mtx_type>(full_level->get_prolong_op());
+    auto trunc_p = gko::as<dist_mtx_type>(trunc_level->get_prolong_op());
+    auto full = this->local_rows_of(full_p.get());
+    auto trunc = this->local_rows_of(trunc_p.get());
+
+    gko::size_type truncated_rows = 0;
+    gko::size_type expected_nnz = 0;
+    for (gko::size_type row = 0; row < trunc.num_rows(); row++) {
+        expected_nnz += std::min(full.row_nnz(row), p_max_elmts);
+        if (trunc.row_nnz(row) < full.row_nnz(row)) {
+            truncated_rows++;
+        }
+    }
+    gko::size_type local_totals[2] = {truncated_rows, expected_nnz};
+    gko::size_type global_totals[2] = {0, 0};
+    this->comm.all_reduce(this->ref, local_totals, global_totals, 2, MPI_SUM);
+    const auto full_global_nnz = this->global_nnz(full_p.get());
+    const auto trunc_global_nnz = this->global_nnz(trunc_p.get());
+
+    ASSERT_EQ(trunc_p->get_size(), full_p->get_size());
+    ASSERT_EQ(trunc.num_rows(), full.num_rows());
+    for (gko::size_type row = 0; row < full.num_rows(); row++) {
+        const auto n_full = full.row_nnz(row);
+        const auto n_trunc = trunc.row_nnz(row);
+        ASSERT_EQ(n_trunc, std::min(n_full, p_max_elmts))
+            << "rank " << this->comm.rank() << " row " << row;
+        if (n_trunc == n_full) {
+            continue;
+        }
+        const auto full_sum = full.row_sum(row);
+        const auto trunc_sum = trunc.row_sum(row);
+        ASSERT_NE(trunc_sum, gko::zero<value_type>())
+            << "rank " << this->comm.rank() << " row " << row;
+        ASSERT_LE(gko::abs(trunc_sum - full_sum), tol * full.row_abs_sum(row))
+            << "rank " << this->comm.rank() << " row " << row;
+    }
+    ASSERT_GT(global_totals[0], 0);
+    ASSERT_EQ(trunc_global_nnz, global_totals[1]);
+    ASSERT_LT(trunc_global_nnz, full_global_nnz);
+}
+
+
+TYPED_TEST(Pmis, PMaxElmtsZeroAndAnOversizedCapLeaveProlongationAlone)
+{
+    SKIP_IF_DEVICE_NO_INT64_SPGEMM(typename TestFixture::local_index_type);
+    using pmis = typename TestFixture::pmis;
+
+    auto mat = this->build_banded_dense();
+    auto generate_with = [&](gko::size_type p_max_elmts) {
+        return pmis::build()
+            .with_interpolation(gko::multigrid::interpolation_type::ext_i)
+            .with_p_max_elmts(p_max_elmts)
+            .on(this->exec)
+            ->generate(mat);
+    };
+    auto default_level =
+        pmis::build()
+            .with_interpolation(gko::multigrid::interpolation_type::ext_i)
+            .on(this->exec)
+            ->generate(mat);
+    auto zero_level = generate_with(0);
+    auto wide_level = generate_with(1000);
+    auto expected = this->local_rows_of(default_level->get_prolong_op().get());
+    auto zeroed = this->local_rows_of(zero_level->get_prolong_op().get());
+    auto wide = this->local_rows_of(wide_level->get_prolong_op().get());
+
+    for (gko::size_type row = 0; row < expected.num_rows(); row++) {
+        ASSERT_LT(expected.row_nnz(row), gko::size_type{1000});
+    }
+    this->assert_csr_identical(expected.diag.get(), zeroed.diag.get(),
+                               "p_max_elmts = 0, diagonal block");
+    this->assert_csr_identical(expected.off_diag.get(), zeroed.off_diag.get(),
+                               "p_max_elmts = 0, off-diagonal block");
+    this->assert_csr_identical(expected.diag.get(), wide.diag.get(),
+                               "oversized p_max_elmts, diagonal block");
+    this->assert_csr_identical(expected.off_diag.get(), wide.off_diag.get(),
+                               "oversized p_max_elmts, off-diagonal block");
 }
