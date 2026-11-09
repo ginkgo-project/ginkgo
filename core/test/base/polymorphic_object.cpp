@@ -43,6 +43,9 @@ struct DummyObject : gko::PolymorphicObject,
         return *this;
     }
 
+    void convert_to(DummyObject* result) const override { *result = *this; }
+
+    void move_to(DummyObject* result) override { *result = std::move(*this); }
 
     int x;
 };
@@ -299,6 +302,13 @@ struct ConvertibleToDummyObject
                                       int v = {})
         : gko::PolymorphicObject(std::move(exec)), x{v}
     {}
+
+    void convert_to(ConvertibleToDummyObject* result) const override
+    {
+        result->x = x;
+    }
+
+    void move_to(ConvertibleToDummyObject* result) override { result->x = x; }
 
     void convert_to(DummyObject* obj) const override { obj->x = x; }
 

@@ -59,8 +59,8 @@ class Dense final : public BatchLinOp,
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Dense>::convert_to;
-    using EnableCloneable<Dense>::move_to;
+    using ConvertibleTo<Dense>::convert_to;
+    using ConvertibleTo<Dense>::move_to;
 
     using value_type = ValueType;
     using index_type = int32;
@@ -68,6 +68,10 @@ public:
     using unbatch_type = gko::matrix::Dense<ValueType>;
     using absolute_type = remove_complex<Dense>;
     using complex_type = to_complex<Dense>;
+
+    void convert_to(Dense* result) const override;
+
+    void move_to(Dense* result) override;
 
     void convert_to(Dense<next_precision<ValueType>>* result) const override;
 

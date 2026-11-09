@@ -200,6 +200,10 @@ public:
     using mat_data = matrix_data<ValueType, IndexType>;
     using transposed_type = Jacobi<ValueType, IndexType>;
 
+    void convert_to(Jacobi* result) const override { *result = *this; }
+
+    void move_to(Jacobi* result) override { *result = std::move(*this); }
+
     /**
      * Returns the number of blocks of the operator.
      *

@@ -61,8 +61,8 @@ class Diagonal
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Diagonal>::convert_to;
-    using EnableCloneable<Diagonal>::move_to;
+    using ConvertibleTo<Diagonal>::convert_to;
+    using ConvertibleTo<Diagonal>::move_to;
     using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
     using ConvertibleTo<Csr<ValueType, int32>>::move_to;
     using ConvertibleTo<Csr<ValueType, int64>>::convert_to;
@@ -77,6 +77,10 @@ public:
     using device_mat_data = device_matrix_data<ValueType, int64>;
     using device_mat_data32 = device_matrix_data<ValueType, int32>;
     using absolute_type = remove_complex<Diagonal>;
+
+    void convert_to(Diagonal* result) const override;
+
+    void move_to(Diagonal* result) override;
 
     friend class Diagonal<previous_precision<ValueType>>;
 

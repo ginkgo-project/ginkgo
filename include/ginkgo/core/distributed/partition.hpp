@@ -86,11 +86,15 @@ class Partition
                   "LocalIndexType");
 
 public:
-    using EnableCloneable<Partition>::convert_to;
-    using EnableCloneable<Partition>::move_to;
+    using ConvertibleTo<Partition>::convert_to;
+    using ConvertibleTo<Partition>::move_to;
 
     using local_index_type = LocalIndexType;
     using global_index_type = GlobalIndexType;
+
+    void convert_to(Partition* result) const override;
+
+    void move_to(Partition* result) override;
 
     /**
      * Returns the total number of elements represented by this partition.

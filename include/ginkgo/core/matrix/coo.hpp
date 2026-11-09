@@ -72,8 +72,8 @@ class Coo : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<Coo>::convert_to;
-    using EnableCloneable<Coo>::move_to;
+    using ConvertibleTo<Coo>::convert_to;
+    using ConvertibleTo<Coo>::move_to;
     using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Coo<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
@@ -93,6 +93,10 @@ public:
         matrix::view::coo<const value_type, const index_type>;
 
     friend class Coo<previous_precision<ValueType>, IndexType>;
+
+    void convert_to(Coo* result) const override;
+
+    void move_to(Coo* result) override;
 
     void convert_to(
         Coo<next_precision<ValueType>, IndexType>* result) const override;

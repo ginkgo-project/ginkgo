@@ -196,6 +196,39 @@ bool Partition<LocalIndexType, GlobalIndexType>::equals(
 }
 
 
+template <typename LocalIndexType, typename GlobalIndexType>
+void Partition<LocalIndexType, GlobalIndexType>::convert_to(
+    Partition* result) const
+{
+    if (this != result) {
+        result->num_parts_ = this->num_parts_;
+        result->num_empty_parts_ = this->num_empty_parts_;
+        result->size_ = this->size_;
+        result->offsets_ = this->offsets_;
+        result->starting_indices_ = this->starting_indices_;
+        result->part_sizes_ = this->part_sizes_;
+        result->part_ids_ = this->part_ids_;
+        result->ranges_by_part_ = this->ranges_by_part_;
+    }
+}
+
+
+template <typename LocalIndexType, typename GlobalIndexType>
+void Partition<LocalIndexType, GlobalIndexType>::move_to(Partition* result)
+{
+    if (this != result) {
+        result->num_parts_ = this->num_parts_;
+        result->num_empty_parts_ = this->num_empty_parts_;
+        result->size_ = this->size_;
+        result->offsets_ = std::move(this->offsets_);
+        result->starting_indices_ = std::move(this->starting_indices_);
+        result->part_sizes_ = std::move(this->part_sizes_);
+        result->part_ids_ = std::move(this->part_ids_);
+        result->ranges_by_part_ = std::move(this->ranges_by_part_);
+    }
+}
+
+
 #define GKO_DECLARE_PARTITION(_local, _global) class Partition<_local, _global>
 GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(GKO_DECLARE_PARTITION);
 

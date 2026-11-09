@@ -51,12 +51,16 @@ class Fft : public LinOp,
     friend class EnableCloneable<Fft>;
 
 public:
-    using EnableCloneable<Fft>::convert_to;
-    using EnableCloneable<Fft>::move_to;
+    using ConvertibleTo<Fft>::convert_to;
+    using ConvertibleTo<Fft>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
     using transposed_type = Fft;
+
+    void convert_to(Fft* result) const override;
+
+    void move_to(Fft* result) override;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -155,12 +159,16 @@ class Fft2 : public LinOp,
     friend class EnableCloneable<Fft2>;
 
 public:
-    using EnableCloneable<Fft2>::convert_to;
-    using EnableCloneable<Fft2>::move_to;
+    using ConvertibleTo<Fft2>::convert_to;
+    using ConvertibleTo<Fft2>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
     using transposed_type = Fft2;
+
+    void convert_to(Fft2* result) const override;
+
+    void move_to(Fft2* result) override;
 
     std::unique_ptr<LinOp> transpose() const override;
 
@@ -274,12 +282,16 @@ class Fft3 : public LinOp,
     friend class EnableCloneable<Fft3>;
 
 public:
-    using EnableCloneable<Fft3>::convert_to;
-    using EnableCloneable<Fft3>::move_to;
+    using ConvertibleTo<Fft3>::convert_to;
+    using ConvertibleTo<Fft3>::move_to;
 
     using value_type = std::complex<double>;
     using index_type = int64;
     using transposed_type = Fft3;
+
+    void convert_to(Fft3* result) const override;
+
+    void move_to(Fft3* result) override;
 
     std::unique_ptr<LinOp> transpose() const override;
 

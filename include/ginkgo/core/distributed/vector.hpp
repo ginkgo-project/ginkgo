@@ -83,8 +83,8 @@ class Vector
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Vector>::convert_to;
-    using EnableCloneable<Vector>::move_to;
+    using ConvertibleTo<Vector>::convert_to;
+    using ConvertibleTo<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
@@ -93,6 +93,10 @@ public:
     using real_type = absolute_type;
     using complex_type = Vector<to_complex<value_type>>;
     using local_vector_type = gko::matrix::Dense<value_type>;
+
+    void convert_to(Vector* result) const override;
+
+    void move_to(Vector* result) override;
 
     /**
      * Creates a distributed Vector with the same size and stride as another

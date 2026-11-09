@@ -61,8 +61,8 @@ class SparsityCsr : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<SparsityCsr>::convert_to;
-    using EnableCloneable<SparsityCsr>::move_to;
+    using ConvertibleTo<SparsityCsr>::convert_to;
+    using ConvertibleTo<SparsityCsr>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -74,6 +74,10 @@ public:
     using transposed_type = SparsityCsr<IndexType, ValueType>;
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
+
+    void convert_to(SparsityCsr* result) const override { *result = *this; }
+
+    void move_to(SparsityCsr* result) override { *result = std::move(*this); }
 
     void convert_to(Csr<ValueType, IndexType>* result) const override;
 

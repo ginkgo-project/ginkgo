@@ -62,8 +62,8 @@ class Hybrid
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<Hybrid>::convert_to;
-    using EnableCloneable<Hybrid>::move_to;
+    using ConvertibleTo<Hybrid>::convert_to;
+    using ConvertibleTo<Hybrid>::move_to;
     using ConvertibleTo<
         Hybrid<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>::move_to;
@@ -83,6 +83,9 @@ public:
     using ell_type = Ell<ValueType, IndexType>;
     using absolute_type = remove_complex<Hybrid>;
 
+    void convert_to(Hybrid* result) const override { *result = *this; }
+
+    void move_to(Hybrid* result) override { *result = std::move(*this); }
 
     /**
      * strategy_type is to decide how to set the hybrid config. It

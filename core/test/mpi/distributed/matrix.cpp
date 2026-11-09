@@ -46,6 +46,16 @@ public:
         : gko::LinOp(exec, size)
     {}
 
+    void convert_to(CustomLinOp* result) const override
+    {
+        result->set_size(this->get_size());
+    }
+
+    void move_to(CustomLinOp* result) override
+    {
+        result->set_size(this->get_size());
+    }
+
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override {}
 

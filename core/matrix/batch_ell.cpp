@@ -318,6 +318,30 @@ void Ell<ValueType, IndexType>::move_to(
 #endif
 
 
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::convert_to(Ell* result) const
+{
+    if (this != result) {
+        result->num_elems_per_row_ = this->num_elems_per_row_;
+        result->values_ = this->values_;
+        result->col_idxs_ = this->col_idxs_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Ell<ValueType, IndexType>::move_to(Ell* result)
+{
+    if (this != result) {
+        result->num_elems_per_row_ = this->num_elems_per_row_;
+        result->values_ = std::move(this->values_);
+        result->col_idxs_ = std::move(this->col_idxs_);
+        result->set_size(this->get_size());
+    }
+}
+
+
 #define GKO_DECLARE_BATCH_ELL_MATRIX(ValueType) class Ell<ValueType, int32>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_ELL_MATRIX);
 

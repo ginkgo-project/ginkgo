@@ -61,11 +61,15 @@ class Nullspace : public LinOp, public EnableCloneable<Nullspace<ValueType>> {
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Nullspace>::convert_to;
-    using EnableCloneable<Nullspace>::move_to;
+    using ConvertibleTo<Nullspace>::convert_to;
+    using ConvertibleTo<Nullspace>::move_to;
 
     using value_type = ValueType;
     using absolute_type = remove_complex<ValueType>;
+
+    void convert_to(Nullspace* result) const override { *result = *this; }
+
+    void move_to(Nullspace* result) override { *result = std::move(*this); }
 
     /**
      * Creates a Nullspace from an explicit basis.

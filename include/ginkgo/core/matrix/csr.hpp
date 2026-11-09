@@ -189,8 +189,8 @@ class Csr : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<Csr>::convert_to;
-    using EnableCloneable<Csr>::move_to;
+    using ConvertibleTo<Csr>::convert_to;
+    using ConvertibleTo<Csr>::move_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -217,6 +217,10 @@ public:
     using absolute_type = remove_complex<Csr>;
     using device_view = view::csr<value_type, index_type>;
     using const_device_view = view::csr<const value_type, const index_type>;
+
+    void convert_to(Csr* result) const override { *result = *this; }
+
+    void move_to(Csr* result) override { *result = std::move(*this); }
 
     class GKO_DEPRECATED(
         "please use enum gko::matrix::csr::spmv_strategy::<strategy>")

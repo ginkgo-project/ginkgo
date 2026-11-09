@@ -130,19 +130,8 @@ public:
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Fbcsr>;
 
-    /**
-     * For moving to another Fbcsr of the same type, use the default
-     *  implementation provided by EnableCloneableLinOp via the
-     *  EnableCloneableAssignment mixin.
-     */
-    using EnableCloneable<Fbcsr<ValueType, IndexType>>::move_to;
-
-    /**
-     * For converting (copying) to another Fbcsr of the same type,
-     * use the default implementation provided by EnableCloneableLinOp.
-     */
-    using EnableCloneable<Fbcsr<ValueType, IndexType>>::convert_to;
-
+    using ConvertibleTo<Fbcsr>::move_to;
+    using ConvertibleTo<Fbcsr>::convert_to;
     using ConvertibleTo<
         Fbcsr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>::move_to;
@@ -152,6 +141,10 @@ public:
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::move_to;
+
+    void convert_to(Fbcsr* result) const override { *result = *this; }
+
+    void move_to(Fbcsr* result) override { *result = std::move(*this); }
 
     friend class Fbcsr<previous_precision<ValueType>, IndexType>;
 
