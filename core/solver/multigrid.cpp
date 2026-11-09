@@ -953,7 +953,10 @@ void Multigrid::generate(reuse_data_type* reuse_data)
         post_smoother_list_ = pre_smoother_list_;
     }
     // Generate at least one level
-    GKO_ASSERT_EQ(level > 0, true);
+    if (level == 0) {
+        throw ValueMismatch(__FILE__, __LINE__, __func__, level, size_type{1},
+                            "Multigrid generated no level");
+    }
     auto last_mg_level = mg_level_list_.back();
 
     this->setup_workspace();
