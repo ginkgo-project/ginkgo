@@ -5,6 +5,7 @@
 #include "ginkgo/core/distributed/preconditioner/schwarz.hpp"
 
 #include <memory>
+#include <string>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
@@ -264,9 +265,18 @@ void Schwarz<ValueType, LocalIndexType, GlobalIndexType>::generate(
         }
         if (auto coarse = as<multigrid::MultigridLevel>(this->coarse_level_)
                               ->get_coarse_op()) {
-            this->coarse_solver_ = share(parameters_.coarse_solver->generate(
-                as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(
-                    coarse)));
+            auto coarse_mat =
+                as<Matrix<ValueType, LocalIndexType, GlobalIndexType>>(coarse);
+            if (coarse_mat->get_size()[0] >= dist_mat->get_size()[0]) {
+                GKO_INVALID_STATE(
+                    "The coarse_level factory did not reduce the problem "
+                    "size: " +
+                    std::to_string(coarse_mat->get_size()[0]) +
+                    " coarse rows for " +
+                    std::to_string(dist_mat->get_size()[0]) + " rows");
+            }
+            this->coarse_solver_ =
+                share(parameters_.coarse_solver->generate(coarse_mat));
             if (this->coarse_solver_ == nullptr) {
                 GKO_NOT_SUPPORTED(this->coarse_solver_);
             }

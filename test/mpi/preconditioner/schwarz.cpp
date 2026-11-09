@@ -21,6 +21,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
+#include <ginkgo/core/multigrid/pmis.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -327,6 +328,44 @@ TYPED_TEST(SchwarzPreconditioner, CanApplyTwolevelPreconditioner)
     GKO_ASSERT_MTX_NEAR(this->dist_x->get_local_vector(),
                         this->dist_x2->get_local_vector(),
                         r<value_type>::value);
+}
+
+
+TYPED_TEST(SchwarzPreconditioner, GenerateFailsIfCoarseLevelDoesNotCoarsen)
+{
+    using value_type = typename TestFixture::value_type;
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using dist_mtx_type = typename TestFixture::dist_mtx_type;
+    using matrix_data = typename TestFixture::matrix_data;
+    using prec = typename TestFixture::dist_prec_type;
+    using pmis_type = gko::multigrid::Pmis<value_type, local_index_type>;
+    const auto num_rows = static_cast<global_index_type>(this->size[0]);
+    matrix_data fully_summed{this->size, {}};
+    for (global_index_type i = 0; i < num_rows; ++i) {
+        if (i > 0) {
+            fully_summed.nonzeros.emplace_back(
+                i, i - 1, static_cast<value_type>(-0.0625));
+        }
+        fully_summed.nonzeros.emplace_back(i, i, static_cast<value_type>(2.0));
+        if (i + 1 < num_rows) {
+            fully_summed.nonzeros.emplace_back(
+                i, i + 1, static_cast<value_type>(-0.0625));
+        }
+    }
+    auto mass_mat = gko::share(dist_mtx_type::create(
+        this->exec, this->comm, csr::create(this->exec),
+        csr::create(this->exec, gko::matrix::csr::spmv_strategy::classical)));
+    mass_mat->read_distributed(fully_summed, this->row_part);
+    auto precond_factory =
+        prec::build()
+            .with_local_solver(this->local_solver_factory)
+            .with_coarse_solver(this->coarse_solver_factory)
+            .with_coarse_level(gko::share(pmis_type::build().on(this->exec)))
+            .on(this->exec);
+
+    ASSERT_THROW(precond_factory->generate(mass_mat), gko::InvalidStateError);
 }
 
 
