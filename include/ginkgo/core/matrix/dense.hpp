@@ -191,9 +191,9 @@ public:
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
-    void convert_to(Dense* result) const override { *result = *this; }
+    void convert_to(Dense* result) const override;
 
-    void move_to(Dense* result) override { *result = std::move(*this); }
+    void move_to(Dense* result) override;
 
     /**
      * Creates a Dense matrix with the same size and stride as another Dense
@@ -1292,32 +1292,6 @@ public:
     static std::unique_ptr<const Dense> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values, size_type stride);
-
-    /**
-     * Copy-assigns a Dense matrix. Preserves the executor, reallocates the
-     * matrix with minimal stride if the dimensions don't match, then copies the
-     * data over, ignoring padding.
-     */
-    Dense& operator=(const Dense&);
-
-    /**
-     * Move-assigns a Dense matrix. Preserves the executor, moves the data over
-     * preserving size and stride. Leaves the moved-from object in an empty
-     * state (0x0 with empty Array).
-     */
-    Dense& operator=(Dense&&);
-
-    /**
-     * Copy-constructs a Dense matrix. Inherits executor and dimensions, but
-     * copies data without padding.
-     */
-    Dense(const Dense&);
-
-    /**
-     * Move-constructs a Dense matrix. Inherits executor, dimensions and data
-     * with padding. The moved-from object is empty (0x0 with empty Array).
-     */
-    Dense(Dense&&);
 
 protected:
     Dense(std::shared_ptr<const Executor> exec, const dim<2>& size = {},

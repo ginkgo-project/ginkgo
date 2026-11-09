@@ -145,16 +145,6 @@ public:
      */
     static config::configuration_map get_config_map();
 
-    /** Creates a copy of the solver (shares factorization state). */
-    Cudss(const Cudss&);
-
-    /** Moves from the given solver, leaving it empty. */
-    Cudss(Cudss&&) noexcept;
-
-    Cudss& operator=(const Cudss&);
-
-    Cudss& operator=(Cudss&&) noexcept;
-
     /**
      * Re-run the numeric factorization with updated matrix values.
      *

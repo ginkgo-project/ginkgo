@@ -191,6 +191,7 @@ void ScaledPermutation<ValueType, IndexType>::move_to(ScaledPermutation* result)
         result->scale_ = std::move(this->scale_);
         result->permutation_ = std::move(this->permutation_);
         result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 

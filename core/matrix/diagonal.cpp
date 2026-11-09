@@ -459,6 +459,7 @@ void Diagonal<ValueType>::move_to(Diagonal* result)
     if (this != result) {
         result->values_ = std::move(this->values_);
         result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 

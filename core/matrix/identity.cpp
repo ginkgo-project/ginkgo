@@ -96,6 +96,7 @@ void Identity<ValueType>::move_to(Identity* result)
 {
     if (this != result) {
         result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 

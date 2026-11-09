@@ -79,52 +79,31 @@ void SparsityCsr<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 
 
 template <typename ValueType, typename IndexType>
-SparsityCsr<ValueType, IndexType>& SparsityCsr<ValueType, IndexType>::operator=(
-    const SparsityCsr<ValueType, IndexType>& other)
+void SparsityCsr<ValueType, IndexType>::convert_to(SparsityCsr* result) const
 {
-    if (&other != this) {
-        LinOp::operator=(other);
-        value_ = other.value_;
-        col_idxs_ = other.col_idxs_;
-        row_ptrs_ = other.row_ptrs_;
+    if (this != result) {
+        result->set_size(this->get_size());
+        result->value_ = this->value_;
+        result->col_idxs_ = this->col_idxs_;
+        result->row_ptrs_ = this->row_ptrs_;
     }
-    return *this;
 }
 
 
 template <typename ValueType, typename IndexType>
-SparsityCsr<ValueType, IndexType>& SparsityCsr<ValueType, IndexType>::operator=(
-    SparsityCsr<ValueType, IndexType>&& other)
+void SparsityCsr<ValueType, IndexType>::move_to(SparsityCsr* result)
 {
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        value_ = other.value_;
-        col_idxs_ = std::move(other.col_idxs_);
-        row_ptrs_ = std::move(other.row_ptrs_);
-        // restore other invariant
-        other.row_ptrs_.resize_and_reset(1);
-        other.row_ptrs_.fill(0);
-        other.value_.fill(one<ValueType>());
+    if (this != result) {
+        result->set_size(this->get_size());
+        this->set_size({});
+        result->value_ = this->value_;
+        result->col_idxs_ = std::move(this->col_idxs_);
+        result->row_ptrs_ = std::move(this->row_ptrs_);
+        // restore this invariant
+        this->row_ptrs_.resize_and_reset(1);
+        this->row_ptrs_.fill(0);
+        this->value_.fill(one<ValueType>());
     }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-SparsityCsr<ValueType, IndexType>::SparsityCsr(
-    const SparsityCsr<ValueType, IndexType>& other)
-    : SparsityCsr{other.get_executor()}
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-SparsityCsr<ValueType, IndexType>::SparsityCsr(
-    SparsityCsr<ValueType, IndexType>&& other)
-    : SparsityCsr{other.get_executor()}
-{
-    *this = std::move(other);
 }
 
 

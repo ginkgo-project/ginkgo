@@ -347,6 +347,7 @@ void Permutation<IndexType>::move_to(Permutation* result)
     if (this != result) {
         result->permutation_ = std::move(this->permutation_);
         result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 
