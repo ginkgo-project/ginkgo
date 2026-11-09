@@ -5,6 +5,7 @@
 #include "core/multigrid/pmis_kernels.hpp"
 
 #include <array>
+#include <limits>
 #include <memory>
 #include <utility>
 #include <vector>
@@ -15,6 +16,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 #include <ginkgo/core/multigrid/pmis.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -27,6 +29,35 @@
 constexpr auto c = gko::kernels::pmis::coarse;
 constexpr auto f = gko::kernels::pmis::fine;
 constexpr auto u = gko::kernels::pmis::unassigned;
+
+
+template <typename ValueType, typename IndexType>
+struct pmis_row_scales {
+    gko::array<gko::remove_complex<ValueType>> neg_scale;
+    gko::array<gko::remove_complex<ValueType>> row_sum;
+    gko::array<gko::remove_complex<ValueType>> diag_abs;
+};
+
+
+template <typename ValueType, typename IndexType>
+pmis_row_scales<ValueType, IndexType> compute_pmis_row_scales(
+    std::shared_ptr<const gko::ReferenceExecutor> exec,
+    const gko::matrix::Csr<ValueType, IndexType>* mtx)
+{
+    using real_type = gko::remove_complex<ValueType>;
+    const auto num_rows = mtx->get_size()[0];
+    pmis_row_scales<ValueType, IndexType> scales{
+        gko::array<real_type>(exec, num_rows),
+        gko::array<real_type>(exec, num_rows),
+        gko::array<real_type>(exec, num_rows)};
+    scales.neg_scale.fill(gko::zero<real_type>());
+    scales.row_sum.fill(gko::zero<real_type>());
+    scales.diag_abs.fill(gko::zero<real_type>());
+    gko::kernels::reference::pmis::compute_row_scales(
+        exec, mtx, true, scales.neg_scale.get_data(), scales.row_sum.get_data(),
+        scales.diag_abs.get_data());
+    return scales;
+}
 
 template <typename ValueIndexType>
 class Pmis : public ::testing::Test {
@@ -97,18 +128,9 @@ protected:
         // we only have the following for mtx.at(1).
         // For mtx.at(0), we have same weight before randomization, so there is
         // no deterministic result
-        prolong_op1->read({{5, 2},
-                           {{0, 0, value_type{-0.25}},
-                            {0, 1, value_type{-0.25}},
-                            {1, 1, value_type{-0.25}},
-                            {2, 0, value_type{1}},
-                            {3, 0, value_type{0.5}},
-                            {3, 1, value_type{-0.5}},
-                            {4, 1, value_type{1}}}});
-        coarse_op1->read({{2, 2},
-                          {{0, 0, value_type{3}},
-                           {0, 1, value_type{-0.25}},
-                           {1, 1, value_type{1}}}});
+        prolong_op1->read(
+            {{5, 1}, {{2, 0, value_type{1}}, {3, 0, value_type{0.5}}}});
+        coarse_op1->read({{1, 1}, {{0, 0, value_type{3}}}});
     }
 
     // one selection round over a single block, as core/multigrid/pmis.cpp
@@ -125,6 +147,70 @@ protected:
             weight, global_idx, status, new_status, [] {});
     }
 
+    void fill_prolongation(const Mtx* mtx, real_type strength_threshold,
+                           real_type max_row_sum, const int* status,
+                           const index_type* coarse_map,
+                           const index_type* prolong_row_ptrs,
+                           index_type* prolong_col_idxs,
+                           value_type* prolong_values)
+    {
+        const auto num_rows = mtx->get_size()[0];
+        const auto scales = compute_pmis_row_scales(exec, mtx);
+        gko::multigrid::pmis::fill_prolongation<value_type, index_type>(
+            exec, num_rows, {{mtx, true, index_type{0}}},
+            scales.neg_scale.get_const_data(), scales.row_sum.get_const_data(),
+            scales.diag_abs.get_const_data(), strength_threshold, max_row_sum,
+            status, prolong_row_ptrs, prolong_col_idxs, prolong_values);
+        const auto nnz =
+            static_cast<gko::size_type>(prolong_row_ptrs[num_rows]);
+        exec->run(gko::multigrid::pmis::make_gather(
+            nnz, coarse_map, prolong_col_idxs, prolong_col_idxs));
+    }
+
+    std::shared_ptr<Mtx> sign_rule_mtx()
+    {
+        auto mtx = Mtx::create(exec);
+        mtx->read({{4, 4},
+                   {{0, 0, value_type{4}},
+                    {0, 1, value_type{3}},
+                    {0, 2, value_type{-4}},
+                    {1, 1, value_type{4}},
+                    {1, 2, value_type{3}},
+                    {1, 3, value_type{2}},
+                    {2, 2, value_type{4}},
+                    {2, 3, value_type{-0.1}},
+                    {3, 0, value_type{-2}},
+                    {3, 1, value_type{1.5}},
+                    {3, 2, value_type{-0.1}},
+                    {3, 3, value_type{4}}}});
+        return mtx;
+    }
+
+    std::shared_ptr<SparsityCsr> strength_graph(const Mtx* mtx,
+                                                real_type strength_threshold,
+                                                real_type max_row_sum)
+    {
+        const auto num_rows = mtx->get_size()[0];
+        const auto scales = compute_pmis_row_scales(exec, mtx);
+        gko::array<index_type> rows(exec, num_rows + 1);
+        gko::kernels::reference::pmis::compute_strong_dep_row(
+            exec, mtx, true, scales.neg_scale.get_const_data(),
+            scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+            strength_threshold, max_row_sum, rows.get_data());
+        gko::kernels::reference::components::prefix_sum_nonnegative(
+            exec, rows.get_data(), rows.get_size());
+        const auto nnz =
+            static_cast<gko::size_type>(rows.get_const_data()[num_rows]);
+        gko::array<index_type> cols(exec, nnz);
+        cols.fill(index_type{-99});
+        auto graph = SparsityCsr::create(exec, mtx->get_size(), std::move(cols),
+                                         std::move(rows));
+        gko::kernels::reference::pmis::compute_strong_dep(
+            exec, mtx, true, scales.neg_scale.get_const_data(),
+            scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+            strength_threshold, max_row_sum, graph.get());
+        return graph;
+    }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
     std::array<std::shared_ptr<Mtx>, 2> mtx;
@@ -184,19 +270,25 @@ TYPED_TEST(Pmis, ComputeStrongDepRow)
 {
     using index_type = typename TestFixture::index_type;
     using real_type = typename TestFixture::real_type;
+    std::array<gko::array<index_type>, 2> expected{
+        gko::array<index_type>(this->exec, {0, 1, 1, 2, 2}),
+        gko::array<index_type>(this->exec, {0, 0, 0, 0, 1, 1})};
     for (int i = 0; i < 2; i++) {
         SCOPED_TRACE(i);
-        gko::array<index_type> sparsity_rows(
-            this->exec, this->mtx.at(i)->get_size()[0] + 1);
+        const auto num_rows = this->mtx.at(i)->get_size()[0];
+        const auto scales =
+            compute_pmis_row_scales(this->exec, this->mtx.at(i).get());
+        gko::array<index_type> sparsity_rows(this->exec, num_rows + 1);
 
         gko::kernels::reference::pmis::compute_strong_dep_row(
             this->exec, this->mtx.at(i).get(), true,
-            this->row_maxabs.at(i).get_const_data(), real_type{0.25},
+            scales.neg_scale.get_const_data(), scales.row_sum.get_const_data(),
+            scales.diag_abs.get_const_data(), real_type{0.25}, real_type{1.0},
             sparsity_rows.get_data());
         gko::kernels::reference::components::prefix_sum_nonnegative(
             this->exec, sparsity_rows.get_data(), sparsity_rows.get_size());
 
-        GKO_ASSERT_ARRAY_EQ(sparsity_rows, this->dep_row_ptrs.at(i));
+        GKO_ASSERT_ARRAY_EQ(sparsity_rows, expected.at(i));
     }
 }
 
@@ -206,29 +298,90 @@ TYPED_TEST(Pmis, ComputeStrongDep)
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
     using real_type = typename TestFixture::real_type;
+    std::array<gko::array<index_type>, 2> expected_rows{
+        gko::array<index_type>(this->exec, {0, 1, 1, 2, 2}),
+        gko::array<index_type>(this->exec, {0, 0, 0, 0, 1, 1})};
+    std::array<gko::array<index_type>, 2> expected_cols{
+        gko::array<index_type>(this->exec, {1, 1}),
+        gko::array<index_type>(this->exec, {2})};
     for (int i = 0; i < 2; i++) {
         SCOPED_TRACE(i);
-        auto num_rows = this->mtx.at(i)->get_size()[0];
-        auto sparsity_rows = this->dep_row_ptrs.at(i);
         auto strong_dep_ans =
             gko::matrix::SparsityCsr<value_type, index_type>::create(
                 this->exec, this->mtx.at(i)->get_size(),
-                std::move(this->dep_col_idxs.at(i)),
-                std::move(this->dep_row_ptrs.at(i)));
-        gko::array<index_type> sparsity_cols(
-            this->exec, sparsity_rows.get_const_data()[num_rows]);
-        auto strong_dep =
-            gko::matrix::SparsityCsr<value_type, index_type>::create(
-                this->exec, this->mtx.at(i)->get_size(),
-                std::move(sparsity_cols), std::move(sparsity_rows));
+                std::move(expected_cols.at(i)), std::move(expected_rows.at(i)));
 
-        gko::kernels::reference::pmis::compute_strong_dep(
-            this->exec, this->mtx.at(i).get(), true,
-            this->row_maxabs.at(i).get_const_data(), real_type{0.25},
-            strong_dep.get());
+        auto strong_dep = this->strength_graph(this->mtx.at(i).get(),
+                                               real_type{0.25}, real_type{1.0});
 
         GKO_ASSERT_MTX_EQ_SPARSITY(strong_dep, strong_dep_ans);
     }
+}
+
+
+TYPED_TEST(Pmis, PositiveOffDiagonalIsNeverStrong)
+{
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    auto mtx = this->sign_rule_mtx();
+
+    auto graph =
+        this->strength_graph(mtx.get(), real_type{0.25}, real_type{0.9});
+
+    const auto row_ptrs = graph->get_const_row_ptrs();
+    const auto col_idxs = graph->get_const_col_idxs();
+    ASSERT_EQ(row_ptrs[1] - row_ptrs[0], index_type{1});
+    EXPECT_EQ(col_idxs[row_ptrs[0]], index_type{2});
+}
+
+
+TYPED_TEST(Pmis, RowWithoutNegativeOffDiagonalHasNoStrongDep)
+{
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    auto mtx = this->sign_rule_mtx();
+
+    auto graph =
+        this->strength_graph(mtx.get(), real_type{0.25}, real_type{1.0});
+
+    const auto row_ptrs = graph->get_const_row_ptrs();
+    EXPECT_EQ(row_ptrs[2] - row_ptrs[1], index_type{0});
+}
+
+
+TYPED_TEST(Pmis, MaxRowSumStripsNearlyFullySummedRow)
+{
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    auto mtx = this->sign_rule_mtx();
+
+    auto filtered =
+        this->strength_graph(mtx.get(), real_type{0.25}, real_type{0.9});
+    auto unfiltered =
+        this->strength_graph(mtx.get(), real_type{0.25}, real_type{1.0});
+
+    const auto filtered_rows = filtered->get_const_row_ptrs();
+    EXPECT_EQ(filtered_rows[3] - filtered_rows[2], index_type{0});
+    const auto unfiltered_rows = unfiltered->get_const_row_ptrs();
+    const auto unfiltered_cols = unfiltered->get_const_col_idxs();
+    ASSERT_EQ(unfiltered_rows[3] - unfiltered_rows[2], index_type{1});
+    EXPECT_EQ(unfiltered_cols[unfiltered_rows[2]], index_type{3});
+}
+
+
+TYPED_TEST(Pmis, KeepsStrongDepsWhenNeitherFilterFires)
+{
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    auto mtx = this->sign_rule_mtx();
+
+    auto graph =
+        this->strength_graph(mtx.get(), real_type{0.25}, real_type{0.9});
+
+    const auto row_ptrs = graph->get_const_row_ptrs();
+    const auto col_idxs = graph->get_const_col_idxs();
+    ASSERT_EQ(row_ptrs[4] - row_ptrs[3], index_type{1});
+    EXPECT_EQ(col_idxs[row_ptrs[3]], index_type{0});
 }
 
 
@@ -522,19 +675,16 @@ TYPED_TEST(Pmis, DirectInterpolationFill)
         gko::array<index_type>(this->exec, {0, 0, 1, 1, 2}),
         gko::array<index_type>(this->exec, {0, 0, 0, 1, 1, 2})};
     std::array<gko::array<index_type>, 2> prolong_row_ptrs{
-        gko::array<index_type>(this->exec, {0, 2, 3, 4, 5}),
-        gko::array<index_type>(this->exec, {0, 2, 3, 4, 6, 7})};
+        gko::array<index_type>(this->exec, {0, 1, 2, 3, 4}),
+        gko::array<index_type>(this->exec, {0, 0, 0, 1, 2, 3})};
     std::array<gko::array<index_type>, 2> expected_col_idxs{
-        gko::array<index_type>(this->exec, {0, 1, 0, 0, 1}),
-        gko::array<index_type>(this->exec, {0, 1, 1, 0, 0, 1, 1})};
+        gko::array<index_type>(this->exec, {0, 0, 0, 1}),
+        gko::array<index_type>(this->exec, {0, 0, 1})};
     std::array<gko::array<value_type>, 2> expected_values{
+        gko::array<value_type>(this->exec, {value_type(0.25), value_type(1),
+                                            value_type(9), value_type(1)}),
         gko::array<value_type>(
-            this->exec, {value_type(0.25), value_type(-1.5), value_type(1),
-                         value_type(9), value_type(1)}),
-        gko::array<value_type>(
-            this->exec,
-            {value_type{-0.25}, value_type{-0.25}, value_type{-0.25},
-             value_type{1}, value_type{0.5}, value_type{-0.5}, value_type{1}})};
+            this->exec, {value_type{1}, value_type{0.5}, value_type{1}})};
     for (int i = 0; i < 2; i++) {
         SCOPED_TRACE(i);
         auto prolong_nnz =
@@ -543,17 +693,11 @@ TYPED_TEST(Pmis, DirectInterpolationFill)
         gko::array<index_type> prolong_col_idxs(this->exec, prolong_nnz);
         gko::array<value_type> prolong_values(this->exec, prolong_nnz);
 
-        gko::multigrid::pmis::fill_prolongation<value_type, index_type>(
-            this->exec, this->mtx.at(i)->get_size()[0],
-            {{this->mtx.at(i).get(), true, index_type{0}}},
-            this->row_maxabs.at(i).get_const_data(), real_type{0.25},
-            status.at(i).get_const_data(),
+        this->fill_prolongation(
+            this->mtx.at(i).get(), real_type{0.25}, real_type{1.0},
+            status.at(i).get_const_data(), coarse_map.at(i).get_const_data(),
             prolong_row_ptrs.at(i).get_const_data(),
             prolong_col_idxs.get_data(), prolong_values.get_data());
-        this->exec->run(gko::multigrid::pmis::make_gather(
-            static_cast<gko::size_type>(prolong_nnz),
-            coarse_map.at(i).get_const_data(),
-            prolong_col_idxs.get_const_data(), prolong_col_idxs.get_data()));
 
         GKO_ASSERT_ARRAY_EQ(prolong_col_idxs, expected_col_idxs.at(i));
         GKO_ASSERT_ARRAY_EQ(prolong_values, expected_values.at(i));
@@ -575,7 +719,6 @@ TYPED_TEST(Pmis, DirectInterpolationFillSkipsRowWithoutStrongDependence)
                                {value_type{1}, value_type{0}, value_type{1}}),
         gko::array<index_type>(this->exec, {0, 0, 1}),
         gko::array<index_type>(this->exec, {0, 1, 3}));
-    gko::array<real_type> row_maxabs(this->exec, {0, 0});
     // row 0 is coarse, row 1 is fine
     gko::array<int> status(this->exec, {c, f});
     gko::array<index_type> coarse_map(this->exec, {0, 1, 1});
@@ -589,14 +732,10 @@ TYPED_TEST(Pmis, DirectInterpolationFillSkipsRowWithoutStrongDependence)
     gko::array<value_type> expected_values(this->exec,
                                            {value_type{1}, value_type{-99}});
 
-    gko::multigrid::pmis::fill_prolongation<value_type, index_type>(
-        this->exec, mtx->get_size()[0], {{mtx.get(), true, index_type{0}}},
-        row_maxabs.get_const_data(), real_type{0.25}, status.get_const_data(),
-        prolong_row_ptrs.get_const_data(), prolong_col_idxs.get_data(),
-        prolong_values.get_data());
-    this->exec->run(gko::multigrid::pmis::make_gather(
-        gko::size_type{1}, coarse_map.get_const_data(),
-        prolong_col_idxs.get_const_data(), prolong_col_idxs.get_data()));
+    this->fill_prolongation(
+        mtx.get(), real_type{0.25}, real_type{1.0}, status.get_const_data(),
+        coarse_map.get_const_data(), prolong_row_ptrs.get_const_data(),
+        prolong_col_idxs.get_data(), prolong_values.get_data());
 
     GKO_ASSERT_ARRAY_EQ(prolong_col_idxs, expected_col_idxs);
     GKO_ASSERT_ARRAY_EQ(prolong_values, expected_values);
@@ -656,9 +795,16 @@ TYPED_TEST(Pmis, AccumulateAndEmitAcrossBlocksMatchesWholeRow)
                     gko::array<index_type>(this->exec, {0, 1}));
     // node 0 is the fine row, nodes 1 and 2 are coarse
     gko::array<int> status(this->exec, {f, c, c});
-    gko::array<real_type> row_maxabs(this->exec, {2});
 
     auto run = [&](std::vector<std::pair<Mtx*, index_type>> blocks) {
+        gko::array<real_type> neg_scale(this->exec, {gko::zero<real_type>()});
+        gko::array<real_type> row_sum(this->exec, {gko::zero<real_type>()});
+        gko::array<real_type> diag_abs(this->exec, {gko::zero<real_type>()});
+        for (auto& b : blocks) {
+            gko::kernels::reference::pmis::compute_row_scales(
+                this->exec, b.first, b.second == 0, neg_scale.get_data(),
+                row_sum.get_data(), diag_abs.get_data());
+        }
         gko::array<value_type> pos(this->exec, {gko::zero<value_type>()});
         gko::array<value_type> pos_div(this->exec, {gko::zero<value_type>()});
         gko::array<value_type> neg(this->exec, {gko::zero<value_type>()});
@@ -678,13 +824,15 @@ TYPED_TEST(Pmis, AccumulateAndEmitAcrossBlocksMatchesWholeRow)
         for (auto& b : blocks) {
             gko::kernels::reference::pmis::direct_interpolation_accumulate(
                 this->exec, b.first, b.second == 0, b.second,
-                row_maxabs.get_const_data(), real_type{0.25},
+                neg_scale.get_const_data(), row_sum.get_const_data(),
+                diag_abs.get_const_data(), real_type{0.25}, real_type{0.9},
                 status.get_const_data(), ws);
         }
         for (auto& b : blocks) {
             gko::kernels::reference::pmis::direct_interpolation_emit(
                 this->exec, b.first, b.second == 0, b.second,
-                row_maxabs.get_const_data(), real_type{0.25},
+                neg_scale.get_const_data(), row_sum.get_const_data(),
+                diag_abs.get_const_data(), real_type{0.25}, real_type{0.9},
                 status.get_const_data(), ws, cols.get_data(), vals.get_data());
         }
         return vals;
@@ -702,7 +850,11 @@ TYPED_TEST(Pmis, GenerateMgLevel)
 {
     using MgLevel = typename TestFixture::MgLevel;
     using Mtx = typename TestFixture::Mtx;
-    auto factory = MgLevel::build().with_skip_sorting(true).on(this->exec);
+    using real_type = typename TestFixture::real_type;
+    auto factory = MgLevel::build()
+                       .with_skip_sorting(true)
+                       .with_max_row_sum(real_type{1.0})
+                       .on(this->exec);
     auto restrict_op = gko::as<Mtx>(this->prolong_op1->transpose());
 
     auto mg = factory->generate(this->mtx.at(1));
@@ -716,11 +868,45 @@ TYPED_TEST(Pmis, GenerateMgLevel)
 }
 
 
+TYPED_TEST(Pmis, GenerateMgLevelStopsCoarseningWhenEveryRowIsFullySummed)
+{
+    using MgLevel = typename TestFixture::MgLevel;
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto factory = MgLevel::build().with_skip_sorting(true).on(this->exec);
+    const auto num_rows = this->mtx.at(1)->get_size()[0];
+    gko::matrix_data<value_type, index_type> identity_data{
+        gko::dim<2>(num_rows, num_rows), {}};
+    for (gko::size_type i = 0; i < num_rows; ++i) {
+        identity_data.nonzeros.emplace_back(static_cast<index_type>(i),
+                                            static_cast<index_type>(i),
+                                            gko::one<value_type>());
+    }
+    auto identity = Mtx::create(this->exec);
+    identity->read(identity_data);
+
+    auto mg = factory->generate(this->mtx.at(1));
+
+    ASSERT_EQ(mg->get_coarse_op()->get_size(), gko::dim<2>(num_rows, num_rows));
+    ASSERT_EQ(mg->get_prolong_op()->get_size(),
+              gko::dim<2>(num_rows, num_rows));
+    ASSERT_EQ(mg->get_restrict_op()->get_size(),
+              gko::dim<2>(num_rows, num_rows));
+    GKO_EXPECT_MTX_NEAR(gko::as<Mtx>(mg->get_prolong_op()), identity, 0.0);
+    GKO_EXPECT_MTX_NEAR(gko::as<Mtx>(mg->get_restrict_op()), identity, 0.0);
+    GKO_EXPECT_MTX_NEAR(gko::as<Mtx>(mg->get_coarse_op()), this->mtx.at(1),
+                        0.0);
+}
+
+
 TYPED_TEST(Pmis, GenerateMgLevelOnUnsortedMtx)
 {
     using MgLevel = typename TestFixture::MgLevel;
     using Mtx = typename TestFixture::Mtx;
-    auto factory = MgLevel::build().on(this->exec);
+    using real_type = typename TestFixture::real_type;
+    auto factory =
+        MgLevel::build().with_max_row_sum(real_type{1.0}).on(this->exec);
     auto restrict_op = gko::as<Mtx>(this->prolong_op1->transpose());
     std::default_random_engine rng{793643};
     gko::test::unsort_matrix(this->mtx.at(1), rng);
@@ -733,4 +919,1215 @@ TYPED_TEST(Pmis, GenerateMgLevelOnUnsortedMtx)
     GKO_EXPECT_MTX_NEAR(gko::as<Mtx>(mg->get_prolong_op()), this->prolong_op1,
                         0.0);
     GKO_EXPECT_MTX_NEAR(gko::as<Mtx>(mg->get_restrict_op()), restrict_op, 0.0);
+}
+
+
+template <typename ValueIndexType>
+class ClassicalInterpolation : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using real_type = gko::remove_complex<value_type>;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+
+    ClassicalInterpolation()
+        : exec(gko::ReferenceExecutor::create()),
+          path(Mtx::create(exec)),
+          clique(Mtx::create(exec)),
+          status(exec, {c, f, f, c}),
+          coarse_map(exec, {0, -1, -1, 1}),
+          row_maxabs(exec, {1, 1, 1, 1}),
+          num_coarse(2)
+    {
+        path->read({{4, 4},
+                    {{0, 0, value_type{1}},
+                     {0, 1, value_type{-1}},
+                     {1, 0, value_type{-1}},
+                     {1, 1, value_type{2}},
+                     {1, 2, value_type{-1}},
+                     {2, 1, value_type{-1}},
+                     {2, 2, value_type{2}},
+                     {2, 3, value_type{-1}},
+                     {3, 2, value_type{-1}},
+                     {3, 3, value_type{1}}}});
+        clique->read({{4, 4},
+                      {{0, 0, value_type{3}},
+                       {0, 1, value_type{-1}},
+                       {0, 2, value_type{-1}},
+                       {0, 3, value_type{-1}},
+                       {1, 0, value_type{-1}},
+                       {1, 1, value_type{3}},
+                       {1, 2, value_type{-1}},
+                       {1, 3, value_type{-1}},
+                       {2, 0, value_type{-1}},
+                       {2, 1, value_type{-1}},
+                       {2, 2, value_type{3}},
+                       {2, 3, value_type{-1}},
+                       {3, 0, value_type{-1}},
+                       {3, 1, value_type{-1}},
+                       {3, 2, value_type{-1}},
+                       {3, 3, value_type{3}}}});
+    }
+
+    std::shared_ptr<Mtx> interpolate(const Mtx* mtx, real_type threshold)
+    {
+        const auto num_rows = mtx->get_size()[0];
+        const auto scales = compute_pmis_row_scales(exec, mtx);
+        gko::array<index_type> row_ptrs(exec, num_rows + 1);
+        gko::kernels::reference::pmis::classical_interpolation_row_count(
+            exec, mtx, scales.neg_scale.get_const_data(),
+            scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+            threshold, max_row_sum, status.get_const_data(),
+            row_ptrs.get_data());
+        gko::kernels::reference::components::prefix_sum_nonnegative(
+            exec, row_ptrs.get_data(), row_ptrs.get_size());
+        const auto nnz =
+            static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
+        gko::array<index_type> col_idxs(exec, nnz);
+        gko::array<value_type> values(exec, nnz);
+
+        gko::kernels::reference::pmis::classical_interpolation_fill(
+            exec, mtx, row_maxabs.get_const_data(),
+            scales.neg_scale.get_const_data(), scales.row_sum.get_const_data(),
+            scales.diag_abs.get_const_data(), threshold, max_row_sum,
+            status.get_const_data(), coarse_map.get_const_data(),
+            row_ptrs.get_const_data(), col_idxs.get_data(), values.get_data());
+
+        return Mtx::create(exec, gko::dim<2>{num_rows, num_coarse},
+                           std::move(values), std::move(col_idxs),
+                           std::move(row_ptrs));
+    }
+
+    value_type entry(const Mtx* mtx, index_type row, index_type col) const
+    {
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        const auto col_idxs = mtx->get_const_col_idxs();
+        const auto values = mtx->get_const_values();
+        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
+            if (col_idxs[idx] == col) {
+                return values[idx];
+            }
+        }
+        return gko::zero<value_type>();
+    }
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
+    std::shared_ptr<Mtx> path;
+    std::shared_ptr<Mtx> clique;
+    gko::array<int> status;
+    gko::array<index_type> coarse_map;
+    gko::array<real_type> row_maxabs;
+    real_type max_row_sum{0.9};
+    gko::size_type num_coarse;
+};
+
+TYPED_TEST_SUITE(ClassicalInterpolation, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
+
+
+TYPED_TEST(ClassicalInterpolation, IsIdentityOnCoarseRows)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    auto prolong = this->interpolate(this->path.get(), real_type{0.25});
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto col_idxs = prolong->get_const_col_idxs();
+    const auto values = prolong->get_const_values();
+
+    ASSERT_EQ(row_ptrs[1] - row_ptrs[0], 1);
+    EXPECT_EQ(col_idxs[row_ptrs[0]], this->coarse_map.get_const_data()[0]);
+    EXPECT_EQ(values[row_ptrs[0]], value_type{1});
+    ASSERT_EQ(row_ptrs[4] - row_ptrs[3], 1);
+    EXPECT_EQ(col_idxs[row_ptrs[3]], this->coarse_map.get_const_data()[3]);
+    EXPECT_EQ(values[row_ptrs[3]], value_type{1});
+}
+
+
+TYPED_TEST(ClassicalInterpolation, ReproducesConstants)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using Vec = typename TestFixture::Vec;
+    auto prolong = this->interpolate(this->clique.get(), real_type{0.25});
+    auto ones_coarse =
+        Vec::create(this->exec, gko::dim<2>{this->num_coarse, 1});
+    ones_coarse->fill(gko::one<value_type>());
+    auto ones_fine = Vec::create(this->exec, gko::dim<2>{4, 1});
+    ones_fine->fill(gko::one<value_type>());
+    auto result = Vec::create(this->exec, gko::dim<2>{4, 1});
+
+    prolong->apply(ones_coarse, result);
+
+    GKO_ASSERT_MTX_NEAR(result, ones_fine, r<value_type>::value * 50);
+}
+
+
+TYPED_TEST(ClassicalInterpolation, ReproducesConstantsWithDegenerateFNeighbour)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using Vec = typename TestFixture::Vec;
+    auto prolong = this->interpolate(this->path.get(), real_type{0.25});
+    auto ones_coarse =
+        Vec::create(this->exec, gko::dim<2>{this->num_coarse, 1});
+    ones_coarse->fill(gko::one<value_type>());
+    auto ones_fine = Vec::create(this->exec, gko::dim<2>{4, 1});
+    ones_fine->fill(gko::one<value_type>());
+    auto result = Vec::create(this->exec, gko::dim<2>{4, 1});
+
+    prolong->apply(ones_coarse, result);
+
+    GKO_ASSERT_MTX_NEAR(result, ones_fine, r<value_type>::value * 50);
+}
+
+
+TYPED_TEST(ClassicalInterpolation, ReproducesConstantsWithPositiveOffDiagonal)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using Mtx = typename TestFixture::Mtx;
+    using Vec = typename TestFixture::Vec;
+    auto mixed_sign = Mtx::create(this->exec);
+    mixed_sign->read({{4, 4},
+                      {{0, 0, value_type{5}},
+                       {0, 1, value_type{1}},
+                       {0, 2, value_type{-1}},
+                       {1, 0, value_type{1}},
+                       {1, 1, value_type{3}},
+                       {1, 2, value_type{-3}},
+                       {1, 3, value_type{-1}},
+                       {2, 0, value_type{-1}},
+                       {2, 1, value_type{-3}},
+                       {2, 2, value_type{5}},
+                       {2, 3, value_type{-1}},
+                       {3, 1, value_type{-1}},
+                       {3, 2, value_type{-1}},
+                       {3, 3, value_type{5}}}});
+    this->row_maxabs = gko::array<real_type>(this->exec, {1, 3, 3, 1});
+
+    auto prolong = this->interpolate(mixed_sign.get(), real_type{0.25});
+    auto ones_coarse =
+        Vec::create(this->exec, gko::dim<2>{this->num_coarse, 1});
+    ones_coarse->fill(gko::one<value_type>());
+    auto ones_fine = Vec::create(this->exec, gko::dim<2>{4, 1});
+    ones_fine->fill(gko::one<value_type>());
+    auto result = Vec::create(this->exec, gko::dim<2>{4, 1});
+
+    prolong->apply(ones_coarse, result);
+
+    GKO_ASSERT_MTX_NEAR(result, ones_fine, r<value_type>::value * 50);
+}
+
+
+TYPED_TEST(ClassicalInterpolation, BoundedWeightsWithCancellingSK)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto cancelling = Mtx::create(this->exec);
+    cancelling->read({{5, 5},
+                      {{0, 0, value_type{5}},
+                       {0, 1, value_type{2}},
+                       {1, 0, value_type{2}},
+                       {1, 1, value_type{10}},
+                       {1, 2, value_type{-4}},
+                       {1, 3, value_type{-3}},
+                       {1, 4, value_type{-3}},
+                       {2, 1, value_type{-4}},
+                       {2, 2, value_type{20}},
+                       {2, 3, value_type{5}},
+                       {2, 4, value_type{-5.0000001}},
+                       {3, 1, value_type{-3}},
+                       {3, 2, value_type{5}},
+                       {3, 3, value_type{5}},
+                       {4, 1, value_type{-3}},
+                       {4, 2, value_type{-5.0000001}},
+                       {4, 4, value_type{5}}}});
+    this->status = gko::array<int>(this->exec, {c, f, f, c, c});
+    this->coarse_map = gko::array<index_type>(this->exec, {0, -1, -1, 1, 2});
+    this->row_maxabs = gko::array<real_type>(
+        this->exec, {real_type{2}, real_type{4}, real_type{5.0000001},
+                     real_type{5}, real_type{5.0000001}});
+    this->num_coarse = 3;
+
+    auto prolong = this->interpolate(cancelling.get(), real_type{0.25});
+
+    const auto values = prolong->get_const_values();
+    for (gko::size_type i = 0; i < prolong->get_num_stored_elements(); i++) {
+        EXPECT_LE(gko::abs(values[i]), real_type{10})
+            << "entry " << i << " = " << values[i];
+    }
+}
+
+
+TYPED_TEST(ClassicalInterpolation,
+           BoundedWeightsWithCancellingFallbackDenominator)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto cancelling = Mtx::create(this->exec);
+    cancelling->read({{3, 3},
+                      {{0, 0, value_type{1}},
+                       {1, 0, value_type{-1}},
+                       {1, 1, value_type{0.05}},
+                       {1, 2, value_type{-0.0499999}},
+                       {2, 2, value_type{1}}}});
+    this->status = gko::array<int>(this->exec, {c, f, c});
+    this->coarse_map = gko::array<index_type>(this->exec, {0, -1, 1});
+    this->row_maxabs = gko::array<real_type>(
+        this->exec, {real_type{0}, real_type{1}, real_type{0}});
+    this->num_coarse = 2;
+    this->max_row_sum = real_type{1.0};
+
+    auto prolong = this->interpolate(cancelling.get(), real_type{0.25});
+
+    const auto values = prolong->get_const_values();
+    for (gko::size_type i = 0; i < prolong->get_num_stored_elements(); i++) {
+        EXPECT_LE(gko::abs(values[i]), real_type{100})
+            << "entry " << i << " = " << values[i];
+    }
+}
+
+
+TYPED_TEST(ClassicalInterpolation, ReproducesConstantsWhenStabilityGuardFires)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto guard_fires = Mtx::create(this->exec);
+    guard_fires->read({{4, 4},
+                       {{0, 0, value_type{1}},
+                        {1, 1, value_type{1}},
+                        {1, 2, value_type{-0.94}},
+                        {1, 3, value_type{-0.06}},
+                        {2, 1, value_type{-0.94}},
+                        {2, 2, value_type{0.94}},
+                        {3, 1, value_type{-0.06}},
+                        {3, 3, value_type{0.06}}}});
+    this->status = gko::array<int>(this->exec, {c, f, f, c});
+    this->coarse_map = gko::array<index_type>(this->exec, {0, -1, -1, 1});
+    this->row_maxabs = gko::array<real_type>(
+        this->exec,
+        {real_type{0}, real_type{0.94}, real_type{0.94}, real_type{0}});
+    this->num_coarse = 2;
+
+    auto prolong = this->interpolate(guard_fires.get(), real_type{0.05});
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto values = prolong->get_const_values();
+    ASSERT_EQ(row_ptrs[2] - row_ptrs[1], 1)
+        << "row 1 should have exactly one entry (its only strong "
+           "C-neighbour, node 3)";
+    value_type row1_sum = gko::zero<value_type>();
+    for (auto idx = row_ptrs[1]; idx < row_ptrs[2]; idx++) {
+        row1_sum += values[idx];
+    }
+    EXPECT_NEAR(static_cast<double>(gko::real(row1_sum)), 1.0,
+                static_cast<double>(r<value_type>::value) * 50)
+        << "row 1 sum = " << row1_sum;
+}
+
+
+TYPED_TEST(ClassicalInterpolation, EmitsZeroWeightsWhenDivisorIsTinyForRow)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto tiny_divisor = Mtx::create(this->exec);
+    tiny_divisor->read({{3, 3},
+                        {{0, 0, value_type{1}},
+                         {1, 0, value_type{-1}},
+                         {1, 1, value_type{1e-4}},
+                         {1, 2, value_type{-1}},
+                         {2, 2, value_type{1}}}});
+    this->status = gko::array<int>(this->exec, {c, f, c});
+    this->coarse_map = gko::array<index_type>(this->exec, {0, -1, 1});
+    this->row_maxabs = gko::array<real_type>(
+        this->exec, {real_type{0}, real_type{1}, real_type{0}});
+    this->num_coarse = 2;
+    const real_type threshold{0.25};
+    const real_type max_row_sum{1.0};
+    const auto num_rows = tiny_divisor->get_size()[0];
+    const auto scales = compute_pmis_row_scales(this->exec, tiny_divisor.get());
+    gko::array<index_type> row_ptrs(this->exec, num_rows + 1);
+    gko::kernels::reference::pmis::classical_interpolation_row_count(
+        this->exec, tiny_divisor.get(), scales.neg_scale.get_const_data(),
+        scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+        threshold, max_row_sum, this->status.get_const_data(),
+        row_ptrs.get_data());
+    gko::kernels::reference::components::prefix_sum_nonnegative(
+        this->exec, row_ptrs.get_data(), row_ptrs.get_size());
+    ASSERT_EQ(row_ptrs.get_const_data()[2] - row_ptrs.get_const_data()[1], 2);
+    const auto nnz =
+        static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
+    gko::array<index_type> col_idxs(this->exec, nnz);
+    gko::array<value_type> values(this->exec, nnz);
+    col_idxs.fill(index_type{-99});
+    values.fill(value_type{-12345});
+
+    gko::kernels::reference::pmis::classical_interpolation_fill(
+        this->exec, tiny_divisor.get(), this->row_maxabs.get_const_data(),
+        scales.neg_scale.get_const_data(), scales.row_sum.get_const_data(),
+        scales.diag_abs.get_const_data(), threshold, max_row_sum,
+        this->status.get_const_data(), this->coarse_map.get_const_data(),
+        row_ptrs.get_const_data(), col_idxs.get_data(), values.get_data());
+
+    const auto row1_begin = row_ptrs.get_const_data()[1];
+    EXPECT_EQ(col_idxs.get_const_data()[row1_begin], index_type{0});
+    EXPECT_EQ(col_idxs.get_const_data()[row1_begin + 1], index_type{1});
+    for (auto idx = row1_begin; idx < row_ptrs.get_const_data()[2]; idx++) {
+        SCOPED_TRACE(idx);
+        const auto val = values.get_const_data()[idx];
+        EXPECT_TRUE(gko::is_finite(val)) << "entry " << idx << " = " << val;
+        EXPECT_EQ(val, gko::zero<value_type>())
+            << "entry " << idx << " = " << val;
+    }
+}
+
+
+TYPED_TEST(ClassicalInterpolation, OnlyUsesStrongCoarseNeighbours)
+{
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    const real_type threshold = 0.25;
+    const auto scales = compute_pmis_row_scales(this->exec, this->path.get());
+    auto prolong = this->interpolate(this->path.get(), threshold);
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto col_idxs = prolong->get_const_col_idxs();
+    std::vector<index_type> node_of_coarse_col(this->num_coarse);
+    for (index_type node = 0; node < 4; node++) {
+        if (this->status.get_const_data()[node] == c) {
+            node_of_coarse_col[this->coarse_map.get_const_data()[node]] = node;
+        }
+    }
+
+    for (index_type row = 0; row < 4; row++) {
+        if (this->status.get_const_data()[row] != f) {
+            continue;
+        }
+        SCOPED_TRACE(row);
+        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
+            const auto node = node_of_coarse_col[col_idxs[idx]];
+            const auto val = this->entry(this->path.get(), row, node);
+            EXPECT_GT(-gko::real(val),
+                      threshold * scales.neg_scale.get_const_data()[row]);
+        }
+    }
+}
+
+
+TYPED_TEST(ClassicalInterpolation, RowCountMatchesFilledRows)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    const real_type threshold = 0.25;
+    const auto num_rows = this->path->get_size()[0];
+    const auto scales = compute_pmis_row_scales(this->exec, this->path.get());
+    gko::array<index_type> counts(this->exec, num_rows);
+    gko::kernels::reference::pmis::classical_interpolation_row_count(
+        this->exec, this->path.get(), scales.neg_scale.get_const_data(),
+        scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+        threshold, this->max_row_sum, this->status.get_const_data(),
+        counts.get_data());
+    gko::array<index_type> row_ptrs(this->exec, num_rows + 1);
+    this->exec->copy_from(this->exec, num_rows, counts.get_const_data(),
+                          row_ptrs.get_data());
+    gko::kernels::reference::components::prefix_sum_nonnegative(
+        this->exec, row_ptrs.get_data(), row_ptrs.get_size());
+    const auto nnz =
+        static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
+    gko::array<index_type> col_idxs(this->exec, nnz);
+    gko::array<value_type> values(this->exec, nnz);
+    col_idxs.fill(index_type{-99});
+
+    gko::kernels::reference::pmis::classical_interpolation_fill(
+        this->exec, this->path.get(), this->row_maxabs.get_const_data(),
+        scales.neg_scale.get_const_data(), scales.row_sum.get_const_data(),
+        scales.diag_abs.get_const_data(), threshold, this->max_row_sum,
+        this->status.get_const_data(), this->coarse_map.get_const_data(),
+        row_ptrs.get_const_data(), col_idxs.get_data(), values.get_data());
+
+    for (index_type row = 0; row < static_cast<index_type>(num_rows); row++) {
+        SCOPED_TRACE(row);
+        gko::size_type written = 0;
+        for (auto idx = row_ptrs.get_const_data()[row];
+             idx < row_ptrs.get_const_data()[row + 1]; idx++) {
+            if (col_idxs.get_const_data()[idx] != index_type{-99}) {
+                written++;
+            }
+        }
+        EXPECT_EQ(written,
+                  static_cast<gko::size_type>(counts.get_const_data()[row]));
+    }
+}
+
+
+TEST(ClassicalInterpolationDegenerate,
+     FallsBackToDirectWhenDenominatorCancelsExactly)
+{
+    using value_type = double;
+    using index_type = int;
+    using real_type = double;
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::matrix::Csr<value_type, index_type>::create(exec);
+    mtx->read({{3, 3},
+               {{0, 0, value_type{1}},
+                {1, 0, value_type{-1}},
+                {1, 1, value_type{0.05}},
+                {1, 2, value_type{-0.05}},
+                {2, 2, value_type{1}}}});
+    gko::array<real_type> row_maxabs(exec, {0, 1, 0});
+    gko::array<int> status(exec, {c, f, c});
+    gko::array<index_type> coarse_map(exec, {0, -1, 1});
+    const real_type max_row_sum{1.0};
+    const auto scales = compute_pmis_row_scales(exec, mtx.get());
+    gko::array<index_type> row_ptrs(exec, 4);
+    gko::kernels::reference::pmis::classical_interpolation_row_count(
+        exec, mtx.get(), scales.neg_scale.get_const_data(),
+        scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+        real_type{0.25}, max_row_sum, status.get_const_data(),
+        row_ptrs.get_data());
+    gko::kernels::reference::components::prefix_sum_nonnegative(
+        exec, row_ptrs.get_data(), row_ptrs.get_size());
+    ASSERT_EQ(row_ptrs.get_const_data()[3], 3);
+    gko::array<index_type> col_idxs(exec, 3);
+    gko::array<value_type> values(exec, 3);
+
+    gko::kernels::reference::pmis::classical_interpolation_fill(
+        exec, mtx.get(), row_maxabs.get_const_data(),
+        scales.neg_scale.get_const_data(), scales.row_sum.get_const_data(),
+        scales.diag_abs.get_const_data(), real_type{0.25}, max_row_sum,
+        status.get_const_data(), coarse_map.get_const_data(),
+        row_ptrs.get_const_data(), col_idxs.get_data(), values.get_data());
+
+    const auto row1_begin = row_ptrs.get_const_data()[1];
+    EXPECT_EQ(col_idxs.get_const_data()[row1_begin], 0);
+    EXPECT_NEAR(values.get_const_data()[row1_begin], 21.0, 1e-9);
+}
+
+
+template <typename ValueIndexType>
+class ExtIInterpolation : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using real_type = gko::remove_complex<value_type>;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+    using Vec = gko::matrix::Dense<value_type>;
+
+    ExtIInterpolation()
+        : exec(gko::ReferenceExecutor::create()),
+          path(Mtx::create(exec)),
+          status(exec, {c, f, f, c}),
+          coarse_map(exec, {0, -1, -1, 1}),
+          row_maxabs(exec, {1, 1, 1, 1}),
+          max_row_sum{0.9},
+          num_coarse(2)
+    {
+        path->read({{4, 4},
+                    {{0, 0, value_type{1}},
+                     {0, 1, value_type{-1}},
+                     {1, 0, value_type{-1}},
+                     {1, 1, value_type{2}},
+                     {1, 2, value_type{-1}},
+                     {2, 1, value_type{-1}},
+                     {2, 2, value_type{2}},
+                     {2, 3, value_type{-1}},
+                     {3, 2, value_type{-1}},
+                     {3, 3, value_type{1}}}});
+    }
+
+    gko::array<index_type> ext_i_row_count(const Mtx* mtx, real_type threshold)
+    {
+        const auto scales = compute_pmis_row_scales(exec, mtx);
+        gko::array<index_type> counts(exec, mtx->get_size()[0]);
+        gko::kernels::reference::pmis::ext_i_interpolation_row_count(
+            exec, mtx, scales.neg_scale.get_const_data(),
+            scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+            threshold, max_row_sum, status.get_const_data(), counts.get_data());
+        return counts;
+    }
+
+    gko::array<index_type> classical_row_count(const Mtx* mtx,
+                                               real_type threshold)
+    {
+        const auto scales = compute_pmis_row_scales(exec, mtx);
+        gko::array<index_type> counts(exec, mtx->get_size()[0]);
+        gko::kernels::reference::pmis::classical_interpolation_row_count(
+            exec, mtx, scales.neg_scale.get_const_data(),
+            scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+            threshold, max_row_sum, status.get_const_data(), counts.get_data());
+        return counts;
+    }
+
+    std::shared_ptr<Mtx> interpolate(const Mtx* mtx, real_type threshold)
+    {
+        const auto num_rows = mtx->get_size()[0];
+        const auto scales = compute_pmis_row_scales(exec, mtx);
+        gko::array<index_type> row_ptrs(exec, num_rows + 1);
+        gko::kernels::reference::pmis::ext_i_interpolation_row_count(
+            exec, mtx, scales.neg_scale.get_const_data(),
+            scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+            threshold, max_row_sum, status.get_const_data(),
+            row_ptrs.get_data());
+        gko::kernels::reference::components::prefix_sum_nonnegative(
+            exec, row_ptrs.get_data(), row_ptrs.get_size());
+        const auto nnz =
+            static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
+        gko::array<index_type> col_idxs(exec, nnz);
+        gko::array<value_type> values(exec, nnz);
+
+        gko::kernels::reference::pmis::ext_i_interpolation_fill(
+            exec, mtx, row_maxabs.get_const_data(),
+            scales.neg_scale.get_const_data(), scales.row_sum.get_const_data(),
+            scales.diag_abs.get_const_data(), threshold, max_row_sum,
+            status.get_const_data(), coarse_map.get_const_data(),
+            row_ptrs.get_const_data(), col_idxs.get_data(), values.get_data());
+
+        return Mtx::create(exec, gko::dim<2>{num_rows, num_coarse},
+                           std::move(values), std::move(col_idxs),
+                           std::move(row_ptrs));
+    }
+
+    value_type entry(const Mtx* mtx, index_type row, index_type col) const
+    {
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        const auto col_idxs = mtx->get_const_col_idxs();
+        const auto values = mtx->get_const_values();
+        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
+            if (col_idxs[idx] == col) {
+                return values[idx];
+            }
+        }
+        return gko::zero<value_type>();
+    }
+
+    std::shared_ptr<Mtx> sigma_zero_mtx()
+    {
+        auto mtx = Mtx::create(exec);
+        mtx->read({{5, 5},
+                   {{0, 0, value_type{1}},
+                    {0, 1, value_type{-1}},
+                    {1, 0, value_type{-1}},
+                    {1, 1, value_type{2}},
+                    {1, 2, value_type{-1}},
+                    {2, 1, value_type{1}},
+                    {2, 2, value_type{2}},
+                    {2, 4, value_type{-3}},
+                    {3, 3, value_type{1}},
+                    {3, 4, value_type{-1}},
+                    {4, 2, value_type{-1}},
+                    {4, 3, value_type{-1}},
+                    {4, 4, value_type{2}}}});
+        return mtx;
+    }
+
+    std::shared_ptr<Mtx> collapsing_mtx()
+    {
+        auto mtx = Mtx::create(exec);
+        mtx->read({{4, 4},
+                   {{0, 0, value_type{1}},
+                    {0, 1, value_type{-1}},
+                    {1, 0, value_type{-1}},
+                    {1, 1, value_type{1}},
+                    {1, 2, value_type{-1}},
+                    {2, 1, value_type{-1}},
+                    {2, 2, value_type{2}},
+                    {2, 3, value_type{-1}},
+                    {3, 2, value_type{-1}},
+                    {3, 3, value_type{1}}}});
+        return mtx;
+    }
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
+    std::shared_ptr<Mtx> path;
+    gko::array<int> status;
+    gko::array<index_type> coarse_map;
+    gko::array<real_type> row_maxabs;
+    real_type max_row_sum;
+    gko::size_type num_coarse;
+};
+
+TYPED_TEST_SUITE(ExtIInterpolation, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
+
+
+TYPED_TEST(ExtIInterpolation, IsIdentityOnCoarseRows)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    auto prolong = this->interpolate(this->path.get(), real_type{0.25});
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto col_idxs = prolong->get_const_col_idxs();
+    const auto values = prolong->get_const_values();
+
+    ASSERT_EQ(row_ptrs[1] - row_ptrs[0], 1);
+    EXPECT_EQ(col_idxs[row_ptrs[0]], this->coarse_map.get_const_data()[0]);
+    EXPECT_EQ(values[row_ptrs[0]], value_type{1});
+    ASSERT_EQ(row_ptrs[4] - row_ptrs[3], 1);
+    EXPECT_EQ(col_idxs[row_ptrs[3]], this->coarse_map.get_const_data()[3]);
+    EXPECT_EQ(values[row_ptrs[3]], value_type{1});
+}
+
+
+TYPED_TEST(ExtIInterpolation, ExtendedSetIsStrictlyLargerThanStrongC)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    auto ext_i = this->ext_i_row_count(this->path.get(), real_type{0.25});
+    auto classical =
+        this->classical_row_count(this->path.get(), real_type{0.25});
+
+    EXPECT_EQ(ext_i.get_const_data()[0], index_type{1});
+    EXPECT_EQ(classical.get_const_data()[0], index_type{1});
+    EXPECT_EQ(classical.get_const_data()[1], index_type{1});
+    EXPECT_EQ(ext_i.get_const_data()[1], index_type{2});
+    EXPECT_EQ(classical.get_const_data()[2], index_type{1});
+    EXPECT_EQ(ext_i.get_const_data()[2], index_type{2});
+    EXPECT_EQ(this->entry(this->path.get(), index_type{1}, index_type{3}),
+              gko::zero<value_type>());
+
+    auto prolong = this->interpolate(this->path.get(), real_type{0.25});
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto col_idxs = prolong->get_const_col_idxs();
+    ASSERT_EQ(row_ptrs[2] - row_ptrs[1], 2);
+    EXPECT_EQ(col_idxs[row_ptrs[1]], index_type{0});
+    EXPECT_EQ(col_idxs[row_ptrs[1] + 1], index_type{1});
+}
+
+
+TYPED_TEST(ExtIInterpolation, ReproducesConstants)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using Vec = typename TestFixture::Vec;
+    auto prolong = this->interpolate(this->path.get(), real_type{0.25});
+    auto ones_coarse =
+        Vec::create(this->exec, gko::dim<2>{this->num_coarse, 1});
+    ones_coarse->fill(gko::one<value_type>());
+    auto ones_fine = Vec::create(this->exec, gko::dim<2>{4, 1});
+    ones_fine->fill(gko::one<value_type>());
+    auto result = Vec::create(this->exec, gko::dim<2>{4, 1});
+
+    prolong->apply(ones_coarse, result);
+
+    GKO_ASSERT_MTX_NEAR(result, ones_fine, r<value_type>::value * 50);
+}
+
+
+TYPED_TEST(ExtIInterpolation, LumpsFNeighbourWithZeroSigmaK)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    using Vec = typename TestFixture::Vec;
+    auto mtx = this->sigma_zero_mtx();
+    this->status = gko::array<int>(this->exec, {c, f, f, c, f});
+    this->coarse_map = gko::array<index_type>(this->exec, {0, -1, -1, 1, -1});
+    this->row_maxabs = gko::array<real_type>(this->exec, {1, 1, 3, 1, 1});
+    this->num_coarse = 2;
+
+    auto prolong = this->interpolate(mtx.get(), real_type{0.25});
+
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto col_idxs = prolong->get_const_col_idxs();
+    const auto values = prolong->get_const_values();
+    ASSERT_EQ(row_ptrs[2] - row_ptrs[1], 1);
+    EXPECT_EQ(col_idxs[row_ptrs[1]], index_type{0});
+    EXPECT_NEAR(static_cast<double>(gko::real(values[row_ptrs[1]])), 1.0,
+                static_cast<double>(r<value_type>::value) * 50);
+    auto ones_coarse =
+        Vec::create(this->exec, gko::dim<2>{this->num_coarse, 1});
+    ones_coarse->fill(gko::one<value_type>());
+    auto ones_fine = Vec::create(this->exec, gko::dim<2>{5, 1});
+    ones_fine->fill(gko::one<value_type>());
+    auto result = Vec::create(this->exec, gko::dim<2>{5, 1});
+
+    prolong->apply(ones_coarse, result);
+
+    GKO_ASSERT_MTX_NEAR(result, ones_fine, r<value_type>::value * 50);
+}
+
+
+TYPED_TEST(ExtIInterpolation, EmitsZeroWeightsWhenDivisorCollapses)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    auto mtx = this->collapsing_mtx();
+    this->status = gko::array<int>(this->exec, {c, f, f, f});
+    this->coarse_map = gko::array<index_type>(this->exec, {0, -1, -1, -1});
+    this->row_maxabs = gko::array<real_type>(this->exec, {1, 1, 1, 1});
+    this->num_coarse = 1;
+    this->max_row_sum = real_type{1.0};
+
+    auto prolong = this->interpolate(mtx.get(), real_type{0.25});
+
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto col_idxs = prolong->get_const_col_idxs();
+    const auto values = prolong->get_const_values();
+    ASSERT_EQ(row_ptrs[2] - row_ptrs[1], 1);
+    const auto idx = row_ptrs[1];
+    EXPECT_EQ(col_idxs[idx], index_type{0});
+    EXPECT_TRUE(gko::is_finite(values[idx]))
+        << "entry " << idx << " = " << values[idx];
+    EXPECT_EQ(values[idx], gko::zero<value_type>())
+        << "entry " << idx << " = " << values[idx];
+}
+
+
+TYPED_TEST(ExtIInterpolation, RowCountMatchesFilledRows)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using real_type = typename TestFixture::real_type;
+    const real_type threshold{0.25};
+    const auto num_rows = this->path->get_size()[0];
+    const auto scales = compute_pmis_row_scales(this->exec, this->path.get());
+    auto counts = this->ext_i_row_count(this->path.get(), threshold);
+    gko::array<index_type> row_ptrs(this->exec, num_rows + 1);
+    this->exec->copy_from(this->exec, num_rows, counts.get_const_data(),
+                          row_ptrs.get_data());
+    gko::kernels::reference::components::prefix_sum_nonnegative(
+        this->exec, row_ptrs.get_data(), row_ptrs.get_size());
+    const auto nnz =
+        static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
+    gko::array<index_type> col_idxs(this->exec, nnz);
+    gko::array<value_type> values(this->exec, nnz);
+    col_idxs.fill(index_type{-99});
+
+    gko::kernels::reference::pmis::ext_i_interpolation_fill(
+        this->exec, this->path.get(), this->row_maxabs.get_const_data(),
+        scales.neg_scale.get_const_data(), scales.row_sum.get_const_data(),
+        scales.diag_abs.get_const_data(), threshold, this->max_row_sum,
+        this->status.get_const_data(), this->coarse_map.get_const_data(),
+        row_ptrs.get_const_data(), col_idxs.get_data(), values.get_data());
+
+    for (index_type row = 0; row < static_cast<index_type>(num_rows); row++) {
+        SCOPED_TRACE(row);
+        gko::size_type written = 0;
+        for (auto idx = row_ptrs.get_const_data()[row];
+             idx < row_ptrs.get_const_data()[row + 1]; idx++) {
+            if (col_idxs.get_const_data()[idx] != index_type{-99}) {
+                written++;
+            }
+        }
+        EXPECT_EQ(written,
+                  static_cast<gko::size_type>(counts.get_const_data()[row]));
+    }
+}
+
+
+namespace {
+
+
+std::shared_ptr<gko::matrix::Csr<double, int>> ext_i_interpolate_double(
+    std::shared_ptr<const gko::ReferenceExecutor> exec,
+    const gko::matrix::Csr<double, int>* mtx,
+    const gko::array<double>& row_maxabs, const gko::array<int>& status,
+    const gko::array<int>& coarse_map, double threshold, double max_row_sum,
+    gko::size_type num_coarse)
+{
+    const auto num_rows = mtx->get_size()[0];
+    const auto scales = compute_pmis_row_scales(exec, mtx);
+    gko::array<int> row_ptrs(exec, num_rows + 1);
+    gko::kernels::reference::pmis::ext_i_interpolation_row_count(
+        exec, mtx, scales.neg_scale.get_const_data(),
+        scales.row_sum.get_const_data(), scales.diag_abs.get_const_data(),
+        threshold, max_row_sum, status.get_const_data(), row_ptrs.get_data());
+    gko::kernels::reference::components::prefix_sum_nonnegative(
+        exec, row_ptrs.get_data(), row_ptrs.get_size());
+    const auto nnz =
+        static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
+    gko::array<int> col_idxs(exec, nnz);
+    gko::array<double> values(exec, nnz);
+
+    gko::kernels::reference::pmis::ext_i_interpolation_fill(
+        exec, mtx, row_maxabs.get_const_data(),
+        scales.neg_scale.get_const_data(), scales.row_sum.get_const_data(),
+        scales.diag_abs.get_const_data(), threshold, max_row_sum,
+        status.get_const_data(), coarse_map.get_const_data(),
+        row_ptrs.get_const_data(), col_idxs.get_data(), values.get_data());
+
+    return gko::matrix::Csr<double, int>::create(
+        exec, gko::dim<2>{num_rows, num_coarse}, std::move(values),
+        std::move(col_idxs), std::move(row_ptrs));
+}
+
+
+}  // namespace
+
+
+TEST(ExtIInterpolationExact, PathWeightsMatchHandComputation)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::matrix::Csr<double, int>::create(exec);
+    mtx->read({{4, 4},
+               {{0, 0, 1.0},
+                {0, 1, -1.0},
+                {1, 0, -1.0},
+                {1, 1, 2.0},
+                {1, 2, -1.0},
+                {2, 1, -1.0},
+                {2, 2, 2.0},
+                {2, 3, -1.0},
+                {3, 2, -1.0},
+                {3, 3, 1.0}}});
+    gko::array<double> row_maxabs(exec, {1, 1, 1, 1});
+    gko::array<int> status(exec, {c, f, f, c});
+    gko::array<int> coarse_map(exec, {0, -1, -1, 1});
+
+    auto prolong = ext_i_interpolate_double(exec, mtx.get(), row_maxabs, status,
+                                            coarse_map, 0.25, 0.9, 2);
+
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto values = prolong->get_const_values();
+    ASSERT_EQ(row_ptrs[2] - row_ptrs[1], 2);
+    EXPECT_NEAR(values[row_ptrs[1]], 2.0 / 3.0, 1e-9);
+    EXPECT_NEAR(values[row_ptrs[1] + 1], 1.0 / 3.0, 1e-9);
+    ASSERT_EQ(row_ptrs[3] - row_ptrs[2], 2);
+    EXPECT_NEAR(values[row_ptrs[2]], 1.0 / 3.0, 1e-9);
+    EXPECT_NEAR(values[row_ptrs[2] + 1], 2.0 / 3.0, 1e-9);
+}
+
+
+TEST(ExtIInterpolationExact, WeaklyConnectedCoarsePointInExtendedSetIsNumerator)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::matrix::Csr<double, int>::create(exec);
+    mtx->read({{4, 4},
+               {{0, 0, 1.0},
+                {0, 1, -1.0},
+                {1, 0, -1.0},
+                {1, 1, 2.25},
+                {1, 2, -1.0},
+                {1, 3, -0.25},
+                {2, 1, -1.0},
+                {2, 2, 2.0},
+                {2, 3, -1.0},
+                {3, 1, -0.25},
+                {3, 2, -1.0},
+                {3, 3, 1.25}}});
+    gko::array<double> row_maxabs(exec, {1, 1, 1, 1});
+    gko::array<int> status(exec, {c, f, f, c});
+    gko::array<int> coarse_map(exec, {0, -1, -1, 1});
+
+    auto prolong = ext_i_interpolate_double(exec, mtx.get(), row_maxabs, status,
+                                            coarse_map, 0.25, 0.9, 2);
+
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto col_idxs = prolong->get_const_col_idxs();
+    const auto values = prolong->get_const_values();
+    ASSERT_EQ(row_ptrs[2] - row_ptrs[1], 2);
+    EXPECT_EQ(col_idxs[row_ptrs[1]], 0);
+    EXPECT_EQ(col_idxs[row_ptrs[1] + 1], 1);
+    EXPECT_NEAR(values[row_ptrs[1]], 1.0 / 1.75, 1e-9);
+    EXPECT_NEAR(values[row_ptrs[1] + 1], 0.75 / 1.75, 1e-9);
+    EXPECT_NEAR(values[row_ptrs[1]] + values[row_ptrs[1] + 1], 1.0, 1e-9);
+}
+
+
+TEST(ExtIInterpolationExact, EmitsZeroWeightsWhenDivisorNearlyCollapses)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::matrix::Csr<double, int>::create(exec);
+    mtx->read({{4, 4},
+               {{0, 0, 1.0},
+                {0, 1, -1.0},
+                {1, 0, -1.0},
+                {1, 1, 1.0 + 1e-7},
+                {1, 2, -1.0},
+                {2, 1, -1.0},
+                {2, 2, 2.0},
+                {2, 3, -1.0},
+                {3, 2, -1.0},
+                {3, 3, 1.0}}});
+    gko::array<double> row_maxabs(exec, {1, 1, 1, 1});
+    gko::array<int> status(exec, {c, f, f, f});
+    gko::array<int> coarse_map(exec, {0, -1, -1, -1});
+    const double max_row_sum = 1.0;
+
+    auto prolong = ext_i_interpolate_double(exec, mtx.get(), row_maxabs, status,
+                                            coarse_map, 0.25, max_row_sum, 1);
+
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto col_idxs = prolong->get_const_col_idxs();
+    const auto values = prolong->get_const_values();
+    ASSERT_EQ(row_ptrs[2] - row_ptrs[1], 1);
+    EXPECT_EQ(col_idxs[row_ptrs[1]], 0);
+    EXPECT_TRUE(gko::is_finite(values[row_ptrs[1]]));
+    EXPECT_EQ(values[row_ptrs[1]], 0.0);
+}
+
+
+TEST(ExtIInterpolationExact, NegativeNeighbourDiagonalFlipsTheSignFilter)
+{
+    auto exec = gko::ReferenceExecutor::create();
+    auto mtx = gko::matrix::Csr<double, int>::create(exec);
+    mtx->read({{4, 4},
+               {{0, 0, 1.0},
+                {0, 1, -1.0},
+                {1, 0, -1.0},
+                {1, 1, 3.0},
+                {1, 2, -1.0},
+                {1, 3, -1.0},
+                {2, 0, 2.0},
+                {2, 1, 1.0},
+                {2, 2, -4.0},
+                {2, 3, 1.0},
+                {3, 1, -1.0},
+                {3, 3, 1.0}}});
+    gko::array<double> row_maxabs(exec, {1, 1, 2, 1});
+    gko::array<int> status(exec, {c, f, f, c});
+    gko::array<int> coarse_map(exec, {0, -1, -1, 1});
+
+    auto prolong = ext_i_interpolate_double(exec, mtx.get(), row_maxabs, status,
+                                            coarse_map, 0.25, 0.9, 2);
+
+    const auto row_ptrs = prolong->get_const_row_ptrs();
+    const auto col_idxs = prolong->get_const_col_idxs();
+    const auto values = prolong->get_const_values();
+    ASSERT_EQ(row_ptrs[2] - row_ptrs[1], 2);
+    EXPECT_EQ(col_idxs[row_ptrs[1]], 0);
+    EXPECT_EQ(col_idxs[row_ptrs[1] + 1], 1);
+    EXPECT_NEAR(values[row_ptrs[1]], 6.0 / 11.0, 1e-9);
+    EXPECT_NEAR(values[row_ptrs[1] + 1], 5.0 / 11.0, 1e-9);
+    EXPECT_NEAR(values[row_ptrs[1]] + values[row_ptrs[1] + 1], 1.0, 1e-9);
+}
+
+
+template <typename ValueIndexType>
+class TruncateInterpolation : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using real_type = gko::remove_complex<value_type>;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+
+    TruncateInterpolation()
+        : exec(gko::ReferenceExecutor::create()), wide(Mtx::create(exec))
+    {
+        wide->read({{3, 6},
+                    {{0, 0, value_type{4}},
+                     {0, 5, value_type{-2}},
+                     {1, 1, value_type{3}},
+                     {1, 2, value_type{-7}},
+                     {1, 3, value_type{1}},
+                     {2, 0, value_type{5}},
+                     {2, 1, value_type{-1}},
+                     {2, 2, value_type{4}},
+                     {2, 3, value_type{-8}},
+                     {2, 4, value_type{2}}}});
+    }
+
+    std::shared_ptr<Mtx> truncate(const Mtx* mtx, gko::size_type p_max_elmts)
+    {
+        const auto num_rows = mtx->get_size()[0];
+        gko::array<index_type> row_ptrs(exec, num_rows + 1);
+        gko::kernels::reference::pmis::truncate_interpolation_row_count(
+            exec, num_rows, p_max_elmts, mtx->get_const_row_ptrs(),
+            row_ptrs.get_data());
+        gko::kernels::reference::components::prefix_sum_nonnegative(
+            exec, row_ptrs.get_data(), row_ptrs.get_size());
+        const auto nnz =
+            static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
+        gko::array<index_type> col_idxs(exec, nnz);
+        gko::array<value_type> values(exec, nnz);
+        gko::kernels::reference::pmis::truncate_interpolation_fill(
+            exec, num_rows, p_max_elmts, mtx->get_const_row_ptrs(),
+            mtx->get_const_col_idxs(), mtx->get_const_values(),
+            row_ptrs.get_const_data(), col_idxs.get_data(), values.get_data());
+        return Mtx::create(exec, mtx->get_size(), std::move(values),
+                           std::move(col_idxs), std::move(row_ptrs));
+    }
+
+    value_type row_sum(const Mtx* mtx, index_type row) const
+    {
+        const auto row_ptrs = mtx->get_const_row_ptrs();
+        const auto values = mtx->get_const_values();
+        auto sum = gko::zero<value_type>();
+        for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
+            sum += values[idx];
+        }
+        return sum;
+    }
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
+    std::shared_ptr<Mtx> wide;
+};
+
+TYPED_TEST_SUITE(TruncateInterpolation, gko::test::ValueIndexTypes,
+                 PairTypenameNameGenerator);
+
+
+TYPED_TEST(TruncateInterpolation, LeavesRowWithFewerEntriesUntouched)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto out = this->truncate(this->wide.get(), gko::size_type{3});
+
+    const auto row_ptrs = out->get_const_row_ptrs();
+    const auto col_idxs = out->get_const_col_idxs();
+    const auto values = out->get_const_values();
+    ASSERT_EQ(row_ptrs[1] - row_ptrs[0], 2);
+    EXPECT_EQ(col_idxs[row_ptrs[0]], index_type{0});
+    EXPECT_EQ(values[row_ptrs[0]], value_type{4});
+    EXPECT_EQ(col_idxs[row_ptrs[0] + 1], index_type{5});
+    EXPECT_EQ(values[row_ptrs[0] + 1], value_type{-2});
+}
+
+
+TYPED_TEST(TruncateInterpolation, LeavesRowWithExactlyPMaxElmtsUntouched)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto out = this->truncate(this->wide.get(), gko::size_type{3});
+
+    const auto row_ptrs = out->get_const_row_ptrs();
+    const auto col_idxs = out->get_const_col_idxs();
+    const auto values = out->get_const_values();
+    ASSERT_EQ(row_ptrs[2] - row_ptrs[1], 3);
+    EXPECT_EQ(col_idxs[row_ptrs[1]], index_type{1});
+    EXPECT_EQ(values[row_ptrs[1]], value_type{3});
+    EXPECT_EQ(col_idxs[row_ptrs[1] + 1], index_type{2});
+    EXPECT_EQ(values[row_ptrs[1] + 1], value_type{-7});
+    EXPECT_EQ(col_idxs[row_ptrs[1] + 2], index_type{3});
+    EXPECT_EQ(values[row_ptrs[1] + 2], value_type{1});
+}
+
+
+TYPED_TEST(TruncateInterpolation, KeepsLargestMagnitudeEntries)
+{
+    using index_type = typename TestFixture::index_type;
+    auto out = this->truncate(this->wide.get(), gko::size_type{3});
+
+    const auto row_ptrs = out->get_const_row_ptrs();
+    const auto col_idxs = out->get_const_col_idxs();
+    ASSERT_EQ(row_ptrs[3] - row_ptrs[2], 3);
+    EXPECT_EQ(col_idxs[row_ptrs[2]], index_type{0});
+    EXPECT_EQ(col_idxs[row_ptrs[2] + 1], index_type{2});
+    EXPECT_EQ(col_idxs[row_ptrs[2] + 2], index_type{3});
+}
+
+
+TYPED_TEST(TruncateInterpolation, ReproducesOriginalRowSum)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    const auto expected = this->row_sum(this->wide.get(), 2);
+    const auto tol = std::numeric_limits<real_type>::epsilon() * real_type{16};
+
+    auto out = this->truncate(this->wide.get(), gko::size_type{3});
+
+    const auto row_ptrs = out->get_const_row_ptrs();
+    const auto values = out->get_const_values();
+    auto actual = gko::zero<value_type>();
+    for (auto idx = row_ptrs[2]; idx < row_ptrs[3]; idx++) {
+        actual += values[idx];
+    }
+    EXPECT_LE(static_cast<double>(gko::abs(actual - expected)),
+              static_cast<double>(tol * gko::abs(expected)));
+}
+
+
+TYPED_TEST(TruncateInterpolation, KeptEntriesSummingToZeroAreLeftUnscaled)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec);
+    mtx->read({{1, 3},
+               {{0, 0, value_type{5}},
+                {0, 1, value_type{-5}},
+                {0, 2, value_type{2}}}});
+
+    auto out = this->truncate(mtx.get(), gko::size_type{2});
+
+    const auto row_ptrs = out->get_const_row_ptrs();
+    const auto col_idxs = out->get_const_col_idxs();
+    const auto values = out->get_const_values();
+    ASSERT_EQ(row_ptrs[1] - row_ptrs[0], 2);
+    EXPECT_EQ(col_idxs[row_ptrs[0]], index_type{0});
+    EXPECT_EQ(col_idxs[row_ptrs[0] + 1], index_type{1});
+    EXPECT_EQ(values[row_ptrs[0]], value_type{5});
+    EXPECT_EQ(values[row_ptrs[0] + 1], value_type{-5});
+    EXPECT_TRUE(gko::is_finite(values[row_ptrs[0]]));
+    EXPECT_TRUE(gko::is_finite(values[row_ptrs[0] + 1]));
+}
+
+
+template <typename ValueIndexType>
+class TruncateInterpolationComplex : public ::testing::Test {
+protected:
+    using value_type =
+        typename std::tuple_element<0, decltype(ValueIndexType())>::type;
+    using index_type =
+        typename std::tuple_element<1, decltype(ValueIndexType())>::type;
+    using real_type = gko::remove_complex<value_type>;
+    using Mtx = gko::matrix::Csr<value_type, index_type>;
+
+    TruncateInterpolationComplex() : exec(gko::ReferenceExecutor::create()) {}
+
+    std::shared_ptr<Mtx> truncate(const Mtx* mtx, gko::size_type p_max_elmts)
+    {
+        const auto num_rows = mtx->get_size()[0];
+        gko::array<index_type> row_ptrs(exec, num_rows + 1);
+        gko::kernels::reference::pmis::truncate_interpolation_row_count(
+            exec, num_rows, p_max_elmts, mtx->get_const_row_ptrs(),
+            row_ptrs.get_data());
+        gko::kernels::reference::components::prefix_sum_nonnegative(
+            exec, row_ptrs.get_data(), row_ptrs.get_size());
+        const auto nnz =
+            static_cast<gko::size_type>(row_ptrs.get_const_data()[num_rows]);
+        gko::array<index_type> col_idxs(exec, nnz);
+        gko::array<value_type> values(exec, nnz);
+        gko::kernels::reference::pmis::truncate_interpolation_fill(
+            exec, num_rows, p_max_elmts, mtx->get_const_row_ptrs(),
+            mtx->get_const_col_idxs(), mtx->get_const_values(),
+            row_ptrs.get_const_data(), col_idxs.get_data(), values.get_data());
+        return Mtx::create(exec, mtx->get_size(), std::move(values),
+                           std::move(col_idxs), std::move(row_ptrs));
+    }
+
+    std::shared_ptr<const gko::ReferenceExecutor> exec;
+};
+
+TYPED_TEST_SUITE(TruncateInterpolationComplex,
+                 gko::test::ComplexValueIndexTypes, PairTypenameNameGenerator);
+
+
+TYPED_TEST(TruncateInterpolationComplex, SelectionUsesMagnitudeNotRealPart)
+{
+    using value_type = typename TestFixture::value_type;
+    using real_type = typename TestFixture::real_type;
+    using index_type = typename TestFixture::index_type;
+    using Mtx = typename TestFixture::Mtx;
+    auto mtx = Mtx::create(this->exec);
+    mtx->read({{1, 2}, {{0, 0, value_type{3, 0}}, {0, 1, value_type{1, 4}}}});
+
+    auto out = this->truncate(mtx.get(), gko::size_type{1});
+
+    const auto row_ptrs = out->get_const_row_ptrs();
+    const auto col_idxs = out->get_const_col_idxs();
+    const auto values = out->get_const_values();
+    ASSERT_EQ(row_ptrs[1] - row_ptrs[0], 1);
+    EXPECT_EQ(col_idxs[row_ptrs[0]], index_type{1});
+    const auto mass = gko::abs(value_type{3, 0}) + gko::abs(value_type{1, 4});
+    const auto tol = std::numeric_limits<real_type>::epsilon() * real_type{16};
+    EXPECT_LE(
+        static_cast<double>(gko::abs(values[row_ptrs[0]] - value_type{4, 4})),
+        static_cast<double>(tol * mass));
 }
