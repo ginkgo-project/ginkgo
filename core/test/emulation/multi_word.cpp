@@ -5,11 +5,14 @@
 #include "core/emulation/multi_word.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
+
+#include <ginkgo/core/base/half.hpp>
 
 #include "core/emulation/double_word.hpp"
 #include "core/test/emulation/float_float_helper.hpp"
@@ -79,6 +82,18 @@ static_assert(gko::zero<accurate_fma>().word(0) == 0.0f &&
               gko::zero<accurate_fma>().word(1) == 0.0f);
 static_assert(gko::one<accurate_fma>().word(0) == 1.0f &&
               gko::one<accurate_fma>().word(1) == 0.0f);
+// integers of at most 32 bits are constant expressions, also with two words
+static_assert(accurate_fma{(1 << 24) + 1}.word(1) == 1.0f);
+// the conversion to integers rounds towards zero in general, so only
+// explicitly
+static_assert(std::is_constructible_v<int, accurate_fma>);
+static_assert(!std::is_convertible_v<accurate_fma, int>);
+static_assert(!std::is_constructible_v<bool, accurate_fma>);
+// half fits into a single float word, but only explicitly, like double
+static_assert(std::is_constructible_v<accurate_fma, gko::half>);
+static_assert(!std::is_convertible_v<gko::half, accurate_fma>);
+static_assert(std::is_constructible_v<gko::half, accurate_fma>);
+static_assert(!std::is_convertible_v<accurate_fma, gko::half>);
 
 
 template <typename MW>
@@ -101,6 +116,77 @@ TYPED_TEST(MultiWord, ConstructsFromSingleWordOrInteger)
 
     ASSERT_TRUE(has_words(MW{1.5f}, 1.5f, 0.0f));
     ASSERT_TRUE(has_words(MW{3}, 3.0f, 0.0f));
+}
+
+
+TYPED_TEST(MultiWord, ConstructsIntegersWithMoreBitsThanAWordExactly)
+{
+    using MW = TypeParam;
+
+    // 2^24 + 1 is a tie between two floats
+    ASSERT_TRUE(has_words(MW{(1 << 24) + 1}, 0x1p24f, 1.0f));
+    ASSERT_TRUE(has_words(MW{-(1 << 30) - 3}, -0x1p30f, -3.0f));
+    ASSERT_EQ(mw::eval<double>(MW{std::numeric_limits<std::int32_t>::max()}),
+              2147483647.0);
+    ASSERT_EQ(mw::eval<double>(MW{std::numeric_limits<std::int32_t>::min()}),
+              -2147483648.0);
+    ASSERT_EQ(mw::eval<double>(MW{std::numeric_limits<std::uint32_t>::max()}),
+              4294967295.0);
+    ASSERT_EQ(mw::eval<double>(MW{(std::int64_t{1} << 47) + 12345}),
+              0x1p47 + 12345);
+    ASSERT_EQ(mw::eval<double>(MW{-(std::int64_t{1} << 40) - 1}), -0x1p40 - 1);
+    ASSERT_EQ(mw::eval<double>(MW{(std::uint64_t{1} << 48) - 1}), 0x1p48 - 1);
+}
+
+
+TYPED_TEST(MultiWord, ConvertsToIntegersRoundingTowardsZero)
+{
+    using MW = TypeParam;
+
+    ASSERT_EQ(static_cast<int>(MW::from_words(4.75f, 0.0f)), 4);
+    ASSERT_EQ(static_cast<int>(MW::from_words(-4.75f, 0.0f)), -4);
+    // the second word moves the value below or above the integer
+    ASSERT_EQ(static_cast<int>(MW::from_words(5.0f, -0x1p-23f)), 4);
+    ASSERT_EQ(static_cast<int>(MW::from_words(-5.0f, 0x1p-23f)), -4);
+    ASSERT_EQ(static_cast<int>(MW::from_words(5.0f, 0x1p-23f)), 5);
+    ASSERT_EQ(static_cast<std::int64_t>(MW::from_words(0x1p30f, -0.5f)),
+              (std::int64_t{1} << 30) - 1);
+    ASSERT_EQ(static_cast<std::int64_t>(MW::from_words(-0x1p30f, 0.5f)),
+              -(std::int64_t{1} << 30) + 1);
+    ASSERT_EQ(static_cast<std::int32_t>(MW{2147483647}), 2147483647);
+    ASSERT_EQ(static_cast<std::int64_t>(MW{-(std::int64_t{1} << 47) - 5}),
+              -(std::int64_t{1} << 47) - 5);
+}
+
+
+TYPED_TEST(MultiWord, ConvertsHalfExactly)
+{
+    using MW = TypeParam;
+    const gko::half h{0.333251953125f};
+
+    const MW x{h};
+
+    ASSERT_TRUE(has_words(x, 0.333251953125f, 0.0f));
+    ASSERT_EQ(static_cast<float>(static_cast<gko::half>(x)), 0.333251953125f);
+}
+
+
+TYPED_TEST(MultiWord, IsFiniteLikeTheValue)
+{
+    using MW = TypeParam;
+    const auto inf = std::numeric_limits<float>::infinity();
+    const auto nan = std::numeric_limits<float>::quiet_NaN();
+
+    // through gko::is_finite, which compares with the infinity of the type
+    ASSERT_TRUE(gko::is_finite(MW::from_words(1.0f, 0x1p-30f)));
+    ASSERT_TRUE(gko::is_finite(-MW{3.0f}));
+    ASSERT_TRUE(gko::is_finite(MW{}));
+    ASSERT_FALSE(gko::is_finite(MW::from_words(inf, 0.0f)));
+    ASSERT_FALSE(gko::is_finite(MW::from_words(-inf, 0.0f)));
+    ASSERT_FALSE(gko::is_finite(MW::from_words(nan, 0.0f)));
+    // as kernels call it
+    using gko::is_finite;
+    ASSERT_TRUE(is_finite(MW{3.0f}));
 }
 
 

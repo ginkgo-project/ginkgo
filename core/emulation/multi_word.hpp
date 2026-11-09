@@ -7,6 +7,7 @@
 
 
 #include <cmath>
+#include <cstdint>
 #include <limits>
 #include <type_traits>
 
@@ -242,6 +243,20 @@ GKO_ATTRIBUTES GKO_INLINE T sqrt_rn(T a)
 }
 
 
+/**
+ * Whether U is a type like half or bfloat16 for words of type T: smaller than
+ * T, not a C++ arithmetic type, and convertible to and from T. gko::truncated
+ * has its own overloads in multi_word.
+ *
+ * @note It is at namespace scope, since nvcc ignores conversion functions
+ *       whose enable_if uses a private member.
+ */
+template <typename U, typename T>
+constexpr bool is_small_word_type_v =
+    !std::is_arithmetic_v<U> && sizeof(U) < sizeof(T) &&
+    std::is_constructible_v<T, U> && std::is_constructible_v<U, T>;
+
+
 /*
  * Error-free transformations. Each returns the rounded result and its
  * rounding error, which sum up to the exact result if nothing overflows or
@@ -473,13 +488,34 @@ public:
     multi_word() noexcept = default;
 
     /**
-     * Creates the value of a single word or an integer.
+     * Creates the value of a single word or an integer. Integers of at most 32
+     * bits are exact, larger ones go through double.
      * Prevents other floating points to be silently casted.
      */
     template <typename U, std::enable_if_t<std::is_same_v<U, T> ||
                                            std::is_integral_v<U>>* = nullptr>
     GKO_ATTRIBUTES constexpr multi_word(U value) noexcept
-        : words_{{static_cast<T>(value)}}
+        : words_{words_of(value)}
+    {}
+
+    /**
+     * Converts a value of a type like half or bfloat16 through the word type.
+     */
+    template <
+        typename U,
+        std::enable_if_t<mw::detail::is_small_word_type_v<U, T>>* = nullptr>
+    GKO_ATTRIBUTES explicit multi_word(U value)
+        : multi_word{static_cast<T>(value)}
+    {}
+
+    /**
+     * Converts a value of gko::truncated through its FloatType.
+     */
+    template <typename FloatType, size_type NumComponents,
+              size_type ComponentId>
+    GKO_ATTRIBUTES explicit multi_word(
+        truncated<FloatType, NumComponents, ComponentId> value)
+        : multi_word{static_cast<FloatType>(value)}
     {}
 
     /**
@@ -520,10 +556,46 @@ public:
      * make the mixed operations with single words ambiguous.
      */
     template <typename U,
-              typename = std::enable_if_t<std::is_floating_point_v<U>>>
+              std::enable_if_t<std::is_floating_point_v<U>>* = nullptr>
     GKO_ATTRIBUTES constexpr explicit operator U() const noexcept
     {
         return mw::eval<U>(*this);
+    }
+
+    /**
+     * Converts to the integral type U
+     * TODO currently done through double. When dealing with integer conversion
+     * fix this
+     */
+    template <typename U, std::enable_if_t<std::is_integral_v<U> &&
+                                           !std::is_same_v<U, bool>>* = nullptr>
+    GKO_ATTRIBUTES constexpr explicit operator U() const noexcept
+    {
+        return static_cast<U>(mw::eval<double>(*this));
+    }
+
+    /**
+     * Converts to a type like half or bfloat16 through the word type. Due to
+     * the double rounding, ties can be off by one ulp.
+     */
+    template <
+        typename U,
+        std::enable_if_t<mw::detail::is_small_word_type_v<U, T>>* = nullptr>
+    GKO_ATTRIBUTES explicit operator U() const
+    {
+        return static_cast<U>(mw::eval<T>(*this));
+    }
+
+    /**
+     * Converts to gko::truncated by rounding to FloatType and truncating.
+     */
+    template <typename FloatType, size_type NumComponents,
+              size_type ComponentId>
+    GKO_ATTRIBUTES explicit
+    operator truncated<FloatType, NumComponents, ComponentId>() const
+    {
+        return truncated<FloatType, NumComponents, ComponentId>{
+            static_cast<FloatType>(*this)};
     }
 
     /**
@@ -740,6 +812,29 @@ private:
         return arithmetic::normalize(words);
     }
 
+    // The leading word is the integer rounded to T, the following words hold
+    // the rest. The rest is computed in std::int64_t, since the rounded leading
+    // word may not fit into U, e.g. 2^31 for the largest int32.
+    template <typename U>
+    static GKO_ATTRIBUTES constexpr words_type words_of(U value) noexcept
+    {
+        if constexpr (std::is_same_v<U, T>) {
+            return words_type{{value}};
+        } else if constexpr (sizeof(U) <= sizeof(std::int32_t)) {
+            // TODO when dealing with integer conversions, deal with this
+            words_type words{};
+            std::int64_t rest = value;
+            for (int i = 0; i < N; ++i) {
+                words[i] = static_cast<T>(rest);
+                rest -= static_cast<std::int64_t>(words[i]);
+            }
+            return words;
+        } else {
+            // TODO when dealing with integer conversions, deal with this
+            return round_to_words(static_cast<double>(value));
+        }
+    }
+
     template <typename U>
     static GKO_ATTRIBUTES GKO_INLINE words_type round_to_words(U value)
     {
@@ -782,12 +877,34 @@ private:
 };
 
 
+/**
+ * Whether T is a multi_word.
+ */
+template <typename T>
+struct is_multi_word : std::false_type {};
+
+template <typename T, int N, typename Policy>
+struct is_multi_word<multi_word<T, N, Policy>> : std::true_type {};
+
+template <typename T>
+constexpr bool is_multi_word_v = is_multi_word<T>::value;
+
+
 namespace detail {
 
 
 // a real scalar type, e.g. for remove_complex and gko::abs
 template <typename T, int N, typename Policy>
 struct is_complex_or_scalar_impl<multi_word<T, N, Policy>> : std::true_type {};
+
+// TODO add numeric_limits specializations to multi_word
+// std::numeric_limits is not specialized for multi_word, so its infinity() is
+// zero, which would make gko::is_finite false for every value
+template <typename T, int N, typename Policy>
+struct infinity_impl<multi_word<T, N, Policy>> {
+    static constexpr multi_word<T, N, Policy> value{
+        std::numeric_limits<T>::infinity()};
+};
 
 
 }  // namespace detail
