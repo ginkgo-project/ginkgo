@@ -463,8 +463,8 @@ public:
      * during an apply.
      *
      * Its collective communicator determines how this matrix exchanges data,
-     * and is carried over to every matrix created from it -- in particular to
-     * the one read_distributed rebuilds -- so this is how to check which
+     * and is carried over to every matrix created from it (in particular to
+     * the one read_distributed rebuilds), so this is how to check which
      * exchange a matrix actually uses.
      *
      * @return  Shared pointer to the stored row gatherer
@@ -499,6 +499,17 @@ public:
      */
     std::shared_ptr<const Partition<local_index_type, global_index_type>>
     get_row_partition() const;
+
+    /**
+     * Returns the index map of this matrix. It describes the column index
+     * spaces of the local blocks, the locally owned columns (diagonal block)
+     * and the non-locally owned columns (off-diagonal block), together with
+     * their mapping to global indices.
+     */
+    const index_map<local_index_type, global_index_type>& get_index_map() const
+    {
+        return imap_;
+    }
 
     /**
      * Computes the distributed sparse matrix-matrix product C = A * B,

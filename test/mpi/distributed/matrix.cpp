@@ -134,6 +134,39 @@ TYPED_TEST(MatrixCreation, RetainsRowPartitionAfterRead)
 }
 
 
+TYPED_TEST(MatrixCreation, IndexMapMapsBlockColumnsToGlobal)
+{
+    using local_index_type = typename TestFixture::local_index_type;
+    using global_index_type = typename TestFixture::global_index_type;
+    using csr = typename TestFixture::local_matrix_type;
+    using gko::experimental::distributed::index_space;
+    I<global_index_type> diag_cols[] = {{1, 1}, {2, 3}, {4}};
+    I<global_index_type> off_diag_cols[] = {{3, 2}, {1, 4}, {0}};
+    auto rank = this->comm.rank();
+    this->dist_mat->read_distributed(this->mat_input, this->row_part);
+    const auto& imap = this->dist_mat->get_index_map();
+    auto map_block = [&](std::shared_ptr<const gko::LinOp> block,
+                         index_space space) {
+        auto local = gko::as<csr>(block);
+        const auto nnz = local->get_num_stored_elements();
+        gko::array<local_index_type> cols(this->exec, nnz);
+        this->exec->copy_from(this->exec, nnz, local->get_const_col_idxs(),
+                              cols.get_data());
+        return imap.map_to_global(cols, space);
+    };
+
+    auto global_diag =
+        map_block(this->dist_mat->get_diag_matrix(), index_space::local);
+    auto global_off_diag = map_block(this->dist_mat->get_off_diag_matrix(),
+                                     index_space::non_local);
+
+    GKO_ASSERT_ARRAY_EQ(
+        global_diag, gko::array<global_index_type>(this->ref, diag_cols[rank]));
+    GKO_ASSERT_ARRAY_EQ(global_off_diag, gko::array<global_index_type>(
+                                             this->ref, off_diag_cols[rank]));
+}
+
+
 TYPED_TEST(MatrixCreation, ReadsDistributedLocalData)
 {
     using value_type = typename TestFixture::value_type;

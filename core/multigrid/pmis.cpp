@@ -4,6 +4,7 @@
 
 #include "ginkgo/core/multigrid/pmis.hpp"
 
+#include <memory>
 #include <type_traits>
 #include <vector>
 
@@ -36,6 +37,7 @@
 #include "core/distributed/helpers.hpp"
 #include "core/distributed/index_map_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "core/multigrid/pmis_halo.hpp"
 #include "core/multigrid/pmis_helpers.hpp"
 #include "core/multigrid/pmis_kernels.hpp"
 
@@ -48,8 +50,6 @@ namespace {
 
 GKO_REGISTER_OPERATION(fill_array, components::fill_array);
 GKO_REGISTER_OPERATION(compute_row_maxabs, pmis::compute_row_maxabs);
-GKO_REGISTER_OPERATION(compute_strong_dep_row, pmis::compute_strong_dep_row);
-GKO_REGISTER_OPERATION(compute_strong_dep, pmis::compute_strong_dep);
 GKO_REGISTER_OPERATION(initialize_weight_and_status,
                        pmis::initialize_weight_and_status);
 GKO_REGISTER_OPERATION(fill_seq_array, components::fill_seq_array);
@@ -59,9 +59,33 @@ GKO_REGISTER_OPERATION(direct_interpolation_row_count,
                        pmis::direct_interpolation_row_count);
 GKO_REGISTER_OPERATION(coarse_global_index, pmis::coarse_global_index);
 GKO_REGISTER_OPERATION(convert_ptrs_to_idxs, components::convert_ptrs_to_idxs);
-GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
-                       components::prefix_sum_nonnegative);
+GKO_REGISTER_OPERATION(classical_interpolation_row_count,
+                       pmis::classical_interpolation_row_count);
+GKO_REGISTER_OPERATION(classical_interpolation_fill,
+                       pmis::classical_interpolation_fill);
+GKO_REGISTER_OPERATION(ext_i_interpolation_row_count,
+                       pmis::ext_i_interpolation_row_count);
+GKO_REGISTER_OPERATION(ext_i_interpolation_fill,
+                       pmis::ext_i_interpolation_fill);
 GKO_REGISTER_OPERATION(convert_precision, components::convert_precision);
+
+
+// The n x n identity in CSR: a level that cannot coarsen reports it as both
+// prolongation and restriction, keeping its fine operator as the coarse one.
+template <typename ValueType, typename IndexType>
+std::shared_ptr<matrix::Csr<ValueType, IndexType>> create_identity_csr(
+    std::shared_ptr<const Executor> exec, size_type size)
+{
+    array<IndexType> row_ptrs(exec, size + 1);
+    array<IndexType> col_idxs(exec, size);
+    array<ValueType> values(exec, size);
+    exec->run(make_fill_seq_array(row_ptrs.get_data(), size + 1));
+    exec->run(make_fill_seq_array(col_idxs.get_data(), size));
+    exec->run(make_fill_array(values.get_data(), size, one<ValueType>()));
+    return share(matrix::Csr<ValueType, IndexType>::create(
+        exec, dim<2>{size, size}, std::move(values), std::move(col_idxs),
+        std::move(row_ptrs)));
+}
 
 
 }  // anonymous namespace
@@ -80,8 +104,27 @@ Pmis<ValueType, IndexType>::parse(const config::pnode& config,
         params.with_strength_threshold(
             config::get_value<remove_complex<ValueType>>(obj));
     }
+    if (auto& obj = config_check.get("max_row_sum")) {
+        params.with_max_row_sum(
+            config::get_value<remove_complex<ValueType>>(obj));
+    }
+    if (auto& obj = config_check.get("p_max_elmts")) {
+        params.with_p_max_elmts(config::get_value<size_type>(obj));
+    }
     if (auto& obj = config_check.get("skip_sorting")) {
         params.with_skip_sorting(config::get_value<bool>(obj));
+    }
+    if (auto& obj = config_check.get("interpolation")) {
+        auto str = obj.get_string();
+        if (str == "direct") {
+            params.with_interpolation(interpolation_type::direct);
+        } else if (str == "classical") {
+            params.with_interpolation(interpolation_type::classical);
+        } else if (str == "ext_i") {
+            params.with_interpolation(interpolation_type::ext_i);
+        } else {
+            GKO_INVALID_CONFIG_VALUE("interpolation", str);
+        }
     }
 
     return params;
@@ -119,6 +162,9 @@ Pmis<ValueType, IndexType>::Pmis(const Factory* factory,
 {
     GKO_ASSERT(parameters_.strength_threshold <= 1.0);
     GKO_ASSERT(parameters_.strength_threshold >= 0.0);
+    // a non-positive max_row_sum strips every row of its dependencies
+    GKO_ASSERT(parameters_.max_row_sum > 0.0);
+    GKO_ASSERT(parameters_.max_row_sum <= 1.0);
     if (system_matrix_->get_size()[0] != 0) {
         // generate on the existed matrix
         this->generate();
@@ -133,6 +179,16 @@ void Pmis<ValueType, IndexType>::generate()
 #if GINKGO_BUILD_MPI
     if (std::dynamic_pointer_cast<
             const experimental::distributed::DistributedBase>(system_matrix_)) {
+        if (parameters_.interpolation == interpolation_type::classical) {
+            throw NotSupported(
+                __FILE__, __LINE__, __func__,
+                "Pmis on a distributed matrix supports "
+                "interpolation_type::direct and interpolation_type::ext_i; "
+                "classical interpolation is not implemented on the "
+                "distributed path");
+        }
+        const bool ext_i_interp =
+            parameters_.interpolation == interpolation_type::ext_i;
         using fst_mtx_type =
             experimental::distributed::Matrix<ValueType, IndexType, IndexType>;
         using snd_mtx_type =
@@ -200,25 +256,49 @@ void Pmis<ValueType, IndexType>::generate()
             auto off_diag = as<const csr_type>(matrix->get_off_diag_matrix());
             const auto n_loc = diag->get_size()[0];
             const auto n_halo = off_diag->get_size()[1];
+            // the scale arrays below span the halo, so n_ext is needed here
+            const auto n_ext = n_loc + n_halo;
 
-            // the row maximum spans both blocks; restricting it to the
+            // the row scales span both blocks; restricting them to the
             // diagonal block would change S and coarsen block-locally
-            array<remove_complex<ValueType>> row_maxabs(exec, n_loc);
-            exec->run(pmis::make_fill_array(row_maxabs.get_data(), n_loc,
+            array<remove_complex<ValueType>> neg_scale(exec, n_ext);
+            array<remove_complex<ValueType>> row_sum(exec, n_ext);
+            array<remove_complex<ValueType>> diag_abs(exec, n_ext);
+            array<remove_complex<ValueType>> row_maxabs(exec, n_ext);
+            exec->run(pmis::make_fill_array(neg_scale.get_data(), n_ext,
                                             zero<remove_complex<ValueType>>()));
-            exec->run(pmis::make_compute_row_maxabs(diag.get(), true,
-                                                    row_maxabs.get_data()));
-            exec->run(pmis::make_compute_row_maxabs(off_diag.get(), false,
-                                                    row_maxabs.get_data()));
+            exec->run(pmis::make_fill_array(row_sum.get_data(), n_ext,
+                                            zero<remove_complex<ValueType>>()));
+            exec->run(pmis::make_fill_array(diag_abs.get_data(), n_ext,
+                                            zero<remove_complex<ValueType>>()));
+            exec->run(pmis::make_fill_array(row_maxabs.get_data(), n_ext,
+                                            zero<remove_complex<ValueType>>()));
+            exec->run(pmis::make_compute_row_scales(
+                diag.get(), true, neg_scale.get_data(), row_sum.get_data(),
+                diag_abs.get_data()));
+            exec->run(pmis::make_compute_row_scales(
+                off_diag.get(), false, neg_scale.get_data(), row_sum.get_data(),
+                diag_abs.get_data()));
+            // only the ext+i fill consumes these two reductions
+            if (ext_i_interp) {
+                exec->run(pmis::make_compute_row_maxabs(diag.get(), true,
+                                                        row_maxabs.get_data()));
+                exec->run(pmis::make_compute_row_maxabs(off_diag.get(), false,
+                                                        row_maxabs.get_data()));
+            }
 
             array<IndexType> s_diag_rows(exec, n_loc + 1);
             array<IndexType> s_offd_rows(exec, n_loc + 1);
             exec->run(pmis::make_compute_strong_dep_row(
-                diag.get(), true, row_maxabs.get_const_data(),
-                parameters_.strength_threshold, s_diag_rows.get_data()));
+                diag.get(), true, neg_scale.get_const_data(),
+                row_sum.get_const_data(), diag_abs.get_const_data(),
+                parameters_.strength_threshold, parameters_.max_row_sum,
+                s_diag_rows.get_data()));
             exec->run(pmis::make_compute_strong_dep_row(
-                off_diag.get(), false, row_maxabs.get_const_data(),
-                parameters_.strength_threshold, s_offd_rows.get_data()));
+                off_diag.get(), false, neg_scale.get_const_data(),
+                row_sum.get_const_data(), diag_abs.get_const_data(),
+                parameters_.strength_threshold, parameters_.max_row_sum,
+                s_offd_rows.get_data()));
             exec->run(pmis::make_prefix_sum_nonnegative(s_diag_rows.get_data(),
                                                         n_loc + 1));
             exec->run(pmis::make_prefix_sum_nonnegative(s_offd_rows.get_data(),
@@ -236,16 +316,19 @@ void Pmis<ValueType, IndexType>::generate()
                 exec, dim<2>{n_loc, n_halo}, array<IndexType>{exec, s_offd_nnz},
                 std::move(s_offd_rows));
             exec->run(pmis::make_compute_strong_dep(
-                diag.get(), true, row_maxabs.get_const_data(),
-                parameters_.strength_threshold, s_diag.get()));
+                diag.get(), true, neg_scale.get_const_data(),
+                row_sum.get_const_data(), diag_abs.get_const_data(),
+                parameters_.strength_threshold, parameters_.max_row_sum,
+                s_diag.get()));
             exec->run(pmis::make_compute_strong_dep(
-                off_diag.get(), false, row_maxabs.get_const_data(),
-                parameters_.strength_threshold, s_offd.get()));
+                off_diag.get(), false, neg_scale.get_const_data(),
+                row_sum.get_const_data(), diag_abs.get_const_data(),
+                parameters_.strength_threshold, parameters_.max_row_sum,
+                s_offd.get()));
 
             // the measure of node i is how often i occurs as a column of S,
             // counted by scatter-add because SparsityCsr::transpose has no
             // CUDA/HIP implementation
-            const auto n_ext = n_loc + n_halo;
             // a null values argument means "add one"
             const IndexType* count_ones = nullptr;
             const auto count_columns = [&](const auto* graph, size_type num,
@@ -326,6 +409,14 @@ void Pmis<ValueType, IndexType>::generate()
             broadcast_once(weight.get_data());
             broadcast_once(status.get_data());
             broadcast_once(global_idx.get_data());
+            // a halo row must be evaluated with its owner's scales, not
+            // recomputed ones
+            if (ext_i_interp) {
+                broadcast_once(neg_scale.get_data());
+                broadcast_once(row_sum.get_data());
+                broadcast_once(diag_abs.get_data());
+                broadcast_once(row_maxabs.get_data());
+            }
 
             const std::vector<pmis::column_block<
                 matrix::SparsityCsr<ValueType, IndexType>, IndexType>>
@@ -391,8 +482,36 @@ void Pmis<ValueType, IndexType>::generate()
             auto coarse_partition = share(
                 experimental::distributed::build_partition_from_local_size<
                     IndexType, global_index_type>(exec, comm, local_coarse));
-            GKO_THROW_IF_INVALID(coarse_partition->get_size() > 0,
-                                 "Pmis produced an empty coarse level.");
+            if (coarse_partition->get_size() == 0) {
+                // no C-point anywhere: terminal coarsening, so report a
+                // non-reducing level
+                using identity_mtx_type =
+                    experimental::distributed::Matrix<ValueType, IndexType,
+                                                      global_index_type>;
+                array<global_index_type> id_rows(exec, n_loc);
+                array<global_index_type> id_cols(exec, n_loc);
+                array<ValueType> id_vals(exec, n_loc);
+                exec->copy_from(exec, n_loc, global_rows.get_const_data(),
+                                id_rows.get_data());
+                exec->copy_from(exec, n_loc, global_rows.get_const_data(),
+                                id_cols.get_data());
+                exec->run(pmis::make_fill_array(id_vals.get_data(), n_loc,
+                                                one<ValueType>()));
+                device_matrix_data<ValueType, global_index_type> id_data{
+                    exec, dim<2>{matrix->get_size()[0], matrix->get_size()[0]},
+                    std::move(id_rows), std::move(id_cols), std::move(id_vals)};
+                auto prolong_op = share(identity_mtx_type::create(exec, comm));
+                // local_only: every rank emits only the rows it owns
+                prolong_op->read_distributed(
+                    id_data, matrix->get_row_partition(),
+                    matrix->get_row_partition(),
+                    experimental::distributed::assembly_mode::local_only);
+                auto restrict_op = share(identity_mtx_type::create(exec, comm));
+                prolong_op->transpose(restrict_op);
+                this->set_multigrid_level(prolong_op, this->get_fine_op(),
+                                          restrict_op);
+                return;
+            }
             // range i of the coarse partition is owned by rank i
             const auto coarse_offset = exec->copy_val_to_host(
                 coarse_partition->get_range_bounds() + comm.rank());
@@ -403,52 +522,126 @@ void Pmis<ValueType, IndexType>::generate()
             // a fine row can interpolate from a C-point on another rank
             broadcast_once(coarse_global.get_data());
 
-            array<IndexType> prolong_row_ptrs(exec, n_loc + 1);
-            // seed each coarse row with its single identity entry, which is
-            // exactly what converting the status yields
-            exec->run(pmis::make_convert_precision(
-                n_loc, status_ptr, prolong_row_ptrs.get_data()));
-            for (const auto& block : strength_blocks) {
-                exec->run(pmis::make_direct_interpolation_row_count(
-                    block.col_offset, block.mtx, status_ptr,
-                    prolong_row_ptrs.get_data()));
+            // ext+i also needs remote rows, so it runs on the spliced A_ext
+            std::unique_ptr<csr_type> a_ext;
+            array<IndexType> ext_node_map{exec};
+            if (ext_i_interp) {
+                auto halo_rows = pmis::fetch_halo_rows(
+                    exec, coll_comm.get(), matrix->get_index_map(), diag.get(),
+                    off_diag.get(), send_idxs, n_send);
+                a_ext = pmis::splice_extended_matrix(
+                    exec, diag.get(), off_diag.get(), halo_rows.get());
+                // the ext+i fill binary-searches each row, so columns have to
+                // ascend
+                if (!parameters_.skip_sorting &&
+                    !a_ext->is_sorted_by_column_index()) {
+                    a_ext->sort_by_column_index();
+                }
+                // a halo C-point has no coarse column here, so the fill emits
+                // node indices
+                ext_node_map.resize_and_reset(n_ext);
+                exec->run(
+                    pmis::make_fill_seq_array(ext_node_map.get_data(), n_ext));
+            }
+            const auto n_prolong_rows = ext_i_interp ? n_ext : n_loc;
+            array<IndexType> prolong_row_ptrs(exec, n_prolong_rows + 1);
+            if (ext_i_interp) {
+                exec->run(pmis::make_ext_i_interpolation_row_count(
+                    a_ext.get(), neg_scale.get_const_data(),
+                    row_sum.get_const_data(), diag_abs.get_const_data(),
+                    parameters_.strength_threshold, parameters_.max_row_sum,
+                    status_ptr, prolong_row_ptrs.get_data()));
+            } else {
+                // seed each coarse row with its single identity entry, which
+                // is exactly what converting the status yields
+                exec->run(pmis::make_convert_precision(
+                    n_loc, status_ptr, prolong_row_ptrs.get_data()));
+                for (const auto& block : strength_blocks) {
+                    exec->run(pmis::make_direct_interpolation_row_count(
+                        block.col_offset, block.mtx, status_ptr,
+                        prolong_row_ptrs.get_data()));
+                }
             }
             exec->run(pmis::make_prefix_sum_nonnegative(
-                prolong_row_ptrs.get_data(), n_loc + 1));
+                prolong_row_ptrs.get_data(), n_prolong_rows + 1));
+            // with truncation on, p_nnz below supersedes this count
             const auto prolong_nnz =
                 static_cast<size_type>(get_element(prolong_row_ptrs, n_loc));
+            // the fill writes halo rows too, so the arrays span the full nnz
+            const auto prolong_alloc_nnz = static_cast<size_type>(
+                get_element(prolong_row_ptrs, n_prolong_rows));
 
-            array<IndexType> prolong_col_idxs(exec, prolong_nnz);
-            array<ValueType> prolong_values(exec, prolong_nnz);
-            pmis::fill_prolongation<ValueType, IndexType>(
-                exec, n_loc,
-                {{diag.get(), true, IndexType{0}},
-                 {off_diag.get(), false, static_cast<IndexType>(n_loc)}},
-                row_maxabs.get_const_data(), parameters_.strength_threshold,
-                status_ptr, prolong_row_ptrs.get_const_data(),
-                prolong_col_idxs.get_data(), prolong_values.get_data());
+            array<IndexType> prolong_col_idxs(exec, prolong_alloc_nnz);
+            array<ValueType> prolong_values(exec, prolong_alloc_nnz);
+            if (ext_i_interp) {
+                exec->run(pmis::make_ext_i_interpolation_fill(
+                    a_ext.get(), row_maxabs.get_const_data(),
+                    neg_scale.get_const_data(), row_sum.get_const_data(),
+                    diag_abs.get_const_data(), parameters_.strength_threshold,
+                    parameters_.max_row_sum, status_ptr,
+                    ext_node_map.get_const_data(),
+                    prolong_row_ptrs.get_const_data(),
+                    prolong_col_idxs.get_data(), prolong_values.get_data()));
+            } else {
+                pmis::fill_prolongation<ValueType, IndexType>(
+                    exec, n_loc,
+                    {{diag.get(), true, IndexType{0}},
+                     {off_diag.get(), false, static_cast<IndexType>(n_loc)}},
+                    neg_scale.get_const_data(), row_sum.get_const_data(),
+                    diag_abs.get_const_data(), parameters_.strength_threshold,
+                    parameters_.max_row_sum, status_ptr,
+                    prolong_row_ptrs.get_const_data(),
+                    prolong_col_idxs.get_data(), prolong_values.get_data());
+            }
+
+            // truncate before the gather and the triplets below derive from
+            // these arrays
+            array<IndexType> trunc_row_ptrs{exec};
+            array<IndexType> trunc_col_idxs{exec};
+            array<ValueType> trunc_values{exec};
+            const auto truncate = parameters_.p_max_elmts > 0;
+            if (truncate) {
+                pmis::truncate_prolongation(
+                    exec, n_loc, parameters_.p_max_elmts,
+                    prolong_row_ptrs.get_const_data(),
+                    prolong_col_idxs.get_const_data(),
+                    prolong_values.get_const_data(), trunc_row_ptrs,
+                    trunc_col_idxs, trunc_values);
+            }
+            const auto* p_row_ptrs = truncate
+                                         ? trunc_row_ptrs.get_const_data()
+                                         : prolong_row_ptrs.get_const_data();
+            const auto* p_col_idxs = truncate
+                                         ? trunc_col_idxs.get_const_data()
+                                         : prolong_col_idxs.get_const_data();
+            const auto* p_values = truncate ? trunc_values.get_const_data()
+                                            : prolong_values.get_const_data();
+            const auto p_nnz =
+                truncate
+                    ? static_cast<size_type>(get_element(trunc_row_ptrs, n_loc))
+                    : prolong_nnz;
 
             // node indices cannot encode the coarse column of a halo
             // C-point, hence the global triplets
-            array<global_index_type> p_cols(exec, prolong_nnz);
-            exec->run(pmis::make_gather(
-                prolong_nnz, coarse_global.get_const_data(),
-                prolong_col_idxs.get_const_data(), p_cols.get_data()));
-            array<IndexType> p_local_rows(exec, prolong_nnz);
-            exec->run(pmis::make_convert_ptrs_to_idxs(
-                prolong_row_ptrs.get_const_data(), n_loc,
-                p_local_rows.get_data()));
+            array<global_index_type> p_cols(exec, p_nnz);
+            exec->run(pmis::make_gather(p_nnz, coarse_global.get_const_data(),
+                                        p_col_idxs, p_cols.get_data()));
+            array<IndexType> p_local_rows(exec, p_nnz);
+            exec->run(pmis::make_convert_ptrs_to_idxs(p_row_ptrs, n_loc,
+                                                      p_local_rows.get_data()));
             auto p_rows = row_imap.map_to_global(
                 p_local_rows, experimental::distributed::index_space::local);
 
             using dist_mtx_type =
                 experimental::distributed::Matrix<ValueType, IndexType,
                                                   global_index_type>;
+            // device_matrix_data requires the three arrays to agree in length
+            array<ValueType> p_vals(exec, p_nnz);
+            exec->copy_from(exec, p_nnz, p_values, p_vals.get_data());
             device_matrix_data<ValueType, global_index_type> p_data{
                 exec,
                 dim<2>{matrix->get_size()[0], coarse_partition->get_size()},
-                std::move(p_rows), std::move(p_cols),
-                std::move(prolong_values)};
+                std::move(p_rows), std::move(p_cols), std::move(p_vals)};
             auto prolong_op = share(dist_mtx_type::create(exec, row_gatherer));
             // local_only: every rank emits only the rows it owns
             prolong_op->read_distributed(
@@ -481,20 +674,39 @@ void Pmis<ValueType, IndexType>::generate()
         }
 
         array<IndexType> sparsity_rows(exec, pmis_op->get_size()[0] + 1);
+        // not part of the strength rule: classical interpolation's stability
+        // scale
         array<remove_complex<ValueType>> row_maxabs(exec,
                                                     pmis_op->get_size()[0]);
+        array<remove_complex<ValueType>> neg_scale(exec,
+                                                   pmis_op->get_size()[0]);
+        array<remove_complex<ValueType>> row_sum(exec, pmis_op->get_size()[0]);
+        array<remove_complex<ValueType>> diag_abs(exec, pmis_op->get_size()[0]);
         array<remove_complex<ValueType>> weight_(exec, pmis_op->get_size()[0]);
-        // compute_row_maxabs accumulates, so start from zero
+        // compute_row_maxabs and compute_row_scales accumulate, so start from
+        // zero
         exec->run(pmis::make_fill_array(row_maxabs.get_data(),
                                         row_maxabs.get_size(),
                                         zero<remove_complex<ValueType>>()));
+        exec->run(pmis::make_fill_array(neg_scale.get_data(),
+                                        neg_scale.get_size(),
+                                        zero<remove_complex<ValueType>>()));
+        exec->run(pmis::make_fill_array(row_sum.get_data(), row_sum.get_size(),
+                                        zero<remove_complex<ValueType>>()));
+        exec->run(pmis::make_fill_array(diag_abs.get_data(),
+                                        diag_abs.get_size(),
+                                        zero<remove_complex<ValueType>>()));
         exec->run(pmis::make_compute_row_maxabs(pmis_op.get(), true,
                                                 row_maxabs.get_data()));
+        exec->run(pmis::make_compute_row_scales(
+            pmis_op.get(), true, neg_scale.get_data(), row_sum.get_data(),
+            diag_abs.get_data()));
         // store |S_i| in sparsity_rows[i]
         exec->run(pmis::make_compute_strong_dep_row(
-            pmis_op.get(), true, row_maxabs.get_const_data(),
+            pmis_op.get(), true, neg_scale.get_const_data(),
+            row_sum.get_const_data(), diag_abs.get_const_data(),
             this->get_parameters().strength_threshold,
-            sparsity_rows.get_data()));
+            this->get_parameters().max_row_sum, sparsity_rows.get_data()));
         exec->run(pmis::make_prefix_sum_nonnegative(sparsity_rows.get_data(),
                                                     sparsity_rows.get_size()));
         auto nnz = get_element(sparsity_rows, pmis_op->get_size()[0]);
@@ -503,8 +715,10 @@ void Pmis<ValueType, IndexType>::generate()
             exec, pmis_op->get_size(), std::move(sparsity_cols),
             std::move(sparsity_rows));
         exec->run(pmis::make_compute_strong_dep(
-            pmis_op.get(), true, row_maxabs.get_const_data(),
-            this->get_parameters().strength_threshold, strong_dep.get()));
+            pmis_op.get(), true, neg_scale.get_const_data(),
+            row_sum.get_const_data(), diag_abs.get_const_data(),
+            this->get_parameters().strength_threshold,
+            this->get_parameters().max_row_sum, strong_dep.get()));
         // status: -1 unassigned, 0 fine, 1 coarse
         array<int> status(exec, this->get_size()[0]);
         array<int> new_status(exec, this->get_size()[0]);
@@ -551,13 +765,31 @@ void Pmis<ValueType, IndexType>::generate()
             std::swap(new_status_ptr, status_ptr);
         }
         array<IndexType> prolong_row_ptrs(exec, pmis_op->get_size()[0] + 1);
-        // direct_interpolation_row_count skips coarse rows, so seed their
-        // identity entry, which is exactly what converting the status yields
-        exec->run(pmis::make_convert_precision(
-            pmis_op->get_size()[0], status_ptr, prolong_row_ptrs.get_data()));
-        exec->run(pmis::make_direct_interpolation_row_count(
-            IndexType{0}, strong_dep.get(), status_ptr,
-            prolong_row_ptrs.get_data()));
+        if (parameters_.interpolation == interpolation_type::direct) {
+            // direct_interpolation_row_count skips coarse rows, so seed their
+            // identity entry, which is exactly what converting the status
+            // yields
+            exec->run(
+                pmis::make_convert_precision(pmis_op->get_size()[0], status_ptr,
+                                             prolong_row_ptrs.get_data()));
+            exec->run(pmis::make_direct_interpolation_row_count(
+                IndexType{0}, strong_dep.get(), status_ptr,
+                prolong_row_ptrs.get_data()));
+        } else if (parameters_.interpolation == interpolation_type::classical) {
+            exec->run(pmis::make_classical_interpolation_row_count(
+                pmis_op.get(), neg_scale.get_const_data(),
+                row_sum.get_const_data(), diag_abs.get_const_data(),
+                this->get_parameters().strength_threshold,
+                this->get_parameters().max_row_sum, status_ptr,
+                prolong_row_ptrs.get_data()));
+        } else {
+            exec->run(pmis::make_ext_i_interpolation_row_count(
+                pmis_op.get(), neg_scale.get_const_data(),
+                row_sum.get_const_data(), diag_abs.get_const_data(),
+                this->get_parameters().strength_threshold,
+                this->get_parameters().max_row_sum, status_ptr,
+                prolong_row_ptrs.get_data()));
+        }
 
         // coarse_map[i] holds the coarse index of i if i is a C-point, and
         // is undefined otherwise. It is kept separate from status_ptr, which
@@ -572,8 +804,14 @@ void Pmis<ValueType, IndexType>::generate()
                                                     this->get_size()[0] + 1));
         auto num_coarse = static_cast<size_type>(
             get_element(coarse_map, this->get_size()[0]));
-        GKO_THROW_IF_INVALID(num_coarse > 0,
-                             "Pmis produced an empty coarse level.");
+        if (num_coarse == 0) {
+            // every row fully summed, so no C-point can be selected: terminal
+            // coarsening
+            auto identity = pmis::create_identity_csr<ValueType, IndexType>(
+                exec, pmis_op->get_size()[0]);
+            this->set_multigrid_level(identity, pmis_op, identity);
+            return;
+        }
 
         exec->run(pmis::make_prefix_sum_nonnegative(prolong_row_ptrs.get_data(),
                                                     this->get_size()[0] + 1));
@@ -582,29 +820,69 @@ void Pmis<ValueType, IndexType>::generate()
         array<IndexType> prolong_col_idxs(exec, prolong_nnz);
         array<ValueType> prolong_values(exec, prolong_nnz);
 
-        // Direct interpolation: a C-point i gets w_{i, c[i]} = 1, a fine
-        // point gets w_{i, c[k]} = -{alpha_i or beta_i} * a_ik / a_ii for each
-        // strong C-neighbour k, with
-        //   alpha_i = sum_j(a_ij < 0) / sum_k(a_ik < 0, S_ik, k coarse)
-        //   beta_i  = sum_j(a_ij > 0) / sum_k(a_ik > 0, S_ik, k coarse)
-        // If the denominator of alpha_i or beta_i is empty, the entries that
-        // would use it are dropped.
-        pmis::fill_prolongation<ValueType, IndexType>(
-            exec, pmis_op->get_size()[0], {{pmis_op.get(), true, IndexType{0}}},
-            row_maxabs.get_const_data(),
-            this->get_parameters().strength_threshold, status_ptr,
-            prolong_row_ptrs.get_const_data(), prolong_col_idxs.get_data(),
-            prolong_values.get_data());
-        // without a halo, the prefix-summed coarse_map maps node indices to
-        // coarse columns directly. Input and output alias, which is safe
-        // because entry i only reads entry i.
-        exec->run(pmis::make_gather(prolong_nnz, coarse_map.get_const_data(),
-                                    prolong_col_idxs.get_const_data(),
-                                    prolong_col_idxs.get_data()));
+        if (parameters_.interpolation == interpolation_type::direct) {
+            // Direct interpolation: a C-point i gets w_{i, c[i]} = 1, a fine
+            // point gets w_{i, c[k]} = -{alpha_i or beta_i} * a_ik / a_ii for
+            // each strong C-neighbour k, with
+            //   alpha_i = sum_j(a_ij < 0) / sum_k(a_ik < 0, S_ik, k coarse)
+            //   beta_i  = sum_j(a_ij > 0) / sum_k(a_ik > 0, S_ik, k coarse)
+            // If the denominator of alpha_i or beta_i is empty, the entries
+            // that would use it are dropped.
+            pmis::fill_prolongation<ValueType, IndexType>(
+                exec, pmis_op->get_size()[0],
+                {{pmis_op.get(), true, IndexType{0}}},
+                neg_scale.get_const_data(), row_sum.get_const_data(),
+                diag_abs.get_const_data(),
+                this->get_parameters().strength_threshold,
+                this->get_parameters().max_row_sum, status_ptr,
+                prolong_row_ptrs.get_const_data(), prolong_col_idxs.get_data(),
+                prolong_values.get_data());
+            // without a halo, the prefix-summed coarse_map maps node indices
+            // to coarse columns directly. Input and output alias, which is
+            // safe because entry i only reads entry i.
+            exec->run(pmis::make_gather(prolong_nnz,
+                                        coarse_map.get_const_data(),
+                                        prolong_col_idxs.get_const_data(),
+                                        prolong_col_idxs.get_data()));
+        } else if (parameters_.interpolation == interpolation_type::classical) {
+            exec->run(pmis::make_classical_interpolation_fill(
+                pmis_op.get(), row_maxabs.get_const_data(),
+                neg_scale.get_const_data(), row_sum.get_const_data(),
+                diag_abs.get_const_data(),
+                this->get_parameters().strength_threshold,
+                this->get_parameters().max_row_sum, status_ptr,
+                coarse_map.get_const_data(), prolong_row_ptrs.get_const_data(),
+                prolong_col_idxs.get_data(), prolong_values.get_data()));
+        } else {
+            exec->run(pmis::make_ext_i_interpolation_fill(
+                pmis_op.get(), row_maxabs.get_const_data(),
+                neg_scale.get_const_data(), row_sum.get_const_data(),
+                diag_abs.get_const_data(),
+                this->get_parameters().strength_threshold,
+                this->get_parameters().max_row_sum, status_ptr,
+                coarse_map.get_const_data(), prolong_row_ptrs.get_const_data(),
+                prolong_col_idxs.get_data(), prolong_values.get_data()));
+        }
         auto prolongation = share(matrix::Csr<ValueType, IndexType>::create(
             exec, dim<2>{pmis_op->get_size()[0], num_coarse},
             std::move(prolong_values), std::move(prolong_col_idxs),
             std::move(prolong_row_ptrs)));
+        // truncate the assembled P before the transpose and the Galerkin
+        // product
+        if (parameters_.p_max_elmts > 0) {
+            array<IndexType> trunc_row_ptrs{exec};
+            array<IndexType> trunc_col_idxs{exec};
+            array<ValueType> trunc_values{exec};
+            pmis::truncate_prolongation(
+                exec, prolongation->get_size()[0], parameters_.p_max_elmts,
+                prolongation->get_const_row_ptrs(),
+                prolongation->get_const_col_idxs(),
+                prolongation->get_const_values(), trunc_row_ptrs,
+                trunc_col_idxs, trunc_values);
+            prolongation = share(matrix::Csr<ValueType, IndexType>::create(
+                exec, prolongation->get_size(), std::move(trunc_values),
+                std::move(trunc_col_idxs), std::move(trunc_row_ptrs)));
+        }
         auto restriction = share(prolongation->transpose());
         auto internal = matrix::Csr<ValueType, IndexType>::create(
             exec, prolongation->get_size());
