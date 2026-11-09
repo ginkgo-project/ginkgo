@@ -9,6 +9,7 @@
 #include <memory>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
@@ -44,6 +45,27 @@ GKO_ATTRIBUTES GKO_INLINE float random_weight_from_index(uint64 idx)
 }
 
 
+// strong(i, j) iff -real(a_ij) > strength_threshold * neg_scale[i], with
+// neg_scale[i] = max(0, max_{j != i} -real(a_ij)).
+template <typename ValueType, typename RealType>
+GKO_ATTRIBUTES GKO_INLINE bool is_strong_dep(ValueType val, RealType neg_scale,
+                                             RealType strength_threshold)
+{
+    return -real(val) > strength_threshold * neg_scale;
+}
+
+
+// Row-sum filter, applied before the per-entry rule; off at max_row_sum >= 1.
+template <typename RealType>
+GKO_ATTRIBUTES GKO_INLINE bool row_is_fully_summed(RealType row_sum,
+                                                   RealType diag_abs,
+                                                   RealType max_row_sum)
+{
+    return max_row_sum < one(max_row_sum) &&
+           abs(row_sum) > max_row_sum * diag_abs;
+}
+
+
 // Per-row workspace shared by the two interpolation passes: the accumulate
 // pass fills every member except cursor, the emit pass reads them and advances
 // cursor. The members are raw pointers so that the caller can map them to
@@ -73,20 +95,36 @@ struct interpolation_workspace {
                             remove_complex<ValueType>* row_maxabs)
 
 
-#define GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL(ValueType, IndexType)  \
-    void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,  \
-                                const matrix::Csr<ValueType, IndexType>* csr, \
-                                bool has_diagonal,                            \
-                                const remove_complex<ValueType>* row_maxabs,  \
-                                remove_complex<ValueType> strength_threshold, \
-                                IndexType* sparsity_rows)
+// The three per-row scalars of the strength rule, in one pass. They accumulate,
+// so zero them first; only the block carrying the diagonal writes diag_abs.
+#define GKO_DECLARE_PMIS_COMPUTE_ROW_SCALES_KERNEL(ValueType, IndexType)  \
+    void compute_row_scales(std::shared_ptr<const DefaultExecutor> exec,  \
+                            const matrix::Csr<ValueType, IndexType>* csr, \
+                            bool has_diagonal,                            \
+                            remove_complex<ValueType>* neg_scale,         \
+                            remove_complex<ValueType>* row_sum,           \
+                            remove_complex<ValueType>* diag_abs)
+
+
+#define GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL(ValueType, IndexType) \
+    void compute_strong_dep_row(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                         \
+        const matrix::Csr<ValueType, IndexType>* csr, bool has_diagonal,     \
+        const remove_complex<ValueType>* neg_scale,                          \
+        const remove_complex<ValueType>* row_sum,                            \
+        const remove_complex<ValueType>* diag_abs,                           \
+        remove_complex<ValueType> strength_threshold,                        \
+        remove_complex<ValueType> max_row_sum, IndexType* sparsity_rows)
 
 #define GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL(ValueType, IndexType) \
     void compute_strong_dep(                                             \
         std::shared_ptr<const DefaultExecutor> exec,                     \
         const matrix::Csr<ValueType, IndexType>* csr, bool has_diagonal, \
-        const remove_complex<ValueType>* row_maxabs,                     \
+        const remove_complex<ValueType>* neg_scale,                      \
+        const remove_complex<ValueType>* row_sum,                        \
+        const remove_complex<ValueType>* diag_abs,                       \
         remove_complex<ValueType> strength_threshold,                    \
+        remove_complex<ValueType> max_row_sum,                           \
         matrix::SparsityCsr<ValueType, IndexType>* strong_dep)
 
 // The weight of a node is its in-degree in the strength graph plus a draw in
@@ -169,21 +207,27 @@ struct interpolation_workspace {
 // determine whether a column is coarse from status rather than from
 // coarse_map, which cannot span the halo, and emit node indices that the
 // caller maps with a gather.
-#define GKO_DECLARE_DIRECT_INTERPOLATION_ACCUMULATE(ValueType, IndexType)      \
-    void direct_interpolation_accumulate(                                      \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Csr<ValueType, IndexType>* csr, bool has_diagonal,       \
-        IndexType col_offset, const remove_complex<ValueType>* row_maxabs,     \
-        const remove_complex<ValueType> strength_threshold, const int* status, \
+#define GKO_DECLARE_DIRECT_INTERPOLATION_ACCUMULATE(ValueType, IndexType) \
+    void direct_interpolation_accumulate(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const matrix::Csr<ValueType, IndexType>* csr, bool has_diagonal,  \
+        IndexType col_offset, const remove_complex<ValueType>* neg_scale, \
+        const remove_complex<ValueType>* row_sum,                         \
+        const remove_complex<ValueType>* diag_abs,                        \
+        const remove_complex<ValueType> strength_threshold,               \
+        const remove_complex<ValueType> max_row_sum, const int* status,   \
         kernels::pmis::interpolation_workspace<ValueType, IndexType> ws)
 
-#define GKO_DECLARE_DIRECT_INTERPOLATION_EMIT(ValueType, IndexType)            \
-    void direct_interpolation_emit(                                            \
-        std::shared_ptr<const DefaultExecutor> exec,                           \
-        const matrix::Csr<ValueType, IndexType>* csr, bool has_diagonal,       \
-        IndexType col_offset, const remove_complex<ValueType>* row_maxabs,     \
-        const remove_complex<ValueType> strength_threshold, const int* status, \
-        kernels::pmis::interpolation_workspace<ValueType, IndexType> ws,       \
+#define GKO_DECLARE_DIRECT_INTERPOLATION_EMIT(ValueType, IndexType)       \
+    void direct_interpolation_emit(                                       \
+        std::shared_ptr<const DefaultExecutor> exec,                      \
+        const matrix::Csr<ValueType, IndexType>* csr, bool has_diagonal,  \
+        IndexType col_offset, const remove_complex<ValueType>* neg_scale, \
+        const remove_complex<ValueType>* row_sum,                         \
+        const remove_complex<ValueType>* diag_abs,                        \
+        const remove_complex<ValueType> strength_threshold,               \
+        const remove_complex<ValueType> max_row_sum, const int* status,   \
+        kernels::pmis::interpolation_workspace<ValueType, IndexType> ws,  \
         IndexType* prolong_col_idxs, ValueType* prolong_values)
 
 #define GKO_DECLARE_DIRECT_INTERPOLATION_FILL_COARSE_ROWS(ValueType,     \
@@ -193,38 +237,123 @@ struct interpolation_workspace {
         const int* status, const IndexType* prolong_row_ptrs,            \
         IndexType* prolong_col_idxs, ValueType* prolong_values)
 
+// Classical (Ruge-Stueben) interpolation, local path only:
+// w_ij = -(a_ij + sum_k a_ik * a_kj / s_k) / d over strong F-neighbours k.
+#define GKO_DECLARE_CLASSICAL_INTERPOLATION_ROW_COUNT(ValueType, IndexType) \
+    void classical_interpolation_row_count(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                        \
+        const matrix::Csr<ValueType, IndexType>* csr,                       \
+        const remove_complex<ValueType>* neg_scale,                         \
+        const remove_complex<ValueType>* row_sum,                           \
+        const remove_complex<ValueType>* diag_abs,                          \
+        const remove_complex<ValueType> strength_threshold,                 \
+        const remove_complex<ValueType> max_row_sum, const int* status,     \
+        IndexType* prolong_row_count)
 
-#define GKO_DECLARE_ALL_AS_TEMPLATES                                       \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_PMIS_COMPUTE_ROW_MAXABS_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL(ValueType, IndexType);  \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL(ValueType, IndexType);      \
-    template <typename ValueType, typename LocalIndexType,                 \
-              typename GlobalIndexType>                                    \
-    GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL(                  \
-        ValueType, LocalIndexType, GlobalIndexType);                       \
-    template <typename IndexType>                                          \
-    GKO_DECLARE_PMIS_ADD_AT_INDICES(IndexType);                            \
-    template <typename ValueType, typename LocalIndexType,                 \
-              typename GlobalIndexType>                                    \
-    GKO_DECLARE_PMIS_CLASSIFY_SELECT_KERNEL(ValueType, LocalIndexType,     \
-                                            GlobalIndexType);              \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_PMIS_CLASSIFY_MARK_FINE_KERNEL(ValueType, IndexType);      \
-    GKO_DECLARE_COUNT_UNASSIGNED_KERNEL;                                   \
-    GKO_DECLARE_PMIS_CLASSIFY_SEED_KERNEL;                                 \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_DIRECT_INTERPOLATION_ROW_COUNT(ValueType, IndexType);      \
-    template <typename LocalIndexType, typename GlobalIndexType>           \
-    GKO_DECLARE_PMIS_COARSE_GLOBAL_INDEX(LocalIndexType, GlobalIndexType); \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_DIRECT_INTERPOLATION_ACCUMULATE(ValueType, IndexType);     \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_DIRECT_INTERPOLATION_EMIT(ValueType, IndexType);           \
-    template <typename ValueType, typename IndexType>                      \
-    GKO_DECLARE_DIRECT_INTERPOLATION_FILL_COARSE_ROWS(ValueType, IndexType)
+#define GKO_DECLARE_CLASSICAL_INTERPOLATION_FILL(ValueType, IndexType)  \
+    void classical_interpolation_fill(                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType>* csr,                   \
+        const remove_complex<ValueType>* row_maxabs,                    \
+        const remove_complex<ValueType>* neg_scale,                     \
+        const remove_complex<ValueType>* row_sum,                       \
+        const remove_complex<ValueType>* diag_abs,                      \
+        const remove_complex<ValueType> strength_threshold,             \
+        const remove_complex<ValueType> max_row_sum, const int* status, \
+        const IndexType* coarse_map, const IndexType* prolong_row_ptrs, \
+        IndexType* prolong_col_idxs, ValueType* prolong_values)
+
+
+// Extended+i interpolation; its row pattern is Chat_i, the distance-two set.
+#define GKO_DECLARE_EXT_I_INTERPOLATION_ROW_COUNT(ValueType, IndexType) \
+    void ext_i_interpolation_row_count(                                 \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType>* csr,                   \
+        const remove_complex<ValueType>* neg_scale,                     \
+        const remove_complex<ValueType>* row_sum,                       \
+        const remove_complex<ValueType>* diag_abs,                      \
+        const remove_complex<ValueType> strength_threshold,             \
+        const remove_complex<ValueType> max_row_sum, const int* status, \
+        IndexType* prolong_row_count)
+
+#define GKO_DECLARE_EXT_I_INTERPOLATION_FILL(ValueType, IndexType)      \
+    void ext_i_interpolation_fill(                                      \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        const matrix::Csr<ValueType, IndexType>* csr,                   \
+        const remove_complex<ValueType>* row_maxabs,                    \
+        const remove_complex<ValueType>* neg_scale,                     \
+        const remove_complex<ValueType>* row_sum,                       \
+        const remove_complex<ValueType>* diag_abs,                      \
+        const remove_complex<ValueType> strength_threshold,             \
+        const remove_complex<ValueType> max_row_sum, const int* status, \
+        const IndexType* coarse_map, const IndexType* prolong_row_ptrs, \
+        IndexType* prolong_col_idxs, ValueType* prolong_values)
+
+
+// Truncation of an assembled prolongation to p_max_elmts entries per row,
+// keeping the largest by magnitude and rescaling to the original row sum.
+// Out-of-place and two-pass; row_count is IndexType-only, as for
+// GKO_DECLARE_PMIS_ADD_AT_INDICES above.
+#define GKO_DECLARE_TRUNCATE_INTERPOLATION_ROW_COUNT(IndexType)          \
+    void truncate_interpolation_row_count(                               \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_rows, \
+        size_type p_max_elmts, const IndexType* in_row_ptrs,             \
+        IndexType* out_row_ptrs)
+
+#define GKO_DECLARE_TRUNCATE_INTERPOLATION_FILL(ValueType, IndexType)    \
+    void truncate_interpolation_fill(                                    \
+        std::shared_ptr<const DefaultExecutor> exec, size_type num_rows, \
+        size_type p_max_elmts, const IndexType* in_row_ptrs,             \
+        const IndexType* in_col_idxs, const ValueType* in_values,        \
+        const IndexType* out_row_ptrs, IndexType* out_col_idxs,          \
+        ValueType* out_values)
+
+
+#define GKO_DECLARE_ALL_AS_TEMPLATES                                         \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_PMIS_COMPUTE_ROW_MAXABS_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_PMIS_COMPUTE_ROW_SCALES_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_ROW_KERNEL(ValueType, IndexType);    \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_PMIS_COMPUTE_STRONG_DEP_KERNEL(ValueType, IndexType);        \
+    template <typename ValueType, typename LocalIndexType,                   \
+              typename GlobalIndexType>                                      \
+    GKO_DECLARE_PMIS_INITIALIZE_WEIGHT_AND_STATUS_KERNEL(                    \
+        ValueType, LocalIndexType, GlobalIndexType);                         \
+    template <typename IndexType>                                            \
+    GKO_DECLARE_PMIS_ADD_AT_INDICES(IndexType);                              \
+    template <typename ValueType, typename LocalIndexType,                   \
+              typename GlobalIndexType>                                      \
+    GKO_DECLARE_PMIS_CLASSIFY_SELECT_KERNEL(ValueType, LocalIndexType,       \
+                                            GlobalIndexType);                \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_PMIS_CLASSIFY_MARK_FINE_KERNEL(ValueType, IndexType);        \
+    GKO_DECLARE_COUNT_UNASSIGNED_KERNEL;                                     \
+    GKO_DECLARE_PMIS_CLASSIFY_SEED_KERNEL;                                   \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_DIRECT_INTERPOLATION_ROW_COUNT(ValueType, IndexType);        \
+    template <typename LocalIndexType, typename GlobalIndexType>             \
+    GKO_DECLARE_PMIS_COARSE_GLOBAL_INDEX(LocalIndexType, GlobalIndexType);   \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_DIRECT_INTERPOLATION_ACCUMULATE(ValueType, IndexType);       \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_DIRECT_INTERPOLATION_EMIT(ValueType, IndexType);             \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_DIRECT_INTERPOLATION_FILL_COARSE_ROWS(ValueType, IndexType); \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CLASSICAL_INTERPOLATION_ROW_COUNT(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_CLASSICAL_INTERPOLATION_FILL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_EXT_I_INTERPOLATION_ROW_COUNT(ValueType, IndexType);         \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_EXT_I_INTERPOLATION_FILL(ValueType, IndexType);              \
+    template <typename IndexType>                                            \
+    GKO_DECLARE_TRUNCATE_INTERPOLATION_ROW_COUNT(IndexType);                 \
+    template <typename ValueType, typename IndexType>                        \
+    GKO_DECLARE_TRUNCATE_INTERPOLATION_FILL(ValueType, IndexType)
 
 
 }  // namespace pmis
