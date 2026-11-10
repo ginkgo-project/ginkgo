@@ -34,6 +34,9 @@ class Identity final : public BatchLinOp,
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
+    using ConvertibleTo<Identity>::convert_to;
+    using ConvertibleTo<Identity>::move_to;
+
     using value_type = ValueType;
     using index_type = int32;
     using unbatch_type = gko::matrix::Identity<ValueType>;
