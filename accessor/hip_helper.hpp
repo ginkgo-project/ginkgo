@@ -147,12 +147,13 @@ GKO_ACC_INLINE auto as_hip_range(
 /**
  * @copydoc as_hip_range()
  */
-template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask>
+template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask,
+          typename Type3>
 GKO_ACC_INLINE auto as_hip_range(
-    const range<scaled_reduced_row_major<dim, Type1, Type2, mask>>& r)
+    const range<scaled_reduced_row_major<dim, Type1, Type2, mask, Type3>>& r)
 {
-    return range<scaled_reduced_row_major<dim, hip_type_t<Type1>,
-                                          hip_type_t<Type2>, mask>>(
+    return range<scaled_reduced_row_major<
+        dim, hip_type_t<Type1>, hip_type_t<Type2>, mask, hip_type_t<Type3>>>(
         r.get_accessor().get_size(),
         as_hip_type(r.get_accessor().get_stored_data()),
         r.get_accessor().get_storage_stride(),

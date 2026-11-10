@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,9 +33,9 @@ namespace detail {
 template <typename Accessor>
 struct has_3d_scaled_accessor : public std::false_type {};
 
-template <typename T1, typename T2, uint64 mask>
+template <typename T1, typename T2, uint64 mask, typename T3>
 struct has_3d_scaled_accessor<
-    acc::range<acc::scaled_reduced_row_major<3, T1, T2, mask>>>
+    acc::range<acc::scaled_reduced_row_major<3, T1, T2, mask, T3>>>
     : public std::true_type {};
 
 template <typename StorageType, bool = std::is_integral<StorageType>::value>

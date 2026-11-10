@@ -28,18 +28,21 @@ namespace detail {
 
 
 // In case of a const type, do not provide a write function
-template <int Dimensionality, typename Accessor, typename ScalarType,
-          bool = std::is_const<ScalarType>::value>
+template <int Dimensionality, typename Accessor, typename ArithmeticType,
+          typename ScalarType, bool = std::is_const<ScalarType>::value>
 struct enable_write_scalar {
     using scalar_type = ScalarType;
 };
 
 // In case of a non-const type, enable the write function
-template <int Dimensionality, typename Accessor, typename ScalarType>
-struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
+template <int Dimensionality, typename Accessor, typename ArithmeticType,
+          typename ScalarType>
+struct enable_write_scalar<Dimensionality, Accessor, ArithmeticType, ScalarType,
+                           false> {
     static_assert(Dimensionality >= 1,
                   "Dimensionality must be a positive number!");
 
+    using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using scalar_type = ScalarType;
 
     /**
@@ -53,14 +56,16 @@ struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
      * @returns the written value.
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES scalar_type
-    write_scalar_masked(scalar_type value, Indices&&... indices) const
+    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
+    write_scalar_masked(arithmetic_type value, Indices&&... indices) const
     {
         static_assert(sizeof...(Indices) == Dimensionality,
                       "Number of indices must match dimensionality!");
         scalar_type* GKO_ACC_RESTRICT rest_scalar = self()->scalar_;
-        return rest_scalar[self()->compute_mask_scalar_index(
-                   std::forward<Indices>(indices)...)] = value;
+        return implicit_explicit_conversion<arithmetic_type>(
+            rest_scalar[self()->compute_mask_scalar_index(
+                std::forward<Indices>(indices)...)] =
+                implicit_explicit_conversion<scalar_type>(value));
     }
 
     /**
@@ -75,12 +80,14 @@ struct enable_write_scalar<Dimensionality, Accessor, ScalarType, false> {
      * @returns the written value.
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES scalar_type
-    write_scalar_direct(scalar_type value, Indices&&... indices) const
+    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
+    write_scalar_direct(arithmetic_type value, Indices&&... indices) const
     {
         scalar_type* GKO_ACC_RESTRICT rest_scalar = self()->scalar_;
-        return rest_scalar[self()->compute_direct_scalar_index(
-                   std::forward<Indices>(indices)...)] = value;
+        return implicit_explicit_conversion<arithmetic_type>(
+            rest_scalar[self()->compute_direct_scalar_index(
+                std::forward<Indices>(indices)...)] =
+                implicit_explicit_conversion<scalar_type>(value));
     }
 
 
@@ -123,16 +130,25 @@ private:
  *                     indices (x1, x2, x3, x4, x5), (x1, x2, x3, x5) are
  *                     considered for the scalar, making the scalar itself 4d.
  *
+ * @tparam ScalarType  Value type used for storing the scalars to memory, by
+ *                     default the arithmetic type
+ *
  * @note  This class only manages the accesses and not the memory itself.
  */
 template <std::size_t Dimensionality, typename ArithmeticType,
-          typename StorageType, std::uint64_t ScalarMask>
+          typename StorageType, std::uint64_t ScalarMask,
+          typename ScalarType = std::remove_cv_t<ArithmeticType>>
 class scaled_reduced_row_major
     : public detail::enable_write_scalar<
           Dimensionality,
           scaled_reduced_row_major<Dimensionality, ArithmeticType, StorageType,
-                                   ScalarMask>,
-          ArithmeticType, std::is_const<StorageType>::value> {
+                                   ScalarMask, ScalarType>,
+          ArithmeticType, std::remove_cv_t<ScalarType>,
+          std::is_const<StorageType>::value> {
+    using write_scalar_base = detail::enable_write_scalar<
+        Dimensionality, scaled_reduced_row_major, ArithmeticType,
+        std::remove_cv_t<ScalarType>, std::is_const<StorageType>::value>;
+
 public:
     using arithmetic_type = std::remove_cv_t<ArithmeticType>;
     using storage_type = StorageType;
@@ -140,23 +156,26 @@ public:
     static constexpr auto scalar_mask = ScalarMask;
     static constexpr bool is_const{std::is_const<storage_type>::value};
     using scalar_type =
-        std::conditional_t<is_const, const arithmetic_type, arithmetic_type>;
+        std::conditional_t<is_const, const std::remove_cv_t<ScalarType>,
+                           std::remove_cv_t<ScalarType>>;
 
     using const_accessor =
         scaled_reduced_row_major<dimensionality, arithmetic_type,
-                                 const storage_type, ScalarMask>;
+                                 const storage_type, ScalarMask,
+                                 std::remove_cv_t<ScalarType>>;
 
     static_assert(!is_complex<ArithmeticType>::value &&
-                      !is_complex<StorageType>::value,
-                  "Both arithmetic and storage type must not be complex!");
+                      !is_complex<StorageType>::value &&
+                      !is_complex<ScalarType>::value,
+                  "The arithmetic, storage and scalar type must not be "
+                  "complex!");
     static_assert(Dimensionality >= 1,
                   "Dimensionality must be a positive number!");
     static_assert(dimensionality <= 32,
                   "Only Dimensionality <= 32 is currently supported");
 
     // Allow access to both `scalar_` and `compute_mask_scalar_index()`
-    friend struct detail::enable_write_scalar<
-        dimensionality, scaled_reduced_row_major, scalar_type>;
+    friend write_scalar_base;
     friend class range<scaled_reduced_row_major>;
 
 protected:
@@ -261,15 +280,17 @@ public:
      *
      * @param indices  indices which data to access
      *
-     * @returns the scalar value at the given indices.
+     * @returns the scalar value at the given indices in the arithmetic type.
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES scalar_type
+    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     read_scalar_masked(Indices&&... indices) const
     {
-        const arithmetic_type* GKO_ACC_RESTRICT rest_scalar = scalar_;
-        return rest_scalar[compute_mask_scalar_index(
-            std::forward<Indices>(indices)...)];
+        const std::remove_cv_t<ScalarType>* GKO_ACC_RESTRICT rest_scalar =
+            scalar_;
+        return detail::implicit_explicit_conversion<arithmetic_type>(
+            rest_scalar[compute_mask_scalar_index(
+                std::forward<Indices>(indices)...)]);
     }
 
     /**
@@ -279,15 +300,17 @@ public:
      *
      * @param indices  indices which data to access
      *
-     * @returns the scalar value at the given indices.
+     * @returns the scalar value at the given indices in the arithmetic type.
      */
     template <typename... Indices>
-    constexpr GKO_ACC_ATTRIBUTES scalar_type
+    constexpr GKO_ACC_ATTRIBUTES arithmetic_type
     read_scalar_direct(Indices&&... indices) const
     {
-        const arithmetic_type* GKO_ACC_RESTRICT rest_scalar = scalar_;
-        return rest_scalar[compute_direct_scalar_index(
-            std::forward<Indices>(indices)...)];
+        const std::remove_cv_t<ScalarType>* GKO_ACC_RESTRICT rest_scalar =
+            scalar_;
+        return detail::implicit_explicit_conversion<arithmetic_type>(
+            rest_scalar[compute_direct_scalar_index(
+                std::forward<Indices>(indices)...)]);
     }
 
     /**

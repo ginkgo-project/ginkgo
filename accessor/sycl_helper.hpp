@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -153,12 +153,13 @@ GKO_ACC_INLINE auto as_sycl_range(
 /**
  * @copydoc as_sycl_range()
  */
-template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask>
+template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask,
+          typename Type3>
 GKO_ACC_INLINE auto as_sycl_range(
-    const range<scaled_reduced_row_major<dim, Type1, Type2, mask>>& r)
+    const range<scaled_reduced_row_major<dim, Type1, Type2, mask, Type3>>& r)
 {
-    return range<scaled_reduced_row_major<dim, sycl_type_t<Type1>,
-                                          sycl_type_t<Type2>, mask>>(
+    return range<scaled_reduced_row_major<
+        dim, sycl_type_t<Type1>, sycl_type_t<Type2>, mask, sycl_type_t<Type3>>>(
         r.get_accessor().get_size(),
         as_sycl_type(r.get_accessor().get_stored_data()),
         r.get_accessor().get_storage_stride(),
