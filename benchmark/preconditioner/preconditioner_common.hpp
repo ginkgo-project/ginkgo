@@ -177,6 +177,12 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
         preconditioner_benchmark_state state;
         auto [data, local_size] = generator.generate_matrix_data(test_case);
         reorder(data, test_case);
+        // Every rank reads all of a file, and gets no local size for it: use
+        // the uniform one for the matrix and the vectors alike.
+        const bool replicated = !local_size;
+        if (replicated) {
+            local_size = generator.create_default_local_size(data.size);
+        }
 
         state.system_matrix = generator.generate_matrix_with_format(
             exec, FLAGS_formats, data, local_size);
@@ -187,10 +193,13 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
             exec, gko::dim<2>{data.size[0], 1}, gko::dim<2>{local_size[0], 1},
             gko::zero<etype>());
 
-        // the global count: a rank's data has only its own rows
+        // the global count: a stencil's data has only this rank's rows
         gko::int64 nonzeros = data.nonzeros.size();
 #ifdef GKO_BENCHMARK_DISTRIBUTED
-        generator.comm.all_reduce(exec->get_master(), &nonzeros, 1, MPI_SUM);
+        if (!replicated) {
+            generator.comm.all_reduce(exec->get_master(), &nonzeros, 1,
+                                      MPI_SUM);
+        }
 #endif
         if (do_print) {
             std::cerr << "Matrix is of size (" << data.size[0] << ", "

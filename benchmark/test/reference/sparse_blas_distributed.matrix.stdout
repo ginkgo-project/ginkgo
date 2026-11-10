@@ -1,0 +1,28 @@
+[
+    {
+        "filename": "",
+        "sparse_blas": {
+            "spgemm": {
+                "time": 1.0,
+                "repetitions": 10,
+                "repetition_times": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "nonzeros_out": 492,
+                "completed": true
+            }
+        },
+        "rows": 36,
+        "cols": 36,
+        "nonzeros": 208
+    }
+]

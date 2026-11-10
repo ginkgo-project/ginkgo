@@ -92,9 +92,13 @@ struct DistributedSparseBlasBenchmark : Benchmark<std::shared_ptr<DistMtx>> {
         auto [data, local_size] = generator.generate_matrix_data(test_case);
         reorder(data, test_case);
 
-        // the global count: a rank's data has only its own rows
+        // The global count: a stencil's data has only this rank's rows, a
+        // file's (no local size) all of them on every rank.
         gko::int64 nonzeros = data.nonzeros.size();
-        generator.comm.all_reduce(exec->get_master(), &nonzeros, 1, MPI_SUM);
+        if (local_size) {
+            generator.comm.all_reduce(exec->get_master(), &nonzeros, 1,
+                                      MPI_SUM);
+        }
         if (do_print) {
             std::cerr << "Matrix is of size (" << data.size[0] << ", "
                       << data.size[1] << "), " << nonzeros << std::endl;

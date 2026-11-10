@@ -22,3 +22,16 @@ test_framework.compare_output_distributed(
     expected_stderr="preconditioner_distributed.mg.stderr",
     num_procs=3,
 )
+
+# input matrix file: every rank reads all of it
+test_framework.compare_output_distributed(
+    [
+        "-preconditioners",
+        "schwarz-jacobi",
+        "-input_matrix",
+        str(test_framework.matrixpath),
+    ],
+    expected_stdout="preconditioner_distributed.matrix.stdout",
+    expected_stderr="preconditioner_distributed.matrix.stderr",
+    num_procs=3,
+)

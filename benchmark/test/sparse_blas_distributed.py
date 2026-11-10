@@ -64,3 +64,11 @@ test_framework.compare_output_distributed(
     num_procs=3,
     stdin='[{"size": 1000, "stencil": "7pt", "comm_pattern": "stencil"}]',
 )
+
+# input matrix file: every rank reads all of it
+test_framework.compare_output_distributed(
+    ["-operations", "spgemm", "-input_matrix", str(test_framework.matrixpath)],
+    expected_stdout="sparse_blas_distributed.matrix.stdout",
+    expected_stderr="sparse_blas_distributed.matrix.stderr",
+    num_procs=3,
+)
