@@ -8,6 +8,8 @@
 #endif
 
 
+#include <utility>
+
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
@@ -534,6 +536,20 @@ void run_kernel_col_reduction_cached(
                 1, as_device_type(result));
         }
     }
+}
+
+
+/** @internal No SIMD path here; forwards so unified code can call *_simd. */
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+void run_kernel_col_reduction_cached_simd(
+    std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
+    ReductionOp op, FinalizeOp finalize, ValueType identity, ValueType* result,
+    dim<2> size, array<char>& tmp, KernelArgs&&... args)
+{
+    run_kernel_col_reduction_cached(exec, fn, op, finalize, identity, result,
+                                    size, tmp,
+                                    std::forward<KernelArgs>(args)...);
 }
 
 

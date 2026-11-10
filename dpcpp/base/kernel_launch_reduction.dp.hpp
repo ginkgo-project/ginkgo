@@ -9,6 +9,7 @@
 
 
 #include <algorithm>
+#include <utility>
 
 #include "core/synthesizer/implementation_selection.hpp"
 #include "dpcpp/base/config.hpp"
@@ -677,6 +678,20 @@ void run_kernel_col_reduction_cached(std::shared_ptr<const DpcppExecutor> exec,
         syn::value_list<size_type>(), syn::type_list<>(), exec, fn, op,
         finalize, as_device_type(identity), as_device_type(result), size, tmp,
         map_to_device(args)...);
+}
+
+
+/** @internal No SIMD path here; forwards so unified code can call *_simd. */
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+void run_kernel_col_reduction_cached_simd(
+    std::shared_ptr<const DpcppExecutor> exec, KernelFunction fn,
+    ReductionOp op, FinalizeOp finalize, ValueType identity, ValueType* result,
+    dim<2> size, array<char>& tmp, KernelArgs&&... args)
+{
+    run_kernel_col_reduction_cached(exec, fn, op, finalize, identity, result,
+                                    size, tmp,
+                                    std::forward<KernelArgs>(args)...);
 }
 
 
