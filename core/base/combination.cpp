@@ -60,7 +60,7 @@ std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
     transposed->set_size(gko::transpose(this->get_size()));
     // copy coefficients
     for (auto& coef : transposed->coefficients_) {
-        coef = clone(coef);
+        coef = as<Transposable>(coef)->conj_transpose();
     }
     // transpose operators
     for (auto& op : transposed->operators_) {

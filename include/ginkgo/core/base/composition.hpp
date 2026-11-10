@@ -37,7 +37,6 @@ namespace gko {
  */
 template <typename ValueType = default_precision>
 class Composition : public LinOp, public Transposable {
-    friend class EnableCreateMethod<Composition>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:

@@ -73,14 +73,6 @@ protected:
 };
 
 
-TEST_F(Perturbation, CanBeEmpty)
-{
-    auto cmp = gko::Perturbation<>::create(exec);
-
-    ASSERT_EQ(cmp->get_size(), gko::dim<2>(0, 0));
-}
-
-
 TEST_F(Perturbation, CanCreateFromTwoOperators)
 {
     auto cmp = gko::Perturbation<>::create(scalar, basis, projector);

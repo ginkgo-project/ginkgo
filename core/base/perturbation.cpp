@@ -12,12 +12,6 @@ namespace gko {
 
 
 template <typename ValueType>
-Perturbation<ValueType>::Perturbation(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
-{}
-
-
-template <typename ValueType>
 Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
                                       std::shared_ptr<const LinOp> basis)
     : Perturbation(std::move(scalar),
@@ -38,14 +32,6 @@ Perturbation<ValueType>::Perturbation(std::shared_ptr<const LinOp> scalar,
       scalar_{std::move(scalar)}
 {
     this->validate_perturbation();
-}
-
-
-template <typename ValueType>
-std::unique_ptr<Perturbation<ValueType>> Perturbation<ValueType>::create(
-    std::shared_ptr<const Executor> exec)
-{
-    return std::unique_ptr<Perturbation>{new Perturbation{exec}};
 }
 
 

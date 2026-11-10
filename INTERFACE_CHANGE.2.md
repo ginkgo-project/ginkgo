@@ -5,14 +5,14 @@ If we still support the same function in different way, we will provide how to c
 
 ## LinOp chain apply [#2001](https://github.com/ginkgo-project/ginkgo/pull/2001)
 
-`LinOp->apply(b1, x1)->apply(b2, x2);` is not supported. We also drop this chain support for other kinds of apply such as `Coo->apply2(b, x)`, `LinOp->apply(alpha, b, beta, x)`, and `BatchLinOp->apply(b, x)`.  
+`LinOp->apply(b1, x1)->apply(b2, x2);` is not supported. We also drop this chain support for other kinds of apply such as `Coo->apply2(b, x)`, `LinOp->apply(alpha, b, beta, x)`, and `BatchLinOp->apply(b, x)`.
 To be clear, we only drop the chain behavior not LinOp apply itself. i.e. LinOp apply is still supported like the following
 ```
 LinOp->apply(b1, x1);
 LinOp->apply(b2, x2);
 ```
 
-## Template Parameter for Solver Type in `preconditioner::Ic` and `preconditioner::Ilu` [#1998](https://github.com/ginkgo-project/ginkgo/pull/1998) 
+## Template Parameter for Solver Type in `preconditioner::Ic` and `preconditioner::Ilu` [#1998](https://github.com/ginkgo-project/ginkgo/pull/1998)
 
 Providing any non-ValueType template parameter to `preconditioner::Ic` and `preconditioner::Ilu` is not supported anymore.
 The first template parameter is now only used to determine the ValueType of the preconditioner.
@@ -40,11 +40,15 @@ We decide to move `clone` related function from default requirement to optional 
 That means `obj->clone(...)` might throw compile-time error now when the class does not support `clone`.
 
 Except for the matrix, vector, or utilities like partition, the classes under solver/preconditioner/factorization... do not have the clone now.
-If users previously rely on calling `source->clone([exec,] target)`, please use `auto target = gko::clone([exec,] source)`. 
+If users previously rely on calling `source->clone([exec,] target)`, please use `auto target = gko::clone([exec,] source)`.
 `gko::clone` can adapt whether the class has clone natively or is `Cloneable`. If no clone is supported, it will throw an runtime exception.
 
-Factory does not support clone, either. 
+Factory does not support clone, either.
 Users, who want to create the same factory for different executors, please create a factory without specifying executor in the components' factory.
+
+## Meta operators can no longer be copied or moved [#2136](https://github.com/ginkgo-project/ginkgo/pull/2136)
+Like `clone`, the copy and move constructors and assignment operators of the meta operators (`BlockOperator`, `Combination`, `Composition`, and `Perturbation`) are removed.
+Additionally, these operators can no longer be created with an empty state.
 
 ## Remove HWLOC related stuff [#2060](https://github.com/ginkgo-project/ginkgo/pull/2060)
 It removes the HWLOC usage in Ginkgo, `struct machine_topology`, `get_closest_pus()`,  and `get_closest_numa()`.
@@ -61,7 +65,7 @@ If Users have their own class inherit from something like `EnableLinOp`, users o
 The `Csr::strategy` classes are deprecated.
 To create a Csr matrix with a specific strategy, use the enum `gko::matrix::csr::spmv_strategy` instead.
 For example, `std::make_shared<Csr<>>(exec, std::make_shared<Csr<>::classical>())` is equivalent to
-`std::make_shared<Csr<>>(exec, csr::spmv_strategy::classical)`. 
+`std::make_shared<Csr<>>(exec, csr::spmv_strategy::classical)`.
 `csr->get_strategy` will now return the enum value instead of a shared_ptr.
 We use `automatic` in enum not `automatical` like old shared_ptr usage.
 **Note:** It is not possible to have a custom load_balance strategy with the new interface. (Please let us know if you need it)
