@@ -103,12 +103,13 @@ std::unique_ptr<LinOp> apply_inner_operators(
 template <typename ValueType>
 std::unique_ptr<LinOp> Composition<ValueType>::transpose() const
 {
-    auto transposed = Composition<ValueType>::create(
-        this->get_operators().rbegin(), this->get_operators().rend());
+    auto transposed =
+        std::unique_ptr<Composition>(new Composition(this->get_executor()));
     transposed->set_size(gko::transpose(this->get_size()));
     // transpose and reverse operators
-    for (auto& op : transposed->operators_) {
-        op = as<Transposable>(op)->transpose();
+    for (auto it = this->operators_.rbegin(); it != this->operators_.rend();
+         ++it) {
+        transposed->add_operators(as<Transposable>(*it)->transpose());
     }
 
     return std::move(transposed);
@@ -118,12 +119,13 @@ std::unique_ptr<LinOp> Composition<ValueType>::transpose() const
 template <typename ValueType>
 std::unique_ptr<LinOp> Composition<ValueType>::conj_transpose() const
 {
-    auto transposed = Composition<ValueType>::create(
-        this->get_operators().rbegin(), this->get_operators().rend());
+    auto transposed =
+        std::unique_ptr<Composition>(new Composition(this->get_executor()));
     transposed->set_size(gko::transpose(this->get_size()));
     // transpose and reverse operators
-    for (auto& op : transposed->operators_) {
-        op = as<Transposable>(op)->conj_transpose();
+    for (auto it = this->operators_.rbegin(); it != this->operators_.rend();
+         ++it) {
+        transposed->add_operators(as<Transposable>(*it)->conj_transpose());
     }
 
     return std::move(transposed);

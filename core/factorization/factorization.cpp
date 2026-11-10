@@ -35,25 +35,18 @@ Factorization<ValueType, IndexType>::unpack() const
 {
     const auto exec = this->get_executor();
     const auto size = this->get_size();
-    auto clone_factors = [this]() {
-        std::vector<std::shared_ptr<LinOp>> factors;
-        for (const auto& factor : factors_->get_operators()) {
-            factors.push_back(clone(factor));
-        }
-        return factors;
-    };
     switch (this->get_storage_type()) {
     case storage_type::empty:
         GKO_NOT_SUPPORTED(nullptr);
     case storage_type::composition: {
-        auto factors = clone_factors();
         return create_from_composition(
-            composition_type::create(factors.begin(), factors.end()));
+            composition_type::create(factors_->get_operators().begin(),
+                                     factors_->get_operators().end()));
     }
     case storage_type::symm_composition: {
-        auto factors = clone_factors();
         return create_from_symm_composition(
-            composition_type::create(factors.begin(), factors.end()));
+            composition_type::create(factors_->get_operators().begin(),
+                                     factors_->get_operators().end()));
     }
     case storage_type::combined_lu: {
         // count nonzeros

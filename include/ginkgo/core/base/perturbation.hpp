@@ -72,16 +72,6 @@ public:
     }
 
     /**
-     * Creates an empty perturbation operator (0x0 operator).
-     *
-     * @param exec  Executor associated to the perturbation
-     *
-     * @return A smart pointer to the newly created perturbation.
-     */
-    static std::unique_ptr<Perturbation> create(
-        std::shared_ptr<const Executor> exec);
-
-    /**
      * Creates a perturbation with scalar and basis by setting projector to the
      * conjugate transpose of basis. Basis must be transposable. Perturbation
      * will throw gko::NotSupported if basis is not transposable.
@@ -109,8 +99,6 @@ public:
         std::shared_ptr<const LinOp> projector);
 
 protected:
-    explicit Perturbation(std::shared_ptr<const Executor> exec);
-
     explicit Perturbation(std::shared_ptr<const LinOp> scalar,
                           std::shared_ptr<const LinOp> basis);
 
