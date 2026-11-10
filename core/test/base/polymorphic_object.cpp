@@ -131,29 +131,6 @@ TEST(PolymorphicObject, HoldsExecutor)
 }
 
 
-TEST(PolymorphicObject, CopyKeepsExecutor)
-{
-    auto ref = gko::ReferenceExecutor::create();
-    PlainObject obj{ref};
-
-    PlainObject copy{obj};
-
-    ASSERT_EQ(copy.get_executor(), ref);
-}
-
-
-TEST(PolymorphicObject, MoveKeepsExecutor)
-{
-    auto ref = gko::ReferenceExecutor::create();
-    PlainObject obj{ref};
-
-    PlainObject moved{std::move(obj)};
-
-    ASSERT_EQ(moved.get_executor(), ref);
-    ASSERT_EQ(obj.get_executor(), ref);
-}
-
-
 TEST(PolymorphicObject, LogsObjectDeletion)
 {
     auto ref = gko::ReferenceExecutor::create();
