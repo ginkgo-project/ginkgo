@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -390,6 +390,34 @@ TYPED_TEST(ReducedStorage3d, UnaryMinus)
 
     this->check_accessor_correctness(this->r);
     EXPECT_EQ(result, expected);
+}
+
+
+TYPED_TEST(ReducedStorage3d, GinkgoMathFunctionsUseArithmeticType)
+{
+    using ar_type = typename TestFixture::ar_type;
+    this->r(3, 2, 1) = gko::zero<ar_type>();
+    auto x = this->r(0, 1, 0);
+    auto zero_element = this->r(3, 2, 1);
+
+    static_assert(std::is_same_v<decltype(gko::zero(x)), ar_type>);
+    static_assert(std::is_same_v<decltype(gko::one(x)), ar_type>);
+    static_assert(
+        std::is_same_v<decltype(gko::abs(x)), gko::remove_complex<ar_type>>);
+    static_assert(
+        std::is_same_v<decltype(gko::safe_divide(x, this->cr(0, 0, 0))),
+                       ar_type>);
+    EXPECT_EQ(gko::zero(x), gko::zero<ar_type>());
+    EXPECT_EQ(gko::one(this->cr(0, 1, 0)), gko::one<ar_type>());
+    EXPECT_EQ(gko::abs(x), gko::abs(this->c_st_ar(-1.02)));
+    EXPECT_FALSE(gko::is_zero(x));
+    EXPECT_TRUE(gko::is_nonzero(x));
+    EXPECT_TRUE(gko::is_zero(zero_element));
+    EXPECT_FALSE(gko::is_nonzero(zero_element));
+    EXPECT_EQ(gko::safe_divide(this->cr(0, 0, 0), x),
+              this->c_st_ar(1.0) / this->c_st_ar(-1.02));
+    EXPECT_EQ(gko::safe_divide(x, gko::one<ar_type>()), this->c_st_ar(-1.02));
+    EXPECT_EQ(gko::safe_divide(x, zero_element), gko::zero<ar_type>());
 }
 
 
