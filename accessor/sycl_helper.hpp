@@ -184,7 +184,7 @@ GKO_ACC_INLINE auto as_sycl_range(const range<block_col_major<T, dim>>& r)
 template <typename T, size_type dim>
 GKO_ACC_INLINE auto as_sycl_range(const range<row_major<T, dim>>& r)
 {
-    return range<block_col_major<sycl_type_t<T>, dim>>(
+    return range<row_major<sycl_type_t<T>, dim>>(
         r.get_accessor().lengths, as_sycl_type(r.get_accessor().data),
         r.get_accessor().stride);
 }

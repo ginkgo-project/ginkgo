@@ -5,6 +5,7 @@
 /*@GKO_PREPROCESSOR_FILENAME_HELPER@*/
 
 #include <algorithm>
+#include <array>
 #include <memory>
 #include <type_traits>
 
@@ -15,6 +16,8 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "accessor/range.hpp"
+#include "accessor/row_major.hpp"
 #include "common/unified/base/kernel_launch.hpp"
 #include "common/unified/base/kernel_launch_reduction.hpp"
 #include "common/unified/base/kernel_launch_solver.hpp"
@@ -289,6 +292,57 @@ TEST_F(KernelLaunch, Runs2DDense)
     run2d(exec, zero_dense2.get(), zero_dense.get(), vec_dense.get());
 
     GKO_ASSERT_MTX_NEAR(zero_dense2, iota_dense, 0.0);
+}
+
+
+void run1d_row_major_range(std::shared_ptr<gko::EXEC_TYPE> exec,
+                           gko::array<int>& data)
+{
+    gko::acc::range<gko::acc::row_major<int, 1>> range(
+        std::array<gko::acc::size_type, 1>{
+            static_cast<gko::acc::size_type>(data.get_size())},
+        data.get_data());
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto r) {
+            static_assert(is_same<decltype(r(0)), int&>::value, "type");
+            r(i) = i;
+        },
+        data.get_size(), range);
+}
+
+TEST_F(KernelLaunch, Runs1DRowMajorRange)
+{
+    run1d_row_major_range(exec, zero_array);
+
+    GKO_ASSERT_ARRAY_EQ(zero_array, iota_array);
+}
+
+
+void run2d_row_major_range(std::shared_ptr<gko::EXEC_TYPE> exec, Mtx* m)
+{
+    gko::acc::range<gko::acc::row_major<value_type, 2>> range(
+        std::array<gko::acc::size_type, 2>{
+            static_cast<gko::acc::size_type>(m->get_size()[0]),
+            static_cast<gko::acc::size_type>(m->get_size()[1])},
+        m->get_values(),
+        std::array<gko::acc::size_type, 1>{
+            static_cast<gko::acc::size_type>(m->get_stride())});
+    gko::kernels::GKO_DEVICE_NAMESPACE::run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto r) {
+            static_assert(is_same<decltype(r(0, 0)), value_type&>::value,
+                          "type");
+            r(i, j) = 4 * i + j;
+        },
+        m->get_size(), range);
+}
+
+TEST_F(KernelLaunch, Runs2DRowMajorRange)
+{
+    run2d_row_major_range(exec, zero_dense.get());
+
+    GKO_ASSERT_MTX_NEAR(zero_dense, iota_dense, 0.0);
 }
 
 
