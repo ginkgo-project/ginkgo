@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
 
+#include "core/base/index_range.hpp"
 #include "hip/test/utils.hip.hpp"
 
 
@@ -101,6 +102,60 @@ TEST_F(Sorting, HipBitonicSortShared)
     auto ref_ptr = ref_shared.get_const_data();
 
     ASSERT_TRUE(std::equal(data_ptr, data_ptr + num_elements, ref_ptr));
+}
+
+
+constexpr auto num_buckets = 10;
+
+std::array<int, num_buckets + 1> run_bucketsort(
+    std::shared_ptr<const gko::HipExecutor> exec, const int* input, int size,
+    int* output, gko::array<int>& tmp)
+{
+    return gko::kernels::hip::bucket_sort<num_buckets>(
+        exec, input, input + size, output,
+        [] __device__(int i) { return i / 100; }, tmp);
+}
+
+TEST_F(Sorting, BucketSort)
+{
+    for (int size : {0, 1, 10, 100, 1000, 10000, 100000}) {
+        SCOPED_TRACE(size);
+        const auto proj = [](auto i) { return i / 100; };
+        const auto comp = [&proj](auto a, auto b) { return proj(a) < proj(b); };
+        gko::array<int> data{ref, static_cast<gko::size_type>(size)};
+        std::uniform_int_distribution<int> dist{0, num_buckets * 100 - 1};
+        for (auto i : gko::irange{size}) {
+            data.get_data()[i] = dist(rng);
+        }
+        data.set_executor(exec);
+        gko::array<int> out_data{exec, static_cast<gko::size_type>(size)};
+        gko::array<int> tmp{exec};
+
+        auto offsets = run_bucketsort(exec, data.get_const_data(), size,
+                                      out_data.get_data(), tmp);
+
+        data.set_executor(ref);
+        out_data.set_executor(ref);
+        const auto out_data_ptr = out_data.get_data();
+        const auto data_ptr = data.get_data();
+        // the output must be sorted by bucket
+        ASSERT_TRUE(std::is_sorted(out_data_ptr, out_data_ptr + size, comp));
+        // the output offsets must describe the bucket ranges
+        for (int bucket = 0; bucket < num_buckets; bucket++) {
+            const auto bucket_begin = offsets[bucket];
+            const auto bucket_end = offsets[bucket + 1];
+            ASSERT_LE(bucket_begin, bucket_end);
+            for (const auto i : gko::irange{bucket_begin, bucket_end}) {
+                ASSERT_EQ(proj(out_data_ptr[i]), bucket);
+            }
+        }
+        // inside each bucket, the input and output data must be the same
+        std::sort(data_ptr, data_ptr + size);
+        std::sort(out_data_ptr, out_data_ptr + size);
+        std::stable_sort(data_ptr, data_ptr + size, comp);
+        std::stable_sort(out_data_ptr, out_data_ptr + size, comp);
+        GKO_ASSERT_ARRAY_EQ(data, out_data);
+    }
 }
 
 
