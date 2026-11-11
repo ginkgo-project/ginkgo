@@ -156,10 +156,13 @@ public:
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     /**
      * Generates the analysis structure from the system matrix and the right
@@ -323,10 +326,13 @@ public:
 protected:
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     /**
      * Generates the analysis structure from the system matrix and the right

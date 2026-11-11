@@ -7,12 +7,13 @@
 #include <string>
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
+#include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
@@ -21,6 +22,7 @@
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
+#include "core/mpi/mpi_op.hpp"
 #include "core/solver/common_gmres_kernels.hpp"
 #include "core/solver/gmres_kernels.hpp"
 #include "core/solver/solver_base.hpp"
@@ -142,34 +144,18 @@ std::unique_ptr<LinOp> Gmres<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Gmres<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                  AbstractMultiVector* x) const
 {
     this->apply_with_initial_guess_impl(b, x,
                                         this->get_default_initial_guess());
 }
 
 
-template <typename ValueType>
-void Gmres<ValueType>::apply_with_initial_guess_impl(
-    const LinOp* b, LinOp* x, initial_guess_mode guess) const
-{
-    if (!this->get_system_matrix()) {
-        return;
-    }
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this, guess](auto dense_b, auto dense_x) {
-            prepare_initial_guess(dense_b, dense_x, guess);
-            this->apply_dense_impl(dense_b, dense_x, guess);
-        },
-        b, x);
-}
-
-
 template <typename ValueType, typename = void>
 struct help_compute_norm {
-    template <typename VectorType>
     static void compute_next_krylov_norm_into_hessenberg(
-        const VectorType* next_krylov,
+        const AbstractMultiVector* next_krylov,
         matrix::MultiVector<ValueType>* hessenberg_norm_entry,
         matrix::MultiVector<remove_complex<ValueType>>*,
         array<char>& reduction_tmp)
@@ -180,9 +166,10 @@ struct help_compute_norm {
 
 
 // Orthogonalization helper functions
-template <typename ValueType, typename VectorType>
+template <typename ValueType>
 void orthogonalize_mgs(matrix::MultiVector<ValueType>* hessenberg_iter,
-                       VectorType* krylov_bases, VectorType* next_krylov,
+                       AbstractMultiVector* krylov_bases,
+                       AbstractMultiVector* next_krylov,
                        array<char>& reduction_tmp, size_type restart_iter,
                        size_type num_rows, size_type num_rhs,
                        size_type local_num_rows)
@@ -207,38 +194,38 @@ void orthogonalize_mgs(matrix::MultiVector<ValueType>* hessenberg_iter,
 
 template <typename ValueType>
 void finish_reduce(matrix::MultiVector<ValueType>* hessenberg_iter,
-                   matrix::MultiVector<ValueType>* next_krylov,
-                   const size_type num_rhs, const size_type restart_iter)
+                   AbstractMultiVector* next_krylov, const size_type num_rhs,
+                   const size_type restart_iter)
 {
-    return;
-}
-
-
 #if GINKGO_BUILD_MPI
-template <typename ValueType>
-void finish_reduce(matrix::MultiVector<ValueType>* hessenberg_iter,
-                   experimental::distributed::Vector<ValueType>* next_krylov,
-                   const size_type num_rhs, const size_type restart_iter)
-{
-    const auto comm = next_krylov->get_communicator();
+    auto dist_vec = dynamic_cast<experimental::distributed::Vector<ValueType>*>(
+        next_krylov);
+    if (!dist_vec) {
+        return;
+    }
+
+    const auto comm = dist_vec->get_communicator();
     // hessenberg_iter is the size of all non-zeros for this iteration, but we
     // are not setting the last values for each rhs here. Values that would be
     // below the diagonal in the "full" matrix are skipped, because they will
     // be used to hold the norm of next_krylov for each rhs.
     auto hessenberg_reduce = hessenberg_iter->create_subview(
         local_span{0, restart_iter + 1}, local_span{0, num_rhs});
-    ::gko::detail::DenseCache<ValueType> host_reduction_buffer;
-    ::gko::detail::all_reduce_sum(comm, hessenberg_reduce.get(),
-                                  host_reduction_buffer);
-}
+    gko::detail::DenseCache<ValueType> host_reduction_buffer;
+    experimental::distributed::detail::all_reduce_sum(
+        comm, hessenberg_reduce.get(), host_reduction_buffer);
+#else
+    return;
 #endif
+}
 
 
-template <typename ValueType, typename VectorType>
+template <typename ValueType>
 void orthogonalize_cgs(matrix::MultiVector<ValueType>* hessenberg_iter,
-                       VectorType* krylov_bases, VectorType* next_krylov,
-                       size_type restart_iter, size_type num_rows,
-                       size_type num_rhs, size_type local_num_rows)
+                       AbstractMultiVector* krylov_bases,
+                       AbstractMultiVector* next_krylov, size_type restart_iter,
+                       size_type num_rows, size_type num_rhs,
+                       size_type local_num_rows)
 {
     auto exec = hessenberg_iter->get_executor();
     // hessenberg(0:restart_iter, restart_iter) = krylov_basis' *
@@ -247,9 +234,8 @@ void orthogonalize_cgs(matrix::MultiVector<ValueType>* hessenberg_iter,
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get())
-            ->get_const_device_view(),
-        gko::detail::get_local(next_krylov)->get_const_device_view(),
+        krylov_basis_small->template get_const_local_device_view<ValueType>(),
+        next_krylov->template get_const_local_device_view<ValueType>(),
         hessenberg_iter->get_device_view()));
     finish_reduce(hessenberg_iter, next_krylov, num_rhs, restart_iter);
     for (size_type i = 0; i <= restart_iter; i++) {
@@ -265,9 +251,10 @@ void orthogonalize_cgs(matrix::MultiVector<ValueType>* hessenberg_iter,
 }
 
 
-template <typename ValueType, typename VectorType>
+template <typename ValueType>
 void orthogonalize_cgs2(matrix::MultiVector<ValueType>* hessenberg_iter,
-                        VectorType* krylov_bases, VectorType* next_krylov,
+                        AbstractMultiVector* krylov_bases,
+                        AbstractMultiVector* next_krylov,
                         matrix::MultiVector<ValueType>* hessenberg_aux,
                         const matrix::MultiVector<ValueType>* one_op,
                         size_type restart_iter, size_type num_rows,
@@ -280,9 +267,8 @@ void orthogonalize_cgs2(matrix::MultiVector<ValueType>* hessenberg_iter,
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get())
-            ->get_const_device_view(),
-        gko::detail::get_local(next_krylov)->get_const_device_view(),
+        krylov_basis_small->template get_const_local_device_view<ValueType>(),
+        next_krylov->template get_const_local_device_view<ValueType>(),
         hessenberg_iter->get_device_view()));
     finish_reduce(hessenberg_iter, next_krylov, num_rhs, restart_iter);
     for (size_type i = 0; i <= restart_iter; i++) {
@@ -299,9 +285,8 @@ void orthogonalize_cgs2(matrix::MultiVector<ValueType>* hessenberg_iter,
     auto hessenberg_aux_iter = hessenberg_aux->create_subview(
         local_span{0, restart_iter + 2}, local_span{0, num_rhs});
     exec->run(gmres::make_multi_dot(
-        gko::detail::get_local(krylov_basis_small.get())
-            ->get_const_device_view(),
-        gko::detail::get_local(next_krylov)->get_const_device_view(),
+        krylov_basis_small->template get_const_local_device_view<ValueType>(),
+        next_krylov->template get_const_local_device_view<ValueType>(),
         hessenberg_aux_iter->get_device_view()));
     finish_reduce(hessenberg_aux_iter.get(), next_krylov, num_rhs,
                   restart_iter);
@@ -324,9 +309,8 @@ void orthogonalize_cgs2(matrix::MultiVector<ValueType>* hessenberg_iter,
 template <typename ValueType>
 struct help_compute_norm<ValueType,
                          std::enable_if_t<is_complex_s<ValueType>::value>> {
-    template <typename VectorType>
     static void compute_next_krylov_norm_into_hessenberg(
-        const VectorType* next_krylov,
+        const AbstractMultiVector* next_krylov,
         matrix::MultiVector<ValueType>* hessenberg_norm_entry,
         matrix::MultiVector<remove_complex<ValueType>>* next_krylov_norm_tmp,
         array<char>& reduction_tmp)
@@ -338,396 +322,433 @@ struct help_compute_norm<ValueType,
 
 
 template <typename ValueType>
-template <typename VectorType>
-void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
-                                        VectorType* dense_x,
-                                        initial_guess_mode guess) const
+void Gmres<ValueType>::apply_with_initial_guess_impl(
+    const AbstractMultiVector* b, AbstractMultiVector* x,
+    initial_guess_mode guess) const
 {
-    using Vector = VectorType;
-    using LocalVector = matrix::MultiVector<typename Vector::value_type>;
-    using NormVector = typename LocalVector::absolute_type;
-    using ws = workspace_traits<Gmres>;
-
-    constexpr uint8 RelativeStoppingId{1};
-
-    auto exec = this->get_executor();
-    this->setup_workspace();
-    // solve with the consistent right-hand side if a left nullspace is set
-    dense_b =
-        this->get_consistent_rhs(dense_b, workspace_traits<Gmres>::proj_rhs);
-    const auto is_flexible = this->get_parameters().flexible;
-    const auto num_rows = this->get_size()[0];
-    const auto local_num_rows =
-        ::gko::detail::get_local(dense_b)->get_size()[0];
-    const auto num_rhs = dense_b->get_size()[1];
-    const auto krylov_dim = this->get_krylov_dim();
-    GKO_SOLVER_VECTOR(residual, dense_b);
-    GKO_SOLVER_VECTOR(preconditioned_vector, dense_b);
-    // TODO: check whether it can be empty when it is flexible GMRES
-    auto krylov_bases = this->create_workspace_op_with_type_of(
-        ws::krylov_bases, dense_b, dim<2>{num_rows * (krylov_dim + 1), num_rhs},
-        dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
-    VectorType* preconditioned_krylov_bases = nullptr;
-    if (is_flexible) {
-        preconditioned_krylov_bases = this->create_workspace_op_with_type_of(
-            ws::preconditioned_krylov_bases, dense_b,
-            dim<2>{num_rows * (krylov_dim + 1), num_rhs},
-            dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
+    if (!this->get_system_matrix()) {
+        return;
     }
-    // The Hessenberg matrix formed by the Arnoldi process is of shape
-    // (krylov_dim + 1) x (krylov_dim) for a single RHS. The (i,j)th
-    // entry is associated with the ith Krylov basis vector and the jth
-    // iteration of Arnoldi.
-    // For ease of using the reduction kernels locally and for having
-    // contiguous memory for communicating in the distributed case, we
-    // will store the Hessenberg matrix in the shape
-    // (krylov_dim) x ((krylov_dim + 1) * num_rhs), where the (i,j)th
-    // entry is associated with the ith iteration and the (j/num_rhs)th
-    // Krylov basis vector, for the (j % num_rhs)th RHS vector.
-    auto hessenberg = this->template create_workspace_op<LocalVector>(
-        ws::hessenberg, dim<2>{krylov_dim, (krylov_dim + 1) * num_rhs});
-    // Because the auxiliary Hessenberg workspace only ever stores one
-    // iteration of data at a time, we store it in the "logical" layout
-    // from the start.
-    LocalVector* hessenberg_aux = nullptr;
-    if (this->parameters_.ortho_method == gmres::ortho_method::cgs2) {
-        hessenberg_aux = this->template create_workspace_op<LocalVector>(
-            ws::hessenberg_aux, dim<2>{(krylov_dim + 1), num_rhs});
-    }
-    auto givens_sin = this->template create_workspace_op<LocalVector>(
-        ws::givens_sin, dim<2>{krylov_dim, num_rhs});
-    auto givens_cos = this->template create_workspace_op<LocalVector>(
-        ws::givens_cos, dim<2>{krylov_dim, num_rhs});
-    auto residual_norm_collection =
-        this->template create_workspace_op<LocalVector>(
-            ws::residual_norm_collection, dim<2>{krylov_dim + 1, num_rhs});
-    auto residual_norm = this->template create_workspace_op<NormVector>(
-        ws::residual_norm, dim<2>{1, num_rhs});
-    auto y = this->template create_workspace_op<LocalVector>(
-        ws::y, dim<2>{krylov_dim, num_rhs});
-    // next_krylov_norm_tmp is only required for complex types to move real
-    // values into a complex matrix
-    auto next_krylov_norm_tmp = this->template create_workspace_op<NormVector>(
-        ws::next_krylov_norm_tmp,
-        dim<2>{1, is_complex_s<ValueType>::value ? num_rhs : 0});
+    prepare_initial_guess(b, x, guess);
 
-    GKO_SOLVER_VECTOR(before_preconditioner, dense_x);
-    GKO_SOLVER_VECTOR(after_preconditioner, dense_x);
+    precision_dispatch<ValueType>(
+        [this, guess](auto converted_b, auto converted_x) {
+            using LocalVector = matrix::MultiVector<ValueType>;
+            using NormVector = typename LocalVector::absolute_type;
+            using ws = workspace_traits<Gmres>;
 
-    GKO_SOLVER_ONE_MINUS_ONE();
+            constexpr uint8 RelativeStoppingId{1};
 
-    bool one_changed{};
-    GKO_SOLVER_STOP_REDUCTION_ARRAYS();
-    auto& final_iter_nums = this->template create_workspace_array<size_type>(
-        ws::final_iter_nums, num_rhs);
-
-    // Ratio-based restart, disabled by restart_ratio == 0.
-    const auto restart_ratio = this->get_restart_ratio();
-    const bool use_restart_ratio =
-        restart_ratio > zero<remove_complex<ValueType>>();
-    // With one rhs the loop has already been left if it stopped, so the
-    // synchronizing copy of its status is not needed.
-    const bool need_host_stop_status = use_restart_ratio && num_rhs > 1;
-    // ||r_i||, the residual norm when the current cycle started, and the
-    // current ||r_i - A d_i||, both kept on the host.
-    std::unique_ptr<NormVector> cycle_start_norm;
-    std::unique_ptr<NormVector> host_residual_norm;
-    array<stopping_status> host_stop_status(exec->get_master());
-    if (use_restart_ratio) {
-        cycle_start_norm =
-            NormVector::create(exec->get_master(), dim<2>{1, num_rhs});
-        host_residual_norm =
-            NormVector::create(exec->get_master(), dim<2>{1, num_rhs});
-        if (need_host_stop_status) {
-            host_stop_status.resize_and_reset(num_rhs);
-        }
-    }
-    auto record_cycle_start = [&](const NormVector* res_norm) {
-        if (use_restart_ratio) {
-            cycle_start_norm->copy_from(res_norm);
-        }
-    };
-    // Returns true if ||r_i - A d_i|| <= restart_ratio * ||r_i|| for every rhs
-    // that has not stopped, where r_i is the residual at the start of the
-    // cycle and d_i the correction the cycle has built so far.
-    auto cycle_ratio_met = [&](const NormVector* res_norm,
-                               const array<stopping_status>& stop) {
-        if (!use_restart_ratio) {
-            return false;
-        }
-        host_residual_norm->copy_from(res_norm);
-        if (need_host_stop_status) {
-            host_stop_status = stop;
-        }
-        for (size_type i = 0; i < num_rhs; ++i) {
-            if (need_host_stop_status &&
-                host_stop_status.get_const_data()[i].has_stopped()) {
-                continue;
+            auto exec = this->get_executor();
+            this->setup_workspace();
+            // solve with the consistent right-hand side if a left nullspace is
+            // set
+            converted_b = this->get_consistent_rhs(
+                converted_b, workspace_traits<Gmres>::proj_rhs);
+            const auto is_flexible = this->get_parameters().flexible;
+            const auto num_rows = this->get_size()[0];
+            const auto local_num_rows =
+                converted_b->template get_const_local_device_view<ValueType>()
+                    .size[0];
+            const auto num_rhs = converted_b->get_size()[1];
+            const auto krylov_dim = this->get_krylov_dim();
+            GKO_SOLVER_VECTOR(residual, converted_b);
+            GKO_SOLVER_VECTOR(preconditioned_vector, converted_b);
+            // TODO: check whether it can be empty when it is flexible GMRES
+            auto krylov_bases = this->create_workspace_op_with_type_of(
+                ws::krylov_bases, converted_b,
+                dim<2>{num_rows * (krylov_dim + 1), num_rhs},
+                dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
+            AbstractMultiVector* preconditioned_krylov_bases = nullptr;
+            if (is_flexible) {
+                preconditioned_krylov_bases =
+                    this->create_workspace_op_with_type_of(
+                        ws::preconditioned_krylov_bases, converted_b,
+                        dim<2>{num_rows * (krylov_dim + 1), num_rhs},
+                        dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
             }
-            if (host_residual_norm->at(0, i) >
-                restart_ratio * cycle_start_norm->at(0, i)) {
-                return false;
+            // The Hessenberg matrix formed by the Arnoldi process is of shape
+            // (krylov_dim + 1) x (krylov_dim) for a single RHS. The (i,j)th
+            // entry is associated with the ith Krylov basis vector and the jth
+            // iteration of Arnoldi.
+            // For ease of using the reduction kernels locally and for having
+            // contiguous memory for communicating in the distributed case, we
+            // will store the Hessenberg matrix in the shape
+            // (krylov_dim) x ((krylov_dim + 1) * num_rhs), where the (i,j)th
+            // entry is associated with the ith iteration and the (j/num_rhs)th
+            // Krylov basis vector, for the (j % num_rhs)th RHS vector.
+            auto hessenberg = this->template create_workspace_op<LocalVector>(
+                ws::hessenberg, dim<2>{krylov_dim, (krylov_dim + 1) * num_rhs});
+            // Because the auxiliary Hessenberg workspace only ever stores one
+            // iteration of data at a time, we store it in the "logical" layout
+            // from the start.
+            LocalVector* hessenberg_aux = nullptr;
+            if (this->parameters_.ortho_method == gmres::ortho_method::cgs2) {
+                hessenberg_aux =
+                    this->template create_workspace_op<LocalVector>(
+                        ws::hessenberg_aux, dim<2>{(krylov_dim + 1), num_rhs});
             }
-        }
-        return true;
-    };
+            auto givens_sin = this->template create_workspace_op<LocalVector>(
+                ws::givens_sin, dim<2>{krylov_dim, num_rhs});
+            auto givens_cos = this->template create_workspace_op<LocalVector>(
+                ws::givens_cos, dim<2>{krylov_dim, num_rhs});
+            auto residual_norm_collection =
+                this->template create_workspace_op<LocalVector>(
+                    ws::residual_norm_collection,
+                    dim<2>{krylov_dim + 1, num_rhs});
+            auto residual_norm = this->template create_workspace_op<NormVector>(
+                ws::residual_norm, dim<2>{1, num_rhs});
+            auto y = this->template create_workspace_op<LocalVector>(
+                ws::y, dim<2>{krylov_dim, num_rhs});
+            // next_krylov_norm_tmp is only required for complex types to move
+            // real values into a complex matrix
+            auto next_krylov_norm_tmp =
+                this->template create_workspace_op<NormVector>(
+                    ws::next_krylov_norm_tmp,
+                    dim<2>{1, is_complex_s<ValueType>::value ? num_rhs : 0});
 
-    // Initialization
-    // residual = dense_b
-    // givens_sin = givens_cos = 0
-    // reset stop status
-    exec->run(gmres::make_initialize(
-        gko::detail::get_local(dense_b)->get_const_device_view(),
-        gko::detail::get_local(residual)->get_device_view(),
-        givens_sin->get_device_view(), givens_cos->get_device_view(),
-        stop_status.get_data()));
-    if (guess != initial_guess_mode::zero) {
-        // residual = residual - Ax
-        this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
-        // A annihilates N(A), so removing it from x keeps the residual
-        // unchanged
-        this->project_nullspace(dense_x);
-    }
+            GKO_SOLVER_VECTOR(before_preconditioner, converted_x);
+            GKO_SOLVER_VECTOR(after_preconditioner, converted_x);
 
-    // residual_norm = norm(residual)
-    residual->compute_norm2(residual_norm, reduction_tmp);
-    // residual_norm_collection = {residual_norm, unchanged}
-    // krylov_bases(:, 1) = residual / residual_norm
-    // final_iter_nums = {0, ..., 0}
-    exec->run(gmres::make_restart(
-        gko::detail::get_local(residual)->get_const_device_view(),
-        residual_norm->get_const_device_view(),
-        residual_norm_collection->get_device_view(),
-        gko::detail::get_local(krylov_bases)->get_device_view(),
-        final_iter_nums.get_data()));
-    record_cycle_start(residual_norm);
+            GKO_SOLVER_ONE_MINUS_ONE();
 
-    auto stop_criterion = this->get_stop_criterion_factory()->generate(
-        this->get_system_matrix(),
-        std::shared_ptr<const LinOp>(dense_b, [](const LinOp*) {}), dense_x,
-        residual);
+            bool one_changed{};
+            GKO_SOLVER_STOP_REDUCTION_ARRAYS(converted_b->get_size()[1]);
+            auto& final_iter_nums =
+                this->template create_workspace_array<size_type>(
+                    ws::final_iter_nums, num_rhs);
 
-    int total_iter = -1;
-    size_type restart_iter = 0;
+            // Ratio-based restart, disabled by restart_ratio == 0.
+            const auto restart_ratio = this->get_restart_ratio();
+            const bool use_restart_ratio =
+                restart_ratio > zero<remove_complex<ValueType>>();
+            // With one rhs the loop has already been left if it stopped, so the
+            // synchronizing copy of its status is not needed.
+            const bool need_host_stop_status = use_restart_ratio && num_rhs > 1;
+            // ||r_i||, the residual norm when the current cycle started, and
+            // the current ||r_i - A d_i||, both kept on the host.
+            std::unique_ptr<NormVector> cycle_start_norm;
+            std::unique_ptr<NormVector> host_residual_norm;
+            array<stopping_status> host_stop_status(exec->get_master());
+            if (use_restart_ratio) {
+                cycle_start_norm =
+                    NormVector::create(exec->get_master(), dim<2>{1, num_rhs});
+                host_residual_norm =
+                    NormVector::create(exec->get_master(), dim<2>{1, num_rhs});
+                if (need_host_stop_status) {
+                    host_stop_status.resize_and_reset(num_rhs);
+                }
+            }
+            auto record_cycle_start = [&](const NormVector* res_norm) {
+                if (use_restart_ratio) {
+                    cycle_start_norm->copy_from(res_norm);
+                }
+            };
+            // Returns true if ||r_i - A d_i|| <= restart_ratio * ||r_i|| for
+            // every rhs that has not stopped, where r_i is the residual at the
+            // start of the cycle and d_i the correction the cycle has built so
+            // far.
+            auto cycle_ratio_met = [&](const NormVector* res_norm,
+                                       const array<stopping_status>& stop) {
+                if (!use_restart_ratio) {
+                    return false;
+                }
+                host_residual_norm->copy_from(res_norm);
+                if (need_host_stop_status) {
+                    host_stop_status = stop;
+                }
+                for (size_type i = 0; i < num_rhs; ++i) {
+                    if (need_host_stop_status &&
+                        host_stop_status.get_const_data()[i].has_stopped()) {
+                        continue;
+                    }
+                    if (host_residual_norm->at(0, i) >
+                        restart_ratio * cycle_start_norm->at(0, i)) {
+                        return false;
+                    }
+                }
+                return true;
+            };
 
-    /* Memory movement summary for average iteration with krylov_dim d:
-     * (5/2d+21/2+14/d)n * values + (1+1/d) * matrix/preconditioner storage
-     * 1x SpMV:                2n * values + storage
-     * 1x Preconditioner:      2n * values + storage
-     * MGS:          (5/2d+11/2)n = sum k=0 to d-1 of (5k+8)n/d
-     *       1x dots           2(k+1)n in iteration k (0-based)
-     *       1x axpys          3(k+1)n in iteration k (0-based)
-     *       1x norm2               n
-     *       1x scal               2n
-     * Restart:         (1+14/d)n  (every dth iteration)
-     *       1x gemv           (d+1)n
-     *       1x Preconditioner     2n * values + storage
-     *       1x axpy               3n
-     *       1x copy               2n
-     *       1x Advanced SpMV      3n * values + storage
-     *       1x norm2               n
-     *       1x scal               2n
-     */
-    while (true) {
-        ++total_iter;
-        bool all_stopped =
-            stop_criterion->update()
-                .num_iterations(total_iter)
-                .residual(residual)
-                .residual_norm(residual_norm)
-                .solution(dense_x)
-                .check(RelativeStoppingId, false, &stop_status, &one_changed);
-        this->template log<log::Logger::iteration_complete>(
-            this, dense_b, dense_x, total_iter, residual, residual_norm,
-            nullptr, &stop_status, all_stopped);
-        if (all_stopped) {
-            break;
-        }
-
-        if (restart_iter == krylov_dim ||
-            cycle_ratio_met(residual_norm, stop_status)) {
-            // Restart
-            // Solve upper triangular.
-            // y = hessenberg \ residual_norm_collection
-            exec->run(gmres::make_solve_krylov(
-                residual_norm_collection->get_const_device_view(),
-                hessenberg->get_const_device_view(), y->get_device_view(),
-                final_iter_nums.get_const_data(),
-                stop_status.get_const_data()));
-            // before_preconditioner = krylov_bases * y
-            exec->run(gmres::make_multi_axpy(
-                gko::detail::get_local(krylov_bases)->get_const_device_view(),
-                y->get_const_device_view(),
-                gko::detail::get_local(before_preconditioner)
-                    ->get_device_view(),
-                final_iter_nums.get_const_data(), stop_status.get_data()));
-
-            // x = x + get_preconditioner() * before_preconditioner
-            this->get_preconditioner()->apply(before_preconditioner,
-                                              after_preconditioner);
-            dense_x->add_scaled(one_op, after_preconditioner);
+            // Initialization
             // residual = dense_b
-            residual->copy_from(dense_b);
-            // residual = residual - Ax
-            this->get_system_matrix()->apply(neg_one_op, dense_x, one_op,
-                                             residual);
+            // givens_sin = givens_cos = 0
+            // reset stop status
+            exec->run(gmres::make_initialize(
+                converted_b->template get_const_local_device_view<ValueType>(),
+                residual->template get_local_device_view<ValueType>(),
+                givens_sin->get_device_view(), givens_cos->get_device_view(),
+                stop_status.get_data()));
+            if (guess != initial_guess_mode::zero) {
+                // residual = residual - Ax
+                this->get_system_matrix()->apply(neg_one_op, converted_x,
+                                                 one_op, residual);
+                // A annihilates N(A), so removing it from x keeps the residual
+                // unchanged
+                this->project_nullspace(converted_x);
+            }
+
             // residual_norm = norm(residual)
             residual->compute_norm2(residual_norm, reduction_tmp);
             // residual_norm_collection = {residual_norm, unchanged}
             // krylov_bases(:, 1) = residual / residual_norm
             // final_iter_nums = {0, ..., 0}
             exec->run(gmres::make_restart(
-                gko::detail::get_local(residual)->get_const_device_view(),
+                residual->template get_const_local_device_view<ValueType>(),
                 residual_norm->get_const_device_view(),
                 residual_norm_collection->get_device_view(),
-                gko::detail::get_local(krylov_bases)->get_device_view(),
+                krylov_bases->template get_local_device_view<ValueType>(),
                 final_iter_nums.get_data()));
-            restart_iter = 0;
             record_cycle_start(residual_norm);
-        }
-        auto this_krylov = krylov_bases->create_subview(
-            local_span{local_num_rows * restart_iter,
-                       local_num_rows * (restart_iter + 1)},
-            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
 
-        auto next_krylov = krylov_bases->create_subview(
-            local_span{local_num_rows * (restart_iter + 1),
-                       local_num_rows * (restart_iter + 2)},
-            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-        std::unique_ptr<VectorType> preconditioned_krylov;
-        auto preconditioned_krylov_vector = preconditioned_vector;
-        if (is_flexible) {
-            preconditioned_krylov = preconditioned_krylov_bases->create_subview(
-                local_span{local_num_rows * restart_iter,
-                           local_num_rows * (restart_iter + 1)},
-                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-            preconditioned_krylov_vector = preconditioned_krylov.get();
-        }
-        // preconditioned_krylov_vector = get_preconditioner() * this_krylov
-        this->get_preconditioner()->apply(this_krylov,
-                                          preconditioned_krylov_vector);
+            auto stop_criterion = this->get_stop_criterion_factory()->generate(
+                this->get_system_matrix(),
+                std::shared_ptr<const AbstractMultiVector>(
+                    converted_b, [](const AbstractMultiVector*) {}),
+                converted_x, residual);
 
-        // Create view of current column in the hessenberg matrix:
-        // hessenberg_iter = hessenberg(:, restart_iter), which
-        // is actually stored as a row, hessenberg(restart_iter, :),
-        // but we will reshape it for viewing in hessenberg_iter.
-        auto hessenberg_iter = LocalVector::create(
-            exec, dim<2>{restart_iter + 2, num_rhs},
-            make_array_view(exec, (restart_iter + 2) * num_rhs,
-                            hessenberg->get_values() +
-                                restart_iter * hessenberg->get_size()[1]),
-            num_rhs);
+            int total_iter = -1;
+            size_type restart_iter = 0;
 
-        // Start of Arnoldi
-        // next_krylov = A * preconditioned_krylov_vector
-        this->get_system_matrix()->apply(preconditioned_krylov_vector,
-                                         next_krylov);
-        if (this->parameters_.ortho_method == gmres::ortho_method::mgs) {
-            orthogonalize_mgs(hessenberg_iter.get(), krylov_bases,
-                              next_krylov.get(), reduction_tmp, restart_iter,
-                              num_rows, num_rhs, local_num_rows);
-        } else if (this->parameters_.ortho_method == gmres::ortho_method::cgs) {
-            orthogonalize_cgs(hessenberg_iter.get(), krylov_bases,
-                              next_krylov.get(), restart_iter, num_rows,
-                              num_rhs, local_num_rows);
-        } else if (this->parameters_.ortho_method ==
-                   gmres::ortho_method::cgs2) {
-            orthogonalize_cgs2(hessenberg_iter.get(), krylov_bases,
-                               next_krylov.get(), hessenberg_aux, one_op,
-                               restart_iter, num_rows, num_rhs, local_num_rows);
-        }
-        // normalize next_krylov:
-        // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)
-        // (stored in hessenberg(restart_iter, (restart_iter + 1) * num_rhs))
-        // next_krylov /= hessenberg(restart_iter+1, restart_iter)
-        auto hessenberg_norm_entry = hessenberg_iter->create_subview(
-            local_span{restart_iter + 1, restart_iter + 2},
-            local_span{0, num_rhs});
-        help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
-            next_krylov.get(), hessenberg_norm_entry.get(),
-            next_krylov_norm_tmp, reduction_tmp);
-        next_krylov->inv_scale(hessenberg_norm_entry);
-        // End of Arnoldi
+            /* Memory movement summary for average iteration with krylov_dim d:
+             * (5/2d+21/2+14/d)n * values + (1+1/d) * matrix/preconditioner
+             * storage 1x SpMV:                2n * values + storage 1x
+             * Preconditioner:      2n * values + storage MGS: (5/2d+11/2)n =
+             * sum k=0 to d-1 of (5k+8)n/d 1x dots           2(k+1)n in
+             * iteration k (0-based) 1x axpys          3(k+1)n in iteration k
+             * (0-based) 1x norm2               n 1x scal               2n
+             * Restart:         (1+14/d)n  (every dth iteration)
+             *       1x gemv           (d+1)n
+             *       1x Preconditioner     2n * values + storage
+             *       1x axpy               3n
+             *       1x copy               2n
+             *       1x Advanced SpMV      3n * values + storage
+             *       1x norm2               n
+             *       1x scal               2n
+             */
+            while (true) {
+                ++total_iter;
+                bool all_stopped = stop_criterion->update()
+                                       .num_iterations(total_iter)
+                                       .residual(residual)
+                                       .residual_norm(residual_norm)
+                                       .solution(converted_x)
+                                       .check(RelativeStoppingId, false,
+                                              &stop_status, &one_changed);
+                this->template log<log::Logger::iteration_complete>(
+                    this, converted_b, converted_x, total_iter, residual,
+                    residual_norm, nullptr, &stop_status, all_stopped);
+                if (all_stopped) {
+                    break;
+                }
 
-        // update QR factorization and Krylov RHS for last column:
-        // apply givens rotation
-        // for j in 0:restart_iter(exclude)
-        //     temp             =  cos(j)*hessenberg(j) +
-        //                         sin(j)*hessenberg(j+1)
-        //     hessenberg(j+1)  = -conj(sin(j))*hessenberg(j) +
-        //                         conj(cos(j))*hessenberg(j+1)
-        //     hessenberg(j)    =  temp;
-        // end
-        // calculate next Givens parameters
-        // this_hess = hessenberg(restart_iter)
-        // next_hess = hessenberg(restart_iter+1)
-        // hypotenuse = ||(this_hess, next_hess)||
-        // cos(restart_iter) = conj(this_hess) / hypotenuse
-        // sin(restart_iter) = conj(next_hess) / hypotenuse
-        // update Krylov approximation of b, apply new Givens rotation
-        // this_rnc = residual_norm_collection(restart_iter)
-        // residual_norm = abs(-conj(sin(restart_iter)) * this_rnc)
-        // residual_norm_collection(restart_iter) =
-        //              cos(restart_iter) * this_rnc
-        // residual_norm_collection(restart_iter + 1) =
-        //              -conj(sin(restart_iter)) * this_rnc
-        exec->run(gmres::make_hessenberg_qr(
-            givens_sin->get_device_view(), givens_cos->get_device_view(),
-            residual_norm->get_device_view(),
-            residual_norm_collection->get_device_view(),
-            hessenberg_iter->get_device_view(), restart_iter,
-            final_iter_nums.get_data(), stop_status.get_const_data()));
+                if (restart_iter == krylov_dim ||
+                    cycle_ratio_met(residual_norm, stop_status)) {
+                    // Restart
+                    // Solve upper triangular.
+                    // y = hessenberg \ residual_norm_collection
+                    exec->run(gmres::make_solve_krylov(
+                        residual_norm_collection->get_const_device_view(),
+                        hessenberg->get_const_device_view(),
+                        y->get_device_view(), final_iter_nums.get_const_data(),
+                        stop_status.get_const_data()));
+                    // before_preconditioner = krylov_bases * y
+                    exec->run(gmres::make_multi_axpy(
+                        krylov_bases
+                            ->template get_const_local_device_view<ValueType>(),
+                        y->get_const_device_view(),
+                        before_preconditioner
+                            ->template get_local_device_view<ValueType>(),
+                        final_iter_nums.get_const_data(),
+                        stop_status.get_data()));
 
-        restart_iter++;
-    }
+                    // x = x + get_preconditioner() * before_preconditioner
+                    this->get_preconditioner()->apply(before_preconditioner,
+                                                      after_preconditioner);
+                    converted_x->add_scaled(one_op, after_preconditioner);
+                    // residual = dense_b
+                    residual->copy_from(converted_b);
+                    // residual = residual - Ax
+                    this->get_system_matrix()->apply(neg_one_op, converted_x,
+                                                     one_op, residual);
+                    // residual_norm = norm(residual)
+                    residual->compute_norm2(residual_norm, reduction_tmp);
+                    // residual_norm_collection = {residual_norm, unchanged}
+                    // krylov_bases(:, 1) = residual / residual_norm
+                    // final_iter_nums = {0, ..., 0}
+                    exec->run(gmres::make_restart(
+                        residual
+                            ->template get_const_local_device_view<ValueType>(),
+                        residual_norm->get_const_device_view(),
+                        residual_norm_collection->get_device_view(),
+                        krylov_bases
+                            ->template get_local_device_view<ValueType>(),
+                        final_iter_nums.get_data()));
+                    restart_iter = 0;
+                    record_cycle_start(residual_norm);
+                }
+                auto this_krylov = krylov_bases->create_subview(
+                    local_span{local_num_rows * restart_iter,
+                               local_num_rows * (restart_iter + 1)},
+                    local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
 
-    auto hessenberg_small = hessenberg->create_subview(
-        local_span{0, restart_iter}, local_span{0, num_rhs * restart_iter});
+                auto next_krylov = krylov_bases->create_subview(
+                    local_span{local_num_rows * (restart_iter + 1),
+                               local_num_rows * (restart_iter + 2)},
+                    local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+                std::unique_ptr<AbstractMultiVector> preconditioned_krylov;
+                auto preconditioned_krylov_vector = preconditioned_vector;
+                if (is_flexible) {
+                    preconditioned_krylov =
+                        preconditioned_krylov_bases->create_subview(
+                            local_span{local_num_rows * restart_iter,
+                                       local_num_rows * (restart_iter + 1)},
+                            local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+                    preconditioned_krylov_vector = preconditioned_krylov.get();
+                }
+                // preconditioned_krylov_vector = get_preconditioner() *
+                // this_krylov
+                this->get_preconditioner()->apply(this_krylov,
+                                                  preconditioned_krylov_vector);
 
-    // Solve upper triangular.
-    // y = hessenberg \ residual_norm_collection
-    exec->run(gmres::make_solve_krylov(
-        residual_norm_collection->get_const_device_view(),
-        hessenberg_small->get_const_device_view(), y->get_device_view(),
-        final_iter_nums.get_const_data(), stop_status.get_const_data()));
-    if (is_flexible) {
-        auto preconditioned_krylov_bases_small =
-            preconditioned_krylov_bases->create_subview(
-                local_span{0, local_num_rows * (restart_iter + 1)},
-                local_span{0, num_rhs},
-                dim<2>{num_rows * (restart_iter + 1), num_rhs});
-        // after_preconditioner = preconditioned_krylov_bases * y
-        exec->run(gmres::make_multi_axpy(
-            gko::detail::get_local(preconditioned_krylov_bases_small.get())
-                ->get_const_device_view(),
-            y->get_const_device_view(),
-            gko::detail::get_local(after_preconditioner)->get_device_view(),
-            final_iter_nums.get_const_data(), stop_status.get_data()));
-    } else {
-        auto krylov_bases_small = krylov_bases->create_subview(
-            local_span{0, local_num_rows * (restart_iter + 1)},
-            local_span{0, num_rhs},
-            dim<2>{num_rows * (restart_iter + 1), num_rhs});
-        // before_preconditioner = krylov_bases * y
-        exec->run(gmres::make_multi_axpy(
-            gko::detail::get_local(krylov_bases_small.get())
-                ->get_const_device_view(),
-            y->get_const_device_view(),
-            gko::detail::get_local(before_preconditioner)->get_device_view(),
-            final_iter_nums.get_const_data(), stop_status.get_data()));
+                // Create view of current column in the hessenberg matrix:
+                // hessenberg_iter = hessenberg(:, restart_iter), which
+                // is actually stored as a row, hessenberg(restart_iter, :),
+                // but we will reshape it for viewing in hessenberg_iter.
+                auto hessenberg_iter = LocalVector::create(
+                    exec, dim<2>{restart_iter + 2, num_rhs},
+                    make_array_view(
+                        exec, (restart_iter + 2) * num_rhs,
+                        hessenberg->get_values() +
+                            restart_iter * hessenberg->get_size()[1]),
+                    num_rhs);
 
-        // after_preconditioner = get_preconditioner() * before_preconditioner
-        this->get_preconditioner()->apply(before_preconditioner,
-                                          after_preconditioner);
-    }
-    // x = x + after_preconditioner
-    dense_x->add_scaled(one_op, after_preconditioner);
+                // Start of Arnoldi
+                // next_krylov = A * preconditioned_krylov_vector
+                this->get_system_matrix()->apply(preconditioned_krylov_vector,
+                                                 next_krylov);
+                if (this->parameters_.ortho_method ==
+                    gmres::ortho_method::mgs) {
+                    orthogonalize_mgs(hessenberg_iter.get(), krylov_bases,
+                                      next_krylov.get(), reduction_tmp,
+                                      restart_iter, num_rows, num_rhs,
+                                      local_num_rows);
+                } else if (this->parameters_.ortho_method ==
+                           gmres::ortho_method::cgs) {
+                    orthogonalize_cgs(hessenberg_iter.get(), krylov_bases,
+                                      next_krylov.get(), restart_iter, num_rows,
+                                      num_rhs, local_num_rows);
+                } else if (this->parameters_.ortho_method ==
+                           gmres::ortho_method::cgs2) {
+                    orthogonalize_cgs2(hessenberg_iter.get(), krylov_bases,
+                                       next_krylov.get(), hessenberg_aux,
+                                       one_op, restart_iter, num_rows, num_rhs,
+                                       local_num_rows);
+                }
+                // normalize next_krylov:
+                // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)
+                // (stored in hessenberg(restart_iter, (restart_iter + 1) *
+                // num_rhs)) next_krylov /= hessenberg(restart_iter+1,
+                // restart_iter)
+                auto hessenberg_norm_entry = hessenberg_iter->create_subview(
+                    local_span{restart_iter + 1, restart_iter + 2},
+                    local_span{0, num_rhs});
+                help_compute_norm<ValueType>::
+                    compute_next_krylov_norm_into_hessenberg(
+                        next_krylov.get(), hessenberg_norm_entry.get(),
+                        next_krylov_norm_tmp, reduction_tmp);
+                next_krylov->inv_scale(hessenberg_norm_entry);
+                // End of Arnoldi
+
+                // update QR factorization and Krylov RHS for last column:
+                // apply givens rotation
+                // for j in 0:restart_iter(exclude)
+                //     temp             =  cos(j)*hessenberg(j) +
+                //                         sin(j)*hessenberg(j+1)
+                //     hessenberg(j+1)  = -conj(sin(j))*hessenberg(j) +
+                //                         conj(cos(j))*hessenberg(j+1)
+                //     hessenberg(j)    =  temp;
+                // end
+                // calculate next Givens parameters
+                // this_hess = hessenberg(restart_iter)
+                // next_hess = hessenberg(restart_iter+1)
+                // hypotenuse = ||(this_hess, next_hess)||
+                // cos(restart_iter) = conj(this_hess) / hypotenuse
+                // sin(restart_iter) = conj(next_hess) / hypotenuse
+                // update Krylov approximation of b, apply new Givens rotation
+                // this_rnc = residual_norm_collection(restart_iter)
+                // residual_norm = abs(-conj(sin(restart_iter)) * this_rnc)
+                // residual_norm_collection(restart_iter) =
+                //              cos(restart_iter) * this_rnc
+                // residual_norm_collection(restart_iter + 1) =
+                //              -conj(sin(restart_iter)) * this_rnc
+                exec->run(gmres::make_hessenberg_qr(
+                    givens_sin->get_device_view(),
+                    givens_cos->get_device_view(),
+                    residual_norm->get_device_view(),
+                    residual_norm_collection->get_device_view(),
+                    hessenberg_iter->get_device_view(), restart_iter,
+                    final_iter_nums.get_data(), stop_status.get_const_data()));
+
+                restart_iter++;
+            }
+
+            auto hessenberg_small = hessenberg->create_subview(
+                local_span{0, restart_iter},
+                local_span{0, num_rhs * restart_iter});
+
+            // Solve upper triangular.
+            // y = hessenberg \ residual_norm_collection
+            exec->run(gmres::make_solve_krylov(
+                residual_norm_collection->get_const_device_view(),
+                hessenberg_small->get_const_device_view(), y->get_device_view(),
+                final_iter_nums.get_const_data(),
+                stop_status.get_const_data()));
+            if (is_flexible) {
+                auto preconditioned_krylov_bases_small =
+                    preconditioned_krylov_bases->create_subview(
+                        local_span{0, local_num_rows * (restart_iter + 1)},
+                        local_span{0, num_rhs},
+                        dim<2>{num_rows * (restart_iter + 1), num_rhs});
+                // after_preconditioner = preconditioned_krylov_bases * y
+                exec->run(gmres::make_multi_axpy(
+                    preconditioned_krylov_bases_small
+                        ->template get_const_local_device_view<ValueType>(),
+                    y->get_const_device_view(),
+                    after_preconditioner
+                        ->template get_local_device_view<ValueType>(),
+                    final_iter_nums.get_const_data(), stop_status.get_data()));
+            } else {
+                auto krylov_bases_small = krylov_bases->create_subview(
+                    local_span{0, local_num_rows * (restart_iter + 1)},
+                    local_span{0, num_rhs},
+                    dim<2>{num_rows * (restart_iter + 1), num_rhs});
+                // before_preconditioner = krylov_bases * y
+                exec->run(gmres::make_multi_axpy(
+                    krylov_bases_small
+                        ->template get_const_local_device_view<ValueType>(),
+                    y->get_const_device_view(),
+                    before_preconditioner
+                        ->template get_local_device_view<ValueType>(),
+                    final_iter_nums.get_const_data(), stop_status.get_data()));
+
+                // after_preconditioner = get_preconditioner() *
+                // before_preconditioner
+                this->get_preconditioner()->apply(before_preconditioner,
+                                                  after_preconditioner);
+            }
+            // x = x + after_preconditioner
+            converted_x->add_scaled(one_op, after_preconditioner);
+        },
+        b, x);
 }
 
 
 template <typename ValueType>
-void Gmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                  const LinOp* beta, LinOp* x) const
+void Gmres<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                  const AbstractMultiVector* b,
+                                  const AbstractMultiVector* beta,
+                                  AbstractMultiVector* x) const
 {
     this->apply_with_initial_guess_impl(alpha, b, beta, x,
                                         this->get_default_initial_guess());
@@ -736,18 +757,19 @@ void Gmres<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 template <typename ValueType>
 void Gmres<ValueType>::apply_with_initial_guess_impl(
-    const LinOp* alpha, const LinOp* b, const LinOp* beta, LinOp* x,
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x,
     initial_guess_mode guess) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
+    precision_dispatch<ValueType>(
         [this, guess](auto dense_alpha, auto dense_b, auto dense_beta,
                       auto dense_x) {
             auto x_clone = dense_x->clone();
             prepare_initial_guess(dense_b, x_clone.get(), guess);
-            this->apply_dense_impl(dense_b, x_clone.get(), guess);
+            this->apply_with_initial_guess_impl(dense_b, x_clone.get(), guess);
             dense_x->scale(dense_beta);
             dense_x->add_scaled(dense_alpha, x_clone);
         },

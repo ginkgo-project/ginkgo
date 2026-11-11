@@ -9,13 +9,13 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
+#include "core/base/dispatch_helper.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/trisolver_config.hpp"
 #include "core/solver/lower_trs_kernels.hpp"
@@ -141,13 +141,14 @@ static bool needs_transpose(std::shared_ptr<const Executor> exec)
 
 
 template <typename ValueType, typename IndexType>
-void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void LowerTrs<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                                AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
+    apply_precision_dispatch<ValueType>(
+        [this](auto view_b, auto view_x) {
             using Vector = matrix::MultiVector<ValueType>;
             using ws = workspace_traits<LowerTrs>;
             const auto exec = this->get_executor();
@@ -164,9 +165,9 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
             using optional_view = std::optional<matrix::view::dense<ValueType>>;
             if (needs_transpose(exec)) {
                 trans_b = this->template create_workspace_op<Vector>(
-                    ws::transposed_b, gko::transpose(dense_b->get_size()));
+                    ws::transposed_b, gko::transpose(view_b.size));
                 trans_x = this->template create_workspace_op<Vector>(
-                    ws::transposed_x, gko::transpose(dense_x->get_size()));
+                    ws::transposed_x, gko::transpose(view_x.size));
             }
             exec->run(lower_trs::make_solve(
                 this->get_system_matrix()->get_const_device_view(),
@@ -176,29 +177,21 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
                         : optional_view{},
                 trans_x ? optional_view{trans_x->get_device_view()}
                         : optional_view{},
-                dense_b->get_const_device_view(), dense_x->get_device_view()));
+                view_b, view_x));
         },
         b, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* alpha,
-                                                const LinOp* b,
-                                                const LinOp* beta,
-                                                LinOp* x) const
+void LowerTrs<ValueType, IndexType>::apply_impl(
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
 {
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto x_clone = dense_x->clone();
-            this->apply_impl(dense_b, x_clone.get());
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, x_clone);
-        },
-        alpha, b, beta, x);
+    LinOp::apply_impl(alpha, b, beta, x);
 }
 
 
