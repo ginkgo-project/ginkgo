@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -25,9 +25,9 @@
     auto neg_one_op = this->template create_workspace_fixed_scalar<ValueType>( \
         GKO_SOLVER_TRAITS::minus_one, 1, -one<ValueType>())
 
-#define GKO_SOLVER_STOP_REDUCTION_ARRAYS()                      \
+#define GKO_SOLVER_STOP_REDUCTION_ARRAYS(_cols)                 \
     auto& stop_status =                                         \
         this->template create_workspace_array<stopping_status>( \
-            GKO_SOLVER_TRAITS::stop, dense_b->get_size()[1]);   \
+            GKO_SOLVER_TRAITS::stop, _cols);                    \
     auto& reduction_tmp =                                       \
         this->template create_workspace_array<char>(GKO_SOLVER_TRAITS::tmp)
