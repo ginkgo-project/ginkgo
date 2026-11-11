@@ -47,7 +47,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 0
                 },
                 "parameters": {
                     "accuracy": 0.1,
@@ -123,7 +124,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 8000
                 },
                 "parameters": {
                     "factorization": {
@@ -214,7 +216,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 8000
                 },
                 "parameters": {
                     "factorization": {
@@ -299,7 +302,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 8000
                 },
                 "parameters": {
                     "factorization": {
@@ -394,7 +398,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 8000
                 },
                 "parameters": {
                     "factorization": {
@@ -505,7 +510,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 28414
                 },
                 "parameters": {
                     "coarsest_solver": [
@@ -715,7 +721,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 23660
                 },
                 "parameters": {
                     "coarsest_solver": [
@@ -882,7 +889,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 32126
                 },
                 "parameters": {
                     "coarsest_solver": [

@@ -18,7 +18,8 @@
                     "repetitions": 1,
                     "repetition_times": [
                         1.0
-                    ]
+                    ],
+                    "storage": 0
                 },
                 "parameters": null,
                 "storage": 0,

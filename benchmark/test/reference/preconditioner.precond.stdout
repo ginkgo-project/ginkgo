@@ -47,7 +47,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 0
                 },
                 "parameters": {
                     "accuracy": 0.1,

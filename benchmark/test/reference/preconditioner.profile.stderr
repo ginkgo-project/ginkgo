@@ -43,9 +43,21 @@ DEBUG: end   dense::copy
 DEBUG: end   copy(<typename>)
 DEBUG: end   apply(<typename>)
 DEBUG: end   repetition apply
+DEBUG: begin copy(<typename>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(<typename>)
 DEBUG: begin storage generate
 DEBUG: begin generate(<typename>)
 DEBUG: end   generate(<typename>)
 DEBUG: end   storage generate
+DEBUG: begin storage apply
+DEBUG: begin apply(<typename>)
+DEBUG: begin copy(<typename>)
+DEBUG: begin dense::copy
+DEBUG: end   dense::copy
+DEBUG: end   copy(<typename>)
+DEBUG: end   apply(<typename>)
+DEBUG: end   storage apply
 DEBUG: end   none
 DEBUG: end   stencil(100, 7pt)

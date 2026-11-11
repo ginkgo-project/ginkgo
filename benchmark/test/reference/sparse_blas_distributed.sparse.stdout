@@ -1,0 +1,30 @@
+[
+    {
+        "size": 1000,
+        "stencil": "7pt",
+        "comm_pattern": "stencil",
+        "sparse_blas": {
+            "spgemm": {
+                "time": 1.0,
+                "repetitions": 10,
+                "repetition_times": [
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0,
+                    1.0
+                ],
+                "nonzeros_out": 62287,
+                "completed": true
+            }
+        },
+        "rows": 1000,
+        "cols": 1000,
+        "nonzeros": 6400
+    }
+]
