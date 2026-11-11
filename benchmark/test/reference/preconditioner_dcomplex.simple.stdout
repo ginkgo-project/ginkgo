@@ -44,7 +44,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 0
                 },
                 "parameters": null,
                 "storage": 0,

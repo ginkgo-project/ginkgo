@@ -105,7 +105,8 @@
                         1.0,
                         1.0,
                         1.0
-                    ]
+                    ],
+                    "storage": 66306
                 },
                 "parameters": null,
                 "storage": 357620,

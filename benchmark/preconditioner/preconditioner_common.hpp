@@ -160,14 +160,13 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
         return generator.describe_config(test_case);
     }
 
-    // the maximum over the ranks for a distributed run
-    std::shared_ptr<Timer> make_timer(
-        std::shared_ptr<const gko::Executor> exec) const
+    // the bytes a step left allocated, summed over the ranks
+    void write_storage(StorageLogger& logger, json& output) const
     {
 #ifdef GKO_BENCHMARK_DISTRIBUTED
-        return get_mpi_timer(exec, generator.comm, FLAGS_gpu_timer);
+        logger.write_data(generator.comm, output);
 #else
-        return get_timer(exec, FLAGS_gpu_timer);
+        logger.write_data(output);
 #endif
     }
 
@@ -229,8 +228,8 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
                 *precond_factory.at(decoded_precond_name)(exec));
         }
 
-        IterationControl ic_gen{make_timer(exec)};
-        IterationControl ic_apply{make_timer(exec)};
+        IterationControl ic_gen{timer};
+        IterationControl ic_apply{timer};
         json levels;
 
         {
@@ -267,21 +266,27 @@ struct PreconditionerBenchmark : Benchmark<preconditioner_benchmark_state> {
         }
 
         {
-            // untimed generate to measure the preconditioner's storage
-            auto storage_logger = std::make_shared<StorageLogger>();
+            // untimed generate and first apply to measure the storage each
+            // leaves allocated: the preconditioner, then the workspace its
+            // apply keeps (the apply's temporaries are freed, so not counted)
+            auto generate_logger = std::make_shared<StorageLogger>();
+            auto apply_logger = std::make_shared<StorageLogger>();
+            auto x_clone = clone(state.x);
             std::unique_ptr<gko::LinOpFactory> precond;
             std::unique_ptr<gko::LinOp> precond_op;
             {
                 auto range = annotate("storage generate");
-                scoped_logger logged{exec, storage_logger};
+                scoped_logger logged{exec, generate_logger};
                 precond = precond_factory.at(decoded_precond_name)(exec);
                 precond_op = precond->generate(state.system_matrix);
             }
-#ifdef GKO_BENCHMARK_DISTRIBUTED
-            storage_logger->write_data(generator.comm, precond_case);
-#else
-            storage_logger->write_data(precond_case);
-#endif
+            {
+                auto range = annotate("storage apply");
+                scoped_logger logged{exec, apply_logger};
+                precond_op->apply(state.b, x_clone);
+            }
+            write_storage(*generate_logger, precond_case);
+            write_storage(*apply_logger, precond_case["apply"]);
         }
         if (!levels.is_null()) {
             precond_case["levels"] = levels;
