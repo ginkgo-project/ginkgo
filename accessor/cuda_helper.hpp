@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -175,7 +175,7 @@ GKO_ACC_INLINE auto as_cuda_range(const range<block_col_major<T, dim>>& r)
 template <typename T, size_type dim>
 GKO_ACC_INLINE auto as_cuda_range(const range<row_major<T, dim>>& r)
 {
-    return range<block_col_major<cuda_type_t<T>, dim>>(
+    return range<row_major<cuda_type_t<T>, dim>>(
         r.get_accessor().lengths, as_cuda_type(r.get_accessor().data),
         r.get_accessor().stride);
 }
