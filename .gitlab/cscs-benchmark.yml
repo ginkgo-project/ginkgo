@@ -1,0 +1,79 @@
+# Entry point of the CSCS CI pipeline "benchmark" (see .gitlab/cscs.yml for how
+# CSCS runs these files). Only the trigger in .github/workflows/benchmark.yml
+# starts jobs: it sets CB_BENCHMARK=1 and the machines in CB_MACHINES, so a
+# push or a pull request starts none. Each job benchmarks the triggered commit
+# on one GPU with the harness of ginkgo-project/cb-dashboard, which imports the
+# results from the job artifacts into cb.gko-project.org. On Saturdays the
+# trigger sets CB_DISTRIBUTED=1 instead of CB_BENCHMARK=1, so that pipeline has
+# only the benchmark-distributed jobs: the weekly weak scaling on 16 nodes, from
+# 1 to 64 GPUs in one job. The jobs are billed to the CI's default Slurm
+# account; set SLURM_ACCOUNT to change that.
+
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
+
+stages:
+  - benchmark
+
+.benchmark:
+  stage: benchmark
+  variables:
+    # the harness builds from its own clone on the d131 store
+    GIT_STRATEGY: none
+    SLURM_JOB_NUM_NODES: 1
+    # must be quoted, otherwise Slurm reads the value as minutes
+    SLURM_TIMELIMIT: "04:00:00"
+  script:
+    # The project directory can be left over from an earlier job. Without
+    # results/ a job that fails before ci.sh uploads no earlier job's run.
+    - rm -rf cb-dashboard results
+    - git clone --depth 1 --branch main https://github.com/ginkgo-project/cb-dashboard.git
+    - cb-dashboard/bench/ci.sh ${MACHINE}
+  artifacts:
+    when: always
+    paths:
+      - results/
+
+.benchmark-distributed:
+  extends: .benchmark
+  variables:
+    # every GPU count from 1 to 64 runs in this one allocation, one after another
+    SLURM_JOB_NUM_NODES: 16
+  script:
+    - rm -rf cb-dashboard results
+    - git clone --depth 1 --branch main https://github.com/ginkgo-project/cb-dashboard.git
+    - cb-dashboard/bench/ci.sh ${MACHINE} distributed
+
+benchmark/daint-gh200:
+  extends: [.baremetal-runner-daint-gh200, .benchmark]
+  # one benchmark per machine at a time: they share the worktree and build
+  resource_group: cb-daint-gh200
+  rules:
+    - if: $CB_BENCHMARK == "1" && $CB_MACHINES =~ /daint-gh200/
+  variables:
+    MACHINE: daint-gh200
+
+benchmark/beverin-mi300a:
+  extends: [.baremetal-runner-beverin-mi300, .benchmark]
+  resource_group: cb-beverin-mi300a
+  rules:
+    - if: $CB_BENCHMARK == "1" && $CB_MACHINES =~ /beverin-mi300a/
+  variables:
+    MACHINE: beverin-mi300a
+
+# its own worktree and build directory, so it can run next to a single-node job
+benchmark-distributed/daint-gh200:
+  extends: [.baremetal-runner-daint-gh200, .benchmark-distributed]
+  resource_group: cb-distributed-daint-gh200
+  rules:
+    - if: $CB_DISTRIBUTED == "1" && $CB_MACHINES =~ /daint-gh200/
+  variables:
+    MACHINE: daint-gh200
+
+benchmark-distributed/beverin-mi300a:
+  extends: [.baremetal-runner-beverin-mi300, .benchmark-distributed]
+  resource_group: cb-distributed-beverin-mi300a
+  rules:
+    - if: $CB_DISTRIBUTED == "1" && $CB_MACHINES =~ /beverin-mi300a/
+  variables:
+    MACHINE: beverin-mi300a
