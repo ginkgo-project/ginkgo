@@ -23,10 +23,10 @@ size_type get_comm_size_safe(const communicator& comm)
 DenseCommunicator::DenseCommunicator(communicator base)
     : CollectiveCommunicator(base),
       comm_(base),
-      recv_sizes_(get_comm_size_safe(comm_)),
-      recv_offsets_(get_comm_size_safe(comm_) + 1),
       send_sizes_(get_comm_size_safe(comm_)),
-      send_offsets_(get_comm_size_safe(comm_) + 1)
+      send_offsets_(get_comm_size_safe(comm_) + 1),
+      recv_sizes_(get_comm_size_safe(comm_)),
+      recv_offsets_(get_comm_size_safe(comm_) + 1)
 {}
 
 
