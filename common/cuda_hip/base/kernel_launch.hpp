@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,8 @@
     "This file can only be used from inside common/unified/base/kernel_launch.hpp"
 #endif
 
+
+#include <utility>
 
 #include <thrust/tuple.h>
 
@@ -97,6 +99,15 @@ void run_kernel(std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
             static_cast<int64>(size[0]), static_cast<int64>(size[1]), fn,
             map_to_device(args)...);
     }
+}
+
+
+/** @internal Only OMP vectorizes; here the *_simd names are the plain ones. */
+template <typename KernelFunction, typename... KernelArgs>
+void run_kernel_simd(std::shared_ptr<const DefaultExecutor> exec,
+                     KernelFunction fn, dim<2> size, KernelArgs&&... args)
+{
+    run_kernel(exec, fn, size, std::forward<KernelArgs>(args)...);
 }
 
 

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <numeric>
+#include <tuple>
 
 #include <omp.h>
 
@@ -17,6 +18,71 @@
 namespace gko {
 namespace kernels {
 namespace omp {
+
+
+/**
+ * @internal
+ * The vector form of a reduction op. It lives here rather than on the op
+ * itself so the ops stay free of Highway types and keep one definition in
+ * every translation unit, whether or not that TU was compiled with
+ * GKO_OMP_HIGHWAY. Specialise it to give an op a SIMD path; an op without a
+ * specialisation takes the scalar loop.
+ */
+template <typename Op>
+struct simd_reduction {
+    static constexpr bool available = false;
+};
+
+#ifdef GKO_OMP_HIGHWAY
+
+template <typename ValueType>
+struct simd_reduction<reduce_sum_op<ValueType>> {
+    static constexpr bool available = true;
+
+    template <typename D>
+    static simd_detail::hn::Vec<D> vector_op(D, simd_detail::hn::Vec<D> a,
+                                             simd_detail::hn::Vec<D> b)
+    {
+        return simd_detail::hn::Add(a, b);
+    }
+
+    template <typename D>
+    static simd_detail::hn::TFromD<D> reduce_lanes(D d,
+                                                   simd_detail::hn::Vec<D> v)
+    {
+        return simd_detail::hn::ReduceSum(d, v);
+    }
+};
+
+template <typename ValueType>
+struct simd_reduction<reduce_max_op<ValueType>> {
+    static constexpr bool available = true;
+
+    template <typename D>
+    static simd_detail::hn::Vec<D> vector_op(D, simd_detail::hn::Vec<D> a,
+                                             simd_detail::hn::Vec<D> b)
+    {
+        return simd_detail::hn::Max(a, b);
+    }
+
+    template <typename D>
+    static simd_detail::hn::TFromD<D> reduce_lanes(D d,
+                                                   simd_detail::hn::Vec<D> v)
+    {
+        return simd_detail::hn::ReduceMax(d, v);
+    }
+};
+
+#endif  // GKO_OMP_HIGHWAY
+
+
+/**
+ * @internal
+ * True when a reduction op carries a vector form; a raw lambda, or any op
+ * nobody specialised simd_reduction for, takes the scalar path.
+ */
+template <typename Op>
+inline constexpr bool has_simd_reduction = simd_reduction<Op>::available;
 
 
 // how many more reduction tasks we launch relative to the number of threads
@@ -388,6 +454,184 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_kernel_col_reduction_sized,
                                     run_kernel_col_reduction_sized_impl);
 
 
+#ifdef GKO_OMP_HIGHWAY
+
+/**
+ * @internal
+ * Reduces `rows` contiguous elements at cols == 1.
+ *
+ * PRECONDITION: `identity` must survive lane replication, i.e.
+ * `reduce_lanes(d, Set(d, identity)) == identity`. The accumulators are seeded
+ * with `identity` in every lane, so one that does not survive the fold is
+ * counted per lane rather than per thread. True for max/min always, for sum
+ * only when `identity == 0`; asserted below, as `identity` is a runtime value.
+ *
+ * Four named accumulators rather than an array, and Set-initialized: Vec is
+ * sizeless on SVE/RVV and not default-constructible.
+ */
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... MappedKernelArgs>
+bool try_run_kernel_reduction_simd_impl(std::shared_ptr<const OmpExecutor> exec,
+                                        KernelFunction fn, ReductionOp op,
+                                        FinalizeOp finalize, ValueType identity,
+                                        ValueType* result, dim<2> size,
+                                        array<char>& tmp,
+                                        MappedKernelArgs... args)
+{
+    using value_type = simd_detail::simd_value_type_of_t<MappedKernelArgs...>;
+    if constexpr (simd_detail::simd_has_accessor<MappedKernelArgs...> &&
+                  !std::is_void_v<value_type> &&
+                  simd_detail::simd_supported_value_type<value_type> &&
+                  std::is_same_v<value_type, ValueType> &&
+                  has_simd_reduction<ReductionOp>) {
+        if (size[1] != 1 || !simd_detail::all_unit_stride(args...)) {
+            return false;
+        }
+        const auto rows = static_cast<int64>(size[0]);
+        using D = simd_detail::simd_tag<value_type>;
+        const D d;
+        const auto lanes = simd_detail::simd_lanes(d);
+        const auto num_threads =
+            std::min<int64>(omp_get_max_threads(), std::max<int64>(rows, 1));
+        const auto required_storage = sizeof(ValueType) * num_threads;
+        if (tmp.get_size() < required_storage) {
+            tmp.resize_and_reset(required_storage);
+        }
+        const auto partial = reinterpret_cast<ValueType*>(tmp.get_data());
+        const auto align = simd_detail::simd_chunk_alignment<value_type>(lanes);
+        // See the precondition in this function's doc comment. Debug-only:
+        // GKO_ASSERT is plain assert(), so this disappears entirely under
+        // NDEBUG. It is an equality on the identity itself, not on a computed
+        // result, so it holds exactly for the legitimate cases -- ReduceMax of
+        // a vector of -inf is -inf, ReduceSum of a vector of 0 is 0.
+        GKO_ASSERT(simd_reduction<ReductionOp>::reduce_lanes(
+                       d, simd_detail::hn::Set(d, identity)) == identity);
+        // `num_threads` is a request; the runtime may grant a smaller team.
+        // Seeding keeps partial[team_size, num_threads) neutral, since the
+        // final accumulate reads all `num_threads` entries.
+        std::fill_n(partial, num_threads, identity);
+#pragma omp parallel num_threads(num_threads)
+        {
+            const auto thread_id = static_cast<int64>(omp_get_thread_num());
+            // Guard and partition must agree on who owns work, or a thread
+            // given a range but skipped by the guard drops its rows: both use
+            // `team_size`.
+            const auto team_size = std::min<int64>(
+                std::max<int64>(omp_get_num_threads(), 1), num_threads);
+            if (thread_id < team_size) {
+                const auto range = simd_detail::aligned_thread_range(
+                    rows, align, team_size, thread_id);
+                auto acc0 = simd_detail::hn::Set(d, identity);
+                auto acc1 = simd_detail::hn::Set(d, identity);
+                auto acc2 = simd_detail::hn::Set(d, identity);
+                auto acc3 = simd_detail::hn::Set(d, identity);
+                auto i = range.first;
+                const auto end = range.second;
+                const auto lane_count = static_cast<std::size_t>(lanes);
+                // Index-independent, so built once: read through `args` the
+                // shared OMP capture is reloaded on every iteration, which
+                // costs one base pointer plus four address computations.
+                const auto wrapped = std::make_tuple(
+                    simd_detail::simd_wrap<D, simd::full_access>(args)...);
+                const auto at = [&](auto idx) {
+                    return std::apply(
+                        [&](auto... w) {
+                            return simd::eval_to_vec(d,
+                                                     fn(idx, int64{0}, w...));
+                        },
+                        wrapped);
+                };
+                for (; i + 4 * lanes <= end; i += 4 * lanes) {
+                    acc0 = simd_reduction<ReductionOp>::vector_op(
+                        d, acc0, at(simd::index{i, lane_count}));
+                    acc1 = simd_reduction<ReductionOp>::vector_op(
+                        d, acc1, at(simd::index{i + lanes, lane_count}));
+                    acc2 = simd_reduction<ReductionOp>::vector_op(
+                        d, acc2, at(simd::index{i + 2 * lanes, lane_count}));
+                    acc3 = simd_reduction<ReductionOp>::vector_op(
+                        d, acc3, at(simd::index{i + 3 * lanes, lane_count}));
+                }
+                for (; i + lanes <= end; i += lanes) {
+                    acc0 = simd_reduction<ReductionOp>::vector_op(
+                        d, acc0, at(simd::index{i, lane_count}));
+                }
+                if (i < end) {
+                    const auto rem = static_cast<std::size_t>(end - i);
+                    const auto v = simd::eval_to_vec(
+                        d, fn(simd::index{i, rem}, int64{0},
+                              simd_detail::simd_wrap<D, simd::partial_access>(
+                                  args)...));
+                    // Masked to identity rather than relying on LoadN's
+                    // zero-fill: zero is the identity for sum, not for max.
+                    acc1 = simd_reduction<ReductionOp>::vector_op(
+                        d, acc1,
+                        simd_detail::hn::IfThenElse(
+                            simd_detail::hn::FirstN(d, rem), v,
+                            simd_detail::hn::Set(d, identity)));
+                }
+                acc0 = simd_reduction<ReductionOp>::vector_op(d, acc0, acc1);
+                acc2 = simd_reduction<ReductionOp>::vector_op(d, acc2, acc3);
+                partial[thread_id] = simd_reduction<ReductionOp>::reduce_lanes(
+                    d, simd_reduction<ReductionOp>::vector_op(d, acc0, acc2));
+            }
+        }
+        *result = finalize(
+            std::accumulate(partial, partial + num_threads, identity, op));
+        return true;
+    } else {
+        return false;
+    }
+}
+
+#endif  // GKO_OMP_HIGHWAY
+
+
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... MappedKernelArgs>
+void run_kernel_col_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
+                                   KernelFunction fn, ReductionOp op,
+                                   FinalizeOp finalize, ValueType identity,
+                                   ValueType* result, dim<2> size,
+                                   array<char>& tmp, MappedKernelArgs... args)
+{
+    constexpr auto block_size = 8;
+    using remainders = syn::as_list<syn::range<0, block_size, 1>>;
+    const auto cols = static_cast<int64>(size[1]);
+    if (cols <= 0) {
+        return;
+    }
+    select_run_kernel_col_reduction_sized(
+        remainders(),
+        [&](int remainder) { return remainder == cols % block_size; },
+        syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
+        finalize, identity, result, size, tmp, args...);
+}
+
+
+/**
+ * @internal
+ * Shared tail of run_kernel_col_reduction_cached_simd. Takes already mapped
+ * arguments so the mapping runs once per launch, not once per path. Mirrors
+ * run_kernel_simd_dispatch in omp/base/kernel_launch.hpp.
+ */
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... MappedKernelArgs>
+void run_kernel_col_reduction_simd_dispatch(
+    std::shared_ptr<const OmpExecutor> exec, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result, dim<2> size,
+    array<char>& tmp, MappedKernelArgs... args)
+{
+#ifdef GKO_OMP_HIGHWAY
+    if (try_run_kernel_reduction_simd_impl(exec, fn, op, finalize, identity,
+                                           result, size, tmp, args...)) {
+        return;
+    }
+#endif
+    run_kernel_col_reduction_impl(exec, fn, op, finalize, identity, result,
+                                  size, tmp, args...);
+}
+
+
 }  // namespace
 
 
@@ -414,17 +658,26 @@ void run_kernel_col_reduction_cached(std::shared_ptr<const OmpExecutor> exec,
                                      ValueType* result, dim<2> size,
                                      array<char>& tmp, KernelArgs&&... args)
 {
-    constexpr auto block_size = 8;
-    using remainders = syn::as_list<syn::range<0, block_size, 1>>;
-    const auto cols = static_cast<int64>(size[1]);
-    if (cols <= 0) {
-        return;
-    }
-    select_run_kernel_col_reduction_sized(
-        remainders(),
-        [&](int remainder) { return remainder == cols % block_size; },
-        syn::value_list<int, block_size>(), syn::type_list<>(), exec, fn, op,
-        finalize, identity, result, size, tmp, map_to_device(args)...);
+    run_kernel_col_reduction_impl(exec, fn, op, finalize, identity, result,
+                                  size, tmp, map_to_device(args)...);
+}
+
+
+template <typename ValueType, typename KernelFunction, typename ReductionOp,
+          typename FinalizeOp, typename... KernelArgs>
+void run_kernel_col_reduction_cached_simd(
+    std::shared_ptr<const OmpExecutor> exec, KernelFunction fn, ReductionOp op,
+    FinalizeOp finalize, ValueType identity, ValueType* result, dim<2> size,
+    array<char>& tmp, KernelArgs&&... args)
+{
+#ifdef GKO_OMP_HIGHWAY
+    static_assert(has_simd_reduction<ReductionOp>,
+                  "a *_simd reduction launcher needs an op with a vector form; "
+                  "use run_kernel_col_reduction_cached for a raw lambda");
+#endif
+    run_kernel_col_reduction_simd_dispatch(exec, fn, op, finalize, identity,
+                                           result, size, tmp,
+                                           map_to_device(args)...);
 }
 
 

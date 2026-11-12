@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,6 +28,23 @@ void run_kernel_solver(std::shared_ptr<const OmpExecutor> exec,
                        KernelArgs&&... args)
 {
     run_kernel_impl(
+        exec, fn, size,
+        map_to_device_solver(args, static_cast<int64>(default_stride))...);
+}
+
+
+/**
+ * @internal
+ * Solver-shaped counterpart of run_kernel_simd. Eligibility depends on the
+ * caller-supplied default_stride, since that is the stride every
+ * default_stride()-wrapped operand ends up with.
+ */
+template <typename KernelFunction, typename... KernelArgs>
+void run_kernel_solver_simd(std::shared_ptr<const OmpExecutor> exec,
+                            KernelFunction fn, dim<2> size,
+                            size_type default_stride, KernelArgs&&... args)
+{
+    run_kernel_simd_dispatch(
         exec, fn, size,
         map_to_device_solver(args, static_cast<int64>(default_stride))...);
 }

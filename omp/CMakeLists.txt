@@ -99,6 +99,16 @@ endif()
 target_link_libraries(ginkgo_omp PUBLIC Threads::Threads)
 target_link_libraries(ginkgo_omp PRIVATE "${OpenMP_CXX_LIBRARIES}")
 target_include_directories(ginkgo_omp PRIVATE "${OpenMP_CXX_INCLUDE_DIRS}")
+if(GINKGO_OMP_WITH_HIGHWAY)
+    include(${PROJECT_SOURCE_DIR}/cmake/highway.cmake)
+    # Links hwy, sets the HWY_* definitions and applies GINKGO_OMP_SIMD_ARCH.
+    # Errors out if the `hwy::hwy` target is missing, so the probe below always
+    # has an include directory to read.
+    gko_add_highway(ginkgo_omp)
+    gko_resolve_simd_flags(gko_simd_flags)
+    get_target_property(_hwy_inc hwy::hwy INTERFACE_INCLUDE_DIRECTORIES)
+    gko_probe_highway("${gko_simd_flags}" "${_hwy_inc}")
+endif()
 # We first separate the arguments, otherwise, the target_compile_options adds it as a string
 # and the compiler is unhappy with the quotation marks.
 separate_arguments(OpenMP_SEP_FLAGS NATIVE_COMMAND "${OpenMP_CXX_FLAGS}")

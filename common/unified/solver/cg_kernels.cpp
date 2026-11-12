@@ -66,7 +66,7 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
             matrix::view::dense<const ValueType> prev_rho,
             const array<stopping_status>& stop_status)
 {
-    run_kernel_solver(
+    run_kernel_solver_simd(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto p, auto z, auto rho,
                       auto prev_rho, auto stop) {
@@ -91,7 +91,7 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
             matrix::view::dense<const ValueType> rho,
             const array<stopping_status>& stop_status)
 {
-    run_kernel_solver(
+    run_kernel_solver_simd(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto p, auto q,
                       auto beta, auto rho, auto stop) {
