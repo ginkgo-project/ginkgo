@@ -28,14 +28,15 @@ endfunction()
 # HWY_DISABLE_PCLMUL_AES: Ginkgo uses no AES/CLMUL ops; requiring them
 #   downgrades -march=haswell and -march=x86-64-vN to SSSE3.
 function(gko_add_highway target)
-    if(NOT TARGET hwy)
+    if(NOT TARGET hwy::hwy)
         message(
             FATAL_ERROR
-            "Ginkgo OMP SIMD: GINKGO_OMP_WITH_HIGHWAY is ON but the `hwy` "
-            "target does not exist. third_party/highway did not provide it."
+            "Ginkgo OMP SIMD: GINKGO_OMP_WITH_HIGHWAY is ON but the "
+            "`hwy::hwy` target does not exist. Neither find_package(HWY) nor "
+            "third_party/highway provided it."
         )
     endif()
-    target_link_libraries(${target} PRIVATE hwy)
+    target_link_libraries(${target} PRIVATE hwy::hwy)
     target_compile_definitions(
         ${target}
         PRIVATE

@@ -344,35 +344,27 @@ bool reduction_simd_takes_simd_path(
 
 
 /**
- * An op advertising the vector interface but implementing half of it. A gate
- * probing only reduce_lanes would admit it and then fail inside the launcher
- * instead of declining to the scalar path.
+ * A perfectly good scalar op that nobody specialised simd_reduction for. The
+ * gate must decline it so the launcher takes the scalar path, rather than
+ * failing to compile inside the vector loop.
  */
-struct reduce_lanes_only_op {
-    using gko_simd_reduction = void;
-
+struct unspecialised_op {
     template <typename U, typename V>
     auto operator()(U a, V b) const
     {
         return a + b;
     }
-
-    template <typename D>
-    static hn::TFromD<D> reduce_lanes(D d, hn::Vec<D> v)
-    {
-        return hn::ReduceSum(d, v);
-    }
 };
 
-static_assert(!gko::kernels::omp::has_simd_reduction<reduce_lanes_only_op>,
-              "an op with reduce_lanes but no vector_op must decline");
+static_assert(!gko::kernels::omp::has_simd_reduction<unspecialised_op>,
+              "an op with no simd_reduction specialisation must decline");
 static_assert(gko::kernels::omp::has_simd_reduction<
                   gko::kernels::omp::reduce_sum_op<double>>,
               "the shipped sum op must be eligible");
 static_assert(gko::kernels::omp::has_simd_reduction<
                   gko::kernels::omp::reduce_max_op<float>>,
-              "the ScalableTag<double> probe must answer for a float op too, "
-              "because the functors' ValueType parameter is unused");
+              "the shipped ops are specialised for every value type, because "
+              "the functors' ValueType parameter is unused");
 
 
 template <typename ValueType>
@@ -932,8 +924,8 @@ TEST_F(KernelLaunchSimdLauncherDouble, ReductionWithRawLambdaOpDeclinesAtImpl)
     };
     auto raw_sum = [] GKO_KERNEL(auto a, auto b) { return a + b; };
     auto raw_finalize = [] GKO_KERNEL(auto a) { return a; };
-    // A raw lambda has no vector_op/reduce_lanes, so has_simd_reduction is
-    // false and try_run_kernel_reduction_simd_impl must decline.
+    // A raw lambda has no simd_reduction specialisation, so
+    // has_simd_reduction is false and the launcher must decline.
     ASSERT_FALSE(reduction_simd_takes_simd_path(
         exec, square_body, raw_sum, raw_finalize, double{}, &result,
         gko::dim<2>{n, 1}, tmp, x->get_const_device_view()));

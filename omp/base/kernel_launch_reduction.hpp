@@ -20,6 +20,71 @@ namespace kernels {
 namespace omp {
 
 
+/**
+ * @internal
+ * The vector form of a reduction op. It lives here rather than on the op
+ * itself so the ops stay free of Highway types and keep one definition in
+ * every translation unit, whether or not that TU was compiled with
+ * GKO_OMP_HIGHWAY. Specialise it to give an op a SIMD path; an op without a
+ * specialisation takes the scalar loop.
+ */
+template <typename Op>
+struct simd_reduction {
+    static constexpr bool available = false;
+};
+
+#ifdef GKO_OMP_HIGHWAY
+
+template <typename ValueType>
+struct simd_reduction<reduce_sum_op<ValueType>> {
+    static constexpr bool available = true;
+
+    template <typename D>
+    static simd_detail::hn::Vec<D> vector_op(D, simd_detail::hn::Vec<D> a,
+                                             simd_detail::hn::Vec<D> b)
+    {
+        return simd_detail::hn::Add(a, b);
+    }
+
+    template <typename D>
+    static simd_detail::hn::TFromD<D> reduce_lanes(D d,
+                                                   simd_detail::hn::Vec<D> v)
+    {
+        return simd_detail::hn::ReduceSum(d, v);
+    }
+};
+
+template <typename ValueType>
+struct simd_reduction<reduce_max_op<ValueType>> {
+    static constexpr bool available = true;
+
+    template <typename D>
+    static simd_detail::hn::Vec<D> vector_op(D, simd_detail::hn::Vec<D> a,
+                                             simd_detail::hn::Vec<D> b)
+    {
+        return simd_detail::hn::Max(a, b);
+    }
+
+    template <typename D>
+    static simd_detail::hn::TFromD<D> reduce_lanes(D d,
+                                                   simd_detail::hn::Vec<D> v)
+    {
+        return simd_detail::hn::ReduceMax(d, v);
+    }
+};
+
+#endif  // GKO_OMP_HIGHWAY
+
+
+/**
+ * @internal
+ * True when a reduction op carries a vector form; a raw lambda, or any op
+ * nobody specialised simd_reduction for, takes the scalar path.
+ */
+template <typename Op>
+inline constexpr bool has_simd_reduction = simd_reduction<Op>::available;
+
+
 // how many more reduction tasks we launch relative to the number of threads
 constexpr int reduction_kernel_oversubscription = 4;
 
@@ -439,7 +504,7 @@ bool try_run_kernel_reduction_simd_impl(std::shared_ptr<const OmpExecutor> exec,
         // NDEBUG. It is an equality on the identity itself, not on a computed
         // result, so it holds exactly for the legitimate cases -- ReduceMax of
         // a vector of -inf is -inf, ReduceSum of a vector of 0 is 0.
-        GKO_ASSERT(ReductionOp::reduce_lanes(
+        GKO_ASSERT(simd_reduction<ReductionOp>::reduce_lanes(
                        d, simd_detail::hn::Set(d, identity)) == identity);
         // `num_threads` is a request; the runtime may grant a smaller team.
         // Seeding keeps partial[team_size, num_threads) neutral, since the
@@ -477,17 +542,17 @@ bool try_run_kernel_reduction_simd_impl(std::shared_ptr<const OmpExecutor> exec,
                         wrapped);
                 };
                 for (; i + 4 * lanes <= end; i += 4 * lanes) {
-                    acc0 = ReductionOp::vector_op(
+                    acc0 = simd_reduction<ReductionOp>::vector_op(
                         d, acc0, at(simd::index{i, lane_count}));
-                    acc1 = ReductionOp::vector_op(
+                    acc1 = simd_reduction<ReductionOp>::vector_op(
                         d, acc1, at(simd::index{i + lanes, lane_count}));
-                    acc2 = ReductionOp::vector_op(
+                    acc2 = simd_reduction<ReductionOp>::vector_op(
                         d, acc2, at(simd::index{i + 2 * lanes, lane_count}));
-                    acc3 = ReductionOp::vector_op(
+                    acc3 = simd_reduction<ReductionOp>::vector_op(
                         d, acc3, at(simd::index{i + 3 * lanes, lane_count}));
                 }
                 for (; i + lanes <= end; i += lanes) {
-                    acc0 = ReductionOp::vector_op(
+                    acc0 = simd_reduction<ReductionOp>::vector_op(
                         d, acc0, at(simd::index{i, lane_count}));
                 }
                 if (i < end) {
@@ -498,16 +563,16 @@ bool try_run_kernel_reduction_simd_impl(std::shared_ptr<const OmpExecutor> exec,
                                   args)...));
                     // Masked to identity rather than relying on LoadN's
                     // zero-fill: zero is the identity for sum, not for max.
-                    acc1 = ReductionOp::vector_op(
+                    acc1 = simd_reduction<ReductionOp>::vector_op(
                         d, acc1,
                         simd_detail::hn::IfThenElse(
                             simd_detail::hn::FirstN(d, rem), v,
                             simd_detail::hn::Set(d, identity)));
                 }
-                acc0 = ReductionOp::vector_op(d, acc0, acc1);
-                acc2 = ReductionOp::vector_op(d, acc2, acc3);
-                partial[thread_id] = ReductionOp::reduce_lanes(
-                    d, ReductionOp::vector_op(d, acc0, acc2));
+                acc0 = simd_reduction<ReductionOp>::vector_op(d, acc0, acc1);
+                acc2 = simd_reduction<ReductionOp>::vector_op(d, acc2, acc3);
+                partial[thread_id] = simd_reduction<ReductionOp>::reduce_lanes(
+                    d, simd_reduction<ReductionOp>::vector_op(d, acc0, acc2));
             }
         }
         *result = finalize(

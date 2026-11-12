@@ -12,6 +12,11 @@ set(HWY_ENABLE_INSTALL OFF CACHE INTERNAL "")
 set(HWY_FORCE_STATIC_LIBS ON CACHE INTERNAL "")
 FetchContent_MakeAvailable(hwy)
 
+# find_package(HWY) provides only the namespaced hwy::hwy, while the subproject
+# defines the plain hwy. Aliasing lets everything downstream name one target
+# without caring which of the two provided it.
+add_library(hwy::hwy ALIAS hwy)
+
 # ginkgo_omp links hwy PRIVATE, so a STATIC ginkgo_omp records $<LINK_ONLY:hwy>
 # in its exported interface and install(EXPORT Ginkgo) fails on a target that is
 # in no export set. Exporting the vendored hwy as Ginkgo::hwy resolves it, and

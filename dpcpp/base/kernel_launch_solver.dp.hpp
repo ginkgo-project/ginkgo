@@ -46,6 +46,7 @@ void run_kernel_solver(std::shared_ptr<const DpcppExecutor> exec,
 }
 
 
+/** @internal Only OMP vectorizes; here the *_simd names are the plain ones. */
 template <typename KernelFunction, typename... KernelArgs>
 void run_kernel_solver_simd(std::shared_ptr<const DpcppExecutor> exec,
                             KernelFunction fn, dim<2> size,

@@ -375,9 +375,17 @@ bool try_run_kernel_simd_impl(std::shared_ptr<const OmpExecutor> exec,
         {
             const auto range = simd_detail::aligned_thread_range(rows, align);
             auto i = range.first;
+            // Index-independent, so built once rather than rebuilt from the
+            // shared OMP capture on every iteration.
+            const auto full = std::make_tuple(
+                simd_detail::simd_wrap<D, simd::full_access>(args)...);
             for (; i + lanes <= range.second; i += lanes) {
-                fn(simd::index{i, static_cast<std::size_t>(lanes)}, int64{0},
-                   simd_detail::simd_wrap<D, simd::full_access>(args)...);
+                std::apply(
+                    [&](auto... w) {
+                        fn(simd::index{i, static_cast<std::size_t>(lanes)},
+                           int64{0}, w...);
+                    },
+                    full);
             }
             if (i < range.second) {
                 fn(simd::index{i, static_cast<std::size_t>(range.second - i)},

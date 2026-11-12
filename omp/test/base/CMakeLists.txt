@@ -23,8 +23,9 @@ if(GINKGO_OMP_WITH_HIGHWAY)
     # Idempotent, and repeated here on purpose: this directory must not depend
     # on omp/CMakeLists.txt having included highway.cmake first.
     include(${PROJECT_SOURCE_DIR}/cmake/highway.cmake)
-    # reduce_sum_op/reduce_max_op gain members only under GKO_OMP_HIGHWAY, so
-    # this target must define it too or the two TUs disagree on the class.
+    # The simd_reduction specialisations exist only under GKO_OMP_HIGHWAY and
+    # the launcher templates branch on them, so this target must define it too
+    # or its instantiations disagree with the library's.
     gko_add_highway(omp_test_base_kernel_launch)
     ginkgo_create_omp_test(kernel_launch_simd)
     gko_add_highway(omp_test_base_kernel_launch_simd)
