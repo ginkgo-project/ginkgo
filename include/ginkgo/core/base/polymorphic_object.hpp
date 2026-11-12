@@ -58,9 +58,6 @@ public:
      */
     virtual void validate_data() const {}
 
-    // preserve the executor of the object
-    PolymorphicObject& operator=(const PolymorphicObject&) { return *this; }
-
     /**
      * Returns the Executor of the object.
      *
@@ -70,6 +67,14 @@ public:
     {
         return exec_;
     }
+
+    PolymorphicObject(const PolymorphicObject&) = delete;
+
+    PolymorphicObject(PolymorphicObject&&) = delete;
+
+    PolymorphicObject& operator=(PolymorphicObject&&) = delete;
+
+    PolymorphicObject& operator=(const PolymorphicObject&&) = delete;
 
 protected:
     // This method is defined as protected since a polymorphic object should not
@@ -83,11 +88,6 @@ protected:
      */
     explicit PolymorphicObject(std::shared_ptr<const Executor> exec)
         : exec_{std::move(exec)}
-    {}
-
-    // preserve the executor of the object
-    explicit PolymorphicObject(const PolymorphicObject& other)
-        : exec_{other.exec_}
     {}
 
 private:
@@ -406,10 +406,6 @@ public:
     {
         return as<ConcreteType>(this->clone_impl());
     }
-
-    void convert_to(result_type* result) const override { *result = *self(); }
-
-    void move_to(result_type* result) override { *result = std::move(*self()); }
 
     [[nodiscard]] std::unique_ptr<ConcreteType> create_default() const
     {

@@ -80,7 +80,7 @@ TYPED_TEST(Identity, CanBeMoved)
 {
     auto mtx_copy = gko::batch::matrix::Identity<TypeParam>::create(this->exec);
 
-    this->mtx->move_to(mtx_copy);
+    mtx_copy->move_from(this->mtx.get());
 
     this->assert_equal_to_original_mtx(mtx_copy.get());
 }

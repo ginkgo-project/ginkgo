@@ -26,6 +26,13 @@ struct DummyOperator : public gko::LinOp,
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override
     {}
+
+    void convert_to(result_type* result) const override
+    {
+        result->set_size(this->get_size());
+    }
+
+    void move_to(result_type* result) override { this->convert_to(result); }
 };
 
 

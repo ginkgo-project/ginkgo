@@ -767,71 +767,42 @@ void Matrix<ValueType, LocalIndexType, GlobalIndexType>::row_scale(
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(const Matrix& other)
-    : LinOp{other.get_executor()},
-      DistributedBase{other.get_communicator()},
-      row_gatherer_{RowGatherer<LocalIndexType>::create(
-          other.get_executor(), other.get_communicator())},
-      imap_(other.get_executor()),
-      one_scalar_(other.get_executor(), 1.0)
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::convert_to(
+    Matrix* result) const
 {
-    *this = other;
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::Matrix(
-    Matrix&& other) noexcept
-    : LinOp{other.get_executor()},
-      DistributedBase{other.get_communicator()},
-      row_gatherer_{RowGatherer<LocalIndexType>::create(
-          other.get_executor(), other.get_communicator())},
-      imap_(other.get_executor()),
-      one_scalar_(other.get_executor(), 1.0)
-{
-    *this = std::move(other);
-}
-
-
-template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>&
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(
-    const Matrix& other)
-{
-    if (this != &other) {
-        GKO_ASSERT_EQ(other.get_communicator().size(),
-                      this->get_communicator().size());
-        this->set_size(other.get_size());
-        as<Cloneable>(diag_mtx_)->copy_from(as<Cloneable>(other.diag_mtx_));
-        as<Cloneable>(off_diag_mtx_)
-            ->copy_from(as<Cloneable>(other.off_diag_mtx_));
-        as<Cloneable>(row_gatherer_)
-            ->copy_from(as<Cloneable>(other.row_gatherer_));
-        imap_ = other.imap_;
-        row_partition_ = other.row_partition_;
+    if (this != result) {
+        GKO_ASSERT_EQ(this->get_communicator().size(),
+                      result->get_communicator().size());
+        result->set_size(this->get_size());
+        as<Cloneable>(result->diag_mtx_)
+            ->copy_from(as<Cloneable>(this->diag_mtx_));
+        as<Cloneable>(result->off_diag_mtx_)
+            ->copy_from(as<Cloneable>(this->off_diag_mtx_));
+        as<Cloneable>(result->row_gatherer_)
+            ->copy_from(as<Cloneable>(this->row_gatherer_));
+        result->imap_ = this->imap_;
+        result->row_partition_ = this->row_partition_;
     }
-    return *this;
 }
 
 
 template <typename ValueType, typename LocalIndexType, typename GlobalIndexType>
-Matrix<ValueType, LocalIndexType, GlobalIndexType>&
-Matrix<ValueType, LocalIndexType, GlobalIndexType>::operator=(Matrix&& other)
+void Matrix<ValueType, LocalIndexType, GlobalIndexType>::move_to(Matrix* result)
 {
-    if (this != &other) {
-        GKO_ASSERT_EQ(other.get_communicator().size(),
-                      this->get_communicator().size());
-        this->set_size(other.get_size());
-        other.set_size({});
-        as<Cloneable>(diag_mtx_)->move_from(as<Cloneable>(other.diag_mtx_));
-        as<Cloneable>(off_diag_mtx_)
-            ->move_from(as<Cloneable>(other.off_diag_mtx_));
-        as<Cloneable>(row_gatherer_)
-            ->move_from(as<Cloneable>(other.row_gatherer_));
-        imap_ = std::move(other.imap_);
-        row_partition_ = std::move(other.row_partition_);
+    if (this != result) {
+        GKO_ASSERT_EQ(this->get_communicator().size(),
+                      result->get_communicator().size());
+        result->set_size(this->get_size());
+        this->set_size({});
+        as<Cloneable>(result->diag_mtx_)
+            ->move_from(as<Cloneable>(this->diag_mtx_));
+        as<Cloneable>(result->off_diag_mtx_)
+            ->move_from(as<Cloneable>(this->off_diag_mtx_));
+        as<Cloneable>(result->row_gatherer_)
+            ->move_from(as<Cloneable>(this->row_gatherer_));
+        result->imap_ = std::move(this->imap_);
+        result->row_partition_ = std::move(this->row_partition_);
     }
-    return *this;
 }
 
 

@@ -1274,7 +1274,7 @@ TYPED_TEST(Matrix, DeviceReadMoveIsEquivalentToHostRef)
 }
 
 
-TYPED_TEST(Matrix, CopyAssignIsCorrect)
+TYPED_TEST(Matrix, ConvertToSameTypeIsCorrect)
 {
     using TestConfig = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
@@ -1283,16 +1283,15 @@ TYPED_TEST(Matrix, CopyAssignIsCorrect)
         auto mtx2 = Mtx::create(this->exec);
         mtx->read(data);
 
-        auto& result = (*mtx2 = *mtx);
+        mtx->convert_to(mtx2);
 
-        ASSERT_EQ(&result, mtx2.get());
         GKO_ASSERT_MTX_NEAR(mtx, mtx2, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(mtx, mtx2);
     });
 }
 
 
-TYPED_TEST(Matrix, MoveAssignIsCorrect)
+TYPED_TEST(Matrix, MoveToSameTypeIsCorrect)
 {
     using TestConfig = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
@@ -1302,9 +1301,8 @@ TYPED_TEST(Matrix, MoveAssignIsCorrect)
         mtx->read(data);
         auto orig_mtx = mtx->clone();
 
-        auto& result = (*mtx2 = std::move(*mtx));
+        mtx->move_to(mtx2);
 
-        ASSERT_EQ(&result, mtx2.get());
         GKO_ASSERT_MTX_NEAR(mtx2, orig_mtx, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(mtx2, orig_mtx);
         TestConfig::assert_empty_state(mtx);
@@ -1312,7 +1310,7 @@ TYPED_TEST(Matrix, MoveAssignIsCorrect)
 }
 
 
-TYPED_TEST(Matrix, CopyAssignToDifferentExecutorIsCorrect)
+TYPED_TEST(Matrix, ConvertToSameTypeOnDifferentExecutorIsCorrect)
 {
     using TestConfig = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
@@ -1321,16 +1319,15 @@ TYPED_TEST(Matrix, CopyAssignToDifferentExecutorIsCorrect)
         auto mtx2 = Mtx::create(this->ref);
         mtx->read(data);
 
-        auto& result = (*mtx2 = *mtx);
+        mtx->convert_to(mtx2);
 
-        ASSERT_EQ(&result, mtx2.get());
         GKO_ASSERT_MTX_NEAR(mtx, mtx2, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(mtx, mtx2);
     });
 }
 
 
-TYPED_TEST(Matrix, MoveAssignToDifferentExecutorIsCorrect)
+TYPED_TEST(Matrix, MoveToSameTypeOnDifferentExecutorIsCorrect)
 {
     using TestConfig = typename TestFixture::Config;
     using Mtx = typename TestFixture::Mtx;
@@ -1340,9 +1337,8 @@ TYPED_TEST(Matrix, MoveAssignToDifferentExecutorIsCorrect)
         mtx->read(data);
         auto orig_mtx = mtx->clone();
 
-        auto& result = (*mtx2 = std::move(*mtx));
+        mtx->move_to(mtx2);
 
-        ASSERT_EQ(&result, mtx2.get());
         GKO_ASSERT_MTX_NEAR(mtx2, orig_mtx, 0.0);
         GKO_ASSERT_MTX_EQ_SPARSITY(mtx2, orig_mtx);
         TestConfig::assert_empty_state(mtx);

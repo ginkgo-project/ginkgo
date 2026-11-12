@@ -96,53 +96,35 @@ Jacobi<ValueType, IndexType>::parse(const config::pnode& config,
 }
 
 template <typename ValueType, typename IndexType>
-Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(
-    const Jacobi& other)
+void Jacobi<ValueType, IndexType>::convert_to(Jacobi* result) const
 {
-    if (&other != this) {
-        LinOp::operator=(other);
-        storage_scheme_ = other.storage_scheme_;
-        num_blocks_ = other.num_blocks_;
-        blocks_ = other.blocks_;
-        conditioning_ = other.conditioning_;
-        parameters_ = other.parameters_;
+    if (this != result) {
+        result->set_size(this->get_size());
+        result->storage_scheme_ = this->storage_scheme_;
+        result->num_blocks_ = this->num_blocks_;
+        result->blocks_ = this->blocks_;
+        result->conditioning_ = this->conditioning_;
+        result->parameters_ = this->parameters_;
     }
-    return *this;
 }
 
 
 template <typename ValueType, typename IndexType>
-Jacobi<ValueType, IndexType>& Jacobi<ValueType, IndexType>::operator=(
-    Jacobi&& other)
+void Jacobi<ValueType, IndexType>::move_to(Jacobi* result)
 {
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        // reset size values to 0 in other
-        storage_scheme_ =
-            std::exchange(other.storage_scheme_,
+    if (this != result) {
+        result->set_size(this->get_size());
+        this->set_size({});
+        // reset size values to 0 in this
+        result->storage_scheme_ =
+            std::exchange(this->storage_scheme_,
                           block_interleaved_storage_scheme<index_type>{});
-        num_blocks_ = std::exchange(other.num_blocks_, 0);
-        blocks_ = std::move(other.blocks_);
-        conditioning_ = std::move(other.conditioning_);
-        parameters_ = std::exchange(other.parameters_, parameters_type{});
+        result->num_blocks_ = std::exchange(this->num_blocks_, 0);
+        result->blocks_ = std::move(this->blocks_);
+        result->conditioning_ = std::move(this->conditioning_);
+        result->parameters_ =
+            std::exchange(this->parameters_, parameters_type{});
     }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Jacobi<ValueType, IndexType>::Jacobi(const Jacobi& other)
-    : Jacobi{other.get_executor()}
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-Jacobi<ValueType, IndexType>::Jacobi(Jacobi&& other)
-    : Jacobi{other.get_executor()}
-{
-    *this = std::move(other);
 }
 
 

@@ -334,6 +334,26 @@ void MultiVector<ValueType>::move_to(
 #endif
 
 
+template <typename ValueType>
+void MultiVector<ValueType>::convert_to(MultiVector* result) const
+{
+    if (this != result) {
+        result->values_ = this->values_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::move_to(MultiVector* result)
+{
+    if (this != result) {
+        result->values_ = std::move(this->values_);
+        result->set_size(this->get_size());
+    }
+}
+
+
 #define GKO_DECLARE_BATCH_MULTI_VECTOR(_type) class MultiVector<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_MULTI_VECTOR);
 

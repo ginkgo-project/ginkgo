@@ -79,6 +79,16 @@ public:
         : LinOp(exec, size)
     {}
 
+    void convert_to(DummyLinOp* result) const override
+    {
+        result->set_size(this->get_size());
+    }
+
+    void move_to(DummyLinOp* result) override
+    {
+        result->set_size(this->get_size());
+    }
+
     void access() const { last_access = this->get_executor(); }
 
     mutable std::shared_ptr<const gko::Executor> last_access;
@@ -263,26 +273,6 @@ TEST_F(LinOp, ExtendedApplyNoCopyBackBetweenSameMemory)
 TEST_F(LinOp, ApplyUsesInitialGuessReturnsFalse)
 {
     ASSERT_FALSE(op->apply_uses_initial_guess());
-}
-
-
-TEST_F(LinOp, CopyKeepsExecutorAndSize)
-{
-    DummyLinOp copy{*op};
-
-    ASSERT_EQ(copy.get_executor(), ref2);
-    ASSERT_EQ(copy.get_size(), gko::dim<2>(3, 5));
-}
-
-
-TEST_F(LinOp, MoveKeepsExecutorAndTakesSize)
-{
-    DummyLinOp moved{std::move(*op)};
-
-    ASSERT_EQ(moved.get_executor(), ref2);
-    ASSERT_EQ(moved.get_size(), gko::dim<2>(3, 5));
-    ASSERT_EQ(op->get_executor(), ref2);
-    ASSERT_EQ(op->get_size(), gko::dim<2>{});
 }
 
 

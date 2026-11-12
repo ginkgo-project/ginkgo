@@ -75,8 +75,8 @@ class Ell : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<Ell>::convert_to;
-    using EnableCloneable<Ell>::move_to;
+    using ConvertibleTo<Ell>::convert_to;
+    using ConvertibleTo<Ell>::move_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Ell<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -93,6 +93,10 @@ public:
     using device_view = matrix::view::ell<value_type, index_type>;
     using const_device_view =
         matrix::view::ell<const value_type, const index_type>;
+
+    void convert_to(Ell* result) const override;
+
+    void move_to(Ell* result) override;
 
     void convert_to(
         Ell<next_precision<ValueType>, IndexType>* result) const override;
@@ -345,32 +349,6 @@ public:
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         size_type num_stored_elements_per_row, size_type stride);
-
-    /**
-     * Copy-assigns an Ell matrix. Preserves the executor, reallocates the
-     * matrix with minimal stride if the dimensions don't match, then copies the
-     * data over, ignoring padding.
-     */
-    Ell& operator=(const Ell&);
-
-    /**
-     * Move-assigns an Ell matrix. Preserves the executor, moves the data over
-     * preserving size and stride. Leaves the moved-from object in an empty
-     * state (0x0 with empty Array).
-     */
-    Ell& operator=(Ell&&);
-
-    /**
-     * Copy-constructs an Ell matrix. Inherits executor and dimensions, but
-     * copies data without padding.
-     */
-    Ell(const Ell&);
-
-    /**
-     * Move-constructs an Ell matrix. Inherits executor, dimensions and data
-     * with padding. The moved-from object is empty (0x0 with empty Array).
-     */
-    Ell(Ell&&);
 
 protected:
     Ell(std::shared_ptr<const Executor> exec, const dim<2>& size = {},

@@ -57,17 +57,6 @@ protected:
 
     ~CusparseBase() = default;
 
-    CusparseBase(const CusparseBase& other) = delete;
-
-    CusparseBase& operator=(const CusparseBase& other)
-    {
-        if (this != &other) {
-            gko::LinOp::operator=(other);
-            this->initialize_descr();
-        }
-        return *this;
-    }
-
     void initialize_descr()
     {
         auto exec = this->get_gpu_exec();
@@ -123,10 +112,6 @@ public:
     {
         return csr_->get_num_stored_elements();
     }
-
-    CusparseCsrEx(const CusparseCsrEx& other) = delete;
-
-    CusparseCsrEx& operator=(const CusparseCsrEx& other) = default;
 
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
@@ -290,10 +275,6 @@ public:
         }
     }
 
-    CusparseGenericCsr(const CusparseGenericCsr& other) = delete;
-
-    CusparseGenericCsr& operator=(const CusparseGenericCsr& other) = default;
-
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {
@@ -379,10 +360,6 @@ public:
                 << e.what() << std::endl;
         }
     }
-
-    CusparseGenericCoo(const CusparseGenericCoo& other) = delete;
-
-    CusparseGenericCoo& operator=(const CusparseGenericCoo& other) = default;
 
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override

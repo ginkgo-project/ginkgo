@@ -99,48 +99,6 @@ Cudss<ValueType, IndexType>::Cudss(std::shared_ptr<const Executor> exec)
 
 
 template <typename ValueType, typename IndexType>
-Cudss<ValueType, IndexType>::Cudss(const Cudss& other)
-    : LinOp{other.get_executor()}
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-Cudss<ValueType, IndexType>::Cudss(Cudss&& other) noexcept
-    : LinOp{other.get_executor()}
-{
-    *this = std::move(other);
-}
-
-
-template <typename ValueType, typename IndexType>
-Cudss<ValueType, IndexType>& Cudss<ValueType, IndexType>::operator=(
-    const Cudss& other)
-{
-    if (this != &other) {
-        LinOp::operator=(other);
-        system_matrix_ = other.system_matrix_;
-        state_ = other.state_;
-    }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Cudss<ValueType, IndexType>& Cudss<ValueType, IndexType>::operator=(
-    Cudss&& other) noexcept
-{
-    if (this != &other) {
-        LinOp::operator=(std::move(other));
-        system_matrix_ = std::move(other.system_matrix_);
-        state_ = std::move(other.state_);
-    }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
 Cudss<ValueType, IndexType>::Cudss(const Factory* factory,
                                    std::shared_ptr<const LinOp> system_matrix)
     : LinOp{factory->get_executor(), system_matrix->get_size()}

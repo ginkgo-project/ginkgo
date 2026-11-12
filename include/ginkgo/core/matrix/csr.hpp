@@ -189,8 +189,8 @@ class Csr : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<Csr>::convert_to;
-    using EnableCloneable<Csr>::move_to;
+    using ConvertibleTo<Csr>::convert_to;
+    using ConvertibleTo<Csr>::move_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Csr<next_precision<ValueType>, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -217,6 +217,10 @@ public:
     using absolute_type = remove_complex<Csr>;
     using device_view = view::csr<value_type, index_type>;
     using const_device_view = view::csr<const value_type, const index_type>;
+
+    void convert_to(Csr* result) const override;
+
+    void move_to(Csr* result) override;
 
     class GKO_DEPRECATED(
         "please use enum gko::matrix::csr::spmv_strategy::<strategy>")
@@ -1134,30 +1138,6 @@ public:
      */
     std::unique_ptr<Csr<ValueType, IndexType>> create_submatrix(
         const span& row_span, const span& column_span) const;
-
-    /**
-     * Copy-assigns a Csr matrix. Preserves executor, copies everything else.
-     */
-    Csr& operator=(const Csr&);
-
-    /**
-     * Move-assigns a Csr matrix. Preserves executor, moves the data and leaves
-     * the moved-from object in an empty state (0x0 LinOp with unchanged
-     * executor and strategy, no nonzeros and valid row pointers).
-     */
-    Csr& operator=(Csr&&);
-
-    /**
-     * Copy-constructs a Csr matrix. Inherits executor, strategy and data.
-     */
-    Csr(const Csr&);
-
-    /**
-     * Move-constructs a Csr matrix. Inherits executor and strategy, moves the
-     * data and leaves the moved-from object in an empty state (0x0 LinOp with
-     * unchanged executor and strategy, no nonzeros and valid row pointers).
-     */
-    Csr(Csr&&);
 
 protected:
     Csr(std::shared_ptr<const Executor> exec, const dim<2>& size = {},

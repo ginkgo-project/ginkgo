@@ -190,6 +190,25 @@ Fft::Fft(std::shared_ptr<const Executor> exec, size_type size, bool inverse)
 {}
 
 
+void Fft::convert_to(Fft* result) const
+{
+    if (this != result) {
+        result->inverse_ = this->inverse_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+void Fft::move_to(Fft* result)
+{
+    if (this != result) {
+        result->inverse_ = this->inverse_;
+        result->set_size(this->get_size());
+        this->set_size({});
+    }
+}
+
+
 std::unique_ptr<Fft> Fft::create(std::shared_ptr<const Executor> exec)
 {
     return std::unique_ptr<Fft>{new Fft{exec}};
@@ -278,6 +297,27 @@ void Fft2::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
         dense_x->add_scaled(alpha, clone_x);
+    }
+}
+
+
+void Fft2::convert_to(Fft2* result) const
+{
+    if (this != result) {
+        result->fft_size_ = this->fft_size_;
+        result->inverse_ = this->inverse_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+void Fft2::move_to(Fft2* result)
+{
+    if (this != result) {
+        result->fft_size_ = this->fft_size_;
+        result->inverse_ = this->inverse_;
+        result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 
@@ -391,6 +431,27 @@ void Fft3::apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
         this->apply_impl(b, clone_x.get());
         dense_x->scale(beta);
         dense_x->add_scaled(alpha, clone_x);
+    }
+}
+
+
+void Fft3::convert_to(Fft3* result) const
+{
+    if (this != result) {
+        result->fft_size_ = this->fft_size_;
+        result->inverse_ = this->inverse_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+void Fft3::move_to(Fft3* result)
+{
+    if (this != result) {
+        result->fft_size_ = this->fft_size_;
+        result->inverse_ = this->inverse_;
+        result->set_size(this->get_size());
+        this->set_size({});
     }
 }
 

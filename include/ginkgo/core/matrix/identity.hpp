@@ -38,11 +38,15 @@ class Identity : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Identity>::convert_to;
-    using EnableCloneable<Identity>::move_to;
+    using ConvertibleTo<Identity>::convert_to;
+    using ConvertibleTo<Identity>::move_to;
 
     using value_type = ValueType;
     using transposed_type = Identity<ValueType>;
+
+    void convert_to(Identity* result) const override;
+
+    void move_to(Identity* result) override;
 
     std::unique_ptr<LinOp> transpose() const override;
 

@@ -129,74 +129,58 @@ void Ell<ValueType, IndexType>::validate_data() const
 
 
 template <typename ValueType, typename IndexType>
-Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(
-    const Ell& other)
+void Ell<ValueType, IndexType>::convert_to(Ell* result) const
 {
-    if (&other != this) {
-        const auto old_size = this->get_size();
-        LinOp::operator=(other);
+    if (this != result) {
+        const auto old_size = result->get_size();
+        result->set_size(this->get_size());
         // NOTE: keep this consistent with resize(...)
-        if (old_size != other.get_size() ||
-            this->get_num_stored_elements_per_row() !=
-                other.get_num_stored_elements_per_row()) {
-            this->num_stored_elements_per_row_ =
-                other.get_num_stored_elements_per_row();
-            this->stride_ = other.get_size()[0];
+        if (old_size != this->get_size() ||
+            result->get_num_stored_elements_per_row() !=
+                this->get_num_stored_elements_per_row()) {
+            result->num_stored_elements_per_row_ =
+                this->get_num_stored_elements_per_row();
+            result->stride_ = this->get_size()[0];
             const auto alloc_size =
-                this->stride_ * this->num_stored_elements_per_row_;
-            this->values_.resize_and_reset(alloc_size);
-            this->col_idxs_.resize_and_reset(alloc_size);
+                result->stride_ * result->num_stored_elements_per_row_;
+            result->values_.resize_and_reset(alloc_size);
+            result->col_idxs_.resize_and_reset(alloc_size);
         }
         // we need to create a executor-local clone of the target data, that
         // will be copied back later. Need temporary_clone, not
         // temporary_output_clone to avoid overwriting padding
-        auto exec = other.get_executor();
-        auto exec_values_array = make_temporary_clone(exec, &this->values_);
-        auto exec_cols_array = make_temporary_clone(exec, &this->col_idxs_);
+        auto exec = this->get_executor();
+        auto exec_values_array = make_temporary_clone(exec, &result->values_);
+        auto exec_cols_array = make_temporary_clone(exec, &result->col_idxs_);
         // create a (value, not pointer to avoid allocation overhead) view
         // matrix on the array to avoid special-casing cross-executor copies
-        auto exec_this_view =
+        auto exec_result_view =
             Ell{exec,
-                this->get_size(),
+                result->get_size(),
                 make_array_view(exec, exec_values_array->get_size(),
                                 exec_values_array->get_data()),
                 make_array_view(exec, exec_cols_array->get_size(),
                                 exec_cols_array->get_data()),
-                this->get_num_stored_elements_per_row(),
-                this->get_stride()};
-        exec->run(ell::make_copy(other.get_const_device_view(),
-                                 exec_this_view.get_device_view()));
+                result->get_num_stored_elements_per_row(),
+                result->get_stride()};
+        exec->run(ell::make_copy(this->get_const_device_view(),
+                                 exec_result_view.get_device_view()));
     }
-    return *this;
 }
 
 
 template <typename ValueType, typename IndexType>
-Ell<ValueType, IndexType>& Ell<ValueType, IndexType>::operator=(Ell&& other)
+void Ell<ValueType, IndexType>::move_to(Ell* result)
 {
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        values_ = std::move(other.values_);
-        col_idxs_ = std::move(other.col_idxs_);
-        num_stored_elements_per_row_ =
-            std::exchange(other.num_stored_elements_per_row_, 0);
-        stride_ = std::exchange(other.stride_, 0);
+    if (this != result) {
+        result->set_size(this->get_size());
+        this->set_size({});
+        result->values_ = std::move(this->values_);
+        result->col_idxs_ = std::move(this->col_idxs_);
+        result->num_stored_elements_per_row_ =
+            std::exchange(this->num_stored_elements_per_row_, 0);
+        result->stride_ = std::exchange(this->stride_, 0);
     }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Ell<ValueType, IndexType>::Ell(const Ell& other) : Ell(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-Ell<ValueType, IndexType>::Ell(Ell&& other) : Ell(other.get_executor())
-{
-    *this = std::move(other);
 }
 
 

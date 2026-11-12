@@ -130,19 +130,8 @@ public:
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
     using absolute_type = remove_complex<Fbcsr>;
 
-    /**
-     * For moving to another Fbcsr of the same type, use the default
-     *  implementation provided by EnableCloneableLinOp via the
-     *  EnableCloneableAssignment mixin.
-     */
-    using EnableCloneable<Fbcsr<ValueType, IndexType>>::move_to;
-
-    /**
-     * For converting (copying) to another Fbcsr of the same type,
-     * use the default implementation provided by EnableCloneableLinOp.
-     */
-    using EnableCloneable<Fbcsr<ValueType, IndexType>>::convert_to;
-
+    using ConvertibleTo<Fbcsr>::move_to;
+    using ConvertibleTo<Fbcsr>::convert_to;
     using ConvertibleTo<
         Fbcsr<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Fbcsr<next_precision<ValueType>, IndexType>>::move_to;
@@ -152,6 +141,10 @@ public:
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<SparsityCsr<ValueType, IndexType>>::move_to;
+
+    void convert_to(Fbcsr* result) const override;
+
+    void move_to(Fbcsr* result) override;
 
     friend class Fbcsr<previous_precision<ValueType>, IndexType>;
 
@@ -435,31 +428,6 @@ public:
         gko::detail::const_array_view<ValueType>&& values,
         gko::detail::const_array_view<IndexType>&& col_idxs,
         gko::detail::const_array_view<IndexType>&& row_ptrs);
-
-    /**
-     * Copy-assigns an Fbcsr matrix. Preserves the executor, copies data and
-     * block size from the input.
-     */
-    Fbcsr& operator=(const Fbcsr&);
-
-    /**
-     * Move-assigns an Fbcsr matrix. Preserves the executor, moves the data over
-     * preserving size and stride. Leaves the moved-from object in an empty
-     * state (0x0 with no nonzeros, but valid row pointers).
-     */
-    Fbcsr& operator=(Fbcsr&&);
-
-    /**
-     * Copy-constructs an Ell matrix. Inherits executor and data.
-     */
-    Fbcsr(const Fbcsr&);
-
-    /**
-     * Move-constructs an Fbcsr matrix. Inherits executor and data. The
-     * moved-from object is empty (0x0 with no nonzeros, but valid row
-     * pointers).
-     */
-    Fbcsr(Fbcsr&&);
 
 protected:
     Fbcsr(std::shared_ptr<const Executor> exec, int block_size = 1);

@@ -45,6 +45,10 @@ class RowGatherer : public LinOp,
 public:
     using index_type = IndexType;
 
+    void convert_to(RowGatherer* result) const override;
+
+    void move_to(RowGatherer* result) override;
+
     /**
      * Returns a pointer to the row index array for gathering.
      *

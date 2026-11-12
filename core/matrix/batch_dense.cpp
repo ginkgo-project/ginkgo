@@ -286,6 +286,26 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType, 3>>* result)
 #endif
 
 
+template <typename ValueType>
+void Dense<ValueType>::convert_to(Dense* result) const
+{
+    if (this != result) {
+        result->values_ = this->values_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType>
+void Dense<ValueType>::move_to(Dense* result)
+{
+    if (this != result) {
+        result->values_ = std::move(this->values_);
+        result->set_size(this->get_size());
+    }
+}
+
+
 #define GKO_DECLARE_BATCH_DENSE_MATRIX(_type) class Dense<_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_DENSE_MATRIX);
 

@@ -443,6 +443,27 @@ std::unique_ptr<const Diagonal<ValueType>> Diagonal<ValueType>::create_const(
 }
 
 
+template <typename ValueType>
+void Diagonal<ValueType>::convert_to(Diagonal* result) const
+{
+    if (this != result) {
+        result->values_ = this->values_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType>
+void Diagonal<ValueType>::move_to(Diagonal* result)
+{
+    if (this != result) {
+        result->values_ = std::move(this->values_);
+        result->set_size(this->get_size());
+        this->set_size({});
+    }
+}
+
+
 #define GKO_DECLARE_DIAGONAL_MATRIX(value_type) class Diagonal<value_type>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_MATRIX);
 

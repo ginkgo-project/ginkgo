@@ -64,6 +64,10 @@ class RowScatterer final : public PolymorphicObject,
     friend class EnableCloneable<RowScatterer>;
 
 public:
+    void convert_to(RowScatterer* result) const override { *result = *this; }
+
+    void move_to(RowScatterer* result) override { *result = std::move(*this); }
+
     /**
      * Start scattering local values to their owning ranks.
      *
