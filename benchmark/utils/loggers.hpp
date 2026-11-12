@@ -150,6 +150,7 @@ public:
     {
         try {
             exec_->remove_logger(logger_);
+            // NOLINTNEXTLINE(bugprone-empty-catch)
         } catch (const gko::OutOfBoundsError&) {
             // the logger was already removed from the executor
         }
