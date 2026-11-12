@@ -206,7 +206,6 @@ void run_kernel_row_reduction_impl(std::shared_ptr<const OmpExecutor> exec,
                                    dim<2> size, array<char>& tmp,
                                    MappedKernelArgs... args)
 {
-    constexpr int block_size = 8;
     const auto rows = static_cast<int64>(size[0]);
     const auto cols = static_cast<int64>(size[1]);
     const auto available_threads = static_cast<int64>(omp_get_max_threads());
