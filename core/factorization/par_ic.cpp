@@ -70,9 +70,10 @@ ParIc<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
-    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
-    bool both_factors) const
+ParIc<ValueType, IndexType>::ParIc(const Factory* factory,
+                                   std::shared_ptr<const LinOp> system_matrix)
+    : Composition<ValueType>(factory->get_executor()),
+      parameters_(factory->get_parameters())
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
@@ -87,7 +88,7 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
     as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
         ->convert_to(csr_system_matrix);
     // If necessary, sort it
-    if (!skip_sorting) {
+    if (!parameters_.skip_sorting) {
         csr_system_matrix->sort_by_column_index();
     }
 
@@ -137,12 +138,9 @@ std::unique_ptr<Composition<ValueType>> ParIc<ValueType, IndexType>::generate(
         parameters_.iterations, a_lower_coo->get_const_device_view(),
         l_factor->get_device_view()));
 
-    if (both_factors) {
-        auto lh_factor = l_factor->conj_transpose();
-        return Composition<ValueType>::create(std::move(l_factor),
-                                              std::move(lh_factor));
-    } else {
-        return Composition<ValueType>::create(std::move(l_factor));
+    this->add_operators(l_factor);
+    if (parameters_.both_factors) {
+        this->add_operators(l_factor->conj_transpose());
     }
 }
 

@@ -68,11 +68,10 @@ ParIlu<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>>
-ParIlu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting,
-    matrix::csr::spmv_strategy l_strategy,
-    matrix::csr::spmv_strategy u_strategy) const
+ParIlu<ValueType, IndexType>::ParIlu(const Factory* factory,
+                                     std::shared_ptr<const LinOp> system_matrix)
+    : Composition<ValueType>(factory->get_executor()),
+      parameters_(factory->get_parameters())
 {
     using CsrMatrix = matrix::Csr<ValueType, IndexType>;
     using CooMatrix = matrix::Coo<ValueType, IndexType>;
@@ -87,7 +86,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     as<ConvertibleTo<CsrMatrix>>(system_matrix.get())
         ->convert_to(csr_system_matrix);
     // If necessary, sort it
-    if (!skip_sorting) {
+    if (!parameters_.skip_sorting) {
         csr_system_matrix->sort_by_column_index();
     }
 
@@ -114,12 +113,12 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     array<ValueType> l_vals{exec, l_nnz};
     std::shared_ptr<CsrMatrix> l_factor = l_matrix_type::create(
         exec, matrix_size, std::move(l_vals), std::move(l_col_idxs),
-        std::move(l_row_ptrs), l_strategy);
+        std::move(l_row_ptrs), parameters_.l_strategy);
     array<IndexType> u_col_idxs{exec, u_nnz};
     array<ValueType> u_vals{exec, u_nnz};
     std::shared_ptr<CsrMatrix> u_factor = u_matrix_type::create(
         exec, matrix_size, std::move(u_vals), std::move(u_col_idxs),
-        std::move(u_row_ptrs), u_strategy);
+        std::move(u_row_ptrs), parameters_.u_strategy);
 
     exec->run(par_ilu_factorization::make_initialize_l_u(
         csr_system_matrix->get_const_device_view(), l_factor->get_device_view(),
@@ -141,7 +140,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
     // If it was not, and we already own a CSR `system_matrix`,
     // we can move the Csr matrix to Coo, which has very little overhead.
     // We also have to move from the CSR matrix if it was not already sorted.
-    if (!skip_sorting || coo_system_matrix_ptr == nullptr) {
+    if (!parameters_.skip_sorting || coo_system_matrix_ptr == nullptr) {
         coo_system_matrix_unique_ptr = CooMatrix::create(exec);
         csr_system_matrix->move_to(coo_system_matrix_unique_ptr);
         coo_system_matrix_ptr = coo_system_matrix_unique_ptr.get();
@@ -159,8 +158,7 @@ ParIlu<ValueType, IndexType>::generate_l_u(
         u_factor_transpose->get_const_device_view(),
         u_factor->get_device_view()));
 
-    return Composition<ValueType>::create(std::move(l_factor),
-                                          std::move(u_factor));
+    this->add_operators(std::move(l_factor), std::move(u_factor));
 }
 
 
