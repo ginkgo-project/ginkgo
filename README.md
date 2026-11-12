@@ -173,7 +173,9 @@ If you have any questions about using Ginkgo, please use [Github discussions](ht
 
 If you would like to request a feature, or have encountered a bug, please [create an issue](https://github.com/ginkgo-project/ginkgo/issues/new). Please be sure to describe your problem and provide as much information as possible.
 
-You can also send an email to [Ginkgo's main email address](mailto:ginkgo.library@gmail.com).
+You can also send an email to [Ginkgo's main email address](mailto:contact@gko-project.org).
+
+If you believe you have found a security vulnerability, please do not open a public issue. Instead, follow the instructions in our [security policy](SECURITY.md) to report it privately.
 
 # Licensing
 
