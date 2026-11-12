@@ -958,7 +958,7 @@ void Multigrid::generate(reuse_data_type* reuse_data)
 
     this->setup_workspace();
     this->create_state();
-    cache_.state->generate(this->get_system_matrix().get(), this, 1);
+    state_->generate(this->get_system_matrix().get(), this, 1);
 
     // the recorded coarsest solver data only fits an unchanged hierarchy
     changed = changed || level != num_recorded || !new_levels.empty();
@@ -1100,14 +1100,14 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
                                  initial_guess_mode guess) const
 {
     using ws = workspace_traits<Multigrid>;
-    if (cache_.state->nrhs != b->get_size()[1]) {
-        cache_.state->generate(this->get_system_matrix().get(), this,
-                               b->get_size()[1]);
+    if (state_->nrhs != b->get_size()[1]) {
+        state_->generate(this->get_system_matrix().get(), this,
+                         b->get_size()[1]);
     }
     auto lambda = [&, this](auto mg_level, auto b, auto x) {
         auto exec = this->get_executor();
-        auto neg_one_op = cache_.state->neg_one_list.at(0);
-        auto one_op = cache_.state->one_list.at(0);
+        auto neg_one_op = state_->neg_one_list.at(0);
+        auto one_op = state_->one_list.at(0);
         constexpr uint8 RelativeStoppingId{1};
         auto& stop_status =
             this->template create_workspace_array<stopping_status>(
@@ -1143,8 +1143,8 @@ void Multigrid::apply_dense_impl(const VectorType* b, VectorType* x,
             if (iter == 0 && guess == initial_guess_mode::zero) {
                 mode = mode | multigrid::cycle_mode::x_is_zero;
             }
-            cache_.state->run_mg_cycle(this->get_parameters().cycle, 0,
-                                       this->get_system_matrix(), b, x, mode);
+            state_->run_mg_cycle(this->get_parameters().cycle, 0,
+                                 this->get_system_matrix(), b, x, mode);
         }
     };
 
@@ -1207,8 +1207,8 @@ void Multigrid::verify_legal_length(bool checked, size_type len,
 
 void Multigrid::create_state() const
 {
-    if (cache_.state == nullptr) {
-        cache_.state = std::make_unique<multigrid::detail::MultigridState>();
+    if (state_ == nullptr) {
+        state_ = std::make_unique<multigrid::detail::MultigridState>();
     }
 }
 
@@ -1261,9 +1261,6 @@ Multigrid::Multigrid(const Multigrid::Factory* factory,
         this->generate(reuse_data);
     }
 }
-
-
-Multigrid::Multigrid(std::shared_ptr<const Executor> exec) : LinOp(exec) {}
 
 
 int workspace_traits<Multigrid>::num_arrays(const Solver&) { return 1; }

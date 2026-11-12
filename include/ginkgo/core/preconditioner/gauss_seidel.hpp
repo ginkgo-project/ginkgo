@@ -30,9 +30,7 @@ namespace preconditioner {
  * @ingroup precond
  */
 template <typename ValueType = default_precision, typename IndexType = int32>
-class GaussSeidel : public LinOpFactory,
-                    public EnableCloneable<GaussSeidel<ValueType, IndexType>> {
-    friend class EnableCloneable<GaussSeidel>;
+class GaussSeidel : public LinOpFactory {
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:

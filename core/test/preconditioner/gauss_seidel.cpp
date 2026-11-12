@@ -1,12 +1,14 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <memory>
+#include <type_traits>
 
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/preconditioner/gauss_seidel.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 
@@ -52,4 +54,10 @@ TEST_F(GaussSeidelFactory, CanBuildWithParameters)
     GKO_ASSERT_DYNAMIC_TYPE(params.l_solver, l_isai_type::Factory);
     ASSERT_NE(params.u_solver, nullptr);
     GKO_ASSERT_DYNAMIC_TYPE(params.u_solver, u_isai_type::Factory);
+}
+
+
+TEST_F(GaussSeidelFactory, IsNotCloneable)
+{
+    ASSERT_FALSE((std::is_base_of<gko::Cloneable, GaussSeidel_type>::value));
 }

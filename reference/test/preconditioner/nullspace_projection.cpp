@@ -3,11 +3,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <memory>
+#include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
@@ -303,6 +305,32 @@ TYPED_TEST(NullspaceProjection, WorksAsPreconditionerOfAnySolver)
     solver->apply(b, x);
 
     GKO_ASSERT_MTX_NEAR(x, x_star, 1000 * r<value_type>::value);
+}
+
+
+TYPED_TEST(NullspaceProjection, IsNotCloneable)
+{
+    using Projection = typename TestFixture::Projection;
+
+    ASSERT_FALSE((std::is_base_of<gko::Cloneable, Projection>::value));
+}
+
+
+TYPED_TEST(NullspaceProjection, CannotBeCopied)
+{
+    using Projection = typename TestFixture::Projection;
+
+    ASSERT_FALSE(std::is_copy_constructible<Projection>::value);
+    ASSERT_FALSE(std::is_copy_assignable<Projection>::value);
+}
+
+
+TYPED_TEST(NullspaceProjection, CannotBeMoved)
+{
+    using Projection = typename TestFixture::Projection;
+
+    ASSERT_FALSE(std::is_move_constructible<Projection>::value);
+    ASSERT_FALSE(std::is_move_assignable<Projection>::value);
 }
 
 
