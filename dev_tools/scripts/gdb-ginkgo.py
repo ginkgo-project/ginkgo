@@ -73,7 +73,7 @@ def get_template_arg_list(type_obj):
     while True:
         try:
             template_args.append(type_obj.template_argument(n))
-        except:
+        except RuntimeError:
             return template_args
         n += 1
 
