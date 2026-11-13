@@ -176,19 +176,15 @@ public:
             config::make_type_descriptor<ValueType, IndexType>());
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override
-    {
-        this->get_composition()->apply(b, x);
-    }
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
-    {
-        this->get_composition()->apply(alpha, b, beta, x);
-    }
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
-    explicit Pgm(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
-    {}
+    explicit Pgm(std::shared_ptr<const Executor> exec);
 
     explicit Pgm(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
