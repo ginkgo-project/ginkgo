@@ -97,11 +97,11 @@ protected:
     {}
 
     explicit FixedCoarsening(const Factory* factory,
-                             std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(), system_matrix->get_size()),
-          EnableMultigridLevel<ValueType>(system_matrix),
+                             LinOpGenerateComponents components)
+        : LinOp(factory->get_executor(), components.system_matrix->get_size()),
+          EnableMultigridLevel<ValueType>(components.system_matrix),
           parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
+          system_matrix_{std::move(components.system_matrix)}
     {
         if (system_matrix_->get_size()[0] != 0) {
             // generate on the existing matrix

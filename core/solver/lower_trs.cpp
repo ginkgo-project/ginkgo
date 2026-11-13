@@ -52,7 +52,7 @@ LowerTrs<ValueType, IndexType>::parse(
 
 template <typename ValueType, typename IndexType>
 LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
-    : LinOp(other.get_executor())
+    : LowerTrs(other.get_executor())
 {
     *this = other;
 }
@@ -60,7 +60,7 @@ LowerTrs<ValueType, IndexType>::LowerTrs(const LowerTrs& other)
 
 template <typename ValueType, typename IndexType>
 LowerTrs<ValueType, IndexType>::LowerTrs(LowerTrs&& other)
-    : LinOp(other.get_executor())
+    : LowerTrs(other.get_executor())
 {
     *this = std::move(other);
 }

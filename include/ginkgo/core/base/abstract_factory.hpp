@@ -209,7 +209,7 @@ protected:
         components_type args) const override
     {
         return std::unique_ptr<abstract_product_type>(
-            new product_type(self(), args));
+            new product_type(self(), std::move(args)));
     }
 
 private:

@@ -155,7 +155,10 @@ public:
             default_initial_guess, initial_guess_mode::provided);
     };
 
-    GKO_ENABLE_LIN_OP_FACTORY(Chebyshev, parameters, Factory);
+    using reuse_data_type = typename EnablePreconditionedIterativeSolver<
+        ValueType, Chebyshev<ValueType>>::reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Chebyshev, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -196,7 +199,11 @@ protected:
     explicit Chebyshev(std::shared_ptr<const Executor> exec);
 
     explicit Chebyshev(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix);
+                       LinOpGenerateComponents components,
+                       reuse_data_type* reuse_data = nullptr);
+
+    Chebyshev(const Factory* factory, LinOpGenerateComponents components,
+              reuse_data_type& reuse_data);
 
 private:
     std::shared_ptr<const LinOp> solver_{};

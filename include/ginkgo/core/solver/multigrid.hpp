@@ -540,14 +540,12 @@ protected:
     explicit Multigrid(std::shared_ptr<const Executor> exec);
 
     explicit Multigrid(const Factory* factory,
-                       std::shared_ptr<const LinOp> system_matrix);
+                       LinOpGenerateComponents components);
 
-    Multigrid(const Factory* factory,
-              std::shared_ptr<const LinOp> system_matrix,
+    Multigrid(const Factory* factory, LinOpGenerateComponents components,
               reuse_data_type& reuse_data);
 
-    Multigrid(const Factory* factory,
-              std::shared_ptr<const LinOp> system_matrix,
+    Multigrid(const Factory* factory, LinOpGenerateComponents components,
               reuse_data_type* reuse_data);
 
     /** Throws if `input` can't be used with `reuse_data`. */
