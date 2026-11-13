@@ -89,15 +89,18 @@ Pmis<ValueType, IndexType>::parse(const config::pnode& config,
 
 
 template <typename ValueType, typename IndexType>
-void Pmis<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
+void Pmis<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                            AbstractMultiVector* x) const
 {
     this->get_composition()->apply(b, x);
 }
 
 
 template <typename ValueType, typename IndexType>
-void Pmis<ValueType, IndexType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                            const LinOp* beta, LinOp* x) const
+void Pmis<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                            const AbstractMultiVector* b,
+                                            const AbstractMultiVector* beta,
+                                            AbstractMultiVector* x) const
 {
     this->get_composition()->apply(alpha, b, beta, x);
 }
@@ -270,8 +273,9 @@ void Pmis<ValueType, IndexType>::generate()
             // exchange_with_neighbors is forward-only; the measure travels
             // halo -> owner, hence the inverse communicator
             auto inverse_comm = coll_comm->create_inverse();
-            auto owner_counts = gko::detail::exchange_with_neighbors(
-                exec, comm, inverse_comm.get(), halo_counts);
+            auto owner_counts =
+                experimental::distributed::detail::exchange_with_neighbors(
+                    exec, comm, inverse_comm.get(), halo_counts);
             // a row sent to several neighbours appears several times in
             // send_idxs, so this scatter-add has to be atomic
             exec->run(pmis::make_add_at_indices(
@@ -310,8 +314,9 @@ void Pmis<ValueType, IndexType>::generate()
                 send_buffer.resize_and_reset(n_send);
                 exec->run(pmis::make_gather(n_send, src, send_idxs,
                                             send_buffer.get_data()));
-                const auto& recv = gko::detail::exchange_with_neighbors(
-                    exec, comm, coll_comm.get(), send_buffer, scratch);
+                const auto& recv =
+                    experimental::distributed::detail::exchange_with_neighbors(
+                        exec, comm, coll_comm.get(), send_buffer, scratch);
                 exec->copy_from(exec, n_halo, recv.get_const_data(),
                                 ext + n_loc);
             };
@@ -319,8 +324,9 @@ void Pmis<ValueType, IndexType>::generate()
             auto broadcast_once = [&](auto* ext) {
                 using payload_type = std::decay_t<decltype(*ext)>;
                 array<payload_type> send_buffer{exec};
-                gko::detail::neighbor_exchange_buffers<payload_type> scratch{
-                    exec};
+                experimental::distributed::detail::neighbor_exchange_buffers<
+                    payload_type>
+                    scratch{exec};
                 broadcast_to_halo(ext, send_buffer, scratch);
             };
             broadcast_once(weight.get_data());
@@ -339,7 +345,8 @@ void Pmis<ValueType, IndexType>::generate()
             // the loop below refreshes the halo twice per round, so its
             // buffers are allocated outside of it
             array<int> status_send_buffer{exec};
-            gko::detail::neighbor_exchange_buffers<int> status_scratch{exec};
+            experimental::distributed::detail::neighbor_exchange_buffers<int>
+                status_scratch{exec};
             auto refresh_status_halo = [&](int* ext) {
                 broadcast_to_halo(ext, status_send_buffer, status_scratch);
             };
@@ -601,17 +608,13 @@ void Pmis<ValueType, IndexType>::generate()
         exec->run(pmis::make_gather(prolong_nnz, coarse_map.get_const_data(),
                                     prolong_col_idxs.get_const_data(),
                                     prolong_col_idxs.get_data()));
-        auto prolongation = share(matrix::Csr<ValueType, IndexType>::create(
+        auto prolongation = share(csr_type::create(
             exec, dim<2>{pmis_op->get_size()[0], num_coarse},
             std::move(prolong_values), std::move(prolong_col_idxs),
             std::move(prolong_row_ptrs)));
-        auto restriction = share(prolongation->transpose());
-        auto internal = matrix::Csr<ValueType, IndexType>::create(
-            exec, prolongation->get_size());
-        auto coarse = share(matrix::Csr<ValueType, IndexType>::create(
-            exec, dim<2>{num_coarse, num_coarse}));
-        pmis_op->apply(prolongation, internal);
-        restriction->apply(internal, coarse);
+        auto restriction = share(as<csr_type>(prolongation->transpose()));
+        auto internal = pmis_op->multiply(prolongation);
+        auto coarse = share(restriction->multiply(internal));
         this->set_multigrid_level(prolongation, coarse, restriction);
     }
 }
