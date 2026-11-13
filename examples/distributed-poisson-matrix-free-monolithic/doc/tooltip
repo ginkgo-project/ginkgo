@@ -1,0 +1,1 @@
+Solves a 3D Poisson equation using a custom monolithic matrix-free distributed operator.

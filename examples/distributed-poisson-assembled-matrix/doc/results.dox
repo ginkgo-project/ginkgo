@@ -1,0 +1,14 @@
+<h1>Results</h1>
+This is the expected output for `mpirun -n 4 ./distributed-poisson-assembled-matrix omp 32 32 32`:
+
+@code{.cpp}
+
+--- Distributed Poisson Assembled Matrix Solver Results ---
+Global Grid Size: 32 x 32 x 32 (32768 rows)
+Num Ranks: 4
+Final Residual Norm: 6.78905e-12
+Iteration Count: 122
+
+@endcode
+
+The timings may vary depending on the machine.
