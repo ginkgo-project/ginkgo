@@ -72,15 +72,11 @@ void FixedCoarsening<ValueType, IndexType>::generate()
     auto prolong_op = gko::as<csr_type>(share(restrict_op->transpose()));
 
     // TODO: Can be done with submatrix index_set.
-    auto coarse_matrix =
-        share(csr_type::create(exec, gko::dim<2>{coarse_dim, coarse_dim}));
-    coarse_matrix->set_strategy(fixed_coarsening_op->get_strategy());
-    auto tmp = csr_type::create(exec, gko::dim<2>{fine_dim, coarse_dim});
-    tmp->set_strategy(fixed_coarsening_op->get_strategy());
-    fixed_coarsening_op->apply(prolong_op, tmp);
-    restrict_op->apply(tmp, coarse_matrix);
+    auto tmp = fixed_coarsening_op->multiply(prolong_op);
+    auto coarse_mtx = share(restrict_op->multiply(tmp));
+    coarse_mtx->set_strategy(fixed_coarsening_op->get_strategy());
 
-    this->set_multigrid_level(prolong_op, coarse_matrix, restrict_op);
+    this->set_multigrid_level(prolong_op, coarse_mtx, restrict_op);
 }
 
 

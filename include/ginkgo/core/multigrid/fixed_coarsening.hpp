@@ -80,13 +80,16 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    void apply_impl(const LinOp* b, LinOp* x) const override
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override
     {
         this->get_composition()->apply(b, x);
     }
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override
     {
         this->get_composition()->apply(alpha, b, beta, x);
     }
