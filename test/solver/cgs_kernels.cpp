@@ -10,7 +10,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
@@ -23,7 +23,7 @@
 
 class Cgs : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Cgs<value_type>;
 
     Cgs() : rand_engine(30)

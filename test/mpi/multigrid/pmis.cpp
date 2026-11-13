@@ -115,7 +115,7 @@ protected:
                                                   global_index_type>;
     using pmis = gko::multigrid::Pmis<value_type, local_index_type>;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
-    using dense_type = gko::matrix::Dense<value_type>;
+    using local_vec_type = gko::matrix::MultiVector<value_type>;
     using real_type = gko::remove_complex<value_type>;
 
     // 1D Laplacian: every off-diagonal is strong at the default threshold, so
@@ -653,7 +653,7 @@ TYPED_TEST(Pmis, DistributedMultigridPreconditionedCgConverges)
     SKIP_IF_HALF(value_type);
     SKIP_IF_BFLOAT16(value_type);
     using real_type = typename TestFixture::real_type;
-    using dense_type = typename TestFixture::dense_type;
+    using local_vec_type = typename TestFixture::local_vec_type;
     using pmis = typename TestFixture::pmis;
     using cg = gko::solver::Cg<value_type>;
     const auto tol = r<value_type>::value * real_type{1e3};
@@ -670,11 +670,12 @@ TYPED_TEST(Pmis, DistributedMultigridPreconditionedCgConverges)
             .on(this->exec)
             ->generate(this->laplace_mat);
     auto residual = gko::clone(this->b);
-    auto one = gko::initialize<dense_type>({value_type{1}}, this->exec);
-    auto neg_one = gko::initialize<dense_type>({value_type{-1}}, this->exec);
-    auto res_norm = gko::initialize<gko::matrix::Dense<real_type>>(
+    auto one = gko::initialize<local_vec_type>({value_type{1}}, this->exec);
+    auto neg_one =
+        gko::initialize<local_vec_type>({value_type{-1}}, this->exec);
+    auto res_norm = gko::initialize<gko::matrix::MultiVector<real_type>>(
         {real_type{0}}, this->exec);
-    auto rhs_norm = gko::initialize<gko::matrix::Dense<real_type>>(
+    auto rhs_norm = gko::initialize<gko::matrix::MultiVector<real_type>>(
         {real_type{0}}, this->exec);
     solver->add_logger(logger);
 

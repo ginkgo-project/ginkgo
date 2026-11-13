@@ -28,8 +28,8 @@ namespace solver {
  * \f$ V \f$ is an orthonormal basis of the nullspace.
  *
  * - The constant vector is handled implicitly by subtracting the mean, so a
- *   constant-only nullspace works with any vector layout (`matrix::Dense` or
- *   `experimental::distributed::Vector` with any partition).
+ *   constant-only nullspace works with any vector layout (`matrix::MultiVector`
+ * or `experimental::distributed::Vector` with any partition).
  * - An explicit basis is copied and orthonormalized once at creation time
  *   (twice-iterated Gram-Schmidt, also against the constant if it is part of
  *   the nullspace). Columns that are numerically linearly dependent (relative
@@ -72,7 +72,7 @@ public:
      *
      * @param exec  the executor the projector (and its basis) lives on
      * @param basis  the nullspace basis vectors. Each entry is an `n x k_i`
-     *               matrix::Dense<ValueType> or
+     *               matrix::MultiVector<ValueType> or
      *               experimental::distributed::Vector<ValueType> (all entries
      *               of the same kind and, if distributed, the same
      *               partition); their columns together span the nullspace.
@@ -124,12 +124,11 @@ public:
      * Applies the projector in place: \f$ v \leftarrow (I - V V^H) v \f$, for
      * each column of `v` independently.
      *
-     * @param v  a matrix::Dense or experimental::distributed::Vector with as
-     *           many rows as this operator (any number of rows for a
-     *           constant-only nullspace created without a size). Other
-     *           precisions are converted like in apply(). If the Nullspace has
-     *           an explicit basis, `v` must be of the same kind (and
-     *           distribution) as that basis.
+     * @param v  a matrix::MultiVector or experimental::distributed::Vector with
+     * as many rows as this operator (any number of rows for a constant-only
+     * nullspace created without a size). Other precisions are converted like in
+     * apply(). If the Nullspace has an explicit basis, `v` must be of the same
+     * kind (and distribution) as that basis.
      */
     void project(ptr_param<LinOp> v) const;
 
@@ -158,28 +157,29 @@ private:
     void setup_basis(const std::vector<std::shared_ptr<const LinOp>>& basis);
 
     template <typename VectorType>
-    const matrix::Dense<ValueType>* get_local_basis(const VectorType* v) const;
+    const matrix::MultiVector<ValueType>* get_local_basis(
+        const VectorType* v) const;
 
     // stores [mean(v); V^H v] in coefficients_
     template <typename VectorType>
     void compute_components(const VectorType* v,
-                            const matrix::Dense<ValueType>* basis_local,
+                            const matrix::MultiVector<ValueType>* basis_local,
                             bool has_constant) const;
 
     // result = v - mean - V C with the coefficients from compute_components;
     // result may be v
     template <typename VectorType>
     void subtract_components(const VectorType* v, VectorType* result,
-                             const matrix::Dense<ValueType>* basis_local,
+                             const matrix::MultiVector<ValueType>* basis_local,
                              bool has_constant) const;
 
     template <typename VectorType>
     void remove_components(VectorType* v,
-                           const matrix::Dense<ValueType>* basis_local,
+                           const matrix::MultiVector<ValueType>* basis_local,
                            bool has_constant) const;
 
     bool contains_constant_;
-    // orthonormal explicit basis (n x k), Dense or distributed::Vector
+    // orthonormal explicit basis (n x k), MultiVector or distributed::Vector
     std::shared_ptr<const LinOp> basis_;
     // scratch: (1 + k) x nrhs coefficients (means, then V^H x)
     gko::detail::DenseCache<ValueType> coefficients_;

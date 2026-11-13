@@ -10,7 +10,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -28,7 +28,7 @@ template <typename T>
 class Ilu : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using l_solver_type = gko::solver::Bicgstab<value_type>;
     using u_solver_type = gko::solver::Bicgstab<value_type>;
     using ilu_prec_type = gko::preconditioner::Ilu<value_type, false>;
@@ -276,7 +276,7 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithMtx)
 
 TYPED_TEST(Ilu, SolvesSingleRhsWithMixedMtx)
 {
-    using Mtx = gko::matrix::Dense<
+    using Mtx = gko::matrix::MultiVector<
         gko::next_precision<typename TestFixture::value_type>>;
     const auto b = gko::initialize<Mtx>({1.0, 3.0, 6.0}, this->exec);
     auto x = Mtx::create(this->exec, gko::dim<2>{3, 1});
@@ -310,7 +310,7 @@ TYPED_TEST(Ilu, SolvesSingleRhsWithComplexMtx)
 
 TYPED_TEST(Ilu, SolvesSingleRhsWithMixedComplexMtx)
 {
-    using Mtx = gko::matrix::Dense<
+    using Mtx = gko::matrix::MultiVector<
         gko::to_complex<gko::next_precision<typename TestFixture::value_type>>>;
     using T = typename Mtx::value_type;
     const auto b = gko::initialize<Mtx>(
@@ -365,7 +365,7 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhs)
 TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixed)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     const value_type alpha{2.0};
     const auto alpha_linop = gko::initialize<Mtx>({alpha}, this->exec);
     const value_type beta{-1};
@@ -386,17 +386,17 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsComplex)
 {
     using value_type = typename TestFixture::value_type;
     using complex_type = gko::to_complex<value_type>;
-    using Dense = typename TestFixture::Mtx;
-    using DenseComplex = gko::to_complex<Dense>;
+    using MultiVector = typename TestFixture::Mtx;
+    using MultiVectorComplex = gko::to_complex<MultiVector>;
     const value_type alpha{2.0};
-    const auto alpha_linop = gko::initialize<Dense>({alpha}, this->exec);
+    const auto alpha_linop = gko::initialize<MultiVector>({alpha}, this->exec);
     const value_type beta{-1};
-    const auto beta_linop = gko::initialize<Dense>({beta}, this->exec);
-    const auto b = gko::initialize<DenseComplex>(
+    const auto beta_linop = gko::initialize<MultiVector>({beta}, this->exec);
+    const auto b = gko::initialize<MultiVectorComplex>(
         {complex_type{-3.0, 6.0}, complex_type{6.0, -12.0},
          complex_type{9.0, -18.0}},
         this->exec);
-    auto x = gko::initialize<DenseComplex>(
+    auto x = gko::initialize<MultiVectorComplex>(
         {complex_type{1.0, -2.0}, complex_type{2.0, -4.0},
          complex_type{3.0, -6.0}},
         this->exec);
@@ -416,17 +416,19 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixedComplex)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
     using complex_type = gko::to_complex<value_type>;
-    using MixedDense = gko::matrix::Dense<value_type>;
-    using MixedDenseComplex = gko::to_complex<MixedDense>;
+    using MixedMultiVector = gko::matrix::MultiVector<value_type>;
+    using MixedMultiVectorComplex = gko::to_complex<MixedMultiVector>;
     const value_type alpha{2.0};
-    const auto alpha_linop = gko::initialize<MixedDense>({alpha}, this->exec);
+    const auto alpha_linop =
+        gko::initialize<MixedMultiVector>({alpha}, this->exec);
     const value_type beta{-1};
-    const auto beta_linop = gko::initialize<MixedDense>({beta}, this->exec);
-    const auto b = gko::initialize<MixedDenseComplex>(
+    const auto beta_linop =
+        gko::initialize<MixedMultiVector>({beta}, this->exec);
+    const auto b = gko::initialize<MixedMultiVectorComplex>(
         {complex_type{-3.0, 6.0}, complex_type{6.0, -12.0},
          complex_type{9.0, -18.0}},
         this->exec);
-    auto x = gko::initialize<MixedDenseComplex>(
+    auto x = gko::initialize<MixedMultiVectorComplex>(
         {complex_type{1.0, -2.0}, complex_type{2.0, -4.0},
          complex_type{3.0, -6.0}},
         this->exec);
@@ -439,7 +441,8 @@ TYPED_TEST(Ilu, SolvesAdvancedSingleRhsMixedComplex)
         x,
         l({complex_type{-7.0, 14.0}, complex_type{2.0, -4.0},
            complex_type{-1.0, 2.0}}),
-        (r_mixed<TypeParam, typename MixedDenseComplex::value_type>()) * 2.0);
+        (r_mixed<TypeParam, typename MixedMultiVectorComplex::value_type>()) *
+            2.0);
 }
 
 
@@ -509,7 +512,7 @@ TYPED_TEST(Ilu, SolvesDifferentNumberOfRhs)
 
 class DefaultIlu : public ::testing::Test {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::MultiVector<>;
     using default_ilu_prec_type = gko::preconditioner::Ilu<>;
 
     DefaultIlu()

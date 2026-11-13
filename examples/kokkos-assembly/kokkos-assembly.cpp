@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -136,7 +136,7 @@ void generate_stencil_matrix(gko::matrix::Csr<ValueType, IndexType>* matrix)
 // Generates the RHS vector given `f` and the boundary conditions.
 template <typename Closure, typename ValueType>
 void generate_rhs(Closure&& f, ValueType u0, ValueType u1,
-                  gko::matrix::Dense<ValueType>* rhs)
+                  gko::matrix::MultiVector<ValueType>* rhs)
 {
     const auto discretization_points = rhs->get_size()[0];
     auto k_rhs = gko::ext::kokkos::map_data(rhs);
@@ -159,7 +159,7 @@ void generate_rhs(Closure&& f, ValueType u0, ValueType u1,
 // solution function `correct_u`.
 template <typename Closure, typename ValueType>
 double calculate_error(int discretization_points,
-                       const gko::matrix::Dense<ValueType>* u,
+                       const gko::matrix::MultiVector<ValueType>* u,
                        Closure&& correct_u)
 {
     auto k_u = gko::ext::kokkos::map_data(u);
@@ -184,7 +184,7 @@ int main(int argc, char* argv[])
     using RealValueType = gko::remove_complex<ValueType>;
     using IndexType = int;
 
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
     using bj = gko::preconditioner::Jacobi<ValueType>;

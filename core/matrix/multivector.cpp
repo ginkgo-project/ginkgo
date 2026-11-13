@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#include "ginkgo/core/matrix/dense.hpp"
+#include "ginkgo/core/matrix/multivector.hpp"
 
 #include <algorithm>
 #include <type_traits>
@@ -30,88 +30,99 @@
 #include "core/base/dispatch_helper.hpp"
 #include "core/base/validation.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
-#include "core/matrix/dense_kernels.hpp"
 #include "core/matrix/hybrid_kernels.hpp"
+#include "core/matrix/multivector_kernels.hpp"
 #include "core/matrix/permutation.hpp"
 
 
 namespace gko {
 namespace matrix {
-namespace dense {
+namespace multivector {
 namespace {
 
 
-GKO_REGISTER_OPERATION(simple_apply, dense::simple_apply);
-GKO_REGISTER_OPERATION(apply, dense::apply);
-GKO_REGISTER_OPERATION(copy, dense::copy);
-GKO_REGISTER_OPERATION(fill, dense::fill);
-GKO_REGISTER_OPERATION(scale, dense::scale);
-GKO_REGISTER_OPERATION(inv_scale, dense::inv_scale);
-GKO_REGISTER_OPERATION(add_scaled, dense::add_scaled);
-GKO_REGISTER_OPERATION(sub_scaled, dense::sub_scaled);
-GKO_REGISTER_OPERATION(add_scaled_diag, dense::add_scaled_diag);
-GKO_REGISTER_OPERATION(sub_scaled_diag, dense::sub_scaled_diag);
-GKO_REGISTER_OPERATION(compute_dot, dense::compute_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_conj_dot, dense::compute_conj_dot_dispatch);
-GKO_REGISTER_OPERATION(compute_norm2, dense::compute_norm2_dispatch);
-GKO_REGISTER_OPERATION(compute_norm1, dense::compute_norm1);
-GKO_REGISTER_OPERATION(compute_mean, dense::compute_mean);
-GKO_REGISTER_OPERATION(compute_squared_norm2, dense::compute_squared_norm2);
-GKO_REGISTER_OPERATION(compute_sqrt, dense::compute_sqrt);
-GKO_REGISTER_OPERATION(compute_max_nnz_per_row, dense::compute_max_nnz_per_row);
+GKO_REGISTER_OPERATION(simple_apply, multivector::simple_apply);
+GKO_REGISTER_OPERATION(apply, multivector::apply);
+GKO_REGISTER_OPERATION(copy, multivector::copy);
+GKO_REGISTER_OPERATION(fill, multivector::fill);
+GKO_REGISTER_OPERATION(scale, multivector::scale);
+GKO_REGISTER_OPERATION(inv_scale, multivector::inv_scale);
+GKO_REGISTER_OPERATION(add_scaled, multivector::add_scaled);
+GKO_REGISTER_OPERATION(sub_scaled, multivector::sub_scaled);
+GKO_REGISTER_OPERATION(add_scaled_diag, multivector::add_scaled_diag);
+GKO_REGISTER_OPERATION(sub_scaled_diag, multivector::sub_scaled_diag);
+GKO_REGISTER_OPERATION(compute_dot, multivector::compute_dot_dispatch);
+GKO_REGISTER_OPERATION(compute_conj_dot,
+                       multivector::compute_conj_dot_dispatch);
+GKO_REGISTER_OPERATION(compute_norm2, multivector::compute_norm2_dispatch);
+GKO_REGISTER_OPERATION(compute_norm1, multivector::compute_norm1);
+GKO_REGISTER_OPERATION(compute_mean, multivector::compute_mean);
+GKO_REGISTER_OPERATION(compute_squared_norm2,
+                       multivector::compute_squared_norm2);
+GKO_REGISTER_OPERATION(compute_sqrt, multivector::compute_sqrt);
+GKO_REGISTER_OPERATION(compute_max_nnz_per_row,
+                       multivector::compute_max_nnz_per_row);
 GKO_REGISTER_OPERATION(compute_hybrid_coo_row_ptrs,
                        hybrid::compute_coo_row_ptrs);
-GKO_REGISTER_OPERATION(count_nonzeros_per_row, dense::count_nonzeros_per_row);
+GKO_REGISTER_OPERATION(count_nonzeros_per_row,
+                       multivector::count_nonzeros_per_row);
 GKO_REGISTER_OPERATION(count_nonzero_blocks_per_row,
-                       dense::count_nonzero_blocks_per_row);
+                       multivector::count_nonzero_blocks_per_row);
 GKO_REGISTER_OPERATION(prefix_sum_nonnegative,
                        components::prefix_sum_nonnegative);
-GKO_REGISTER_OPERATION(compute_slice_sets, dense::compute_slice_sets);
-GKO_REGISTER_OPERATION(transpose, dense::transpose);
-GKO_REGISTER_OPERATION(conj_transpose, dense::conj_transpose);
-GKO_REGISTER_OPERATION(symm_permute, dense::symm_permute);
-GKO_REGISTER_OPERATION(inv_symm_permute, dense::inv_symm_permute);
-GKO_REGISTER_OPERATION(nonsymm_permute, dense::nonsymm_permute);
-GKO_REGISTER_OPERATION(inv_nonsymm_permute, dense::inv_nonsymm_permute);
-GKO_REGISTER_OPERATION(row_gather, dense::row_gather);
-GKO_REGISTER_OPERATION(advanced_row_gather, dense::advanced_row_gather);
-GKO_REGISTER_OPERATION(scatter_add, dense::scatter_add);
-GKO_REGISTER_OPERATION(col_permute, dense::col_permute);
-GKO_REGISTER_OPERATION(inverse_row_permute, dense::inv_row_permute);
-GKO_REGISTER_OPERATION(inverse_col_permute, dense::inv_col_permute);
-GKO_REGISTER_OPERATION(symm_scale_permute, dense::symm_scale_permute);
-GKO_REGISTER_OPERATION(inv_symm_scale_permute, dense::inv_symm_scale_permute);
-GKO_REGISTER_OPERATION(nonsymm_scale_permute, dense::nonsymm_scale_permute);
+GKO_REGISTER_OPERATION(compute_slice_sets, multivector::compute_slice_sets);
+GKO_REGISTER_OPERATION(transpose, multivector::transpose);
+GKO_REGISTER_OPERATION(conj_transpose, multivector::conj_transpose);
+GKO_REGISTER_OPERATION(symm_permute, multivector::symm_permute);
+GKO_REGISTER_OPERATION(inv_symm_permute, multivector::inv_symm_permute);
+GKO_REGISTER_OPERATION(nonsymm_permute, multivector::nonsymm_permute);
+GKO_REGISTER_OPERATION(inv_nonsymm_permute, multivector::inv_nonsymm_permute);
+GKO_REGISTER_OPERATION(row_gather, multivector::row_gather);
+GKO_REGISTER_OPERATION(advanced_row_gather, multivector::advanced_row_gather);
+GKO_REGISTER_OPERATION(scatter_add, multivector::scatter_add);
+GKO_REGISTER_OPERATION(col_permute, multivector::col_permute);
+GKO_REGISTER_OPERATION(inverse_row_permute, multivector::inv_row_permute);
+GKO_REGISTER_OPERATION(inverse_col_permute, multivector::inv_col_permute);
+GKO_REGISTER_OPERATION(symm_scale_permute, multivector::symm_scale_permute);
+GKO_REGISTER_OPERATION(inv_symm_scale_permute,
+                       multivector::inv_symm_scale_permute);
+GKO_REGISTER_OPERATION(nonsymm_scale_permute,
+                       multivector::nonsymm_scale_permute);
 GKO_REGISTER_OPERATION(inv_nonsymm_scale_permute,
-                       dense::inv_nonsymm_scale_permute);
-GKO_REGISTER_OPERATION(row_scale_permute, dense::row_scale_permute);
-GKO_REGISTER_OPERATION(col_scale_permute, dense::col_scale_permute);
-GKO_REGISTER_OPERATION(inv_row_scale_permute, dense::inv_row_scale_permute);
-GKO_REGISTER_OPERATION(inv_col_scale_permute, dense::inv_col_scale_permute);
-GKO_REGISTER_OPERATION(fill_in_matrix_data, dense::fill_in_matrix_data);
-GKO_REGISTER_OPERATION(convert_to_coo, dense::convert_to_coo);
-GKO_REGISTER_OPERATION(convert_to_csr, dense::convert_to_csr);
-GKO_REGISTER_OPERATION(convert_to_ell, dense::convert_to_ell);
-GKO_REGISTER_OPERATION(convert_to_fbcsr, dense::convert_to_fbcsr);
-GKO_REGISTER_OPERATION(convert_to_hybrid, dense::convert_to_hybrid);
-GKO_REGISTER_OPERATION(convert_to_sellp, dense::convert_to_sellp);
-GKO_REGISTER_OPERATION(convert_to_sparsity_csr, dense::convert_to_sparsity_csr);
-GKO_REGISTER_OPERATION(extract_diagonal, dense::extract_diagonal);
-GKO_REGISTER_OPERATION(inplace_absolute_dense, dense::inplace_absolute_dense);
-GKO_REGISTER_OPERATION(outplace_absolute_dense, dense::outplace_absolute_dense);
-GKO_REGISTER_OPERATION(make_complex, dense::make_complex);
-GKO_REGISTER_OPERATION(get_real, dense::get_real);
-GKO_REGISTER_OPERATION(get_imag, dense::get_imag);
-GKO_REGISTER_OPERATION(add_scaled_identity, dense::add_scaled_identity);
+                       multivector::inv_nonsymm_scale_permute);
+GKO_REGISTER_OPERATION(row_scale_permute, multivector::row_scale_permute);
+GKO_REGISTER_OPERATION(col_scale_permute, multivector::col_scale_permute);
+GKO_REGISTER_OPERATION(inv_row_scale_permute,
+                       multivector::inv_row_scale_permute);
+GKO_REGISTER_OPERATION(inv_col_scale_permute,
+                       multivector::inv_col_scale_permute);
+GKO_REGISTER_OPERATION(fill_in_matrix_data, multivector::fill_in_matrix_data);
+GKO_REGISTER_OPERATION(convert_to_coo, multivector::convert_to_coo);
+GKO_REGISTER_OPERATION(convert_to_csr, multivector::convert_to_csr);
+GKO_REGISTER_OPERATION(convert_to_ell, multivector::convert_to_ell);
+GKO_REGISTER_OPERATION(convert_to_fbcsr, multivector::convert_to_fbcsr);
+GKO_REGISTER_OPERATION(convert_to_hybrid, multivector::convert_to_hybrid);
+GKO_REGISTER_OPERATION(convert_to_sellp, multivector::convert_to_sellp);
+GKO_REGISTER_OPERATION(convert_to_sparsity_csr,
+                       multivector::convert_to_sparsity_csr);
+GKO_REGISTER_OPERATION(extract_diagonal, multivector::extract_diagonal);
+GKO_REGISTER_OPERATION(inplace_absolute_dense,
+                       multivector::inplace_absolute_dense);
+GKO_REGISTER_OPERATION(outplace_absolute_dense,
+                       multivector::outplace_absolute_dense);
+GKO_REGISTER_OPERATION(make_complex, multivector::make_complex);
+GKO_REGISTER_OPERATION(get_real, multivector::get_real);
+GKO_REGISTER_OPERATION(get_imag, multivector::get_imag);
+GKO_REGISTER_OPERATION(add_scaled_identity, multivector::add_scaled_identity);
 
 
 }  // anonymous namespace
-}  // namespace dense
+}  // namespace multivector
 
 
 template <typename ValueType>
 validation::ValidationResult dense_matrix_values_are_finite(
-    const Dense<ValueType>* mtx)
+    const MultiVector<ValueType>* mtx)
 {
     if constexpr (std::is_integral<ValueType>::value) {
         return {true, ""};
@@ -136,7 +147,7 @@ validation::ValidationResult dense_matrix_values_are_finite(
 
 
 template <typename ValueType>
-void Dense<ValueType>::validate_data() const
+void MultiVector<ValueType>::validate_data() const
 {
     GKO_VALIDATE(dense_matrix_values_are_finite(this),
                  "matrix must contain only finite values");
@@ -144,11 +155,11 @@ void Dense<ValueType>::validate_data() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void MultiVector<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_b, auto dense_x) {
-            this->get_executor()->run(dense::make_simple_apply(
+            this->get_executor()->run(multivector::make_simple_apply(
                 this->get_const_device_view(), dense_b->get_const_device_view(),
                 dense_x->get_device_view()));
         },
@@ -157,12 +168,12 @@ void Dense<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                  const LinOp* beta, LinOp* x) const
+void MultiVector<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
+                                        const LinOp* beta, LinOp* x) const
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(dense::make_apply(
+            this->get_executor()->run(multivector::make_apply(
                 dense_alpha->get_const_device_view(),
                 this->get_const_device_view(), dense_b->get_const_device_view(),
                 dense_beta->get_const_device_view(),
@@ -173,14 +184,15 @@ void Dense<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::fill(const ValueType value)
+void MultiVector<ValueType>::fill(const ValueType value)
 {
-    this->get_executor()->run(dense::make_fill(this->get_device_view(), value));
+    this->get_executor()->run(
+        multivector::make_fill(this->get_device_view(), value));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale(ptr_param<const LinOp> alpha)
+void MultiVector<ValueType>::scale(ptr_param<const LinOp> alpha)
 {
     auto exec = this->get_executor();
     this->scale_impl(make_temporary_clone(exec, alpha).get());
@@ -188,7 +200,7 @@ void Dense<ValueType>::scale(ptr_param<const LinOp> alpha)
 
 
 template <typename ValueType>
-void Dense<ValueType>::inv_scale(ptr_param<const LinOp> alpha)
+void MultiVector<ValueType>::inv_scale(ptr_param<const LinOp> alpha)
 {
     auto exec = this->get_executor();
     this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
@@ -196,8 +208,8 @@ void Dense<ValueType>::inv_scale(ptr_param<const LinOp> alpha)
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
-                                  ptr_param<const LinOp> b)
+void MultiVector<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
+                                        ptr_param<const LinOp> b)
 {
     auto exec = this->get_executor();
     this->add_scaled_impl(make_temporary_clone(exec, alpha).get(),
@@ -206,8 +218,8 @@ void Dense<ValueType>::add_scaled(ptr_param<const LinOp> alpha,
 
 
 template <typename ValueType>
-void Dense<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
-                                  ptr_param<const LinOp> b)
+void MultiVector<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
+                                        ptr_param<const LinOp> b)
 {
     auto exec = this->get_executor();
     this->sub_scaled_impl(make_temporary_clone(exec, alpha).get(),
@@ -216,8 +228,8 @@ void Dense<ValueType>::sub_scaled(ptr_param<const LinOp> alpha,
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_dot(ptr_param<const LinOp> b,
-                                   ptr_param<LinOp> result) const
+void MultiVector<ValueType>::compute_dot(ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_dot_impl(make_temporary_clone(exec, b).get(),
@@ -226,8 +238,8 @@ void Dense<ValueType>::compute_dot(ptr_param<const LinOp> b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
-                                        ptr_param<LinOp> result) const
+void MultiVector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
+                                              ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_conj_dot_impl(
@@ -237,7 +249,7 @@ void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result) const
+void MultiVector<ValueType>::compute_norm2(ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_norm2_impl(make_temporary_output_clone(exec, result).get());
@@ -245,7 +257,7 @@ void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result) const
+void MultiVector<ValueType>::compute_norm1(ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_norm1_impl(make_temporary_output_clone(exec, result).get());
@@ -253,7 +265,8 @@ void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result) const
+void MultiVector<ValueType>::compute_squared_norm2(
+    ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_squared_norm2_impl(
@@ -262,7 +275,7 @@ void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::inv_scale_impl(const LinOp* alpha)
+void MultiVector<ValueType>::inv_scale_impl(const LinOp* alpha)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
     if (alpha->get_size()[1] != 1) {
@@ -271,10 +284,39 @@ void Dense<ValueType>::inv_scale_impl(const LinOp* alpha)
     }
     auto exec = this->get_executor();
     // if alpha is real (convertible to real) and ValueType complex
-    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
+    if (dynamic_cast<const ConvertibleTo<MultiVector<>>*>(alpha) &&
         is_complex<ValueType>()) {
         // use the real-complex kernel
-        exec->run(dense::make_inv_scale(
+        exec->run(multivector::make_inv_scale(
+            make_temporary_conversion<remove_complex<ValueType>>(alpha)
+                ->get_const_device_view(),
+            dynamic_cast<complex_type*>(this)->get_device_view()));
+        // this last cast is a no-op for complex value type and the branch is
+        // never taken for real value type
+    } else {
+        // otherwise: use the normal kernel
+        exec->run(multivector::make_inv_scale(
+            make_temporary_conversion<ValueType>(alpha)
+                ->get_const_device_view(),
+            this->get_device_view()));
+    }
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::scale_impl(const LinOp* alpha)
+{
+    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
+    if (alpha->get_size()[1] != 1) {
+        // different alpha for each column
+        GKO_ASSERT_EQUAL_COLS(this, alpha);
+    }
+    auto exec = this->get_executor();
+    // if alpha is real (convertible to real) and ValueType complex
+    if (dynamic_cast<const ConvertibleTo<MultiVector<>>*>(alpha) &&
+        is_complex<ValueType>()) {
+        // use the real-complex kernel
+        exec->run(multivector::make_scale(
             make_temporary_conversion<remove_complex<ValueType>>(alpha)
                 ->get_const_device_view(),
             dynamic_cast<complex_type*>(this)->get_device_view()));
@@ -283,35 +325,7 @@ void Dense<ValueType>::inv_scale_impl(const LinOp* alpha)
     } else {
         // otherwise: use the normal kernel
         exec->run(
-            dense::make_inv_scale(make_temporary_conversion<ValueType>(alpha)
-                                      ->get_const_device_view(),
-                                  this->get_device_view()));
-    }
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::scale_impl(const LinOp* alpha)
-{
-    GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
-    if (alpha->get_size()[1] != 1) {
-        // different alpha for each column
-        GKO_ASSERT_EQUAL_COLS(this, alpha);
-    }
-    auto exec = this->get_executor();
-    // if alpha is real (convertible to real) and ValueType complex
-    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
-        is_complex<ValueType>()) {
-        // use the real-complex kernel
-        exec->run(dense::make_scale(
-            make_temporary_conversion<remove_complex<ValueType>>(alpha)
-                ->get_const_device_view(),
-            dynamic_cast<complex_type*>(this)->get_device_view()));
-        // this last cast is a no-op for complex value type and the branch is
-        // never taken for real value type
-    } else {
-        // otherwise: use the normal kernel
-        exec->run(dense::make_scale(make_temporary_conversion<ValueType>(alpha)
+            multivector::make_scale(make_temporary_conversion<ValueType>(alpha)
                                         ->get_const_device_view(),
                                     this->get_device_view()));
     }
@@ -319,7 +333,7 @@ void Dense<ValueType>::scale_impl(const LinOp* alpha)
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
+void MultiVector<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
     if (alpha->get_size()[1] != 1) {
@@ -330,9 +344,9 @@ void Dense<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
     auto exec = this->get_executor();
 
     // if alpha is real and value type complex
-    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
+    if (dynamic_cast<const ConvertibleTo<MultiVector<>>*>(alpha) &&
         is_complex<ValueType>()) {
-        exec->run(dense::make_add_scaled(
+        exec->run(multivector::make_add_scaled(
             make_temporary_conversion<remove_complex<ValueType>>(alpha)
                 ->get_const_device_view(),
             make_temporary_conversion<to_complex<ValueType>>(b)
@@ -340,13 +354,13 @@ void Dense<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
             dynamic_cast<complex_type*>(this)->get_device_view()));
     } else {
         if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
-            exec->run(dense::make_add_scaled_diag(
+            exec->run(multivector::make_add_scaled_diag(
                 make_temporary_conversion<ValueType>(alpha)
                     ->get_const_device_view(),
                 dynamic_cast<const Diagonal<ValueType>*>(b),
                 this->get_device_view()));
         } else {
-            exec->run(dense::make_add_scaled(
+            exec->run(multivector::make_add_scaled(
                 make_temporary_conversion<ValueType>(alpha)
                     ->get_const_device_view(),
                 make_temporary_conversion<ValueType>(b)
@@ -358,7 +372,7 @@ void Dense<ValueType>::add_scaled_impl(const LinOp* alpha, const LinOp* b)
 
 
 template <typename ValueType>
-void Dense<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
+void MultiVector<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
 {
     GKO_ASSERT_EQUAL_ROWS(alpha, dim<2>(1, 1));
     if (alpha->get_size()[1] != 1) {
@@ -368,9 +382,9 @@ void Dense<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     auto exec = this->get_executor();
 
-    if (dynamic_cast<const ConvertibleTo<Dense<>>*>(alpha) &&
+    if (dynamic_cast<const ConvertibleTo<MultiVector<>>*>(alpha) &&
         is_complex<ValueType>()) {
-        exec->run(dense::make_sub_scaled(
+        exec->run(multivector::make_sub_scaled(
             make_temporary_conversion<remove_complex<ValueType>>(alpha)
                 ->get_const_device_view(),
             make_temporary_conversion<to_complex<ValueType>>(b)
@@ -378,13 +392,13 @@ void Dense<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
             dynamic_cast<complex_type*>(this)->get_device_view()));
     } else {
         if (dynamic_cast<const Diagonal<ValueType>*>(b)) {
-            exec->run(dense::make_sub_scaled_diag(
+            exec->run(multivector::make_sub_scaled_diag(
                 make_temporary_conversion<ValueType>(alpha)
                     ->get_const_device_view(),
                 dynamic_cast<const Diagonal<ValueType>*>(b),
                 this->get_device_view()));
         } else {
-            exec->run(dense::make_sub_scaled(
+            exec->run(multivector::make_sub_scaled(
                 make_temporary_conversion<ValueType>(alpha)
                     ->get_const_device_view(),
                 make_temporary_conversion<ValueType>(b)
@@ -396,9 +410,9 @@ void Dense<ValueType>::sub_scaled_impl(const LinOp* alpha, const LinOp* b)
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_dot(ptr_param<const LinOp> b,
-                                   ptr_param<LinOp> result,
-                                   array<char>& tmp) const
+void MultiVector<ValueType>::compute_dot(ptr_param<const LinOp> b,
+                                         ptr_param<LinOp> result,
+                                         array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -411,14 +425,15 @@ void Dense<ValueType>::compute_dot(ptr_param<const LinOp> b,
     auto local_res = make_temporary_clone(exec, result);
     auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
     auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
-    exec->run(dense::make_compute_dot(this->get_const_device_view(),
-                                      dense_b->get_const_device_view(),
-                                      dense_res->get_device_view(), tmp));
+    exec->run(multivector::make_compute_dot(this->get_const_device_view(),
+                                            dense_b->get_const_device_view(),
+                                            dense_res->get_device_view(), tmp));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_dot_impl(const LinOp* b, LinOp* result) const
+void MultiVector<ValueType>::compute_dot_impl(const LinOp* b,
+                                              LinOp* result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -426,16 +441,16 @@ void Dense<ValueType>::compute_dot_impl(const LinOp* b, LinOp* result) const
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
     array<char> tmp{exec};
-    exec->run(dense::make_compute_dot(this->get_const_device_view(),
-                                      dense_b->get_const_device_view(),
-                                      dense_res->get_device_view(), tmp));
+    exec->run(multivector::make_compute_dot(this->get_const_device_view(),
+                                            dense_b->get_const_device_view(),
+                                            dense_res->get_device_view(), tmp));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
-                                        ptr_param<LinOp> result,
-                                        array<char>& tmp) const
+void MultiVector<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
+                                              ptr_param<LinOp> result,
+                                              array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -448,15 +463,15 @@ void Dense<ValueType>::compute_conj_dot(ptr_param<const LinOp> b,
     auto local_res = make_temporary_clone(exec, result);
     auto dense_b = make_temporary_conversion<ValueType>(local_b.get());
     auto dense_res = make_temporary_conversion<ValueType>(local_res.get());
-    exec->run(dense::make_compute_conj_dot(this->get_const_device_view(),
-                                           dense_b->get_const_device_view(),
-                                           dense_res->get_device_view(), tmp));
+    exec->run(multivector::make_compute_conj_dot(
+        this->get_const_device_view(), dense_b->get_const_device_view(),
+        dense_res->get_device_view(), tmp));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_conj_dot_impl(const LinOp* b,
-                                             LinOp* result) const
+void MultiVector<ValueType>::compute_conj_dot_impl(const LinOp* b,
+                                                   LinOp* result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, b);
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
@@ -464,15 +479,15 @@ void Dense<ValueType>::compute_conj_dot_impl(const LinOp* b,
     auto dense_b = make_temporary_conversion<ValueType>(b);
     auto dense_res = make_temporary_conversion<ValueType>(result);
     array<char> tmp{exec};
-    exec->run(dense::make_compute_conj_dot(this->get_const_device_view(),
-                                           dense_b->get_const_device_view(),
-                                           dense_res->get_device_view(), tmp));
+    exec->run(multivector::make_compute_conj_dot(
+        this->get_const_device_view(), dense_b->get_const_device_view(),
+        dense_res->get_device_view(), tmp));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result,
-                                     array<char>& tmp) const
+void MultiVector<ValueType>::compute_norm2(ptr_param<LinOp> result,
+                                           array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
     auto exec = this->get_executor();
@@ -483,75 +498,75 @@ void Dense<ValueType>::compute_norm2(ptr_param<LinOp> result,
     auto local_result = make_temporary_clone(exec, result);
     auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
         local_result.get());
-    exec->run(dense::make_compute_norm2(this->get_const_device_view(),
-                                        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm2_impl(LinOp* result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    auto dense_res =
-        make_temporary_conversion<remove_complex<ValueType>>(result);
-    array<char> tmp{exec};
-    exec->run(dense::make_compute_norm2(this->get_const_device_view(),
-                                        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm1(ptr_param<LinOp> result,
-                                     array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_result = make_temporary_clone(exec, result);
-    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
-        local_result.get());
-    exec->run(dense::make_compute_norm1(this->get_const_device_view(),
-                                        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_norm1_impl(LinOp* result) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    auto dense_res =
-        make_temporary_conversion<remove_complex<ValueType>>(result);
-    array<char> tmp{exec};
-    exec->run(dense::make_compute_norm1(this->get_const_device_view(),
-                                        dense_res->get_device_view(), tmp));
-}
-
-
-template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
-                                             array<char>& tmp) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
-    auto exec = this->get_executor();
-    if (tmp.get_executor() != exec) {
-        tmp.clear();
-        tmp.set_executor(exec);
-    }
-    auto local_result = make_temporary_clone(exec, result);
-    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
-        local_result.get());
-    exec->run(dense::make_compute_squared_norm2(
+    exec->run(multivector::make_compute_norm2(
         this->get_const_device_view(), dense_res->get_device_view(), tmp));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_mean(ptr_param<LinOp> result) const
+void MultiVector<ValueType>::compute_norm2_impl(LinOp* result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto dense_res =
+        make_temporary_conversion<remove_complex<ValueType>>(result);
+    array<char> tmp{exec};
+    exec->run(multivector::make_compute_norm2(
+        this->get_const_device_view(), dense_res->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_norm1(ptr_param<LinOp> result,
+                                           array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_result = make_temporary_clone(exec, result);
+    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
+        local_result.get());
+    exec->run(multivector::make_compute_norm1(
+        this->get_const_device_view(), dense_res->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_norm1_impl(LinOp* result) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    auto dense_res =
+        make_temporary_conversion<remove_complex<ValueType>>(result);
+    array<char> tmp{exec};
+    exec->run(multivector::make_compute_norm1(
+        this->get_const_device_view(), dense_res->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_squared_norm2(ptr_param<LinOp> result,
+                                                   array<char>& tmp) const
+{
+    GKO_ASSERT_EQUAL_DIMENSIONS(result, dim<2>(1, this->get_size()[1]));
+    auto exec = this->get_executor();
+    if (tmp.get_executor() != exec) {
+        tmp.clear();
+        tmp.set_executor(exec);
+    }
+    auto local_result = make_temporary_clone(exec, result);
+    auto dense_res = make_temporary_conversion<remove_complex<ValueType>>(
+        local_result.get());
+    exec->run(multivector::make_compute_squared_norm2(
+        this->get_const_device_view(), dense_res->get_device_view(), tmp));
+}
+
+
+template <typename ValueType>
+void MultiVector<ValueType>::compute_mean(ptr_param<LinOp> result) const
 {
     auto exec = this->get_executor();
     this->compute_mean_impl(make_temporary_output_clone(exec, result).get());
@@ -559,8 +574,8 @@ void Dense<ValueType>::compute_mean(ptr_param<LinOp> result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_mean(ptr_param<LinOp> result,
-                                    array<char>& tmp) const
+void MultiVector<ValueType>::compute_mean(ptr_param<LinOp> result,
+                                          array<char>& tmp) const
 {
     GKO_ASSERT_EQUAL_COLS(result, this);
     auto exec = this->get_executor();
@@ -569,13 +584,13 @@ void Dense<ValueType>::compute_mean(ptr_param<LinOp> result,
         tmp.set_executor(exec);
     }
     auto dense_res = make_temporary_conversion<ValueType>(result);
-    exec->run(dense::make_compute_mean(this->get_const_device_view(),
-                                       dense_res->get_device_view(), tmp));
+    exec->run(multivector::make_compute_mean(
+        this->get_const_device_view(), dense_res->get_device_view(), tmp));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_squared_norm2_impl(LinOp* result) const
+void MultiVector<ValueType>::compute_squared_norm2_impl(LinOp* result) const
 {
     auto exec = this->get_executor();
     array<char> tmp{exec};
@@ -585,7 +600,7 @@ void Dense<ValueType>::compute_squared_norm2_impl(LinOp* result) const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_mean_impl(LinOp* result) const
+void MultiVector<ValueType>::compute_mean_impl(LinOp* result) const
 {
     auto exec = this->get_executor();
     array<char> tmp{exec};
@@ -594,7 +609,8 @@ void Dense<ValueType>::compute_mean_impl(LinOp* result) const
 
 
 template <typename ValueType>
-Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
+MultiVector<ValueType>& MultiVector<ValueType>::operator=(
+    const MultiVector& other)
 {
     if (&other != this) {
         auto old_size = this->get_size();
@@ -612,19 +628,20 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
         // create a (value, not pointer to avoid allocation overhead) view
         // matrix on the array to avoid special-casing cross-executor copies
         auto exec_this_view =
-            Dense{exec, this->get_size(),
-                  make_array_view(exec, exec_values_array->get_size(),
-                                  exec_values_array->get_data()),
-                  this->get_stride()};
-        exec->run(dense::make_copy(other.get_const_device_view(),
-                                   exec_this_view.get_device_view()));
+            MultiVector{exec, this->get_size(),
+                        make_array_view(exec, exec_values_array->get_size(),
+                                        exec_values_array->get_data()),
+                        this->get_stride()};
+        exec->run(multivector::make_copy(other.get_const_device_view(),
+                                         exec_this_view.get_device_view()));
     }
     return *this;
 }
 
 
 template <typename ValueType>
-Dense<ValueType>& Dense<ValueType>::operator=(Dense<ValueType>&& other)
+MultiVector<ValueType>& MultiVector<ValueType>::operator=(
+    MultiVector<ValueType>&& other)
 {
     if (&other != this) {
         LinOp::operator=(std::move(other));
@@ -636,23 +653,24 @@ Dense<ValueType>& Dense<ValueType>::operator=(Dense<ValueType>&& other)
 
 
 template <typename ValueType>
-Dense<ValueType>::Dense(const Dense<ValueType>& other)
-    : Dense(other.get_executor())
+MultiVector<ValueType>::MultiVector(const MultiVector<ValueType>& other)
+    : MultiVector(other.get_executor())
 {
     *this = other;
 }
 
 
 template <typename ValueType>
-Dense<ValueType>::Dense(Dense<ValueType>&& other) : Dense(other.get_executor())
+MultiVector<ValueType>::MultiVector(MultiVector<ValueType>&& other)
+    : MultiVector(other.get_executor())
 {
     *this = std::move(other);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(
-    Dense<next_precision<ValueType>>* result) const
+void MultiVector<ValueType>::convert_to(
+    MultiVector<next_precision<ValueType>>* result) const
 {
     if (result->get_size() != this->get_size()) {
         result->set_size(this->get_size());
@@ -661,14 +679,15 @@ void Dense<ValueType>::convert_to(
                                          result->stride_);
     }
     auto exec = this->get_executor();
-    exec->run(dense::make_copy(
+    exec->run(multivector::make_copy(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
+void MultiVector<ValueType>::move_to(
+    MultiVector<next_precision<ValueType>>* result)
 {
     this->convert_to(result);
 }
@@ -676,8 +695,8 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType>>* result)
 
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
-void Dense<ValueType>::convert_to(
-    Dense<next_precision<ValueType, 2>>* result) const
+void MultiVector<ValueType>::convert_to(
+    MultiVector<next_precision<ValueType, 2>>* result) const
 {
     if (result->get_size() != this->get_size()) {
         result->set_size(this->get_size());
@@ -686,14 +705,15 @@ void Dense<ValueType>::convert_to(
                                          result->stride_);
     }
     auto exec = this->get_executor();
-    exec->run(dense::make_copy(
+    exec->run(multivector::make_copy(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Dense<next_precision<ValueType, 2>>* result)
+void MultiVector<ValueType>::move_to(
+    MultiVector<next_precision<ValueType, 2>>* result)
 {
     this->convert_to(result);
 }
@@ -702,8 +722,8 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType, 2>>* result)
 
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
 template <typename ValueType>
-void Dense<ValueType>::convert_to(
-    Dense<next_precision<ValueType, 3>>* result) const
+void MultiVector<ValueType>::convert_to(
+    MultiVector<next_precision<ValueType, 3>>* result) const
 {
     if (result->get_size() != this->get_size()) {
         result->set_size(this->get_size());
@@ -712,14 +732,15 @@ void Dense<ValueType>::convert_to(
                                          result->stride_);
     }
     auto exec = this->get_executor();
-    exec->run(dense::make_copy(
+    exec->run(multivector::make_copy(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Dense<next_precision<ValueType, 3>>* result)
+void MultiVector<ValueType>::move_to(
+    MultiVector<next_precision<ValueType, 3>>* result)
 {
     this->convert_to(result);
 }
@@ -728,47 +749,48 @@ void Dense<ValueType>::move_to(Dense<next_precision<ValueType, 3>>* result)
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::convert_impl(Coo<ValueType, IndexType>* result) const
+void MultiVector<ValueType>::convert_impl(
+    Coo<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     const auto num_rows = this->get_size()[0];
 
     array<int64> row_ptrs{exec, num_rows + 1};
-    exec->run(dense::make_count_nonzeros_per_row(this->get_const_device_view(),
-                                                 row_ptrs.get_data()));
-    exec->run(
-        dense::make_prefix_sum_nonnegative(row_ptrs.get_data(), num_rows + 1));
+    exec->run(multivector::make_count_nonzeros_per_row(
+        this->get_const_device_view(), row_ptrs.get_data()));
+    exec->run(multivector::make_prefix_sum_nonnegative(row_ptrs.get_data(),
+                                                       num_rows + 1));
     const auto nnz = get_element(row_ptrs, num_rows);
     result->resize(this->get_size(), nnz);
-    exec->run(dense::make_convert_to_coo(
+    exec->run(multivector::make_convert_to_coo(
         this->get_const_device_view(), row_ptrs.get_const_data(),
         make_temporary_clone(exec, result)->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Coo<ValueType, int32>* result) const
+void MultiVector<ValueType>::convert_to(Coo<ValueType, int32>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Coo<ValueType, int32>* result)
+void MultiVector<ValueType>::move_to(Coo<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Coo<ValueType, int64>* result) const
+void MultiVector<ValueType>::convert_to(Coo<ValueType, int64>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Coo<ValueType, int64>* result)
+void MultiVector<ValueType>::move_to(Coo<ValueType, int64>* result)
 {
     this->convert_to(result);
 }
@@ -776,52 +798,53 @@ void Dense<ValueType>::move_to(Coo<ValueType, int64>* result)
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::convert_impl(Csr<ValueType, IndexType>* result) const
+void MultiVector<ValueType>::convert_impl(
+    Csr<ValueType, IndexType>* result) const
 {
     {
         auto exec = this->get_executor();
         const auto num_rows = this->get_size()[0];
         auto tmp = make_temporary_clone(exec, result);
         tmp->row_ptrs_.resize_and_reset(num_rows + 1);
-        exec->run(dense::make_count_nonzeros_per_row(
+        exec->run(multivector::make_count_nonzeros_per_row(
             this->get_const_device_view(), tmp->get_row_ptrs()));
-        exec->run(dense::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
-                                                     num_rows + 1));
+        exec->run(multivector::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
+                                                           num_rows + 1));
         const auto nnz =
             exec->copy_val_to_host(tmp->get_const_row_ptrs() + num_rows);
         tmp->col_idxs_.resize_and_reset(nnz);
         tmp->values_.resize_and_reset(nnz);
         tmp->set_size(this->get_size());
-        exec->run(dense::make_convert_to_csr(this->get_const_device_view(),
-                                             tmp->get_device_view()));
+        exec->run(multivector::make_convert_to_csr(
+            this->get_const_device_view(), tmp->get_device_view()));
     }
     result->make_srow();
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Csr<ValueType, int32>* result) const
+void MultiVector<ValueType>::convert_to(Csr<ValueType, int32>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Csr<ValueType, int32>* result)
+void MultiVector<ValueType>::move_to(Csr<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Csr<ValueType, int64>* result) const
+void MultiVector<ValueType>::convert_to(Csr<ValueType, int64>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Csr<ValueType, int64>* result)
+void MultiVector<ValueType>::move_to(Csr<ValueType, int64>* result)
 {
     this->convert_to(result);
 }
@@ -829,7 +852,8 @@ void Dense<ValueType>::move_to(Csr<ValueType, int64>* result)
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::convert_impl(Fbcsr<ValueType, IndexType>* result) const
+void MultiVector<ValueType>::convert_impl(
+    Fbcsr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     const auto bs = result->get_block_size();
@@ -837,44 +861,44 @@ void Dense<ValueType>::convert_impl(Fbcsr<ValueType, IndexType>* result) const
     const auto col_blocks = detail::get_num_blocks(bs, this->get_size()[1]);
     auto tmp = make_temporary_clone(exec, result);
     tmp->row_ptrs_.resize_and_reset(row_blocks + 1);
-    exec->run(dense::make_count_nonzero_blocks_per_row(
+    exec->run(multivector::make_count_nonzero_blocks_per_row(
         this->get_const_device_view(), bs, tmp->get_row_ptrs()));
-    exec->run(dense::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
-                                                 row_blocks + 1));
+    exec->run(multivector::make_prefix_sum_nonnegative(tmp->get_row_ptrs(),
+                                                       row_blocks + 1));
     const auto nnz_blocks =
         exec->copy_val_to_host(tmp->get_const_row_ptrs() + row_blocks);
     tmp->col_idxs_.resize_and_reset(nnz_blocks);
     tmp->values_.resize_and_reset(nnz_blocks * bs * bs);
     tmp->values_.fill(zero<ValueType>());
     tmp->set_size(this->get_size());
-    exec->run(
-        dense::make_convert_to_fbcsr(this->get_const_device_view(), tmp.get()));
+    exec->run(multivector::make_convert_to_fbcsr(this->get_const_device_view(),
+                                                 tmp.get()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Fbcsr<ValueType, int32>* result) const
+void MultiVector<ValueType>::convert_to(Fbcsr<ValueType, int32>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Fbcsr<ValueType, int32>* result)
+void MultiVector<ValueType>::move_to(Fbcsr<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Fbcsr<ValueType, int64>* result) const
+void MultiVector<ValueType>::convert_to(Fbcsr<ValueType, int64>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Fbcsr<ValueType, int64>* result)
+void MultiVector<ValueType>::move_to(Fbcsr<ValueType, int64>* result)
 {
     this->convert_to(result);
 }
@@ -882,42 +906,43 @@ void Dense<ValueType>::move_to(Fbcsr<ValueType, int64>* result)
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::convert_impl(Ell<ValueType, IndexType>* result) const
+void MultiVector<ValueType>::convert_impl(
+    Ell<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     size_type num_stored_elements_per_row{};
-    exec->run(dense::make_compute_max_nnz_per_row(this->get_const_device_view(),
-                                                  num_stored_elements_per_row));
+    exec->run(multivector::make_compute_max_nnz_per_row(
+        this->get_const_device_view(), num_stored_elements_per_row));
     result->resize(this->get_size(), num_stored_elements_per_row);
-    exec->run(dense::make_convert_to_ell(
+    exec->run(multivector::make_convert_to_ell(
         this->get_const_device_view(),
         make_temporary_clone(exec, result)->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Ell<ValueType, int32>* result) const
+void MultiVector<ValueType>::convert_to(Ell<ValueType, int32>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Ell<ValueType, int32>* result)
+void MultiVector<ValueType>::move_to(Ell<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Ell<ValueType, int64>* result) const
+void MultiVector<ValueType>::convert_to(Ell<ValueType, int64>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Ell<ValueType, int64>* result)
+void MultiVector<ValueType>::move_to(Ell<ValueType, int64>* result)
 {
     this->convert_to(result);
 }
@@ -925,15 +950,16 @@ void Dense<ValueType>::move_to(Ell<ValueType, int64>* result)
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::convert_impl(Hybrid<ValueType, IndexType>* result) const
+void MultiVector<ValueType>::convert_impl(
+    Hybrid<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     const auto num_rows = this->get_size()[0];
     const auto num_cols = this->get_size()[1];
     array<size_type> row_nnz{exec, num_rows};
     array<int64> coo_row_ptrs{exec, num_rows + 1};
-    exec->run(dense::make_count_nonzeros_per_row(this->get_const_device_view(),
-                                                 row_nnz.get_data()));
+    exec->run(multivector::make_count_nonzeros_per_row(
+        this->get_const_device_view(), row_nnz.get_data()));
     size_type ell_lim{};
     size_type coo_nnz{};
     result->get_strategy()->compute_hybrid_config(row_nnz, &ell_lim, &coo_nnz);
@@ -941,40 +967,40 @@ void Dense<ValueType>::convert_impl(Hybrid<ValueType, IndexType>* result) const
         // TODO remove temporary fix after ELL gains true structural zeros
         ell_lim = num_cols;
     }
-    exec->run(dense::make_compute_hybrid_coo_row_ptrs(row_nnz, ell_lim,
-                                                      coo_row_ptrs.get_data()));
+    exec->run(multivector::make_compute_hybrid_coo_row_ptrs(
+        row_nnz, ell_lim, coo_row_ptrs.get_data()));
     coo_nnz = get_element(coo_row_ptrs, num_rows);
     auto tmp = make_temporary_clone(exec, result);
     tmp->resize(this->get_size(), ell_lim, coo_nnz);
-    exec->run(dense::make_convert_to_hybrid(this->get_const_device_view(),
-                                            coo_row_ptrs.get_const_data(),
-                                            tmp->get_device_view()));
+    exec->run(multivector::make_convert_to_hybrid(this->get_const_device_view(),
+                                                  coo_row_ptrs.get_const_data(),
+                                                  tmp->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Hybrid<ValueType, int32>* result) const
+void MultiVector<ValueType>::convert_to(Hybrid<ValueType, int32>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Hybrid<ValueType, int32>* result)
+void MultiVector<ValueType>::move_to(Hybrid<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Hybrid<ValueType, int64>* result) const
+void MultiVector<ValueType>::convert_to(Hybrid<ValueType, int64>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Hybrid<ValueType, int64>* result)
+void MultiVector<ValueType>::move_to(Hybrid<ValueType, int64>* result)
 {
     this->convert_to(result);
 }
@@ -982,7 +1008,8 @@ void Dense<ValueType>::move_to(Hybrid<ValueType, int64>* result)
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::convert_impl(Sellp<ValueType, IndexType>* result) const
+void MultiVector<ValueType>::convert_impl(
+    Sellp<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     const auto num_rows = this->get_size()[0];
@@ -994,7 +1021,7 @@ void Dense<ValueType>::convert_impl(Sellp<ValueType, IndexType>* result) const
     tmp->slice_size_ = slice_size;
     tmp->slice_sets_.resize_and_reset(num_slices + 1);
     tmp->slice_lengths_.resize_and_reset(num_slices);
-    exec->run(dense::make_compute_slice_sets(
+    exec->run(multivector::make_compute_slice_sets(
         this->get_const_device_view(), slice_size, stride_factor,
         tmp->get_slice_sets(), tmp->get_slice_lengths()));
     auto total_cols =
@@ -1002,34 +1029,34 @@ void Dense<ValueType>::convert_impl(Sellp<ValueType, IndexType>* result) const
     tmp->col_idxs_.resize_and_reset(total_cols * slice_size);
     tmp->values_.resize_and_reset(total_cols * slice_size);
     tmp->set_size(this->get_size());
-    exec->run(dense::make_convert_to_sellp(this->get_const_device_view(),
-                                           tmp->get_device_view()));
+    exec->run(multivector::make_convert_to_sellp(this->get_const_device_view(),
+                                                 tmp->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Sellp<ValueType, int32>* result) const
+void MultiVector<ValueType>::convert_to(Sellp<ValueType, int32>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Sellp<ValueType, int32>* result)
+void MultiVector<ValueType>::move_to(Sellp<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(Sellp<ValueType, int64>* result) const
+void MultiVector<ValueType>::convert_to(Sellp<ValueType, int64>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(Sellp<ValueType, int64>* result)
+void MultiVector<ValueType>::move_to(Sellp<ValueType, int64>* result)
 {
     this->convert_to(result);
 }
@@ -1037,56 +1064,58 @@ void Dense<ValueType>::move_to(Sellp<ValueType, int64>* result)
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::convert_impl(
+void MultiVector<ValueType>::convert_impl(
     SparsityCsr<ValueType, IndexType>* result) const
 {
     auto exec = this->get_executor();
     const auto num_rows = this->get_size()[0];
     auto tmp = make_temporary_clone(exec, result);
     tmp->row_ptrs_.resize_and_reset(num_rows + 1);
-    exec->run(dense::make_count_nonzeros_per_row(this->get_const_device_view(),
-                                                 tmp->row_ptrs_.get_data()));
-    exec->run(dense::make_prefix_sum_nonnegative(tmp->row_ptrs_.get_data(),
-                                                 num_rows + 1));
+    exec->run(multivector::make_count_nonzeros_per_row(
+        this->get_const_device_view(), tmp->row_ptrs_.get_data()));
+    exec->run(multivector::make_prefix_sum_nonnegative(
+        tmp->row_ptrs_.get_data(), num_rows + 1));
     const auto nnz = get_element(tmp->row_ptrs_, num_rows);
     tmp->col_idxs_.resize_and_reset(nnz);
     tmp->value_.fill(one<ValueType>());
     tmp->set_size(this->get_size());
-    exec->run(dense::make_convert_to_sparsity_csr(this->get_const_device_view(),
-                                                  tmp.get()));
+    exec->run(multivector::make_convert_to_sparsity_csr(
+        this->get_const_device_view(), tmp.get()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int32>* result) const
+void MultiVector<ValueType>::convert_to(
+    SparsityCsr<ValueType, int32>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(SparsityCsr<ValueType, int32>* result)
+void MultiVector<ValueType>::move_to(SparsityCsr<ValueType, int32>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::convert_to(SparsityCsr<ValueType, int64>* result) const
+void MultiVector<ValueType>::convert_to(
+    SparsityCsr<ValueType, int64>* result) const
 {
     this->convert_impl(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::move_to(SparsityCsr<ValueType, int64>* result)
+void MultiVector<ValueType>::move_to(SparsityCsr<ValueType, int64>* result)
 {
     this->convert_to(result);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::resize(gko::dim<2> new_size)
+void MultiVector<ValueType>::resize(gko::dim<2> new_size)
 {
     if (this->get_size() != new_size) {
         this->set_size(new_size);
@@ -1097,29 +1126,29 @@ void Dense<ValueType>::resize(gko::dim<2> new_size)
 
 
 template <typename ValueType>
-void Dense<ValueType>::read(const device_mat_data& data)
+void MultiVector<ValueType>::read(const device_mat_data64& data)
 {
     auto exec = this->get_executor();
     this->resize(data.get_size());
     this->fill(zero<ValueType>());
-    exec->run(dense::make_fill_in_matrix_data(
+    exec->run(multivector::make_fill_in_matrix_data(
         *make_temporary_clone(exec, &data), this->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::read(const device_mat_data32& data)
+void MultiVector<ValueType>::read(const device_mat_data32& data)
 {
     auto exec = this->get_executor();
     this->resize(data.get_size());
     this->fill(zero<ValueType>());
-    exec->run(dense::make_fill_in_matrix_data(
+    exec->run(multivector::make_fill_in_matrix_data(
         *make_temporary_clone(exec, &data), this->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::read(device_mat_data&& data)
+void MultiVector<ValueType>::read(device_mat_data64&& data)
 {
     this->read(data);
     data.empty_out();
@@ -1127,7 +1156,7 @@ void Dense<ValueType>::read(device_mat_data&& data)
 
 
 template <typename ValueType>
-void Dense<ValueType>::read(device_mat_data32&& data)
+void MultiVector<ValueType>::read(device_mat_data32&& data)
 {
     this->read(data);
     data.empty_out();
@@ -1135,14 +1164,14 @@ void Dense<ValueType>::read(device_mat_data32&& data)
 
 
 template <typename ValueType>
-void Dense<ValueType>::read(const mat_data& data)
+void MultiVector<ValueType>::read(const mat_data64& data)
 {
-    this->read(device_mat_data::create_from_host(this->get_executor(), data));
+    this->read(device_mat_data64::create_from_host(this->get_executor(), data));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::read(const mat_data32& data)
+void MultiVector<ValueType>::read(const mat_data32& data)
 {
     this->read(device_mat_data32::create_from_host(this->get_executor(), data));
 }
@@ -1172,56 +1201,58 @@ inline void write_impl(const MatrixType* mtx, MatrixData& data)
 
 
 template <typename ValueType>
-void Dense<ValueType>::write(mat_data& data) const
+void MultiVector<ValueType>::write(mat_data64& data) const
 {
     write_impl(this, data);
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::write(mat_data32& data) const
+void MultiVector<ValueType>::write(mat_data32& data) const
 {
     write_impl(this, data);
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::transpose() const
+std::unique_ptr<LinOp> MultiVector<ValueType>::transpose() const
 {
-    auto result =
-        Dense::create(this->get_executor(), gko::transpose(this->get_size()));
+    auto result = MultiVector::create(this->get_executor(),
+                                      gko::transpose(this->get_size()));
     this->transpose(result);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::conj_transpose() const
+std::unique_ptr<LinOp> MultiVector<ValueType>::conj_transpose() const
 {
-    auto result =
-        Dense::create(this->get_executor(), gko::transpose(this->get_size()));
+    auto result = MultiVector::create(this->get_executor(),
+                                      gko::transpose(this->get_size()));
     this->conj_transpose(result);
     return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::transpose(ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::transpose(
+    ptr_param<MultiVector<ValueType>> output) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
-    exec->run(dense::make_transpose(
+    exec->run(multivector::make_transpose(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, output)->get_device_view()));
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::conj_transpose(ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::conj_transpose(
+    ptr_param<MultiVector<ValueType>> output) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(output, gko::transpose(this->get_size()));
     auto exec = this->get_executor();
-    exec->run(dense::make_conj_transpose(
+    exec->run(multivector::make_conj_transpose(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, output)->get_device_view()));
 }
@@ -1229,8 +1260,9 @@ void Dense<ValueType>::conj_transpose(ptr_param<Dense<ValueType>> output) const
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::permute_impl(const Permutation<IndexType>* permutation,
-                                    permute_mode mode, Dense* output) const
+void MultiVector<ValueType>::permute_impl(
+    const Permutation<IndexType>* permutation, permute_mode mode,
+    MultiVector* output) const
 {
     const auto exec = this->get_executor();
     const auto size = this->get_size();
@@ -1244,32 +1276,32 @@ void Dense<ValueType>::permute_impl(const Permutation<IndexType>* permutation,
     auto local_perm = make_temporary_clone(exec, permutation);
     switch (mode) {
     case permute_mode::rows:
-        exec->run(dense::make_row_gather(local_perm->get_const_permutation(),
-                                         this->get_const_device_view(),
-                                         local_output->get_device_view()));
+        exec->run(multivector::make_row_gather(
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::columns:
-        exec->run(dense::make_col_permute(local_perm->get_const_permutation(),
-                                          this->get_const_device_view(),
-                                          local_output->get_device_view()));
+        exec->run(multivector::make_col_permute(
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::symmetric:
-        exec->run(dense::make_symm_permute(local_perm->get_const_permutation(),
-                                           this->get_const_device_view(),
-                                           local_output->get_device_view()));
+        exec->run(multivector::make_symm_permute(
+            local_perm->get_const_permutation(), this->get_const_device_view(),
+            local_output->get_device_view()));
         break;
     case permute_mode::inverse_rows:
-        exec->run(dense::make_inverse_row_permute(
+        exec->run(multivector::make_inverse_row_permute(
             local_perm->get_const_permutation(), this->get_const_device_view(),
             local_output->get_device_view()));
         break;
     case permute_mode::inverse_columns:
-        exec->run(dense::make_inverse_col_permute(
+        exec->run(multivector::make_inverse_col_permute(
             local_perm->get_const_permutation(), this->get_const_device_view(),
             local_output->get_device_view()));
         break;
     case permute_mode::inverse_symmetric:
-        exec->run(dense::make_inv_symm_permute(
+        exec->run(multivector::make_inv_symm_permute(
             local_perm->get_const_permutation(), this->get_const_device_view(),
             local_output->get_device_view()));
         break;
@@ -1281,10 +1313,10 @@ void Dense<ValueType>::permute_impl(const Permutation<IndexType>* permutation,
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::permute_impl(
+void MultiVector<ValueType>::permute_impl(
     const Permutation<IndexType>* row_permutation,
     const Permutation<IndexType>* col_permutation, bool invert,
-    Dense* output) const
+    MultiVector* output) const
 {
     auto exec = this->get_executor();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
@@ -1294,12 +1326,12 @@ void Dense<ValueType>::permute_impl(
     auto local_row_perm = make_temporary_clone(exec, row_permutation);
     auto local_col_perm = make_temporary_clone(exec, col_permutation);
     if (invert) {
-        exec->run(dense::make_inv_nonsymm_permute(
+        exec->run(multivector::make_inv_nonsymm_permute(
             local_row_perm->get_const_permutation(),
             local_col_perm->get_const_permutation(),
             this->get_const_device_view(), local_output->get_device_view()));
     } else {
-        exec->run(dense::make_nonsymm_permute(
+        exec->run(multivector::make_nonsymm_permute(
             local_row_perm->get_const_permutation(),
             local_col_perm->get_const_permutation(),
             this->get_const_device_view(), local_output->get_device_view()));
@@ -1309,9 +1341,9 @@ void Dense<ValueType>::permute_impl(
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::scale_permute_impl(
+void MultiVector<ValueType>::scale_permute_impl(
     const ScaledPermutation<ValueType, IndexType>* permutation,
-    permute_mode mode, Dense* output) const
+    permute_mode mode, MultiVector* output) const
 {
     const auto exec = this->get_executor();
     const auto size = this->get_size();
@@ -1325,37 +1357,37 @@ void Dense<ValueType>::scale_permute_impl(
     auto local_perm = make_temporary_clone(exec, permutation);
     switch (mode) {
     case permute_mode::rows:
-        exec->run(dense::make_row_scale_permute(
+        exec->run(multivector::make_row_scale_permute(
             local_perm->get_const_scaling_factors(),
             local_perm->get_const_permutation(), this->get_const_device_view(),
             local_output->get_device_view()));
         break;
     case permute_mode::columns:
-        exec->run(dense::make_col_scale_permute(
+        exec->run(multivector::make_col_scale_permute(
             local_perm->get_const_scaling_factors(),
             local_perm->get_const_permutation(), this->get_const_device_view(),
             local_output->get_device_view()));
         break;
     case permute_mode::symmetric:
-        exec->run(dense::make_symm_scale_permute(
+        exec->run(multivector::make_symm_scale_permute(
             local_perm->get_const_scaling_factors(),
             local_perm->get_const_permutation(), this->get_const_device_view(),
             local_output->get_device_view()));
         break;
     case permute_mode::inverse_rows:
-        exec->run(dense::make_inv_row_scale_permute(
+        exec->run(multivector::make_inv_row_scale_permute(
             local_perm->get_const_scaling_factors(),
             local_perm->get_const_permutation(), this->get_const_device_view(),
             local_output->get_device_view()));
         break;
     case permute_mode::inverse_columns:
-        exec->run(dense::make_inv_col_scale_permute(
+        exec->run(multivector::make_inv_col_scale_permute(
             local_perm->get_const_scaling_factors(),
             local_perm->get_const_permutation(), this->get_const_device_view(),
             local_output->get_device_view()));
         break;
     case permute_mode::inverse_symmetric:
-        exec->run(dense::make_inv_symm_scale_permute(
+        exec->run(multivector::make_inv_symm_scale_permute(
             local_perm->get_const_scaling_factors(),
             local_perm->get_const_permutation(), this->get_const_device_view(),
             local_output->get_device_view()));
@@ -1368,10 +1400,10 @@ void Dense<ValueType>::scale_permute_impl(
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::scale_permute_impl(
+void MultiVector<ValueType>::scale_permute_impl(
     const ScaledPermutation<ValueType, IndexType>* row_permutation,
     const ScaledPermutation<ValueType, IndexType>* col_permutation, bool invert,
-    Dense* output) const
+    MultiVector* output) const
 {
     auto exec = this->get_executor();
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
@@ -1381,14 +1413,14 @@ void Dense<ValueType>::scale_permute_impl(
     auto local_row_perm = make_temporary_clone(exec, row_permutation);
     auto local_col_perm = make_temporary_clone(exec, col_permutation);
     if (invert) {
-        exec->run(dense::make_inv_nonsymm_scale_permute(
+        exec->run(multivector::make_inv_nonsymm_scale_permute(
             local_row_perm->get_const_scaling_factors(),
             local_row_perm->get_const_permutation(),
             local_col_perm->get_const_scaling_factors(),
             local_col_perm->get_const_permutation(),
             this->get_const_device_view(), local_output->get_device_view()));
     } else {
-        exec->run(dense::make_nonsymm_scale_permute(
+        exec->run(multivector::make_nonsymm_scale_permute(
             local_row_perm->get_const_scaling_factors(),
             local_row_perm->get_const_permutation(),
             local_col_perm->get_const_scaling_factors(),
@@ -1400,14 +1432,15 @@ void Dense<ValueType>::scale_permute_impl(
 
 template <typename ValueType>
 template <typename OutputType, typename IndexType>
-void Dense<ValueType>::row_gather_impl(const array<IndexType>* row_idxs,
-                                       Dense<OutputType>* row_collection) const
+void MultiVector<ValueType>::row_gather_impl(
+    const array<IndexType>* row_idxs,
+    MultiVector<OutputType>* row_collection) const
 {
     auto exec = this->get_executor();
     dim<2> expected_dim{row_idxs->get_size(), this->get_size()[1]};
     GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_collection);
 
-    exec->run(dense::make_row_gather(
+    exec->run(multivector::make_row_gather(
         make_temporary_clone(exec, row_idxs)->get_const_data(),
         this->get_const_device_view(),
         make_temporary_output_clone(exec, row_collection)->get_device_view()));
@@ -1415,16 +1448,16 @@ void Dense<ValueType>::row_gather_impl(const array<IndexType>* row_idxs,
 
 template <typename ValueType>
 template <typename OutputType, typename IndexType>
-void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
-                                       const array<IndexType>* row_idxs,
-                                       const Dense<ValueType>* beta,
-                                       Dense<OutputType>* row_collection) const
+void MultiVector<ValueType>::row_gather_impl(
+    const MultiVector<ValueType>* alpha, const array<IndexType>* row_idxs,
+    const MultiVector<ValueType>* beta,
+    MultiVector<OutputType>* row_collection) const
 {
     auto exec = this->get_executor();
     dim<2> expected_dim{row_idxs->get_size(), this->get_size()[1]};
     GKO_ASSERT_EQUAL_DIMENSIONS(expected_dim, row_collection);
 
-    exec->run(dense::make_advanced_row_gather(
+    exec->run(multivector::make_advanced_row_gather(
         make_temporary_clone(exec, alpha)->get_const_device_view(),
         make_temporary_clone(exec, row_idxs)->get_const_data(),
         this->get_const_device_view(),
@@ -1434,90 +1467,90 @@ void Dense<ValueType>::row_gather_impl(const Dense<ValueType>* alpha,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::permute(
     const array<int32>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::permute(
     const array<int64>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::permute(
     ptr_param<const Permutation<int32>> permutation, permute_mode mode) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->permute(permutation, result, mode);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::permute(
     ptr_param<const Permutation<int64>> permutation, permute_mode mode) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->permute(permutation, result, mode);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::permute(
     ptr_param<const Permutation<int32>> row_permutation,
     ptr_param<const Permutation<int32>> col_permutation, bool invert) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->permute(row_permutation, col_permutation, result, invert);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::permute(
     ptr_param<const Permutation<int64>> row_permutation,
     ptr_param<const Permutation<int64>> col_permutation, bool invert) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->permute(row_permutation, col_permutation, result, invert);
     return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::permute(ptr_param<const Permutation<int32>> permutation,
-                               ptr_param<Dense<ValueType>> result,
-                               permute_mode mode) const
+void MultiVector<ValueType>::permute(
+    ptr_param<const Permutation<int32>> permutation,
+    ptr_param<MultiVector<ValueType>> result, permute_mode mode) const
 {
     this->permute_impl(permutation.get(), mode, result.get());
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::permute(ptr_param<const Permutation<int64>> permutation,
-                               ptr_param<Dense<ValueType>> result,
-                               permute_mode mode) const
+void MultiVector<ValueType>::permute(
+    ptr_param<const Permutation<int64>> permutation,
+    ptr_param<MultiVector<ValueType>> result, permute_mode mode) const
 {
     this->permute_impl(permutation.get(), mode, result.get());
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::permute(
+void MultiVector<ValueType>::permute(
     ptr_param<const Permutation<int32>> row_permutation,
     ptr_param<const Permutation<int32>> col_permutation,
-    ptr_param<Dense<ValueType>> result, bool invert) const
+    ptr_param<MultiVector<ValueType>> result, bool invert) const
 {
     this->permute_impl(row_permutation.get(), col_permutation.get(), invert,
                        result.get());
@@ -1525,10 +1558,10 @@ void Dense<ValueType>::permute(
 
 
 template <typename ValueType>
-void Dense<ValueType>::permute(
+void MultiVector<ValueType>::permute(
     ptr_param<const Permutation<int64>> row_permutation,
     ptr_param<const Permutation<int64>> col_permutation,
-    ptr_param<Dense<ValueType>> result, bool invert) const
+    ptr_param<MultiVector<ValueType>> result, bool invert) const
 {
     this->permute_impl(row_permutation.get(), col_permutation.get(), invert,
                        result.get());
@@ -1545,8 +1578,9 @@ std::unique_ptr<const Permutation<IndexType>> create_permutation_view(
 
 
 template <typename ValueType>
-void Dense<ValueType>::permute(const array<int32>* permutation_indices,
-                               ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::permute(
+    const array<int32>* permutation_indices,
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::symmetric, output.get());
@@ -1554,8 +1588,9 @@ void Dense<ValueType>::permute(const array<int32>* permutation_indices,
 
 
 template <typename ValueType>
-void Dense<ValueType>::permute(const array<int64>* permutation_indices,
-                               ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::permute(
+    const array<int64>* permutation_indices,
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::symmetric, output.get());
@@ -1563,28 +1598,29 @@ void Dense<ValueType>::permute(const array<int64>* permutation_indices,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::inverse_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_permute(
     const array<int32>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->inverse_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::inverse_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_permute(
     const array<int64>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->inverse_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::inverse_permute(const array<int32>* permutation_indices,
-                                       ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::inverse_permute(
+    const array<int32>* permutation_indices,
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::inverse_symmetric, output.get());
@@ -1592,8 +1628,9 @@ void Dense<ValueType>::inverse_permute(const array<int32>* permutation_indices,
 
 
 template <typename ValueType>
-void Dense<ValueType>::inverse_permute(const array<int64>* permutation_indices,
-                                       ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::inverse_permute(
+    const array<int64>* permutation_indices,
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::inverse_symmetric, output.get());
@@ -1601,28 +1638,29 @@ void Dense<ValueType>::inverse_permute(const array<int64>* permutation_indices,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::row_permute(
     const array<int32>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->row_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::row_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::row_permute(
     const array<int64>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->row_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::row_permute(const array<int32>* permutation_indices,
-                                   ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::row_permute(
+    const array<int32>* permutation_indices,
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::rows, output.get());
@@ -1630,8 +1668,9 @@ void Dense<ValueType>::row_permute(const array<int32>* permutation_indices,
 
 
 template <typename ValueType>
-void Dense<ValueType>::row_permute(const array<int64>* permutation_indices,
-                                   ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::row_permute(
+    const array<int64>* permutation_indices,
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::rows, output.get());
@@ -1639,23 +1678,23 @@ void Dense<ValueType>::row_permute(const array<int64>* permutation_indices,
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::row_gather(
     const array<int32>* row_idxs) const
 {
     auto exec = this->get_executor();
     dim<2> out_dim{row_idxs->get_size(), this->get_size()[1]};
-    auto result = Dense::create(exec, out_dim);
+    auto result = MultiVector::create(exec, out_dim);
     this->row_gather(row_idxs, result);
     return result;
 }
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::row_gather(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::row_gather(
     const array<int64>* row_idxs) const
 {
     auto exec = this->get_executor();
     dim<2> out_dim{row_idxs->get_size(), this->get_size()[1]};
-    auto result = Dense::create(exec, out_dim);
+    auto result = MultiVector::create(exec, out_dim);
     this->row_gather(row_idxs, result);
     return result;
 }
@@ -1668,7 +1707,7 @@ template <typename ValueType, typename Function>
 void gather_mixed_real_complex(Function fn, LinOp* out)
 {
 #ifdef GINKGO_MIXED_PRECISION
-    run<matrix::Dense, ValueType, next_precision<ValueType>,
+    run<matrix::MultiVector, ValueType, next_precision<ValueType>,
         next_precision<ValueType, 2>, next_precision<ValueType, 3>>(out, fn);
 #else
     precision_dispatch<ValueType>(fn, out);
@@ -1680,8 +1719,8 @@ void gather_mixed_real_complex(Function fn, LinOp* out)
 
 
 template <typename ValueType>
-void Dense<ValueType>::row_gather(const array<int32>* row_idxs,
-                                  ptr_param<LinOp> row_collection) const
+void MultiVector<ValueType>::row_gather(const array<int32>* row_idxs,
+                                        ptr_param<LinOp> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
         [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
@@ -1690,8 +1729,8 @@ void Dense<ValueType>::row_gather(const array<int32>* row_idxs,
 
 
 template <typename ValueType>
-void Dense<ValueType>::row_gather(const array<int64>* row_idxs,
-                                  ptr_param<LinOp> row_collection) const
+void MultiVector<ValueType>::row_gather(const array<int64>* row_idxs,
+                                        ptr_param<LinOp> row_collection) const
 {
     gather_mixed_real_complex<ValueType>(
         [&](auto dense) { this->row_gather_impl(row_idxs, dense); },
@@ -1700,10 +1739,10 @@ void Dense<ValueType>::row_gather(const array<int64>* row_idxs,
 
 
 template <typename ValueType>
-void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
-                                  const array<int32>* gather_indices,
-                                  ptr_param<const LinOp> beta,
-                                  ptr_param<LinOp> out) const
+void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
+                                        const array<int32>* gather_indices,
+                                        ptr_param<const LinOp> beta,
+                                        ptr_param<LinOp> out) const
 {
     auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
     auto dense_beta = make_temporary_conversion<ValueType>(beta);
@@ -1718,10 +1757,10 @@ void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
 }
 
 template <typename ValueType>
-void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
-                                  const array<int64>* gather_indices,
-                                  ptr_param<const LinOp> beta,
-                                  ptr_param<LinOp> out) const
+void MultiVector<ValueType>::row_gather(ptr_param<const LinOp> alpha,
+                                        const array<int64>* gather_indices,
+                                        ptr_param<const LinOp> beta,
+                                        ptr_param<LinOp> out) const
 {
     auto dense_alpha = make_temporary_conversion<ValueType>(alpha);
     auto dense_beta = make_temporary_conversion<ValueType>(beta);
@@ -1738,14 +1777,14 @@ void Dense<ValueType>::row_gather(ptr_param<const LinOp> alpha,
 
 template <typename ValueType>
 template <typename IndexType>
-void Dense<ValueType>::scatter_add_impl(const array<IndexType>* scatter_indices,
-                                        const LinOp* source)
+void MultiVector<ValueType>::scatter_add_impl(
+    const array<IndexType>* scatter_indices, const LinOp* source)
 {
     auto exec = this->get_executor();
     GKO_ASSERT_EQ(source->get_size()[1], this->get_size()[1]);
     GKO_ASSERT_EQ(scatter_indices->get_size(), source->get_size()[0]);
 
-    exec->run(dense::make_scatter_add(
+    exec->run(multivector::make_scatter_add(
         make_temporary_clone(exec, scatter_indices)->get_const_data(),
         make_temporary_conversion<ValueType>(
             make_temporary_clone(exec, source).get())
@@ -1755,44 +1794,45 @@ void Dense<ValueType>::scatter_add_impl(const array<IndexType>* scatter_indices,
 
 
 template <typename ValueType>
-void Dense<ValueType>::scatter_add(const array<int32>* scatter_indices,
-                                   ptr_param<const LinOp> source)
+void MultiVector<ValueType>::scatter_add(const array<int32>* scatter_indices,
+                                         ptr_param<const LinOp> source)
 {
     scatter_add_impl(scatter_indices, source.get());
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::scatter_add(const array<int64>* scatter_indices,
-                                   ptr_param<const LinOp> source)
+void MultiVector<ValueType>::scatter_add(const array<int64>* scatter_indices,
+                                         ptr_param<const LinOp> source)
 {
     scatter_add_impl(scatter_indices, source.get());
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::column_permute(
     const array<int32>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->column_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::column_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::column_permute(
     const array<int64>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->column_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::column_permute(const array<int32>* permutation_indices,
-                                      ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::column_permute(
+    const array<int32>* permutation_indices,
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::columns, output.get());
@@ -1800,8 +1840,9 @@ void Dense<ValueType>::column_permute(const array<int32>* permutation_indices,
 
 
 template <typename ValueType>
-void Dense<ValueType>::column_permute(const array<int64>* permutation_indices,
-                                      ptr_param<Dense<ValueType>> output) const
+void MultiVector<ValueType>::column_permute(
+    const array<int64>* permutation_indices,
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::columns, output.get());
@@ -1809,29 +1850,29 @@ void Dense<ValueType>::column_permute(const array<int64>* permutation_indices,
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_row_permute(
     const array<int32>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->inverse_row_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::inverse_row_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_row_permute(
     const array<int64>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->inverse_row_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::inverse_row_permute(
+void MultiVector<ValueType>::inverse_row_permute(
     const array<int32>* permutation_indices,
-    ptr_param<Dense<ValueType>> output) const
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::inverse_rows, output.get());
@@ -1839,9 +1880,9 @@ void Dense<ValueType>::inverse_row_permute(
 
 
 template <typename ValueType>
-void Dense<ValueType>::inverse_row_permute(
+void MultiVector<ValueType>::inverse_row_permute(
     const array<int64>* permutation_indices,
-    ptr_param<Dense<ValueType>> output) const
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::inverse_rows, output.get());
@@ -1849,29 +1890,29 @@ void Dense<ValueType>::inverse_row_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_column_permute(
     const array<int32>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->inverse_column_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<LinOp> Dense<ValueType>::inverse_column_permute(
+std::unique_ptr<LinOp> MultiVector<ValueType>::inverse_column_permute(
     const array<int64>* permutation_indices) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->inverse_column_permute(permutation_indices, result);
     return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::inverse_column_permute(
+void MultiVector<ValueType>::inverse_column_permute(
     const array<int32>* permutation_indices,
-    ptr_param<Dense<ValueType>> output) const
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::inverse_columns, output.get());
@@ -1879,9 +1920,9 @@ void Dense<ValueType>::inverse_column_permute(
 
 
 template <typename ValueType>
-void Dense<ValueType>::inverse_column_permute(
+void MultiVector<ValueType>::inverse_column_permute(
     const array<int64>* permutation_indices,
-    ptr_param<Dense<ValueType>> output) const
+    ptr_param<MultiVector<ValueType>> output) const
 {
     this->permute_impl(create_permutation_view(*permutation_indices).get(),
                        permute_mode::inverse_columns, output.get());
@@ -1889,74 +1930,74 @@ void Dense<ValueType>::inverse_column_permute(
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::scale_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::scale_permute(
     ptr_param<const ScaledPermutation<value_type, int32>> permutation,
     permute_mode mode) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->scale_permute(permutation, result, mode);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::scale_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::scale_permute(
     ptr_param<const ScaledPermutation<value_type, int64>> permutation,
     permute_mode mode) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->scale_permute(permutation, result, mode);
     return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale_permute(
+void MultiVector<ValueType>::scale_permute(
     ptr_param<const ScaledPermutation<value_type, int32>> permutation,
-    ptr_param<Dense> output, permute_mode mode) const
+    ptr_param<MultiVector> output, permute_mode mode) const
 {
     this->scale_permute_impl(permutation.get(), mode, output.get());
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale_permute(
+void MultiVector<ValueType>::scale_permute(
     ptr_param<const ScaledPermutation<value_type, int64>> permutation,
-    ptr_param<Dense> output, permute_mode mode) const
+    ptr_param<MultiVector> output, permute_mode mode) const
 {
     this->scale_permute_impl(permutation.get(), mode, output.get());
 }
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::scale_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::scale_permute(
     ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,
     ptr_param<const ScaledPermutation<value_type, int32>> col_permutation,
     bool invert) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->scale_permute(row_permutation, col_permutation, result, invert);
     return result;
 }
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::scale_permute(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::scale_permute(
     ptr_param<const ScaledPermutation<value_type, int64>> row_permutation,
     ptr_param<const ScaledPermutation<value_type, int64>> col_permutation,
     bool invert) const
 {
-    auto result = Dense::create(this->get_executor(), this->get_size());
+    auto result = MultiVector::create(this->get_executor(), this->get_size());
     this->scale_permute(row_permutation, col_permutation, result, invert);
     return result;
 }
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale_permute(
+void MultiVector<ValueType>::scale_permute(
     ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,
     ptr_param<const ScaledPermutation<value_type, int32>> col_permutation,
-    ptr_param<Dense> output, bool invert) const
+    ptr_param<MultiVector> output, bool invert) const
 {
     this->scale_permute_impl(row_permutation.get(), col_permutation.get(),
                              invert, output.get());
@@ -1964,10 +2005,10 @@ void Dense<ValueType>::scale_permute(
 
 
 template <typename ValueType>
-void Dense<ValueType>::scale_permute(
+void MultiVector<ValueType>::scale_permute(
     ptr_param<const ScaledPermutation<value_type, int64>> row_permutation,
     ptr_param<const ScaledPermutation<value_type, int64>> col_permutation,
-    ptr_param<Dense> output, bool invert) const
+    ptr_param<MultiVector> output, bool invert) const
 {
     this->scale_permute_impl(row_permutation.get(), col_permutation.get(),
                              invert, output.get());
@@ -1975,21 +2016,22 @@ void Dense<ValueType>::scale_permute(
 
 
 template <typename ValueType>
-void Dense<ValueType>::extract_diagonal(
+void MultiVector<ValueType>::extract_diagonal(
     ptr_param<Diagonal<ValueType>> output) const
 {
     auto exec = this->get_executor();
     const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
     GKO_ASSERT_EQ(output->get_size()[0], diag_size);
 
-    exec->run(dense::make_extract_diagonal(
+    exec->run(multivector::make_extract_diagonal(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, output).get()));
 }
 
 
 template <typename ValueType>
-std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
+std::unique_ptr<Diagonal<ValueType>> MultiVector<ValueType>::extract_diagonal()
+    const
 {
     const auto diag_size = std::min(this->get_size()[0], this->get_size()[1]);
     auto diag = Diagonal<ValueType>::create(this->get_executor(), diag_size);
@@ -1999,16 +2041,16 @@ std::unique_ptr<Diagonal<ValueType>> Dense<ValueType>::extract_diagonal() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_absolute_inplace()
+void MultiVector<ValueType>::compute_absolute_inplace()
 {
     this->get_executor()->run(
-        dense::make_inplace_absolute_dense(this->get_device_view()));
+        multivector::make_inplace_absolute_dense(this->get_device_view()));
 }
 
 
 template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::absolute_type>
-Dense<ValueType>::compute_absolute() const
+std::unique_ptr<typename MultiVector<ValueType>::absolute_type>
+MultiVector<ValueType>::compute_absolute() const
 {
     // do not inherit the stride
     auto result = absolute_type::create(this->get_executor(), this->get_size());
@@ -2018,20 +2060,21 @@ Dense<ValueType>::compute_absolute() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::compute_absolute(ptr_param<absolute_type> output) const
+void MultiVector<ValueType>::compute_absolute(
+    ptr_param<absolute_type> output) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, output);
     auto exec = this->get_executor();
 
-    exec->run(dense::make_outplace_absolute_dense(
+    exec->run(multivector::make_outplace_absolute_dense(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, output)->get_device_view()));
 }
 
 
 template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::complex_type>
-Dense<ValueType>::make_complex() const
+std::unique_ptr<typename MultiVector<ValueType>::complex_type>
+MultiVector<ValueType>::make_complex() const
 {
     auto result = complex_type::create(this->get_executor(), this->get_size());
     this->make_complex(result);
@@ -2040,20 +2083,20 @@ Dense<ValueType>::make_complex() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::make_complex(ptr_param<complex_type> result) const
+void MultiVector<ValueType>::make_complex(ptr_param<complex_type> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
 
-    exec->run(dense::make_make_complex(
+    exec->run(multivector::make_make_complex(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
 template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::real_type>
-Dense<ValueType>::get_real() const
+std::unique_ptr<typename MultiVector<ValueType>::real_type>
+MultiVector<ValueType>::get_real() const
 {
     auto result = real_type::create(this->get_executor(), this->get_size());
     this->get_real(result);
@@ -2062,20 +2105,20 @@ Dense<ValueType>::get_real() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::get_real(ptr_param<real_type> result) const
+void MultiVector<ValueType>::get_real(ptr_param<real_type> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
 
-    exec->run(dense::make_get_real(
+    exec->run(multivector::make_get_real(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
 template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::real_type>
-Dense<ValueType>::get_imag() const
+std::unique_ptr<typename MultiVector<ValueType>::real_type>
+MultiVector<ValueType>::get_imag() const
 {
     auto result = real_type::create(this->get_executor(), this->get_size());
     this->get_imag(result);
@@ -2084,19 +2127,19 @@ Dense<ValueType>::get_imag() const
 
 
 template <typename ValueType>
-void Dense<ValueType>::get_imag(ptr_param<real_type> result) const
+void MultiVector<ValueType>::get_imag(ptr_param<real_type> result) const
 {
     GKO_ASSERT_EQUAL_DIMENSIONS(this, result);
     auto exec = this->get_executor();
 
-    exec->run(dense::make_get_imag(
+    exec->run(multivector::make_get_imag(
         this->get_const_device_view(),
         make_temporary_output_clone(exec, result)->get_device_view()));
 }
 
 
 template <typename ValueType>
-auto Dense<ValueType>::get_device_view() -> device_view
+auto MultiVector<ValueType>::get_device_view() -> device_view
 {
     return device_view{this->get_size(), this->get_stride(),
                        this->get_values()};
@@ -2104,7 +2147,7 @@ auto Dense<ValueType>::get_device_view() -> device_view
 
 
 template <typename ValueType>
-auto Dense<ValueType>::get_const_device_view() const -> const_device_view
+auto MultiVector<ValueType>::get_const_device_view() const -> const_device_view
 {
     return const_device_view{this->get_size(), this->get_stride(),
                              this->get_const_values()};
@@ -2112,11 +2155,12 @@ auto Dense<ValueType>::get_const_device_view() const -> const_device_view
 
 
 template <typename ValueType>
-void Dense<ValueType>::add_scaled_identity_impl(const LinOp* a, const LinOp* b)
+void MultiVector<ValueType>::add_scaled_identity_impl(const LinOp* a,
+                                                      const LinOp* b)
 {
     precision_dispatch_real_complex<ValueType>(
         [this](auto dense_alpha, auto dense_beta, auto dense_x) {
-            this->get_executor()->run(dense::make_add_scaled_identity(
+            this->get_executor()->run(multivector::make_add_scaled_identity(
                 dense_alpha->get_const_device_view(),
                 dense_beta->get_const_device_view(),
                 dense_x->get_device_view()));
@@ -2126,8 +2170,8 @@ void Dense<ValueType>::add_scaled_identity_impl(const LinOp* a, const LinOp* b)
 
 
 template <typename ValueType>
-std::unique_ptr<typename Dense<ValueType>::real_type>
-Dense<ValueType>::create_real_view()
+std::unique_ptr<typename MultiVector<ValueType>::real_type>
+MultiVector<ValueType>::create_real_view()
 {
     const auto num_rows = this->get_size()[0];
     constexpr bool complex = is_complex<ValueType>();
@@ -2135,7 +2179,7 @@ Dense<ValueType>::create_real_view()
         complex ? 2 * this->get_size()[1] : this->get_size()[1];
     const auto stride = complex ? 2 * this->get_stride() : this->get_stride();
 
-    return Dense<remove_complex<ValueType>>::create(
+    return MultiVector<remove_complex<ValueType>>::create(
         this->get_executor(), dim<2>{num_rows, num_cols},
         make_array_view(
             this->get_executor(), num_rows * stride,
@@ -2145,8 +2189,8 @@ Dense<ValueType>::create_real_view()
 
 
 template <typename ValueType>
-std::unique_ptr<const typename Dense<ValueType>::real_type>
-Dense<ValueType>::create_real_view() const
+std::unique_ptr<const typename MultiVector<ValueType>::real_type>
+MultiVector<ValueType>::create_real_view() const
 {
     const auto num_rows = this->get_size()[0];
     constexpr bool complex = is_complex<ValueType>();
@@ -2154,7 +2198,7 @@ Dense<ValueType>::create_real_view() const
         complex ? 2 * this->get_size()[1] : this->get_size()[1];
     const auto stride = complex ? 2 * this->get_stride() : this->get_stride();
 
-    return Dense<remove_complex<ValueType>>::create_const(
+    return MultiVector<remove_complex<ValueType>>::create_const(
         this->get_executor(), dim<2>{num_rows, num_cols},
         make_const_array_view(
             this->get_executor(), num_rows * stride,
@@ -2165,13 +2209,15 @@ Dense<ValueType>::create_real_view() const
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
-    const span& rows, const span& columns, const size_type stride)
+std::unique_ptr<MultiVector<ValueType>>
+MultiVector<ValueType>::create_submatrix_impl(const span& rows,
+                                              const span& columns,
+                                              const size_type stride)
 {
     if (this->get_num_stored_elements() == 0) {
         GKO_ASSERT(rows.is_valid() && rows.end <= this->get_size()[0]);
         GKO_ASSERT(columns.is_valid() && columns.end <= this->get_size()[1]);
-        return Dense::create(
+        return MultiVector::create(
             this->get_executor(), dim<2>{rows.length(), columns.length()},
             make_array_view(this->get_executor(), 0, this->get_values()),
             stride);
@@ -2183,7 +2229,7 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
         rows.length() > 0 ? sub_range.length(1) +
                                 (sub_range.length(0) - 1) * this->get_stride()
                           : 0;
-    return Dense::create(
+    return MultiVector::create(
         this->get_executor(), dim<2>{sub_range.length(0), sub_range.length(1)},
         make_array_view(this->get_executor(), storage_size, sub_range->data),
         stride);
@@ -2191,38 +2237,39 @@ std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create_submatrix_impl(
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::create(
     std::shared_ptr<const Executor> exec, const dim<2>& size, size_type stride)
 {
-    return std::unique_ptr<Dense>{new Dense{exec, size, stride}};
+    return std::unique_ptr<MultiVector>{new MultiVector{exec, size, stride}};
 }
 
 
 template <typename ValueType>
-std::unique_ptr<Dense<ValueType>> Dense<ValueType>::create(
+std::unique_ptr<MultiVector<ValueType>> MultiVector<ValueType>::create(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     array<value_type> values, size_type stride)
 {
-    return std::unique_ptr<Dense>{
-        new Dense{exec, size, std::move(values), stride}};
+    return std::unique_ptr<MultiVector>{
+        new MultiVector{exec, size, std::move(values), stride}};
 }
 
 
 template <typename ValueType>
-std::unique_ptr<const Dense<ValueType>> Dense<ValueType>::create_const(
+std::unique_ptr<const MultiVector<ValueType>>
+MultiVector<ValueType>::create_const(
     std::shared_ptr<const Executor> exec, const dim<2>& size,
     gko::detail::const_array_view<ValueType>&& values, size_type stride)
 {
     // cast const-ness away, but return a const object afterwards,
     // so we can ensure that no modifications take place.
-    return std::unique_ptr<const Dense>{new Dense{
+    return std::unique_ptr<const MultiVector>{new MultiVector{
         exec, size, gko::detail::array_const_cast(std::move(values)), stride}};
 }
 
 
 template <typename ValueType>
-Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
-                        const dim<2>& size, size_type stride)
+MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size, size_type stride)
     : LinOp(exec, size),
       stride_(stride == 0 ? size[1] : stride),
       values_(exec, size[0] * stride_)
@@ -2230,9 +2277,9 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType>
-Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
-                        const dim<2>& size, array<value_type> values,
-                        size_type stride)
+MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
+                                    const dim<2>& size,
+                                    array<value_type> values, size_type stride)
     : LinOp(exec, size), stride_{stride}, values_{exec, std::move(values)}
 {
     if (size[0] > 0 && size[1] > 0) {
@@ -2242,8 +2289,8 @@ Dense<ValueType>::Dense(std::shared_ptr<const Executor> exec,
 }
 
 
-#define GKO_DECLARE_DENSE_MATRIX(ValueType) class Dense<ValueType>
-GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DENSE_MATRIX);
+#define GKO_DECLARE_MULTIVECTOR_MATRIX(ValueType) class MultiVector<ValueType>
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_MATRIX);
 
 
 }  // namespace matrix

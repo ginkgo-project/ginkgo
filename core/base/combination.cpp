@@ -5,7 +5,7 @@
 #include "ginkgo/core/base/combination.hpp"
 
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace gko {
@@ -18,12 +18,12 @@ inline void initialize_scalars(std::shared_ptr<const Executor> exec,
                                std::unique_ptr<LinOp>& one)
 {
     if (zero == nullptr) {
-        zero = initialize<matrix::Dense<ValueType>>({gko::zero<ValueType>()},
-                                                    exec);
+        zero = initialize<matrix::MultiVector<ValueType>>(
+            {gko::zero<ValueType>()}, exec);
     }
     if (one == nullptr) {
-        one =
-            initialize<matrix::Dense<ValueType>>({gko::one<ValueType>()}, exec);
+        one = initialize<matrix::MultiVector<ValueType>>(
+            {gko::one<ValueType>()}, exec);
     }
 }
 

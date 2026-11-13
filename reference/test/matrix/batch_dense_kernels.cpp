@@ -15,7 +15,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/batch_dense.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -28,6 +28,7 @@ protected:
     using BMtx = gko::batch::matrix::Dense<value_type>;
     using BMVec = gko::batch::MultiVector<value_type>;
     using DenseMtx = gko::matrix::Dense<value_type>;
+    using MultiVectorMtx = gko::matrix::MultiVector<value_type>;
     Dense() : exec(gko::ReferenceExecutor::create())
     {
         mtx_0 = gko::batch::initialize<BMtx>(
@@ -44,11 +45,11 @@ protected:
              {I<T>({-1.0, 1.0, 1.0}), I<T>({1.0, -1.0, 1.0}),
               I<T>({1.0, 0.0, 2.0})}},
             exec);
-        b_00 = gko::initialize<DenseMtx>(
+        b_00 = gko::initialize<MultiVectorMtx>(
             {I<T>({1.0, 0.0, 1.0}), I<T>({2.0, 0.0, 1.0}),
              I<T>({1.0, 0.0, 2.0})},
             exec);
-        b_01 = gko::initialize<DenseMtx>(
+        b_01 = gko::initialize<MultiVectorMtx>(
             {I<T>({-1.0, 1.0, 1.0}), I<T>({1.0, -1.0, 1.0}),
              I<T>({1.0, 0.0, 2.0})},
             exec);
@@ -56,9 +57,9 @@ protected:
             {{I<T>({2.0, 0.0, 1.0}), I<T>({2.0, 0.0, 2.0})},
              {I<T>({-2.0, 1.0, 1.0}), I<T>({1.0, -1.0, -1.0})}},
             exec);
-        x_00 = gko::initialize<DenseMtx>(
+        x_00 = gko::initialize<MultiVectorMtx>(
             {I<T>({2.0, 0.0, 1.0}), I<T>({2.0, 0.0, 2.0})}, exec);
-        x_01 = gko::initialize<DenseMtx>(
+        x_01 = gko::initialize<MultiVectorMtx>(
             {I<T>({-2.0, 1.0, 1.0}), I<T>({1.0, -1.0, -1.0})}, exec);
     }
 
@@ -67,11 +68,11 @@ protected:
     std::unique_ptr<DenseMtx> mtx_00;
     std::unique_ptr<DenseMtx> mtx_01;
     std::unique_ptr<BMVec> b_0;
-    std::unique_ptr<DenseMtx> b_00;
-    std::unique_ptr<DenseMtx> b_01;
+    std::unique_ptr<MultiVectorMtx> b_00;
+    std::unique_ptr<MultiVectorMtx> b_01;
     std::unique_ptr<BMVec> x_0;
-    std::unique_ptr<DenseMtx> x_00;
-    std::unique_ptr<DenseMtx> x_01;
+    std::unique_ptr<MultiVectorMtx> x_00;
+    std::unique_ptr<MultiVectorMtx> x_01;
 
     std::default_random_engine rand_engine;
 };
@@ -98,14 +99,14 @@ TYPED_TEST(Dense, AppliesLinearCombinationToBatchMultiVector)
 {
     using BMtx = typename TestFixture::BMtx;
     using BMVec = typename TestFixture::BMVec;
-    using DenseMtx = typename TestFixture::DenseMtx;
+    using MultiVectorMtx = typename TestFixture::MultiVectorMtx;
     using T = typename TestFixture::value_type;
     auto alpha = gko::batch::initialize<BMVec>({{1.5}, {-1.0}}, this->exec);
     auto beta = gko::batch::initialize<BMVec>({{2.5}, {-4.0}}, this->exec);
-    auto alpha0 = gko::initialize<DenseMtx>({1.5}, this->exec);
-    auto alpha1 = gko::initialize<DenseMtx>({-1.0}, this->exec);
-    auto beta0 = gko::initialize<DenseMtx>({2.5}, this->exec);
-    auto beta1 = gko::initialize<DenseMtx>({-4.0}, this->exec);
+    auto alpha0 = gko::initialize<MultiVectorMtx>({1.5}, this->exec);
+    auto alpha1 = gko::initialize<MultiVectorMtx>({-1.0}, this->exec);
+    auto beta0 = gko::initialize<MultiVectorMtx>({2.5}, this->exec);
+    auto beta1 = gko::initialize<MultiVectorMtx>({-4.0}, this->exec);
 
     this->mtx_0->apply(alpha.get(), this->b_0.get(), beta.get(),
                        this->x_0.get());

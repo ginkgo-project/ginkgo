@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -128,9 +128,10 @@ int main(int argc, char* argv[])
         }
     };
 
-    auto one = gko::initialize<gko::matrix::Dense<ValueType>>({1.0}, exec);
+    auto one =
+        gko::initialize<gko::matrix::MultiVector<ValueType>>({1.0}, exec);
     auto minus_one =
-        gko::initialize<gko::matrix::Dense<ValueType>>({-1.0}, exec);
+        gko::initialize<gko::matrix::MultiVector<ValueType>>({-1.0}, exec);
     for (int it = 1; it <= max_iterations; ++it) {
         auto factory = factory_generator(it);
         std::cout << it << ';';

@@ -13,8 +13,8 @@
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 #include "core/test/utils/assertions.hpp"
@@ -27,7 +27,7 @@ protected:
         typename std::tuple_element<0, decltype(ValueIndexType())>::type;
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
-    using vector_type = gko::matrix::Dense<value_type>;
+    using vector_type = gko::matrix::MultiVector<value_type>;
     using matrix_type = gko::matrix::Csr<value_type, index_type>;
     using diag_type = gko::matrix::Diagonal<value_type>;
     using composition_type = gko::Composition<value_type>;

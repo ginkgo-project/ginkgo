@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,8 +10,8 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/exception.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -24,7 +24,7 @@ class Identity : public ::testing::Test {
 protected:
     using value_type = T;
     using Id = gko::matrix::Identity<T>;
-    using Vec = gko::matrix::Dense<T>;
+    using Vec = gko::matrix::MultiVector<T>;
 
     Identity() : exec(gko::ReferenceExecutor::create()) {}
 
@@ -88,7 +88,8 @@ TYPED_TEST(IdentityFactory, CanGenerateIdentityMatrix)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto id_factory = gko::matrix::IdentityFactory<TypeParam>::create(exec);
-    auto mtx = gko::matrix::Dense<TypeParam>::create(exec, gko::dim<2>{5, 5});
+    auto mtx =
+        gko::matrix::MultiVector<TypeParam>::create(exec, gko::dim<2>{5, 5});
 
     auto id = id_factory->generate(std::move(mtx));
 
@@ -100,7 +101,8 @@ TYPED_TEST(IdentityFactory, FailsToGenerateRectangularIdentityMatrix)
 {
     auto exec = gko::ReferenceExecutor::create();
     auto id_factory = gko::matrix::IdentityFactory<TypeParam>::create(exec);
-    auto mtx = gko::matrix::Dense<TypeParam>::create(exec, gko::dim<2>{5, 4});
+    auto mtx =
+        gko::matrix::MultiVector<TypeParam>::create(exec, gko::dim<2>{5, 4});
 
     ASSERT_THROW(id_factory->generate(std::move(mtx)), gko::DimensionMismatch);
 }

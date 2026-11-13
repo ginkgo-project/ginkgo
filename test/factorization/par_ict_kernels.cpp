@@ -16,7 +16,6 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/factorization/factorization_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"

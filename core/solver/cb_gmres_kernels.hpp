@@ -10,7 +10,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
 #include <ginkgo/core/base/types.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 #include "accessor/reduced_row_major.hpp"
 #include "accessor/scaled_reduced_row_major.hpp"

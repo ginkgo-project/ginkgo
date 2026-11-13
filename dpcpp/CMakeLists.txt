@@ -7,7 +7,7 @@ set(GINKGO_DPL_ROOT "${oneDPL_DIR}" PARENT_SCOPE)
 include(${PROJECT_SOURCE_DIR}/cmake/template_instantiation.cmake)
 add_instantiation_files(
     ${PROJECT_SOURCE_DIR}/common/unified
-    matrix/dense_kernels.instantiate.cpp
+    matrix/multivector_kernels.instantiate.cpp
     DENSE_INSTANTIATE
 )
 add_instantiation_files(
@@ -64,11 +64,11 @@ target_sources(
         matrix/batch_ell_kernels.dp.cpp
         matrix/coo_kernels.dp.cpp
         matrix/csr_kernels.dp.cpp
-        matrix/dense_kernels.dp.cpp
         matrix/diagonal_kernels.dp.cpp
         matrix/ell_kernels.dp.cpp
         matrix/fbcsr_kernels.dp.cpp
         matrix/fft_kernels.dp.cpp
+        matrix/multivector_kernels.dp.cpp
         matrix/sellp_kernels.dp.cpp
         matrix/sparsity_csr_kernels.dp.cpp
         multigrid/pgm_kernels.dp.cpp

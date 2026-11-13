@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,8 +10,8 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/fft.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 #include "matrices/config.hpp"
@@ -24,7 +24,7 @@ template <typename T>
 class Fft : public ::testing::Test {
 protected:
     using value_type = T;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using Mtx = gko::matrix::Fft;
     using Mtx2 = gko::matrix::Fft2;
     using Mtx3 = gko::matrix::Fft3;
@@ -311,7 +311,7 @@ TYPED_TEST(Fft, InverseIsConjTransposable3D)
 }
 
 
-TYPED_TEST(Fft, Applies1DToDense)
+TYPED_TEST(Fft, Applies1DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto out = this->amplitude->clone();
@@ -322,7 +322,7 @@ TYPED_TEST(Fft, Applies1DToDense)
 }
 
 
-TYPED_TEST(Fft, AppliesStrided1DToDense)
+TYPED_TEST(Fft, AppliesStrided1DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
@@ -338,7 +338,7 @@ TYPED_TEST(Fft, AppliesStrided1DToDense)
 }
 
 
-TYPED_TEST(Fft, AppliesInverse1DToDense)
+TYPED_TEST(Fft, AppliesInverse1DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto out = this->frequency1->clone();
@@ -350,7 +350,7 @@ TYPED_TEST(Fft, AppliesInverse1DToDense)
 }
 
 
-TYPED_TEST(Fft, AppliesStridedInverse1DToDense)
+TYPED_TEST(Fft, AppliesStridedInverse1DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
@@ -367,7 +367,7 @@ TYPED_TEST(Fft, AppliesStridedInverse1DToDense)
 }
 
 
-TYPED_TEST(Fft, Applies2DToDense)
+TYPED_TEST(Fft, Applies2DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto out = this->amplitude->clone();
@@ -378,7 +378,7 @@ TYPED_TEST(Fft, Applies2DToDense)
 }
 
 
-TYPED_TEST(Fft, AppliesStrided2DToDense)
+TYPED_TEST(Fft, AppliesStrided2DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
@@ -394,7 +394,7 @@ TYPED_TEST(Fft, AppliesStrided2DToDense)
 }
 
 
-TYPED_TEST(Fft, AppliesInverse2DToDense)
+TYPED_TEST(Fft, AppliesInverse2DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto out = this->frequency2->clone();
@@ -406,7 +406,7 @@ TYPED_TEST(Fft, AppliesInverse2DToDense)
 }
 
 
-TYPED_TEST(Fft, AppliesStridedInverse2DToDense)
+TYPED_TEST(Fft, AppliesStridedInverse2DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
@@ -423,7 +423,7 @@ TYPED_TEST(Fft, AppliesStridedInverse2DToDense)
 }
 
 
-TYPED_TEST(Fft, Applies3DToDense)
+TYPED_TEST(Fft, Applies3DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto out = this->amplitude->clone();
@@ -434,7 +434,7 @@ TYPED_TEST(Fft, Applies3DToDense)
 }
 
 
-TYPED_TEST(Fft, AppliesStrided3DToDense)
+TYPED_TEST(Fft, AppliesStrided3DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
@@ -450,7 +450,7 @@ TYPED_TEST(Fft, AppliesStrided3DToDense)
 }
 
 
-TYPED_TEST(Fft, AppliesInverse3DToDense)
+TYPED_TEST(Fft, AppliesInverse3DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto out = this->frequency3->clone();
@@ -462,7 +462,7 @@ TYPED_TEST(Fft, AppliesInverse3DToDense)
 }
 
 
-TYPED_TEST(Fft, AppliesStridedInverse3DToDense)
+TYPED_TEST(Fft, AppliesStridedInverse3DToMultiVector)
 {
     using T = typename TestFixture::value_type;
     auto in_view =
@@ -483,7 +483,7 @@ TYPED_TEST(Fft, Writes1DFFTToMatrixData32)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int32> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->fft->write(data);
     output->read(data);
@@ -496,7 +496,7 @@ TYPED_TEST(Fft, Writes1DFFTToMatrixData64)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int64> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->fft->write(data);
     output->read(data);
@@ -509,7 +509,7 @@ TYPED_TEST(Fft, Writes2DFFTToMatrixData32)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int32> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->fft2->write(data);
     output->read(data);
@@ -522,7 +522,7 @@ TYPED_TEST(Fft, Writes2DFFTToMatrixData64)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int64> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->fft2->write(data);
     output->read(data);
@@ -535,7 +535,7 @@ TYPED_TEST(Fft, Writes3DFFTToMatrixData32)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int32> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->fft3->write(data);
     output->read(data);
@@ -548,7 +548,7 @@ TYPED_TEST(Fft, Writes3DFFTToMatrixData64)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int64> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->fft3->write(data);
     output->read(data);
@@ -561,7 +561,7 @@ TYPED_TEST(Fft, Writes1DInvFFTToMatrixData32)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int32> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->ifft->write(data);
     output->read(data);
@@ -574,7 +574,7 @@ TYPED_TEST(Fft, Writes1DInvFFTToMatrixData64)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int64> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->ifft->write(data);
     output->read(data);
@@ -587,7 +587,7 @@ TYPED_TEST(Fft, Writes2DInvFFTToMatrixData32)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int32> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->ifft2->write(data);
     output->read(data);
@@ -600,7 +600,7 @@ TYPED_TEST(Fft, Writes2DInvFFTToMatrixData64)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int64> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->ifft2->write(data);
     output->read(data);
@@ -613,7 +613,7 @@ TYPED_TEST(Fft, Writes3DInvFFTToMatrixData32)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int32> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->ifft3->write(data);
     output->read(data);
@@ -626,7 +626,7 @@ TYPED_TEST(Fft, Writes3DInvFFTToMatrixData64)
 {
     using T = typename TestFixture::value_type;
     gko::matrix_data<T, gko::int64> data;
-    auto output = gko::matrix::Dense<T>::create(this->exec);
+    auto output = gko::matrix::MultiVector<T>::create(this->exec);
 
     this->ifft3->write(data);
     output->read(data);

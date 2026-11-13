@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -34,8 +34,8 @@ typename Mtx::value_type read(std::unique_ptr<Mtx>& mtx, gko::size_type row,
 template <typename T>
 class ResidualNorm : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
     using ValueType = T;
 
     ResidualNorm()
@@ -330,8 +330,8 @@ TYPED_TEST(ResidualNorm, WaitsTillResidualGoalMultipleRHS)
 template <typename T>
 class ResidualNormWithInitialResnorm : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
 
     ResidualNormWithInitialResnorm()
     {
@@ -427,8 +427,8 @@ TYPED_TEST(ResidualNormWithInitialResnorm, WaitsTillResidualGoalMultipleRHS)
 template <typename T>
 class ResidualNormWithRhsNorm : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
 
     ResidualNormWithRhsNorm()
     {
@@ -531,8 +531,8 @@ TYPED_TEST(ResidualNormWithRhsNorm, WaitsTillResidualGoalMultipleRHS)
 template <typename T>
 class ImplicitResidualNorm : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
     using ValueType = T;
 
     ImplicitResidualNorm()
@@ -678,8 +678,8 @@ TYPED_TEST(ImplicitResidualNorm, WaitsTillResidualGoalMultipleRHS)
 template <typename T>
 class ResidualNormWithAbsolute : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<T>;
-    using NormVector = gko::matrix::Dense<gko::remove_complex<T>>;
+    using Mtx = gko::matrix::MultiVector<T>;
+    using NormVector = gko::matrix::MultiVector<gko::remove_complex<T>>;
 
     ResidualNormWithAbsolute()
     {

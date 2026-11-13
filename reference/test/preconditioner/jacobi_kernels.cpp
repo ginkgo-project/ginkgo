@@ -10,7 +10,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
 #include "core/base/extended_float.hpp"
@@ -29,7 +29,7 @@ protected:
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Bj = gko::preconditioner::Jacobi<value_type, index_type>;
     using Mtx = gko::matrix::Csr<value_type, index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using mdata = gko::matrix_data<value_type, index_type>;
 
     Jacobi()
@@ -656,7 +656,7 @@ TYPED_TEST(Jacobi, ScalarJacobiAppliesToVector)
 TYPED_TEST(Jacobi, AppliesToMixedVector)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, this->exec);
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
@@ -697,7 +697,7 @@ TYPED_TEST(Jacobi, AppliesToMixedComplexVector)
 {
     using value_type =
         gko::to_complex<gko::next_precision<typename TestFixture::value_type>>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto x = gko::initialize<Vec>(
         {value_type{1.0, 2.0}, value_type{-1.0, -2.0}, value_type{2.0, 4.0},
          value_type{-2.0, -4.0}, value_type{3.0, 6.0}},
@@ -902,7 +902,7 @@ TYPED_TEST(Jacobi, ScalarJacobiAppliesLinearCombinationToVector)
 TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedVector)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto x = gko::initialize<Vec>({1.0, -1.0, 2.0, -2.0, 3.0}, this->exec);
     auto b = gko::initialize<Vec>({4.0, -1.0, -2.0, 4.0, -1.0}, this->exec);
     auto alpha = gko::initialize<Vec>({2.0}, this->exec);
@@ -919,18 +919,18 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedVector)
 
 TYPED_TEST(Jacobi, AppliesLinearCombinationToComplexVector)
 {
-    using Dense = typename TestFixture::Vec;
-    using DenseComplex = gko::to_complex<Dense>;
+    using MultiVector = typename TestFixture::Vec;
+    using MultiVectorComplex = gko::to_complex<MultiVector>;
     using value_type = typename TestFixture::value_type;
     using T = gko::to_complex<value_type>;
-    auto x = gko::initialize<DenseComplex>(
+    auto x = gko::initialize<MultiVectorComplex>(
         {T{1.0, 2.0}, T{-1.0, -2.0}, T{2.0, 4.0}, T{-2.0, -4.0}, T{3.0, 6.0}},
         this->exec);
-    auto b = gko::initialize<DenseComplex>(
+    auto b = gko::initialize<MultiVectorComplex>(
         {T{4.0, 8.0}, T{-1.0, -2.0}, T{-2.0, -4.0}, T{4.0, 8.0}, T{-1.0, -2.0}},
         this->exec);
-    auto alpha = gko::initialize<Dense>({2.0}, this->exec);
-    auto beta = gko::initialize<Dense>({-1.0}, this->exec);
+    auto alpha = gko::initialize<MultiVector>({2.0}, this->exec);
+    auto beta = gko::initialize<MultiVector>({-1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
     bj->apply(alpha, b, beta, x);
@@ -945,17 +945,17 @@ TYPED_TEST(Jacobi, AppliesLinearCombinationToComplexVector)
 TYPED_TEST(Jacobi, AppliesLinearCombinationToMixedComplexVector)
 {
     using value_type = gko::next_precision<typename TestFixture::value_type>;
-    using MixedDense = gko::matrix::Dense<value_type>;
-    using MixedDenseComplex = gko::to_complex<MixedDense>;
+    using MixedMultiVector = gko::matrix::MultiVector<value_type>;
+    using MixedMultiVectorComplex = gko::to_complex<MixedMultiVector>;
     using T = gko::to_complex<value_type>;
-    auto x = gko::initialize<MixedDenseComplex>(
+    auto x = gko::initialize<MixedMultiVectorComplex>(
         {T{1.0, 2.0}, T{-1.0, -2.0}, T{2.0, 4.0}, T{-2.0, -4.0}, T{3.0, 6.0}},
         this->exec);
-    auto b = gko::initialize<MixedDenseComplex>(
+    auto b = gko::initialize<MixedMultiVectorComplex>(
         {T{4.0, 8.0}, T{-1.0, -2.0}, T{-2.0, -4.0}, T{4.0, 8.0}, T{-1.0, -2.0}},
         this->exec);
-    auto alpha = gko::initialize<MixedDense>({2.0}, this->exec);
-    auto beta = gko::initialize<MixedDense>({-1.0}, this->exec);
+    auto alpha = gko::initialize<MixedMultiVector>({2.0}, this->exec);
+    auto beta = gko::initialize<MixedMultiVector>({-1.0}, this->exec);
     auto bj = this->bj_factory->generate(this->mtx);
 
     bj->apply(alpha, b, beta, x);
@@ -1070,7 +1070,7 @@ TYPED_TEST(Jacobi,
 }
 
 
-TYPED_TEST(Jacobi, ConvertsToDense)
+TYPED_TEST(Jacobi, ConvertsToMultiVector)
 {
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
@@ -1090,7 +1090,7 @@ TYPED_TEST(Jacobi, ConvertsToDense)
 }
 
 
-TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
+TYPED_TEST(Jacobi, ConvertsToMultiVectorWithAdaptivePrecision)
 {
     using Vec = typename TestFixture::Vec;
     using value_type = typename TestFixture::value_type;
@@ -1111,7 +1111,7 @@ TYPED_TEST(Jacobi, ConvertsToDenseWithAdaptivePrecision)
 }
 
 
-TYPED_TEST(Jacobi, ConvertsEmptyToDense)
+TYPED_TEST(Jacobi, ConvertsEmptyToMultiVector)
 {
     using Vec = typename TestFixture::Vec;
     auto empty = gko::share(Vec::create(this->exec));
@@ -1186,7 +1186,7 @@ TYPED_TEST(Jacobi, BlockL1)
 }
 
 
-TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
+TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToMultiVector)
 {
     using Bj = typename TestFixture::Bj;
     using Mtx = typename TestFixture::Mtx;
@@ -1231,7 +1231,7 @@ TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDense)
 }
 
 
-TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToDenseWithAdaptivePrecision)
+TYPED_TEST(Jacobi, L1BlockJaocbiConvertsToMultiVectorWithAdaptivePrecision)
 {
     using Bj = typename TestFixture::Bj;
     using Mtx = typename TestFixture::Mtx;

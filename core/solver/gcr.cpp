@@ -13,8 +13,8 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
@@ -100,7 +100,7 @@ void Gcr<ValueType>::apply_dense_impl(const VectorType* dense_b,
                                       VectorType* dense_x) const
 {
     using Vector = VectorType;
-    using LocalVector = matrix::Dense<typename Vector::value_type>;
+    using LocalVector = matrix::MultiVector<typename Vector::value_type>;
     using NormVector = typename LocalVector::absolute_type;
     using ws = workspace_traits<Gcr>;
 
