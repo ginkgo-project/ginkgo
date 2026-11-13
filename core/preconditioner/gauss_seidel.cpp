@@ -57,15 +57,17 @@ template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> GaussSeidel<ValueType, IndexType>::generate_impl(
     LinOpGenerateComponents components) const
 {
-    auto system_matrix = std::move(components.system_matrix);
-    return Sor<ValueType, IndexType>::build()
-        .with_skip_sorting(parameters_.skip_sorting)
-        .with_symmetric(parameters_.symmetric)
-        .with_relaxation_factor(static_cast<remove_complex<ValueType>>(1.0))
-        .with_l_solver(parameters_.l_solver)
-        .with_u_solver(parameters_.u_solver)
-        .on(this->get_executor())
-        ->generate(std::move(system_matrix));
+    auto sor =
+        Sor<ValueType, IndexType>::build()
+            .with_skip_sorting(parameters_.skip_sorting)
+            .with_symmetric(parameters_.symmetric)
+            .with_relaxation_factor(static_cast<remove_complex<ValueType>>(1.0))
+            .with_l_solver(parameters_.l_solver)
+            .with_u_solver(parameters_.u_solver)
+            .on(this->get_executor());
+    // Sor generates into the workspace this factory got
+    return gko::detail::generate_with_components(sor.get(),
+                                                 std::move(components));
 }
 
 
