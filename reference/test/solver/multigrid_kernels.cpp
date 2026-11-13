@@ -9,6 +9,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
@@ -1451,6 +1452,32 @@ TYPED_TEST(Multigrid, GenerateReuseMatchesRegeneratedSolver)
     GKO_ASSERT_MTX_NEAR(x, expected_x, r<value_type>::value);
     // a later call must not change the first solver
     GKO_ASSERT_MTX_NEAR(first_x_again, first_x, 0.0);
+}
+
+
+TYPED_TEST(Multigrid, GenerateReuseKeepsTheWorkspace)
+{
+    using Solver = typename TestFixture::Solver;
+    auto factory =
+        Solver::build()
+            .with_max_levels(2u)
+            .with_min_coarse_rows(1u)
+            .with_mg_level(this->coarse_factory)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec);
+    auto reuse_data = factory->create_empty_reuse_data();
+    auto ws = gko::Workspace::create(this->exec);
+    const auto* root = ws.get();
+
+    for (int i = 0; i < 2; i++) {
+        std::unique_ptr<gko::LinOp> solver =
+            factory->generate_reuse(this->mtx2, *reuse_data, std::move(ws));
+        auto x = gko::clone(this->x2);
+        solver->apply(this->b2, x);
+        ws = gko::invalidate_and_extract_workspace(std::move(solver));
+    }
+
+    ASSERT_EQ(ws.get(), root);
 }
 
 
