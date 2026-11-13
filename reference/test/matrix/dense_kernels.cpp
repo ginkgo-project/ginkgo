@@ -509,6 +509,56 @@ TYPED_TEST(Dense, ExtractsDiagonalFromShortFatMatrixIntoDiagonal)
 }
 
 
+TYPED_TEST(Dense, AddsScaledDiag)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto diag = gko::matrix::Diagonal<T>::create(
+        this->exec, 2, gko::array<T>{this->exec, {3.0, 2.0}});
+
+    this->mtx2->add_scaled(alpha, diag);
+
+    ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
+    ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
+    ASSERT_EQ(this->mtx2->at(1, 0), T{-2.0});
+    ASSERT_EQ(this->mtx2->at(1, 1), T{6.0});
+}
+
+
+TYPED_TEST(Dense, SubtractsScaledDiag)
+{
+    using Vec = typename TestFixture::Vec;
+    using T = typename TestFixture::value_type;
+    auto alpha = gko::initialize<Vec>({-2.0}, this->exec);
+    auto diag = gko::matrix::Diagonal<T>::create(
+        this->exec, 2, gko::array<T>{this->exec, {3.0, 2.0}});
+
+    this->mtx2->sub_scaled(alpha, diag);
+
+    ASSERT_EQ(this->mtx2->at(0, 0), T{7.0});
+    ASSERT_EQ(this->mtx2->at(0, 1), T{-1.0});
+    ASSERT_EQ(this->mtx2->at(1, 0), T{-2.0});
+    ASSERT_EQ(this->mtx2->at(1, 1), T{6.0});
+}
+
+
+TYPED_TEST(Dense, ScaleAddIdentityRectangular)
+{
+    using T = typename TestFixture::value_type;
+    using Vec = typename TestFixture::Vec;
+    using Mtx = typename TestFixture::Mtx;
+    auto alpha = gko::initialize<Vec>({2.0}, this->exec);
+    auto beta = gko::initialize<Vec>({-1.0}, this->exec);
+    auto b = gko::initialize<Mtx>(
+        {I<T>{2.0, 0.0}, I<T>{1.0, 2.5}, I<T>{0.0, -4.0}}, this->exec);
+
+    b->add_scaled_identity(alpha, beta);
+
+    GKO_ASSERT_MTX_NEAR(b, l({{0.0, 0.0}, {-1.0, -0.5}, {0.0, 4.0}}), 0.0);
+}
+
+
 TYPED_TEST(Dense, AppliesToComplex)
 {
     using value_type = typename TestFixture::value_type;
