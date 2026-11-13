@@ -457,21 +457,6 @@ protected:
                        gen_out_vec<DistVecType>(part, solver, 17, 21));
 #endif
         }
-        if (!gko::is_complex<value_type>()) {
-            // check application of real matrix to complex vector
-            // viewed as interleaved real/imag vector
-            using complex_vec = gko::to_complex<DistVecType>;
-            {
-                SCOPED_TRACE("Single strided complex vector");
-                guarded_fn(gen_in_vec<complex_vec>(part, solver, 1, 2),
-                           gen_out_vec<complex_vec>(part, solver, 1, 3));
-            }
-            {
-                SCOPED_TRACE("Strided complex multivector with 2 columns");
-                guarded_fn(gen_in_vec<complex_vec>(part, solver, 2, 3),
-                           gen_out_vec<complex_vec>(part, solver, 2, 4));
-            }
-        }
     }
 
     template <typename M1, typename DistVecType>

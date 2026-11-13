@@ -5,8 +5,9 @@
 #include "ginkgo/core/matrix/identity.hpp"
 
 #include <ginkgo/core/base/exception_helpers.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
-#include <ginkgo/core/base/utils.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
+
+#include "core/base/dispatch_helper.hpp"
 
 
 namespace gko {
@@ -14,22 +15,25 @@ namespace matrix {
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void Identity<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                     AbstractMultiVector* x) const
 {
-    as<Cloneable>(x)->copy_from(as<Cloneable>(b));
+    x->copy_from(b);
 }
 
 
 template <typename ValueType>
-void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
-                                     const LinOp* beta, LinOp* x) const
+void Identity<ValueType>::apply_impl(const AbstractMultiVector* alpha,
+                                     const AbstractMultiVector* b,
+                                     const AbstractMultiVector* beta,
+                                     AbstractMultiVector* x) const
 {
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, dense_b);
+    precision_dispatch<ValueType>(
+        [alpha, beta](auto b_, auto x_) {
+            x_->scale(beta);
+            x_->add_scaled(alpha, b_);
         },
-        alpha, b, beta, x);
+        b, x);
 }
 
 

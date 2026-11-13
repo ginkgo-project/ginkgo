@@ -80,27 +80,6 @@ TYPED_TEST(Combination, AppliesToMixedVector)
 }
 
 
-TYPED_TEST(Combination, AppliesToComplexVector)
-{
-    /*
-        cmb = [ 8 7 ]
-              [ 5 4 ]
-    */
-    using Vec = gko::to_complex<typename TestFixture::Vec>;
-    using T = typename Vec::value_type;
-    auto cmb = gko::Combination<TypeParam>::create(
-        this->coefficients[0], this->operators[0], this->coefficients[1],
-        this->operators[1]);
-    auto x = gko::initialize<Vec>({T{1.0, -2.0}, T{2.0, -4.0}}, this->exec);
-    auto res = clone(x);
-
-    cmb->apply(x, res);
-
-    GKO_ASSERT_MTX_NEAR(res, l({T{22.0, -44.0}, T{13.0, -26.0}}),
-                        r<TypeParam>::value);
-}
-
-
 TYPED_TEST(Combination, AppliesLinearCombinationToVector)
 {
     /*
@@ -142,31 +121,6 @@ TYPED_TEST(Combination, AppliesLinearCombinationToMixedVector)
 
     GKO_ASSERT_MTX_NEAR(res, l({65.0, 37.0}),
                         (r_mixed<value_type, TypeParam>()));
-}
-
-
-TYPED_TEST(Combination, AppliesLinearCombinationToComplexVector)
-{
-    /*
-        cmb = [ 8 7 ]
-              [ 5 4 ]
-    */
-    using MultiVector = typename TestFixture::Vec;
-    using MultiVectorComplex = gko::to_complex<MultiVector>;
-    using T = typename MultiVectorComplex::value_type;
-    auto cmb = gko::Combination<TypeParam>::create(
-        this->coefficients[0], this->operators[0], this->coefficients[1],
-        this->operators[1]);
-    auto alpha = gko::initialize<MultiVector>({3.0}, this->exec);
-    auto beta = gko::initialize<MultiVector>({-1.0}, this->exec);
-    auto x = gko::initialize<MultiVectorComplex>({T{1.0, -2.0}, T{2.0, -4.0}},
-                                                 this->exec);
-    auto res = clone(x);
-
-    cmb->apply(alpha, x, beta, res);
-
-    GKO_ASSERT_MTX_NEAR(res, l({T{65.0, -130.0}, T{37.0, -74.0}}),
-                        r<TypeParam>::value);
 }
 
 

@@ -19,10 +19,14 @@ struct DummyOperator : public gko::LinOp {
         : gko::LinOp(exec, gko::dim<2>{1, 1})
     {}
 
-    void apply_impl(const LinOp* b, LinOp* x) const override {}
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
+    {}
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {}
 };
 
@@ -30,17 +34,19 @@ struct DummyOperator : public gko::LinOp {
 template <typename T>
 class Combination : public ::testing::Test {
 protected:
+    using MultiVector = gko::matrix::MultiVector<T>;
+
     Combination()
         : exec{gko::ReferenceExecutor::create()},
           operators{std::make_shared<DummyOperator>(exec),
                     std::make_shared<DummyOperator>(exec)},
-          coefficients{std::make_shared<DummyOperator>(exec),
-                       std::make_shared<DummyOperator>(exec)}
+          coefficients{MultiVector::create(exec, {1, 1}),
+                       MultiVector::create(exec, {1, 1})}
     {}
 
     std::shared_ptr<const gko::Executor> exec;
     std::vector<std::shared_ptr<gko::LinOp>> operators;
-    std::vector<std::shared_ptr<gko::LinOp>> coefficients;
+    std::vector<std::shared_ptr<MultiVector>> coefficients;
 };
 
 TYPED_TEST_SUITE(Combination, gko::test::ValueTypes, TypenameNameGenerator);

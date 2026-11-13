@@ -40,7 +40,8 @@ protected:
 
     Nullspace() : exec(gko::ReferenceExecutor::create()) {}
 
-    std::shared_ptr<gko::LinOp> col(std::initializer_list<value_type> vals)
+    std::shared_ptr<gko::AbstractMultiVector> col(
+        std::initializer_list<value_type> vals)
     {
         auto n = vals.size();
         auto v = vec::create(exec, gko::dim<2>{n, 1});
@@ -51,7 +52,7 @@ protected:
         return std::move(v);
     }
 
-    std::shared_ptr<gko::LinOp> block(
+    std::shared_ptr<gko::AbstractMultiVector> block(
         std::initializer_list<std::initializer_list<value_type>> cols)
     {
         auto k = cols.size();
@@ -275,7 +276,9 @@ TYPED_TEST(Nullspace, OrthonormalizesBasis)
     auto basis = gko::as<vec>(ns->get_basis());
     ASSERT_EQ(basis->get_size(), (gko::dim<2>{4, 2}));
     auto gram = vec::create(this->exec, gko::dim<2>{2, 2});
-    gko::as<vec>(basis->conj_transpose())->apply(basis, gram);
+    gko::as<vec>(basis->conj_transpose())
+        ->as_const_dense_view()
+        ->apply(basis, gram);
     GKO_ASSERT_MTX_NEAR(gram,
                         gko::initialize<vec>({{o, z}, {z, o}}, this->exec),
                         r<value_type>::value);
@@ -301,7 +304,9 @@ TYPED_TEST(Nullspace, OrthonormalizesComplexBasis)
 
         auto basis = gko::as<vec>(ns->get_basis());
         auto gram = vec::create(this->exec, gko::dim<2>{2, 2});
-        gko::as<vec>(basis->conj_transpose())->apply(basis, gram);
+        gko::as<vec>(basis->conj_transpose())
+            ->as_const_dense_view()
+            ->apply(basis, gram);
         GKO_ASSERT_MTX_NEAR(gram,
                             gko::initialize<vec>({{o, z}, {z, o}}, this->exec),
                             r<value_type>::value);
@@ -441,24 +446,6 @@ TYPED_TEST(Nullspace, ThrowsOnRowMismatch)
     auto v = this->test_vector(5, 1);
 
     ASSERT_THROW(ns->project(v), gko::DimensionMismatch);
-}
-
-
-TYPED_TEST(Nullspace, ThrowsOnInvalidBasis)
-{
-    using value_type = typename TestFixture::value_type;
-    using NullspaceType = gko::solver::Nullspace<value_type>;
-    const auto o = gko::one<value_type>();
-    auto csr = gko::share(gko::matrix::Csr<value_type, int>::create(
-        this->exec, gko::dim<2>{2, 1}));
-
-    ASSERT_THROW(NullspaceType::create(this->exec, {}), gko::InvalidStateError);
-    ASSERT_THROW(NullspaceType::create(this->exec, {nullptr}),
-                 gko::InvalidStateError);
-    ASSERT_THROW(
-        NullspaceType::create(this->exec, {this->col({o, o}), nullptr}),
-        gko::InvalidStateError);
-    ASSERT_THROW(NullspaceType::create(this->exec, {csr}), gko::NotSupported);
 }
 
 

@@ -26,7 +26,6 @@ class Coo : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Coo<value_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
-    using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
 
     Coo() : rand_engine(42) {}
 
@@ -241,51 +240,6 @@ TEST_F(Coo, AdvancedApplyAddToLargeMultiVectorMatrixIsEquivalentToRef)
     dmtx->apply2(dy, dresult);
 
     GKO_ASSERT_MTX_NEAR(dresult, expected, r<value_type>::value);
-}
-
-
-TEST_F(Coo, ApplyToComplexIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    auto dcomplex_b = gko::clone(exec, complex_b);
-    auto complex_x = gen_mtx<ComplexVec>(532, 3);
-    auto dcomplex_x = gko::clone(exec, complex_x);
-
-    mtx->apply(complex_b, complex_x);
-    dmtx->apply(dcomplex_b, dcomplex_x);
-
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
-}
-
-
-TEST_F(Coo, AdvancedApplyToComplexIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    auto dcomplex_b = gko::clone(exec, complex_b);
-    auto complex_x = gen_mtx<ComplexVec>(532, 3);
-    auto dcomplex_x = gko::clone(exec, complex_x);
-
-    mtx->apply(alpha, complex_b, beta, complex_x);
-    dmtx->apply(dalpha, dcomplex_b, dbeta, dcomplex_x);
-
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
-}
-
-
-TEST_F(Coo, ApplyAddToComplexIsEquivalentToRef)
-{
-    set_up_apply_data();
-    auto complex_b = gen_mtx<ComplexVec>(231, 3);
-    auto dcomplex_b = gko::clone(exec, complex_b);
-    auto complex_x = gen_mtx<ComplexVec>(532, 3);
-    auto dcomplex_x = gko::clone(exec, complex_x);
-
-    mtx->apply2(alpha, complex_b, complex_x);
-    dmtx->apply2(dalpha, dcomplex_b, dcomplex_x);
-
-    GKO_ASSERT_MTX_NEAR(dcomplex_x, complex_x, r<value_type>::value);
 }
 
 

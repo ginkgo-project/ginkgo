@@ -92,8 +92,8 @@ public:
     }
 
 private:
-    std::unique_ptr<gko::LinOp> in_;
-    std::unique_ptr<gko::LinOp> out_;
+    std::unique_ptr<gko::AbstractMultiVector> in_;
+    std::unique_ptr<gko::AbstractMultiVector> out_;
 };
 
 
@@ -132,8 +132,8 @@ public:
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> x_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> x_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -172,8 +172,8 @@ public:
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> x_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> x_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -208,7 +208,7 @@ public:
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -245,8 +245,8 @@ public:
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> x_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> x_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -279,7 +279,7 @@ public:
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -293,8 +293,11 @@ public:
     {
         // Since dense distributed matrices are not supported we can use
         // local_size == global_size
-        A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, k},
-                                                   gko::dim<2>{n, k}, stride_A);
+        A_ = generator
+                 .create_multi_vector_strided(exec, gko::dim<2>{n, k},
+                                              gko::dim<2>{n, k}, stride_A)
+                 ->as_const_dense_view()
+                 ->clone();
         B_ = generator.create_multi_vector_strided(exec, gko::dim<2>{k, m},
                                                    gko::dim<2>{k, m}, stride_B);
         C_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, m},
@@ -320,8 +323,8 @@ public:
 
 private:
     std::unique_ptr<gko::LinOp> A_;
-    std::unique_ptr<gko::LinOp> B_;
-    std::unique_ptr<gko::LinOp> C_;
+    std::unique_ptr<gko::AbstractMultiVector> B_;
+    std::unique_ptr<gko::AbstractMultiVector> C_;
 };
 
 
@@ -336,8 +339,11 @@ public:
     {
         // Since dense distributed matrices are not supported we can use
         // local_size == global_size
-        A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, k},
-                                                   gko::dim<2>{n, k}, stride_A);
+        A_ = generator
+                 .create_multi_vector_strided(exec, gko::dim<2>{n, k},
+                                              gko::dim<2>{n, k}, stride_A)
+                 ->as_const_dense_view()
+                 ->clone();
         B_ = generator.create_multi_vector_strided(exec, gko::dim<2>{k, m},
                                                    gko::dim<2>{k, m}, stride_B);
         C_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, m},
@@ -372,8 +378,8 @@ private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
     std::unique_ptr<gko::matrix::MultiVector<etype>> beta_;
     std::unique_ptr<gko::LinOp> A_;
-    std::unique_ptr<gko::LinOp> B_;
-    std::unique_ptr<gko::LinOp> C_;
+    std::unique_ptr<gko::AbstractMultiVector> B_;
+    std::unique_ptr<gko::AbstractMultiVector> C_;
 };
 
 

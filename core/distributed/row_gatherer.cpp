@@ -7,7 +7,6 @@
 #include <ginkgo/core/base/dense_cache.hpp>
 #include <ginkgo/core/base/event.hpp>
 #include <ginkgo/core/distributed/dense_communicator.hpp>
-#include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/row_scatterer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
@@ -29,8 +28,9 @@ GKO_REGISTER_OPERATION(record_event, event::record_event);
 
 
 template <typename LocalIndexType>
-mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
-                                                      ptr_param<LinOp> x) const
+mpi::request RowGatherer<LocalIndexType>::apply_async(
+    ptr_param<const AbstractMultiVector> b,
+    ptr_param<AbstractMultiVector> x) const
 {
     return apply_async(b, x, send_cache_);
 }
@@ -38,7 +38,7 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(
-    ptr_param<const LinOp> b, ptr_param<LinOp> x,
+    ptr_param<const AbstractMultiVector> b, ptr_param<AbstractMultiVector> x,
     gko::detail::GenericDenseCache& workspace) const
 {
     auto ev = this->apply_prepare(b, workspace);
@@ -47,7 +47,8 @@ mpi::request RowGatherer<LocalIndexType>::apply_async(
 
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event>
-RowGatherer<LocalIndexType>::apply_prepare(ptr_param<const LinOp> b) const
+RowGatherer<LocalIndexType>::apply_prepare(
+    ptr_param<const AbstractMultiVector> b) const
 {
     return apply_prepare(b, send_cache_);
 }
@@ -55,41 +56,37 @@ RowGatherer<LocalIndexType>::apply_prepare(ptr_param<const LinOp> b) const
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event>
 RowGatherer<LocalIndexType>::apply_prepare(
-    ptr_param<const LinOp> b, gko::detail::GenericDenseCache& workspace) const
+    ptr_param<const AbstractMultiVector> b,
+    gko::detail::GenericDenseCache& workspace) const
 {
     std::shared_ptr<const gko::detail::Event> ev = nullptr;
     auto exec = this->get_executor();
     auto use_host_buffer =
         mpi::requires_host_buffer(exec, coll_comm_->get_base_communicator());
     auto mpi_exec = use_host_buffer ? exec->get_master() : exec;
+    auto tmp_b = make_temporary_clone(exec, b);
 
-    // dispatch global vector
-    run<Vector,
-#if GINKGO_ENABLE_HALF
-        half, std::complex<half>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-        bfloat16, std::complex<bfloat16>,
-#endif
-        double, float, std::complex<double>, std::complex<float>>(
-        make_temporary_clone(exec, b).get(), [&](const auto* b_global) {
-            using ValueType =
-                typename std::decay_t<decltype(*b_global)>::value_type;
-            auto b_local = b_global->get_local_vector();
+    std::visit(
+        [&](auto p) {
+            using ValueType = std::decay_t<decltype(p)>;
+
+            auto b_local =
+                as<Vector<ValueType>>(tmp_b.get())->get_local_vector();
 
             dim<2> send_size(coll_comm_->get_send_size(),
                              b_local->get_size()[1]);
             auto send_buffer = workspace.get<ValueType>(mpi_exec, send_size);
             b_local->row_gather(&send_idxs_, send_buffer);
             b_local->get_executor()->run(event::make_record_event(ev));
-        });
+        },
+        precision_to_variant(b->get_precision()));
     return ev;
 }
 
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_finalize(
-    ptr_param<const LinOp> b, ptr_param<LinOp> x,
+    ptr_param<const AbstractMultiVector> b, ptr_param<AbstractMultiVector> x,
     std::shared_ptr<const gko::detail::Event> ev) const
 {
     auto req = apply_finalize(b, x, ev, send_cache_);
@@ -98,7 +95,7 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
 
 template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_finalize(
-    ptr_param<const LinOp> b, ptr_param<LinOp> x,
+    ptr_param<const AbstractMultiVector> b, ptr_param<AbstractMultiVector> x,
     std::shared_ptr<const gko::detail::Event> ev,
     gko::detail::GenericDenseCache& workspace) const
 {
@@ -116,28 +113,19 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
         "Please provide a host buffer or enable MPI support for device "
         "memory.");
 
-    // dispatch global vector. b is only used for its value type and size, so
-    // it doesn't need to be cloned to exec
-    run<Vector,
-#if GINKGO_ENABLE_HALF
-        half, std::complex<half>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-        bfloat16, std::complex<bfloat16>,
-#endif
-        double, float, std::complex<double>, std::complex<float>>(
-        b.get(), [&](const auto* b_global) {
-            using ValueType =
-                typename std::decay_t<decltype(*b_global)>::value_type;
-            // x is not converted to the precision of b, since a temporary
-            // conversion is freed before MPI finishes receiving into it
-            auto x_global = gko::as<Vector<ValueType>>(x.get());
-            auto b_local = b_global->get_local_vector();
+    auto tmp_b = make_temporary_clone(exec, b);
+    std::visit(
+        [&](auto p) {
+            using ValueType = std::decay_t<decltype(p)>;
+
+            auto b_local =
+                as<Vector<ValueType>>(tmp_b.get())->get_local_vector();
 
             dim<2> send_size(coll_comm_->get_send_size(),
                              b_local->get_size()[1]);
             auto send_buffer = workspace.get<ValueType>(mpi_exec, send_size);
 
+            auto x_global = as<Vector<ValueType>>(x->as_precision(b_local));
             auto recv_ptr = x_global->get_local_values();
             auto send_ptr = send_buffer->get_values();
             ev->synchronize();
@@ -145,7 +133,9 @@ mpi::request RowGatherer<LocalIndexType>::apply_finalize(
                                       mpi::type_impl<ValueType>::get_type());
             req = coll_comm_->i_all_to_all_v(mpi_exec, send_ptr, type.get(),
                                              recv_ptr, type.get());
-        });
+        },
+        precision_to_variant(b->get_precision()));
+
     return req;
 }
 
@@ -155,7 +145,8 @@ namespace detail {
 
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event> apply_prepare(
-    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b)
+    const RowGatherer<LocalIndexType>* rg,
+    ptr_param<const AbstractMultiVector> b)
 {
     return rg->apply_prepare(b);
 }
@@ -163,7 +154,8 @@ std::shared_ptr<const gko::detail::Event> apply_prepare(
 
 template <typename LocalIndexType>
 std::shared_ptr<const gko::detail::Event> apply_prepare(
-    const RowGatherer<LocalIndexType>* rg, ptr_param<const LinOp> b,
+    const RowGatherer<LocalIndexType>* rg,
+    ptr_param<const AbstractMultiVector> b,
     gko::detail::GenericDenseCache& workspace)
 {
     return rg->apply_prepare(b, workspace);
@@ -172,7 +164,8 @@ std::shared_ptr<const gko::detail::Event> apply_prepare(
 
 template <typename LocalIndexType>
 mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
-                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            ptr_param<const AbstractMultiVector> b,
+                            ptr_param<AbstractMultiVector> x,
                             std::shared_ptr<const gko::detail::Event> ev)
 {
     return rg->apply_finalize(b, x, ev);
@@ -181,7 +174,8 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
 
 template <typename LocalIndexType>
 mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
-                            ptr_param<const LinOp> b, ptr_param<LinOp> x,
+                            ptr_param<const AbstractMultiVector> b,
+                            ptr_param<AbstractMultiVector> x,
                             std::shared_ptr<const gko::detail::Event> ev,
                             gko::detail::GenericDenseCache& workspace)
 {
@@ -191,21 +185,23 @@ mpi::request apply_finalize(const RowGatherer<LocalIndexType>* rg,
 
 #define GKO_DECLARE_TEST_APPLY_PREPARE(IndexType)            \
     std::shared_ptr<const gko::detail::Event> apply_prepare( \
-        const RowGatherer<IndexType>*, ptr_param<const LinOp>)
+        const RowGatherer<IndexType>*, ptr_param<const AbstractMultiVector>)
 
-#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(IndexType)    \
-    std::shared_ptr<const gko::detail::Event> apply_prepare(   \
-        const RowGatherer<IndexType>*, ptr_param<const LinOp>, \
+#define GKO_DECLARE_TEST_APPLY_PREPARE_WORKSPACE(IndexType)                  \
+    std::shared_ptr<const gko::detail::Event> apply_prepare(                 \
+        const RowGatherer<IndexType>*, ptr_param<const AbstractMultiVector>, \
         gko::detail::GenericDenseCache&)
 
-#define GKO_DECLARE_TEST_APPLY_FINALIZE(IndexType)                            \
-    mpi::request apply_finalize(const RowGatherer<IndexType>* rg,             \
-                                ptr_param<const LinOp> b, ptr_param<LinOp> x, \
+#define GKO_DECLARE_TEST_APPLY_FINALIZE(IndexType)                      \
+    mpi::request apply_finalize(const RowGatherer<IndexType>* rg,       \
+                                ptr_param<const AbstractMultiVector> b, \
+                                ptr_param<AbstractMultiVector> x,       \
                                 std::shared_ptr<const gko::detail::Event> ev)
 
 #define GKO_DECLARE_TEST_APPLY_FINALIZE_WORKSPACE(IndexType)                  \
     mpi::request apply_finalize(const RowGatherer<IndexType>* rg,             \
-                                ptr_param<const LinOp> b, ptr_param<LinOp> x, \
+                                ptr_param<const AbstractMultiVector> b,       \
+                                ptr_param<AbstractMultiVector> x,             \
                                 std::shared_ptr<const gko::detail::Event> ev, \
                                 gko::detail::GenericDenseCache&)
 
@@ -246,10 +242,9 @@ RowGatherer<LocalIndexType>::RowGatherer(
     const index_map<LocalIndexType, GlobalIndexType>& imap)
     : PolymorphicObject(exec),
       DistributedBase(coll_comm->get_base_communicator()),
-      size_(dim<2>{
-          gko::detail::global_add(exec, coll_comm->get_base_communicator(),
-                                  imap.get_non_local_size()),
-          imap.get_global_size()}),
+      size_(dim<2>{detail::global_add(exec, coll_comm->get_base_communicator(),
+                                      imap.get_non_local_size()),
+                   imap.get_global_size()}),
       coll_comm_(std::move(coll_comm)),
       send_idxs_(exec),
       send_cache_()
