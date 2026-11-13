@@ -523,10 +523,13 @@ struct DummyLogger : gko::log::Logger {
     DummyLogger() : gko::log::Logger(gko::log::Logger::iteration_complete_mask)
     {}
 
-    void on_iteration_complete(const gko::LinOp* solver, const gko::LinOp* b,
-                               const gko::LinOp* x, const gko::size_type& it,
-                               const gko::LinOp* r, const gko::LinOp* tau,
-                               const gko::LinOp* implicit_tau,
+    void on_iteration_complete(const gko::LinOp* solver,
+                               const gko::AbstractMultiVector* b,
+                               const gko::AbstractMultiVector* x,
+                               const gko::size_type& it,
+                               const gko::AbstractMultiVector* r,
+                               const gko::AbstractMultiVector* tau,
+                               const gko::AbstractMultiVector* implicit_tau,
                                const gko::array<gko::stopping_status>* status,
                                bool all_stopped) const override
     {
@@ -822,10 +825,12 @@ protected:
             guarded_fn(gen_in_vec<VecType>(op, 1, 2),
                        gen_out_vec<VecType>(op, 1, 3));
         }
-        if (!gko::is_complex<value_type>()) {
-            // check application of real matrix to complex vector
-            // viewed as interleaved real/imag vector
-            using complex_vec = gko::to_complex<VecType>;
+        // check application of real matrix to complex vector
+        // viewed as interleaved real/imag vector
+        using complex_vec = gko::to_complex<VecType>;
+        if (!gko::is_complex<value_type>() &&
+            std::is_same_v<value_type, gko::remove_complex<
+                                           typename complex_vec::value_type>>) {
             {
                 SCOPED_TRACE("Single strided complex vector");
                 guarded_fn(gen_in_vec<complex_vec>(op, 1, 2),

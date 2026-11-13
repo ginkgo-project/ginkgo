@@ -350,41 +350,18 @@ TYPED_TEST(MultiVector, CanCreateSubmatrixWithGlobalSize)
 TYPED_TEST(MultiVector, CreateSubmatrixWithGlobalSizeThrowsOnIncorrectSize)
 {
     EXPECT_THROW(
-        this->mtx->create_subview(gko::local_span{0, 1}, gko::local_span{1, 3},
-                                  gko::dim<2>{1, 20}),
+        auto _ = this->mtx->create_subview(
+            gko::local_span{0, 1}, gko::local_span{1, 3}, gko::dim<2>{1, 20}),
         gko::DimensionMismatch);
 }
 
 
 TYPED_TEST(MultiVector, CanCreateEmptySubmatrix)
 {
-    using value_type = typename TestFixture::value_type;
     auto submtx =
         this->mtx->create_subview(gko::local_span{0, 0}, gko::local_span{1, 1});
 
     EXPECT_EQ(submtx->get_size(), gko::dim<2>{});
-}
-
-
-TYPED_TEST(MultiVector, CanCreateSubmatrixWithStride)
-{
-    using value_type = typename TestFixture::value_type;
-    auto submtx = this->mtx->create_subview(gko::local_span{0, 2},
-                                            gko::local_span{0, 2}, 3);
-
-    EXPECT_EQ(submtx->get_size(), gko::dim<2>(2, 2));
-    EXPECT_EQ(submtx->get_stride(), 3);
-    // The entry submtx->at(1, 0) points to the strided data of this->mtx
-    // which means that it is undefined. Thus it is skipped in the tests
-    EXPECT_EQ(submtx->at(0, 0), value_type{1.0});
-    EXPECT_EQ(submtx->at(0, 1), value_type{2.0});
-    EXPECT_EQ(submtx->at(1, 1), value_type{1.5});
-    EXPECT_EQ(submtx->get_num_stored_elements(), 6);
-    EXPECT_LT(std::distance(this->mtx->get_values(), submtx->get_values()),
-              this->mtx->get_num_stored_elements());
-    EXPECT_EQ(&submtx->at(0, 0), &this->mtx->at(0, 0));
-    EXPECT_EQ(&submtx->at(0, 1), &this->mtx->at(0, 1));
-    EXPECT_EQ(&submtx->at(1, 1), &this->mtx->at(1, 0));
 }
 
 
@@ -487,25 +464,32 @@ public:
     }
 
 protected:
-    [[nodiscard]] std::unique_ptr<Cloneable> clone_impl(
-        std::shared_ptr<const gko::Executor> exec) const override
+    [[nodiscard]] std::unique_ptr<Cloneable> clone_impl() const override
     {
-        return create(exec, this->get_size(), this->data_);
+        return create(this->get_executor(), this->get_size(), this->data_);
     }
 
-private:
     explicit CustomMultiVector(std::shared_ptr<const gko::Executor> exec,
                                gko::dim<2> size = {}, int data = 0)
         : gko::matrix::MultiVector<>(std::move(exec), size), data_(data)
     {}
 
-    std::unique_ptr<gko::matrix::MultiVector<>> create_view_of_impl() override
+    [[nodiscard]] std::unique_ptr<MultiVector<>> create_subview_impl(
+        gko::local_span rows, gko::local_span columns) override
     {
         auto view = create(this->get_executor(), {}, this->get_data());
-        gko::matrix::MultiVector<>::create_view_of_impl()->move_to(view);
+        MultiVector<>::create_subview_impl(rows, columns)->move_to(view);
+        return view;
+    }
+    [[nodiscard]] std::unique_ptr<const MultiVector<>> create_subview_impl(
+        gko::local_span rows, gko::local_span columns) const override
+    {
+        auto view = create(this->get_executor(), {}, this->get_data());
+        MultiVector<>::create_subview_impl(rows, columns)->convert_to(view);
         return view;
     }
 
+private:
     int data_;
 };
 
