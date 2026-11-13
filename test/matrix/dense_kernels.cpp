@@ -327,8 +327,8 @@ TEST_F(Dense, ExtractDiagonalOnShortFatIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto diag = y->extract_diagonal();
-    auto ddiag = dy->extract_diagonal();
+    auto diag = y->as_const_dense_view()->extract_diagonal();
+    auto ddiag = dy->as_const_dense_view()->extract_diagonal();
 
     GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
 }
@@ -341,10 +341,72 @@ TEST_F(Dense, ExtractDiagonalOnShortFatIntoDenseCrossExecutor)
     // test make_temporary_clone
     auto ddiag = Diagonal::create(ref, y->get_size()[0]);
 
-    y->extract_diagonal(diag);
-    dy->extract_diagonal(ddiag);
+    y->as_const_dense_view()->extract_diagonal(diag);
+    dy->as_const_dense_view()->extract_diagonal(ddiag);
 
     GKO_ASSERT_MTX_NEAR(diag, ddiag, 0);
+}
+
+
+TEST_F(Dense, AddsScaledDiagIsEquivalentToRef)
+{
+    auto mat = gen_mtx<Mtx>(532, 532);
+    gko::array<Mtx::value_type> diag_values(this->ref, 532);
+    gko::kernels::reference::components::fill_array(
+        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
+    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
+                                                               diag_values);
+    auto alpha = gko::initialize<Vec>({2.0}, this->ref);
+    auto dmat = gko::clone(this->exec, mat);
+    auto ddiag = gko::clone(this->exec, diag);
+    auto dalpha = gko::clone(this->exec, alpha);
+
+    mat->add_scaled(alpha, diag);
+    dmat->add_scaled(dalpha, ddiag);
+
+    GKO_ASSERT_MTX_NEAR(mat, dmat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, SubtractScaledDiagIsEquivalentToRef)
+{
+    auto mat = gen_mtx<Mtx>(532, 532);
+    gko::array<Mtx::value_type> diag_values(this->ref, 532);
+    gko::kernels::reference::components::fill_array(
+        this->ref, diag_values.get_data(), 532, Mtx::value_type{2.0});
+    auto diag = gko::matrix::Diagonal<Mtx::value_type>::create(this->ref, 532,
+                                                               diag_values);
+    auto alpha = gko::initialize<Vec>({2.0}, this->ref);
+    auto dmat = gko::clone(this->exec, mat);
+    auto ddiag = gko::clone(this->exec, diag);
+    auto dalpha = gko::clone(this->exec, alpha);
+
+    mat->sub_scaled(alpha, diag);
+    dmat->sub_scaled(dalpha, ddiag);
+
+    GKO_ASSERT_MTX_NEAR(mat, dmat, r<value_type>::value);
+}
+
+
+TEST_F(Dense, AddScaledIdentityToNonSquare)
+{
+    set_up_apply_data();
+
+    x->add_scaled_identity(alpha, beta);
+    dx->add_scaled_identity(dalpha, dbeta);
+
+    GKO_ASSERT_MTX_NEAR(x, dx, r<value_type>::value);
+}
+
+
+TEST_F(Dense, AddScaledIdentityToNonSquareOnDifferentExecutor)
+{
+    set_up_apply_data();
+
+    x->add_scaled_identity(alpha, beta);
+    dx->add_scaled_identity(alpha, beta);
+
+    GKO_ASSERT_MTX_NEAR(x, dx, r<value_type>::value);
 }
 
 

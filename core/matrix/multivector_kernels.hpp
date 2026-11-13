@@ -52,18 +52,6 @@ namespace kernels {
                     matrix::view::dense<const ValueType> x,              \
                     matrix::view::dense<ValueType> y)
 
-#define GKO_DECLARE_MULTIVECTOR_ADD_SCALED_DIAG_KERNEL(ValueType)     \
-    void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
-                         matrix::view::dense<const ValueType> alpha,  \
-                         const matrix::Diagonal<ValueType>* x,        \
-                         matrix::view::dense<ValueType> y)
-
-#define GKO_DECLARE_MULTIVECTOR_SUB_SCALED_DIAG_KERNEL(ValueType)     \
-    void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec, \
-                         matrix::view::dense<const ValueType> alpha,  \
-                         const matrix::Diagonal<ValueType>* x,        \
-                         matrix::view::dense<ValueType> y)
-
 #define GKO_DECLARE_MULTIVECTOR_COMPUTE_DOT_DISPATCH_KERNEL(ValueType)     \
     void compute_dot_dispatch(std::shared_ptr<const DefaultExecutor> exec, \
                               matrix::view::dense<const ValueType> x,      \
@@ -274,11 +262,6 @@ namespace kernels {
                          matrix::view::dense<const ValueType> orig,          \
                          matrix::view::dense<ValueType> col_permuted)
 
-#define GKO_DECLARE_MULTIVECTOR_EXTRACT_DIAGONAL_KERNEL(ValueType)     \
-    void extract_diagonal(std::shared_ptr<const DefaultExecutor> exec, \
-                          matrix::view::dense<const ValueType> orig,   \
-                          matrix::Diagonal<ValueType>* diag)
-
 #define GKO_DECLARE_INPLACE_ABSOLUTE_MULTIVECTOR_KERNEL(ValueType)           \
     void inplace_absolute_dense(std::shared_ptr<const DefaultExecutor> exec, \
                                 matrix::view::dense<ValueType> source)
@@ -304,13 +287,6 @@ namespace kernels {
                   matrix::view::dense<const ValueType> source, \
                   matrix::view::dense<remove_complex<ValueType>> result)
 
-#define GKO_DECLARE_MULTIVECTOR_ADD_SCALED_IDENTITY_KERNEL(ValueType,     \
-                                                           ScalarType)    \
-    void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec, \
-                             matrix::view::dense<const ScalarType> alpha, \
-                             matrix::view::dense<const ScalarType> beta,  \
-                             matrix::view::dense<ValueType> mtx)
-
 
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                          \
     template <typename InValueType, typename OutValueType>                    \
@@ -325,10 +301,6 @@ namespace kernels {
     GKO_DECLARE_MULTIVECTOR_ADD_SCALED_KERNEL(ValueType, ScalarType);         \
     template <typename ValueType, typename ScalarType>                        \
     GKO_DECLARE_MULTIVECTOR_SUB_SCALED_KERNEL(ValueType, ScalarType);         \
-    template <typename ValueType>                                             \
-    GKO_DECLARE_MULTIVECTOR_ADD_SCALED_DIAG_KERNEL(ValueType);                \
-    template <typename ValueType>                                             \
-    GKO_DECLARE_MULTIVECTOR_SUB_SCALED_DIAG_KERNEL(ValueType);                \
     template <typename ValueType>                                             \
     GKO_DECLARE_MULTIVECTOR_COMPUTE_DOT_KERNEL(ValueType);                    \
     template <typename ValueType>                                             \
@@ -399,8 +371,6 @@ namespace kernels {
     GKO_DECLARE_MULTIVECTOR_INV_NONSYMM_SCALE_PERMUTE_KERNEL(ValueType,       \
                                                              IndexType);      \
     template <typename ValueType>                                             \
-    GKO_DECLARE_MULTIVECTOR_EXTRACT_DIAGONAL_KERNEL(ValueType);               \
-    template <typename ValueType>                                             \
     GKO_DECLARE_INPLACE_ABSOLUTE_MULTIVECTOR_KERNEL(ValueType);               \
     template <typename ValueType>                                             \
     GKO_DECLARE_OUTPLACE_ABSOLUTE_MULTIVECTOR_KERNEL(ValueType);              \
@@ -409,9 +379,7 @@ namespace kernels {
     template <typename ValueType>                                             \
     GKO_DECLARE_GET_REAL_KERNEL(ValueType);                                   \
     template <typename ValueType>                                             \
-    GKO_DECLARE_GET_IMAG_KERNEL(ValueType);                                   \
-    template <typename ValueType, typename ScalarType>                        \
-    GKO_DECLARE_MULTIVECTOR_ADD_SCALED_IDENTITY_KERNEL(ValueType, ScalarType)
+    GKO_DECLARE_GET_IMAG_KERNEL(ValueType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(multivector,
