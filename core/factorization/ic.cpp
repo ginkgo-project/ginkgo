@@ -106,8 +106,8 @@ std::unique_ptr<Composition<ValueType>> Ic<ValueType, IndexType>::generate(
     std::shared_ptr<const matrix_type> ic;
     // Compute IC factorization
     if (parameters_.algorithm == incomplete_algorithm::syncfree ||
-        (!std::dynamic_pointer_cast<const ReferenceExecutor>(exec) &&
-         exec == exec->get_master())) {
+        exec == exec->get_master() ||
+        std::dynamic_pointer_cast<const DpcppExecutor>(exec)) {
         std::unique_ptr<gko::factorization::elimination_forest<IndexType>>
             forest;
         const auto nnz = local_system_matrix->get_num_stored_elements();
