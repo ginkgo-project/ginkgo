@@ -9,6 +9,7 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/solver_progress.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/stop/iteration.hpp>
 
@@ -20,11 +21,12 @@ template <typename T>
 class SolverProgress : public ::testing::Test {
 public:
     using MultiVector = gko::matrix::MultiVector<T>;
+    using Dense = gko::matrix::Dense<T>;
     using Cg = gko::solver::Cg<T>;
 
     SolverProgress() : ref{gko::ReferenceExecutor::create()}
     {
-        mtx = gko::initialize<MultiVector>({T{1.0}}, ref);
+        mtx = gko::initialize<Dense>({T{1.0}}, ref);
         in = gko::initialize<MultiVector>({T{2.0}}, ref);
         out = gko::initialize<MultiVector>({T{4.0}}, ref);
         zero = gko::initialize<MultiVector>({T{0.0}}, ref);
@@ -53,15 +55,15 @@ public:
             return;
         }
         // check that the files have the correct contents
-        auto mtx = gko::read<MultiVector>(stream_mtx, ref);
-        auto mtx_bin = gko::read_binary<MultiVector>(stream_bin, ref);
+        auto mtx = gko::read<Mtx>(stream_mtx, ref);
+        auto mtx_bin = gko::read_binary<Mtx>(stream_bin, ref);
         cleanup();
         GKO_ASSERT_MTX_NEAR(mtx, ref_mtx, 0.0);
         GKO_ASSERT_MTX_NEAR(mtx_bin, ref_mtx, 0.0);
     }
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
-    std::shared_ptr<MultiVector> mtx;
+    std::shared_ptr<Dense> mtx;
     std::shared_ptr<MultiVector> in;
     std::unique_ptr<MultiVector> out;
     std::unique_ptr<MultiVector> zero;
@@ -139,6 +141,7 @@ TYPED_TEST(SolverProgress, StorageWorks)
 {
     using T = TypeParam;
     using MultiVector = typename TestFixture::MultiVector;
+    using Dense = typename TestFixture::Dense;
     auto orig_out = this->out->clone();
     auto init_residual = gko::initialize<MultiVector>({T{-2.0}}, this->ref);
     std::vector<std::pair<std::string, MultiVector*>> files{
@@ -167,8 +170,9 @@ TYPED_TEST(SolverProgress, StorageWorks)
         {"solver_progress_test_1_solution", this->in.get()},
         {"solver_progress_test_1_z", nullptr},
         {"solver_progress_test_initial_guess", orig_out.get()},
-        {"solver_progress_test_rhs", this->in.get()},
-        {"solver_progress_test_system_matrix", this->mtx.get()}};
+        {"solver_progress_test_rhs", this->in.get()}};
+    std::pair<std::string, Dense*> mtx_file{
+        "solver_progress_test_system_matrix", this->mtx.get()};
     // run the solve once so the internal vectors are initialized before
     // attaching the logger
     this->solver->apply(this->in, this->out->clone());
@@ -182,4 +186,5 @@ TYPED_TEST(SolverProgress, StorageWorks)
     for (auto pair : files) {
         this->assert_file_equals(pair.first, pair.second);
     }
+    this->assert_file_equals(mtx_file.first, mtx_file.second);
 }

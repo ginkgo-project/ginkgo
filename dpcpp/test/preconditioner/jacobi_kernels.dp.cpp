@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/types.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 
@@ -910,7 +911,7 @@ TEST_F(
 TEST_F(Jacobi, ScalarJacobiHandleZero)
 {
     auto mtx = gko::share(
-        gko::initialize<Vec>({{0, 0, 0}, {0, 2, 0}, {0, 0, 0}}, ref));
+        gko::initialize<Mtx>({{0, 0, 0}, {0, 2, 0}, {0, 0, 0}}, ref));
     auto b = gko::initialize<Vec>({1, 2, 3}, ref);
     auto x = Vec::create(ref, gko::dim<2>(3, 1));
     auto d_b = b->clone(dpcpp);

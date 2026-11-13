@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
@@ -25,6 +26,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using Vec = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Mtx = gko::matrix::ScaledPermutation<value_type, index_type>;
 
     ScaledPermutation() : exec(gko::ReferenceExecutor::create())
@@ -37,19 +39,20 @@ protected:
                         gko::array<index_type>{this->exec, {1, 0}});
     }
 
-    std::unique_ptr<Vec> ref_combine(const Mtx* first, const Mtx* second)
+    std::unique_ptr<Dense> ref_combine(const Mtx* first, const Mtx* second)
     {
         const auto exec = first->get_executor();
         gko::matrix_data<value_type, index_type> first_perm_data;
         gko::matrix_data<value_type, index_type> second_perm_data;
         first->write(first_perm_data);
         second->write(second_perm_data);
-        const auto first_mtx = Vec::create(exec);
-        const auto second_mtx = Vec::create(exec);
+        const auto first_mtx = Dense::create(exec);
+        const auto second_mtx = Dense::create(exec);
         first_mtx->read(first_perm_data);
         second_mtx->read(second_perm_data);
         auto combined_mtx = first_mtx->clone();
-        second_mtx->apply(first_mtx, combined_mtx);
+        second_mtx->apply(first_mtx->as_const_multivector_view(),
+                          combined_mtx->as_multivector_view());
         return combined_mtx;
     }
 

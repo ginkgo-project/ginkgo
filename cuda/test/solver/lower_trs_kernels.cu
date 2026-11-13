@@ -14,6 +14,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/triangular.hpp>
 
@@ -26,13 +27,14 @@ namespace {
 class LowerTrs : public CudaTestFixture {
 protected:
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
-    using Mtx = gko::matrix::MultiVector<>;
+    using Mtx = gko::matrix::Dense<>;
+    using Vec = gko::matrix::MultiVector<>;
 
     LowerTrs() : rand_engine(30) {}
 
-    std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
+    std::unique_ptr<Vec> gen_vec(int num_rows, int num_cols)
     {
-        return gko::test::generate_random_matrix<Mtx>(
+        return gko::test::generate_random_matrix<Vec>(
             num_rows, num_cols,
             std::uniform_int_distribution<>(num_cols, num_cols),
             std::normal_distribution<>(-1.0, 1.0), rand_engine, ref);
@@ -48,26 +50,26 @@ protected:
     void initialize_data(int m, int n)
     {
         mtx = gen_l_mtx(m);
-        b = gen_mtx(m, n);
-        x = gen_mtx(m, n);
+        b = gen_vec(m, n);
+        x = gen_vec(m, n);
         csr_mtx = CsrMtx::create(ref);
         mtx->convert_to(csr_mtx);
         d_csr_mtx = CsrMtx::create(exec);
         d_x = gko::clone(exec, x);
         d_csr_mtx->copy_from(csr_mtx);
-        b2 = Mtx::create(ref);
+        b2 = Vec::create(ref);
         d_b2 = gko::clone(exec, b);
         b2->copy_from(b);
     }
 
-    std::shared_ptr<Mtx> b;
-    std::shared_ptr<Mtx> b2;
-    std::shared_ptr<Mtx> x;
+    std::shared_ptr<Vec> b;
+    std::shared_ptr<Vec> b2;
+    std::shared_ptr<Vec> x;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<CsrMtx> csr_mtx;
-    std::shared_ptr<Mtx> d_b;
-    std::shared_ptr<Mtx> d_b2;
-    std::shared_ptr<Mtx> d_x;
+    std::shared_ptr<Vec> d_b;
+    std::shared_ptr<Vec> d_b2;
+    std::shared_ptr<Vec> d_x;
     std::shared_ptr<CsrMtx> d_csr_mtx;
     std::default_random_engine rand_engine;
 };
@@ -129,9 +131,9 @@ TEST_F(LowerTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
             .on(exec);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
-    auto db2_strided = Mtx::create(exec, b->get_size(), 4);
+    auto db2_strided = Vec::create(exec, b->get_size(), 4);
     d_b2->convert_to(db2_strided);
-    auto dx_strided = Mtx::create(exec, x->get_size(), 5);
+    auto dx_strided = Vec::create(exec, x->get_size(), 5);
 
     solver->apply(b2, x);
     d_solver->apply(db2_strided, dx_strided);
@@ -165,9 +167,10 @@ TEST_F(LowerTrs, CudaMultipleRhsApplyIsEquivalentToRef)
         gko::solver::LowerTrs<>::build().with_num_rhs(3u).on(exec);
     auto solver = lower_trs_factory->generate(csr_mtx);
     auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
-    auto db2_strided = Mtx::create(exec, b->get_size(), in_stride);
+    auto db2_strided = Vec::create(exec, b->get_size(), in_stride);
     d_b2->convert_to(db2_strided);
-    auto dx_strided = Mtx::create(exec, x->get_size(), out_stride);
+
+    auto dx_strided = Vec::create(exec, x->get_size(), out_stride);
 
     solver->apply(b2, x);
     d_solver->apply(db2_strided, dx_strided);

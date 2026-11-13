@@ -28,6 +28,7 @@ class Isai : public CommonTestFixture {
 protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using MultiVector = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     Isai() : rand_engine(42) {}
 
     std::unique_ptr<Csr> clone_allocations(const Csr* csr_mtx)
@@ -53,19 +54,18 @@ protected:
         auto val_dist = std::uniform_real_distribution<value_type>(-1., 1.);
         mtx = Csr::create(ref);
         if (type == matrix_type::general) {
-            auto dense_mtx = gko::test::generate_random_matrix<MultiVector>(
+            auto dense_mtx = gko::test::generate_random_matrix<Dense>(
                 n, n, nz_dist, val_dist, rand_engine, ref, gko::dim<2>{n, n});
             ensure_diagonal(dense_mtx.get());
             mtx->copy_from(dense_mtx);
         } else if (type == matrix_type::spd) {
-            auto dense_mtx =
-                gko::test::generate_random_band_matrix<MultiVector>(
-                    n, row_limit / 4, row_limit / 4, val_dist, rand_engine, ref,
-                    gko::dim<2>{n, n});
-            auto transp = gko::as<MultiVector>(dense_mtx->transpose());
+            auto dense_mtx = gko::test::generate_random_band_matrix<Dense>(
+                n, row_limit / 4, row_limit / 4, val_dist, rand_engine, ref,
+                gko::dim<2>{n, n});
+            auto transp = gko::as<Dense>(dense_mtx->transpose());
             auto spd_mtx = MultiVector::create(ref, gko::dim<2>{n, n});
-            dense_mtx->apply(transp, spd_mtx);
-            mtx->copy_from(spd_mtx);
+            dense_mtx->apply(transp->as_const_multivector_view(), spd_mtx);
+            spd_mtx->as_const_dense_view()->convert_to(mtx);
         } else {
             mtx = gko::test::generate_random_triangular_matrix<Csr>(
                 n, true, for_lower_tm, nz_dist, val_dist, rand_engine, ref,
@@ -81,7 +81,7 @@ protected:
     {
         auto val_dist = std::uniform_real_distribution<value_type>(0., 1.);
         mtx = Csr::create(ref);
-        auto dense_mtx = gko::test::generate_random_band_matrix<MultiVector>(
+        auto dense_mtx = gko::test::generate_random_band_matrix<Dense>(
             n, 1, 1, val_dist, rand_engine, ref);
         ensure_diagonal(dense_mtx.get());
         mtx->copy_from(dense_mtx);
@@ -91,10 +91,10 @@ protected:
         d_inverse = gko::clone(exec, inverse);
     }
 
-    void ensure_diagonal(MultiVector* mtx)
+    void ensure_diagonal(Dense* mtx)
     {
         for (int i = 0; i < mtx->get_size()[0]; ++i) {
-            mtx->at(i, i) = gko::one<MultiVector::value_type>();
+            mtx->at(i, i) = gko::one<Dense::value_type>();
         }
     }
 

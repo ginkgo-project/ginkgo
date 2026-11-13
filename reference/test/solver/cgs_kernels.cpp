@@ -9,6 +9,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/log/solver_progress.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/cgs.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -27,11 +28,12 @@ class Cgs : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Cgs<value_type>;
 
     Cgs()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{1.0, -3.0, 0.0}, {-4.0, 1.0, -3.0}, {2.0, -1.0, 2.0}}, exec)),
           stopped{},
           non_stopped{},
@@ -42,13 +44,13 @@ protected:
                                   .with_reduction_factor(r<value_type>::value))
                           .on(exec)),
           mtx_big(
-              gko::initialize<Mtx>({{-99.0, 87.0, -67.0, -62.0, -68.0, -19.0},
-                                    {-30.0, -17.0, -1.0, 9.0, 23.0, 77.0},
-                                    {80.0, 89.0, 36.0, 94.0, 55.0, 34.0},
-                                    {-31.0, 21.0, 96.0, -26.0, 24.0, -57.0},
-                                    {60.0, 45.0, -16.0, -4.0, 96.0, 24.0},
-                                    {69.0, 32.0, -68.0, 57.0, -30.0, -51.0}},
-                                   exec)),
+              gko::initialize<Dense>({{-99.0, 87.0, -67.0, -62.0, -68.0, -19.0},
+                                      {-30.0, -17.0, -1.0, 9.0, 23.0, 77.0},
+                                      {80.0, 89.0, 36.0, 94.0, 55.0, 34.0},
+                                      {-31.0, 21.0, 96.0, -26.0, 24.0, -57.0},
+                                      {60.0, 45.0, -16.0, -4.0, 96.0, 24.0},
+                                      {69.0, 32.0, -68.0, 57.0, -30.0, -51.0}},
+                                     exec)),
           cgs_factory_big(
               Solver::build()
                   .with_criteria(
@@ -94,8 +96,8 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> mtx_big;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> mtx_big;
     std::unique_ptr<Mtx> small_one;
     std::unique_ptr<Mtx> small_zero;
     std::unique_ptr<Mtx> small_prev_rho;

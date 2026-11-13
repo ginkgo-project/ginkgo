@@ -7,6 +7,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/config/config.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/cg.hpp>
@@ -28,7 +29,7 @@ using namespace gko::config;
 class Config : public ::testing::Test {
 protected:
     using value_type = double;
-    using Mtx = gko::matrix::MultiVector<value_type>;
+    using Mtx = gko::matrix::Dense<value_type>;
     Config()
         : exec(gko::ReferenceExecutor::create()),
           mtx(gko::initialize<Mtx>(

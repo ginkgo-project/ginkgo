@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/minres.hpp>
@@ -27,11 +28,12 @@ class Minres : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Minres<value_type>;
 
     Minres()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{3, -1, -1, 0}, {-1, 3, -1, -1}, {-1, -1, 0, 0}, {0, -1, 0, 0}},
               exec)),
           zero(gko::initialize<Mtx>(I<I<value_type>>{{0, 0}, {0, 0}}, exec)),
@@ -86,7 +88,7 @@ protected:
 
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Dense> mtx;
 
     std::unique_ptr<Mtx> zero;
     std::unique_ptr<Mtx> zero_scalar;
