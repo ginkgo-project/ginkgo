@@ -193,9 +193,9 @@ void orthogonalize_mgs(matrix::MultiVector<ValueType>* hessenberg_iter,
         // i)
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
         // i)
-        auto hessenberg_entry =
-            hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
-        auto krylov_basis = krylov_bases->create_submatrix(
+        auto hessenberg_entry = hessenberg_iter->create_subview(
+            local_span{i, i + 1}, local_span{0, num_rhs});
+        auto krylov_basis = krylov_bases->create_subview(
             local_span{local_num_rows * i, local_num_rows * (i + 1)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         krylov_basis->compute_conj_dot(next_krylov, hessenberg_entry,
@@ -225,8 +225,8 @@ void finish_reduce(matrix::MultiVector<ValueType>* hessenberg_iter,
     // are not setting the last values for each rhs here. Values that would be
     // below the diagonal in the "full" matrix are skipped, because they will
     // be used to hold the norm of next_krylov for each rhs.
-    auto hessenberg_reduce = hessenberg_iter->create_submatrix(
-        span{0, restart_iter + 1}, span{0, num_rhs});
+    auto hessenberg_reduce = hessenberg_iter->create_subview(
+        local_span{0, restart_iter + 1}, local_span{0, num_rhs});
     ::gko::detail::DenseCache<ValueType> host_reduction_buffer;
     ::gko::detail::all_reduce_sum(comm, hessenberg_reduce.get(),
                                   host_reduction_buffer);
@@ -243,7 +243,7 @@ void orthogonalize_cgs(matrix::MultiVector<ValueType>* hessenberg_iter,
     auto exec = hessenberg_iter->get_executor();
     // hessenberg(0:restart_iter, restart_iter) = krylov_basis' *
     // next_krylov
-    auto krylov_basis_small = krylov_bases->create_submatrix(
+    auto krylov_basis_small = krylov_bases->create_subview(
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
@@ -255,9 +255,9 @@ void orthogonalize_cgs(matrix::MultiVector<ValueType>* hessenberg_iter,
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
         // i)
-        auto hessenberg_entry =
-            hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
-        auto krylov_col = krylov_bases->create_submatrix(
+        auto hessenberg_entry = hessenberg_iter->create_subview(
+            local_span{i, i + 1}, local_span{0, num_rhs});
+        auto krylov_col = krylov_bases->create_subview(
             local_span{local_num_rows * i, local_num_rows * (i + 1)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         next_krylov->sub_scaled(hessenberg_entry, krylov_col);
@@ -276,7 +276,7 @@ void orthogonalize_cgs2(matrix::MultiVector<ValueType>* hessenberg_iter,
     auto exec = hessenberg_iter->get_executor();
     // hessenberg(0:restart_iter, restart_iter) = krylov_bases' *
     // next_krylov
-    auto krylov_basis_small = krylov_bases->create_submatrix(
+    auto krylov_basis_small = krylov_bases->create_subview(
         local_span{0, local_num_rows * (restart_iter + 1)},
         local_span{0, num_rhs}, dim<2>{num_rows * (restart_iter + 1), num_rhs});
     exec->run(gmres::make_multi_dot(
@@ -288,16 +288,16 @@ void orthogonalize_cgs2(matrix::MultiVector<ValueType>* hessenberg_iter,
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
         // i)
-        auto hessenberg_entry =
-            hessenberg_iter->create_submatrix(span{i, i + 1}, span{0, num_rhs});
-        auto krylov_col = krylov_bases->create_submatrix(
+        auto hessenberg_entry = hessenberg_iter->create_subview(
+            local_span{i, i + 1}, local_span{0, num_rhs});
+        auto krylov_col = krylov_bases->create_subview(
             local_span{local_num_rows * i, local_num_rows * (i + 1)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         next_krylov->sub_scaled(hessenberg_entry, krylov_col);
     }
     // Re-orthogonalize
-    auto hessenberg_aux_iter = hessenberg_aux->create_submatrix(
-        span{0, restart_iter + 2}, span{0, num_rhs});
+    auto hessenberg_aux_iter = hessenberg_aux->create_subview(
+        local_span{0, restart_iter + 2}, local_span{0, num_rhs});
     exec->run(gmres::make_multi_dot(
         gko::detail::get_local(krylov_basis_small.get())
             ->get_const_device_view(),
@@ -309,9 +309,9 @@ void orthogonalize_cgs2(matrix::MultiVector<ValueType>* hessenberg_iter,
     for (size_type i = 0; i <= restart_iter; i++) {
         // next_krylov -= hessenberg(i, restart_iter) * krylov_bases(:,
         // i)
-        auto hessenberg_entry =
-            hessenberg_aux->create_submatrix(span{i, i + 1}, span{0, num_rhs});
-        auto krylov_col = krylov_bases->create_submatrix(
+        auto hessenberg_entry = hessenberg_aux->create_subview(
+            local_span{i, i + 1}, local_span{0, num_rhs});
+        auto krylov_col = krylov_bases->create_subview(
             local_span{local_num_rows * i, local_num_rows * (i + 1)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         next_krylov->sub_scaled(hessenberg_entry, krylov_col);
@@ -585,23 +585,22 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             restart_iter = 0;
             record_cycle_start(residual_norm);
         }
-        auto this_krylov = krylov_bases->create_submatrix(
+        auto this_krylov = krylov_bases->create_subview(
             local_span{local_num_rows * restart_iter,
                        local_num_rows * (restart_iter + 1)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
 
-        auto next_krylov = krylov_bases->create_submatrix(
+        auto next_krylov = krylov_bases->create_subview(
             local_span{local_num_rows * (restart_iter + 1),
                        local_num_rows * (restart_iter + 2)},
             local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
         std::unique_ptr<VectorType> preconditioned_krylov;
         auto preconditioned_krylov_vector = preconditioned_vector;
         if (is_flexible) {
-            preconditioned_krylov =
-                preconditioned_krylov_bases->create_submatrix(
-                    local_span{local_num_rows * restart_iter,
-                               local_num_rows * (restart_iter + 1)},
-                    local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+            preconditioned_krylov = preconditioned_krylov_bases->create_subview(
+                local_span{local_num_rows * restart_iter,
+                           local_num_rows * (restart_iter + 1)},
+                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
             preconditioned_krylov_vector = preconditioned_krylov.get();
         }
         // preconditioned_krylov_vector = get_preconditioner() * this_krylov
@@ -641,8 +640,9 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         // hessenberg(restart_iter+1, restart_iter) = norm(next_krylov)
         // (stored in hessenberg(restart_iter, (restart_iter + 1) * num_rhs))
         // next_krylov /= hessenberg(restart_iter+1, restart_iter)
-        auto hessenberg_norm_entry = hessenberg_iter->create_submatrix(
-            span{restart_iter + 1, restart_iter + 2}, span{0, num_rhs});
+        auto hessenberg_norm_entry = hessenberg_iter->create_subview(
+            local_span{restart_iter + 1, restart_iter + 2},
+            local_span{0, num_rhs});
         help_compute_norm<ValueType>::compute_next_krylov_norm_into_hessenberg(
             next_krylov.get(), hessenberg_norm_entry.get(),
             next_krylov_norm_tmp, reduction_tmp);
@@ -681,8 +681,8 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         restart_iter++;
     }
 
-    auto hessenberg_small = hessenberg->create_submatrix(
-        span{0, restart_iter}, span{0, num_rhs * restart_iter});
+    auto hessenberg_small = hessenberg->create_subview(
+        local_span{0, restart_iter}, local_span{0, num_rhs * restart_iter});
 
     // Solve upper triangular.
     // y = hessenberg \ residual_norm_collection
@@ -692,7 +692,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
         final_iter_nums.get_const_data(), stop_status.get_const_data()));
     if (is_flexible) {
         auto preconditioned_krylov_bases_small =
-            preconditioned_krylov_bases->create_submatrix(
+            preconditioned_krylov_bases->create_subview(
                 local_span{0, local_num_rows * (restart_iter + 1)},
                 local_span{0, num_rhs},
                 dim<2>{num_rows * (restart_iter + 1), num_rhs});
@@ -704,7 +704,7 @@ void Gmres<ValueType>::apply_dense_impl(const VectorType* dense_b,
             gko::detail::get_local(after_preconditioner)->get_device_view(),
             final_iter_nums.get_const_data(), stop_status.get_data()));
     } else {
-        auto krylov_bases_small = krylov_bases->create_submatrix(
+        auto krylov_bases_small = krylov_bases->create_subview(
             local_span{0, local_num_rows * (restart_iter + 1)},
             local_span{0, num_rhs},
             dim<2>{num_rows * (restart_iter + 1), num_rhs});

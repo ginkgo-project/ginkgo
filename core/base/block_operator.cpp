@@ -39,8 +39,8 @@ auto create_vector_blocks(LinOpType* vector,
         return dispatch_dense(
             [&](auto* dense) -> std::unique_ptr<LinOpType> {
                 GKO_ENSURE_IN_BOUNDS(i, spans.size());
-                return dense->create_submatrix(spans[i],
-                                               {0, dense->get_size()[1]});
+                return dense->create_subview(spans[i],
+                                             {0, dense->get_size()[1]});
             },
             const_cast<LinOp*>(vector));
     };

@@ -748,7 +748,7 @@ TYPED_TEST(MultiVector, SquareSubmatrixIsTransposableIntoMultiVector)
     using T = typename TestFixture::value_type;
     auto trans = Mtx::create(this->exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})->transpose(trans);
+    this->mtx5->create_subview({0, 2}, {0, 2})->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans, l<T>({{1.0, -2.0}, {-1.0, 2.0}}), 0.0);
     ASSERT_EQ(trans->get_stride(), 4);
@@ -794,7 +794,7 @@ TYPED_TEST(MultiVector, NonSquareSubmatrixIsTransposableIntoMultiVector)
     using T = typename TestFixture::value_type;
     auto trans = Mtx::create(this->exec, gko::dim<2>{2, 1}, 5);
 
-    this->mtx4->create_submatrix({0, 1}, {0, 2})->transpose(trans);
+    this->mtx4->create_subview({0, 1}, {0, 2})->transpose(trans);
 
     GKO_ASSERT_MTX_NEAR(trans, l({1.0, 3.0}), 0.0);
     ASSERT_EQ(trans->get_stride(), 5);
@@ -826,7 +826,8 @@ TYPED_TEST(MultiVector, InplaceAbsolute)
 TYPED_TEST(MultiVector, InplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto mtx = this->mtx5->create_subview(gko::local_span{0, 2},
+                                          gko::local_span{0, 2});
 
     mtx->compute_absolute_inplace();
 
@@ -866,7 +867,8 @@ TYPED_TEST(MultiVector, OutplaceAbsoluteIntoMultiVector)
 TYPED_TEST(MultiVector, OutplaceAbsoluteSubMatrix)
 {
     using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto mtx = this->mtx5->create_subview(gko::local_span{0, 2},
+                                          gko::local_span{0, 2});
 
     auto abs_mtx = mtx->compute_absolute();
 
@@ -879,7 +881,8 @@ TYPED_TEST(MultiVector, OutplaceSubmatrixAbsoluteIntoMultiVector)
 {
     using Mtx = typename TestFixture::Mtx;
     using T = typename TestFixture::value_type;
-    auto mtx = this->mtx5->create_submatrix(gko::span{0, 2}, gko::span{0, 2});
+    auto mtx = this->mtx5->create_subview(gko::local_span{0, 2},
+                                          gko::local_span{0, 2});
     auto abs_mtx =
         gko::remove_complex<Mtx>::create(this->exec, gko::dim<2>{2, 2}, 4);
 
@@ -1455,7 +1458,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto row_collection = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {1, 3})
+    this->mtx5->create_subview({0, 2}, {1, 3})
         ->row_gather(&permute_idxs, row_collection);
 
     GKO_ASSERT_MTX_NEAR(row_collection,
@@ -1661,7 +1664,7 @@ TYPED_TEST(MultiVectorWithIndexType, SquareSubmatrixIsPermutableIntoMultiVector)
     auto exec = this->mtx5->get_executor();
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
-    auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
+    auto mtx = this->mtx5->create_subview({0, 2}, {1, 3});
 
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->row_permute(&permute_idxs))
@@ -1753,7 +1756,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     auto exec = this->mtx5->get_executor();
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
-    auto mtx = this->mtx5->create_submatrix({0, 2}, {1, 3});
+    auto mtx = this->mtx5->create_subview({0, 2}, {1, 3});
 
     auto ref_permuted =
         gko::as<Mtx>(gko::as<Mtx>(mtx->inverse_row_permute(&permute_idxs))
@@ -1867,7 +1870,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->row_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-2.0, 2.0}, {1.0, -1.0}}),
@@ -1963,7 +1966,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->column_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-1.0, 1.0}, {2.0, -2.0}}),
@@ -2062,7 +2065,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->inverse_row_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-2.0, 2.0}, {1.0, -1.0}}),
@@ -2163,7 +2166,7 @@ TYPED_TEST(MultiVectorWithIndexType,
     gko::array<index_type> permute_idxs{exec, {1, 0}};
     auto permuted = Mtx::create(exec, gko::dim<2>{2, 2}, 4);
 
-    this->mtx5->create_submatrix({0, 2}, {0, 2})
+    this->mtx5->create_subview({0, 2}, {0, 2})
         ->column_permute(&permute_idxs, permuted);
 
     GKO_ASSERT_MTX_NEAR(permuted, l<value_type>({{-1.0, 1.0}, {2.0, -2.0}}),

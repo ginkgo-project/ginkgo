@@ -42,7 +42,8 @@ template <typename ValueType>
 std::unique_ptr<matrix::MultiVector<ValueType>> column_view(
     matrix::MultiVector<ValueType>* v, size_type col)
 {
-    return v->create_submatrix(span{0, v->get_size()[0]}, span{col, col + 1});
+    return v->create_subview(local_span{0, v->get_size()[0]},
+                             local_span{col, col + 1});
 }
 
 
@@ -64,9 +65,9 @@ std::unique_ptr<experimental::distributed::Vector<ValueType>> column_view(
     experimental::distributed::Vector<ValueType>* v, size_type col)
 {
     const auto local_rows = v->get_local_vector()->get_size()[0];
-    return v->create_submatrix(local_span{0, local_rows},
-                               local_span{col, col + 1},
-                               dim<2>{v->get_size()[0], 1});
+    return v->create_subview(local_span{0, local_rows},
+                             local_span{col, col + 1},
+                             dim<2>{v->get_size()[0], 1});
 }
 
 
@@ -249,8 +250,8 @@ void Nullspace<ValueType>::setup_basis(
         auto vec_local = gko::detail::get_local(as<VectorType>(vec.get()));
         const auto vec_cols = vec_local->get_size()[1];
         GKO_ASSERT_EQUAL_ROWS(vec_local, block_local);
-        auto target = block_local->create_submatrix(span{0, local_rows},
-                                                    span{col, col + vec_cols});
+        auto target = block_local->create_subview(
+            local_span{0, local_rows}, local_span{col, col + vec_cols});
         target->copy_from(vec_local);
         col += vec_cols;
     }
@@ -270,8 +271,8 @@ void Nullspace<ValueType>::setup_basis(
     size_type num_kept = 0;
     for (size_type j = 0; j < num_cols; ++j) {
         auto col_j = column_view(block.get(), j);
-        auto kept = block_local->create_submatrix(span{0, local_rows},
-                                                  span{0, num_kept});
+        auto kept = block_local->create_subview(local_span{0, local_rows},
+                                                local_span{0, num_kept});
         const auto kept_basis = num_kept > 0 ? kept.get() : nullptr;
         for (int pass = 0; pass < 2; ++pass) {
             this->remove_components(col_j.get(), kept_basis,
@@ -284,8 +285,9 @@ void Nullspace<ValueType>::setup_basis(
             host_norm > drop_tolerance * orig_norm) {
             col_j->inv_scale(norm);
             if (j != num_kept) {
-                auto target = block_local->create_submatrix(
-                    span{0, local_rows}, span{num_kept, num_kept + 1});
+                auto target = block_local->create_subview(
+                    local_span{0, local_rows},
+                    local_span{num_kept, num_kept + 1});
                 target->copy_from(gko::detail::get_local(col_j.get()));
             }
             ++num_kept;
@@ -295,8 +297,8 @@ void Nullspace<ValueType>::setup_basis(
         return;
     }
     auto result = create_like(first, exec, num_kept);
-    auto kept =
-        block_local->create_submatrix(span{0, local_rows}, span{0, num_kept});
+    auto kept = block_local->create_subview(local_span{0, local_rows},
+                                            local_span{0, num_kept});
     gko::detail::get_local(result.get())->copy_from(kept.get());
     basis_ = std::move(result);
 }

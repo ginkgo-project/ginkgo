@@ -200,8 +200,8 @@ TEST_F(NullspaceDistributed, ProjectionMatchesSerial)
     ASSERT_EQ(dist_ns->get_dimension(), serial_ns->get_dimension());
     const auto begin = part->get_range_bounds()[comm.rank()];
     const auto end = part->get_range_bounds()[comm.rank() + 1];
-    auto expected =
-        serial_v->create_submatrix(gko::span(begin, end), gko::span(0, 2));
+    auto expected = serial_v->create_subview(gko::local_span(begin, end),
+                                             gko::local_span(0, 2));
     GKO_ASSERT_MTX_NEAR(dist_v->get_local_vector(), expected,
                         r<value_type>::value);
 }
