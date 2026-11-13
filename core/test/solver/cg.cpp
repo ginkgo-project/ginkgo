@@ -143,6 +143,43 @@ TYPED_TEST(Cg, CanSetCriteriaAgain)
 }
 
 
+TYPED_TEST(Cg, CanRecreateFromWithCriteria)
+{
+    // Create a preconditioned solver factory
+    using Solver = typename TestFixture::Solver;
+    using value_type = typename TestFixture::value_type;
+    std::shared_ptr<Solver> cg_precond =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u))
+            .on(this->exec)
+            ->generate(this->mtx);
+
+    auto precond_cg_factory =
+        Solver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(3u),
+                           gko::stop::ResidualNorm<value_type>::build()
+                               .with_reduction_factor(
+                                   gko::remove_complex<value_type>{1e-6}))
+            .with_generated_preconditioner(cg_precond)
+            .on(this->exec);
+
+    auto current_params = precond_cg_factory->get_parameters();
+
+    // Build new criteria with different residual norm reduction tolerance
+    auto new_crit_fac = gko::stop::Combined::build().with_criteria(
+        gko::stop::Iteration::build().with_max_iters(3u),
+        gko::stop::ResidualNorm<value_type>::build().with_reduction_factor(
+            gko::remove_complex<value_type>{1e-8}));
+
+    auto new_cg_factory =
+        current_params.with_criteria(new_crit_fac).on(this->exec);
+
+    // Check that preconditioner from original factory was preserved
+    ASSERT_EQ(precond_cg_factory->get_parameters().preconditioner,
+              new_cg_factory->get_parameters().preconditioner);
+}
+
+
 TYPED_TEST(Cg, ThrowsOnWrongPreconditionerInFactory)
 {
     using Mtx = typename TestFixture::Mtx;
