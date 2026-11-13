@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -37,11 +37,11 @@ __global__ __launch_bounds__(block_size) void initialize_kernel(
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename ValueAccessor>
 __device__ void calculate_sin_and_cos_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
     const ValueType& this_hess, const ValueType& next_hess,
-    ValueType* givens_sin, size_type stride_sin, ValueType* givens_cos,
+    ValueAccessor givens_sin, size_type stride_sin, ValueAccessor givens_cos,
     size_type stride_cos, ValueType& register_sin, ValueType& register_cos)
 {
     if (is_zero(this_hess)) {
@@ -60,17 +60,16 @@ __device__ void calculate_sin_and_cos_kernel(
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename RealAccessor, typename ValueAccessor>
 __device__ void calculate_residual_norm_kernel(
     size_type col_idx, size_type num_cols, size_type iter,
     const ValueType& register_sin, const ValueType& register_cos,
-    remove_complex<ValueType>* residual_norm,
-    ValueType* residual_norm_collection,
+    RealAccessor residual_norm, ValueAccessor residual_norm_collection,
     size_type stride_residual_norm_collection)
 {
-    const auto this_rnc =
+    const auto this_rnc = static_cast<ValueType>(
         residual_norm_collection[iter * stride_residual_norm_collection +
-                                 col_idx];
+                                 col_idx]);
     const auto next_rnc = -conj(register_sin) * this_rnc;
     residual_norm_collection[iter * stride_residual_norm_collection + col_idx] =
         register_cos * this_rnc;
@@ -81,32 +80,36 @@ __device__ void calculate_residual_norm_kernel(
 
 
 // Must be called with at least `num_cols` threads in total.
-template <size_type block_size, typename ValueType>
+template <size_type block_size, typename ValueAccessor, typename RealAccessor>
 __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     size_type num_rows, size_type num_cols, size_type iter,
-    ValueType* __restrict__ hessenberg_iter, size_type stride_hessenberg,
-    ValueType* __restrict__ givens_sin, size_type stride_sin,
-    ValueType* __restrict__ givens_cos, size_type stride_cos,
-    remove_complex<ValueType>* __restrict__ residual_norm,
-    ValueType* __restrict__ residual_norm_collection,
+    ValueAccessor hessenberg_iter, size_type stride_hessenberg,
+    ValueAccessor givens_sin, size_type stride_sin, ValueAccessor givens_cos,
+    size_type stride_cos, RealAccessor residual_norm,
+    ValueAccessor residual_norm_collection,
     size_type stride_residual_norm_collection,
     const stopping_status* __restrict__ stop_status)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     const auto col_idx = thread::get_thread_id_flat();
 
     if (col_idx >= num_cols || stop_status[col_idx].has_stopped()) {
         return;
     }
 
-    auto this_hess = hessenberg_iter[col_idx];
-    auto next_hess = hessenberg_iter[stride_hessenberg + col_idx];
+    auto this_hess = static_cast<arithmetic_type>(hessenberg_iter[col_idx]);
+    auto next_hess = static_cast<arithmetic_type>(
+        hessenberg_iter[stride_hessenberg + col_idx]);
     for (size_type i = 0; i < iter; ++i) {
-        const auto cos = givens_cos[i * stride_cos + col_idx];
-        const auto sin = givens_sin[i * stride_sin + col_idx];
+        const auto cos =
+            static_cast<arithmetic_type>(givens_cos[i * stride_cos + col_idx]);
+        const auto sin =
+            static_cast<arithmetic_type>(givens_sin[i * stride_sin + col_idx]);
         hessenberg_iter[i * stride_hessenberg + col_idx] =
             cos * this_hess + sin * next_hess;
         this_hess = conj(cos) * next_hess - conj(sin) * this_hess;
-        next_hess = hessenberg_iter[(i + 2) * stride_hessenberg + col_idx];
+        next_hess = static_cast<arithmetic_type>(
+            hessenberg_iter[(i + 2) * stride_hessenberg + col_idx]);
     }
     // for j in 0:iter - 1
     //     temp             =  cos(j)*hessenberg(j) +
@@ -116,8 +119,8 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     //     hessenberg(j)    =  temp;
     // end
 
-    ValueType register_sin;
-    ValueType register_cos;
+    arithmetic_type register_sin;
+    arithmetic_type register_cos;
     calculate_sin_and_cos_kernel(col_idx, num_cols, iter, this_hess, next_hess,
                                  givens_sin, stride_sin, givens_cos, stride_cos,
                                  register_sin, register_cos);
@@ -126,7 +129,7 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
     hessenberg_iter[iter * stride_hessenberg + col_idx] =
         register_cos * this_hess + register_sin * next_hess;
     hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx] =
-        zero<ValueType>();
+        zero<arithmetic_type>();
     // hessenberg(iter)   = cos(iter)*hessenberg(iter) +
     //                      sin(iter)*hessenberg(iter+1)
     // hessenberg(iter+1) = 0
@@ -139,15 +142,16 @@ __global__ __launch_bounds__(block_size) void givens_rotation_kernel(
 
 
 // Must be called with at least `num_rhs` threads in total.
-template <size_type block_size, typename ValueType>
+template <size_type block_size, typename ConstValueAccessor,
+          typename ValueAccessor>
 __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
     size_type num_cols, size_type num_rhs,
-    const ValueType* __restrict__ residual_norm_collection,
-    size_type stride_residual_norm_collection,
-    const ValueType* __restrict__ hessenberg, size_type stride_hessenberg,
-    ValueType* __restrict__ y, size_type stride_y,
+    ConstValueAccessor residual_norm_collection,
+    size_type stride_residual_norm_collection, ConstValueAccessor hessenberg,
+    size_type stride_hessenberg, ValueAccessor y, size_type stride_y,
     const size_type* __restrict__ final_iter_nums)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     const auto col_idx = thread::get_thread_id_flat();
 
     if (col_idx >= num_rhs) {
@@ -155,12 +159,12 @@ __global__ __launch_bounds__(block_size) void solve_upper_triangular_kernel(
     }
 
     for (int i = final_iter_nums[col_idx] - 1; i >= 0; --i) {
-        auto temp =
+        auto temp = static_cast<arithmetic_type>(
             residual_norm_collection[i * stride_residual_norm_collection +
-                                     col_idx];
+                                     col_idx]);
         for (size_type j = i + 1; j < final_iter_nums[col_idx]; ++j) {
             temp -= hessenberg[i * stride_hessenberg + j * num_rhs + col_idx] *
-                    y[j * stride_y + col_idx];
+                    static_cast<arithmetic_type>(y[j * stride_y + col_idx]);
         }
 
         y[i * stride_y + col_idx] =

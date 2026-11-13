@@ -25,6 +25,7 @@
 #include "common/cuda_hip/components/format_conversion.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -192,7 +193,7 @@ __global__ __launch_bounds__(default_block_size) void spmv(
                 return static_cast<OutputValueType>(alpha_val * x);
             });
     } else {
-        const OutputValueType beta_val = beta[0];
+        const auto beta_val = static_cast<arithmetic_type>(beta[0]);
         if (is_zero(beta_val)) {
             spmv_kernel<num_thread_per_worker, atomic>(
                 num_rows, num_worker_per_row, val, col, stride,
@@ -208,7 +209,7 @@ __global__ __launch_bounds__(default_block_size) void spmv(
                                         const OutputValueType& y) {
                     return static_cast<OutputValueType>(
                         alpha_val * x +
-                        static_cast<arithmetic_type>(beta_val * y));
+                        beta_val * static_cast<arithmetic_type>(y));
                 });
         }
     }
@@ -236,8 +237,8 @@ void abstract_spmv(
         std::optional<matrix::view::dense<const OutputValueType>>>
         beta = {})
 {
-    using arithmetic_type =
-        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    using arithmetic_type = device_arithmetic_type<
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>>;
     using a_accessor =
         acc::reduced_row_major<1, arithmetic_type, const MatrixValueType>;
     using b_accessor =
