@@ -33,6 +33,21 @@ namespace kernels {
         matrix::view::dense<const ValueType> beta,                   \
         matrix::view::dense<ValueType> c)
 
+#define GKO_DECLARE_SELLP_SPMM_KERNEL(ValueType, IndexType)            \
+    void spmm(std::shared_ptr<const DefaultExecutor> exec,             \
+              matrix::view::sellp<const ValueType, const IndexType> a, \
+              matrix::view::dense<const ValueType> b,                  \
+              matrix::view::dense<ValueType> c)
+
+#define GKO_DECLARE_SELLP_ADVANCED_SPMM_KERNEL(ValueType, IndexType) \
+    void advanced_spmm(                                              \
+        std::shared_ptr<const DefaultExecutor> exec,                 \
+        matrix::view::dense<const ValueType> alpha,                  \
+        matrix::view::sellp<const ValueType, const IndexType> a,     \
+        matrix::view::dense<const ValueType> b,                      \
+        matrix::view::dense<const ValueType> beta,                   \
+        matrix::view::dense<ValueType> c)
+
 #define GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType) \
     void fill_in_matrix_data(                                              \
         std::shared_ptr<const DefaultExecutor> exec,                       \
@@ -75,6 +90,10 @@ namespace kernels {
     GKO_DECLARE_SELLP_SPMV_KERNEL(ValueType, IndexType);                   \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_SELLP_ADVANCED_SPMV_KERNEL(ValueType, IndexType);          \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_SELLP_SPMM_KERNEL(ValueType, IndexType);                   \
+    template <typename ValueType, typename IndexType>                      \
+    GKO_DECLARE_SELLP_ADVANCED_SPMM_KERNEL(ValueType, IndexType);          \
     template <typename ValueType, typename IndexType>                      \
     GKO_DECLARE_SELLP_FILL_IN_MATRIX_DATA_KERNEL(ValueType, IndexType);    \
     template <typename IndexType>                                          \
