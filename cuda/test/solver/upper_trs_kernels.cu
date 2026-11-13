@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -26,7 +26,8 @@ namespace {
 class UpperTrs : public CudaTestFixture {
 protected:
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::Dense<double>;
+    using Mtx2 = gko::matrix::Dense<float>;
 
     UpperTrs() : rand_engine(30) {}
 
@@ -50,24 +51,30 @@ protected:
         mtx = gen_u_mtx(m);
         b = gen_mtx(m, n);
         x = gen_mtx(m, n);
+        x2 = Mtx2::create(ref);
+        x2->copy_from(x);
         csr_mtx = CsrMtx::create(ref);
         mtx->convert_to(csr_mtx);
         d_csr_mtx = CsrMtx::create(exec);
         d_x = gko::clone(exec, x);
+        d_x2 = gko::clone(exec, x2);
         d_csr_mtx->copy_from(csr_mtx);
-        b2 = Mtx::create(ref);
-        d_b2 = gko::clone(exec, b);
+        d_b = gko::clone(exec, b);
+        b2 = Mtx2::create(ref);
         b2->copy_from(b);
+        d_b2 = gko::clone(exec, b2);
     }
 
     std::shared_ptr<Mtx> b;
-    std::shared_ptr<Mtx> b2;
+    std::shared_ptr<Mtx2> b2;
     std::shared_ptr<Mtx> x;
+    std::shared_ptr<Mtx2> x2;
     std::shared_ptr<Mtx> mtx;
     std::shared_ptr<CsrMtx> csr_mtx;
     std::shared_ptr<Mtx> d_b;
-    std::shared_ptr<Mtx> d_b2;
+    std::shared_ptr<Mtx2> d_b2;
     std::shared_ptr<Mtx> d_x;
+    std::shared_ptr<Mtx2> d_x2;
     std::shared_ptr<CsrMtx> d_csr_mtx;
     std::default_random_engine rand_engine;
 };
@@ -87,16 +94,15 @@ TEST_F(UpperTrs, CudaUpperTrsFlagCheckIsCorrect)
 TEST_F(UpperTrs, CudaSingleRhsApplySyncfreelibIsEquivalentToRef)
 {
     initialize_data(50, 1);
-    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
-    auto d_upper_trs_factory =
+    auto solver = gko::solver::UpperTrs<>::build().on(ref)->generate(csr_mtx);
+    auto d_solver =
         gko::solver::UpperTrs<>::build()
             .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
-            .on(exec);
-    auto solver = upper_trs_factory->generate(csr_mtx);
-    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+            .on(exec)
+            ->generate(d_csr_mtx);
 
-    solver->apply(b2, x);
-    d_solver->apply(d_b2, d_x);
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
 
     GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
 }
@@ -105,38 +111,157 @@ TEST_F(UpperTrs, CudaSingleRhsApplySyncfreelibIsEquivalentToRef)
 TEST_F(UpperTrs, CudaSingleRhsApplyIsEquivalentToRef)
 {
     initialize_data(50, 1);
-    auto upper_trs_factory = gko::solver::UpperTrs<>::build().on(ref);
-    auto d_upper_trs_factory = gko::solver::UpperTrs<>::build().on(exec);
-    auto solver = upper_trs_factory->generate(csr_mtx);
-    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
+    auto solver = gko::solver::UpperTrs<>::build().on(ref)->generate(csr_mtx);
+    auto d_solver =
+        gko::solver::UpperTrs<>::build().on(exec)->generate(d_csr_mtx);
+
+    solver->apply(b, x);
+    d_solver->apply(d_b, d_x);
+
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, CudaSingleRhsMixedApplySyncfreeIsEquivalentToRef1)
+{
+    initialize_data(50, 1);
+    auto solver = gko::solver::UpperTrs<>::build().on(ref)->generate(csr_mtx);
+    auto d_solver =
+        gko::solver::UpperTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .on(exec)
+            ->generate(d_csr_mtx);
+
+    solver->apply(b2, x2);
+    d_solver->apply(d_b2, d_x2);
+
+    GKO_ASSERT_MTX_NEAR(d_x2, x2, 1e-6);
+}
+
+
+TEST_F(UpperTrs, CudaSingleRhsMixedApplySyncfreeIsEquivalentToRef2)
+{
+    initialize_data(50, 1);
+    auto solver = gko::solver::UpperTrs<>::build().on(ref)->generate(csr_mtx);
+    auto d_solver =
+        gko::solver::UpperTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .on(exec)
+            ->generate(d_csr_mtx);
 
     solver->apply(b2, x);
     d_solver->apply(d_b2, d_x);
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-6);
+}
+
+
+TEST_F(UpperTrs, CudaSingleRhsMixedApplySyncfreeIsEquivalentToRef3)
+{
+    initialize_data(50, 1);
+    auto solver = gko::solver::UpperTrs<>::build().on(ref)->generate(csr_mtx);
+    auto d_solver =
+        gko::solver::UpperTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .on(exec)
+            ->generate(d_csr_mtx);
+
+    solver->apply(b, x2);
+    d_solver->apply(d_b, d_x2);
+
+    GKO_ASSERT_MTX_NEAR(d_x2, x2, 1e-6);
 }
 
 
 TEST_F(UpperTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
 {
     initialize_data(50, 3);
-    auto upper_trs_factory =
-        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
-    auto d_upper_trs_factory =
+    auto solver =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref)->generate(
+            csr_mtx);
+    auto d_solver =
         gko::solver::UpperTrs<>::build()
             .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
             .with_num_rhs(3u)
-            .on(exec);
-    auto solver = upper_trs_factory->generate(csr_mtx);
-    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
-    auto db2_strided = Mtx::create(exec, b->get_size(), 4);
+            .on(exec)
+            ->generate(d_csr_mtx);
+    auto db_strided = Mtx::create(exec, b->get_size(), 4);
+    d_b->convert_to(db_strided);
+    auto dx_strided = Mtx::create(exec, x->get_size(), 5);
+
+    solver->apply(b, x);
+    d_solver->apply(db_strided, dx_strided);
+
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+}
+
+
+TEST_F(UpperTrs, CudaMultipleRhsMixedApplySyncfreeIsEquivalentToRef1)
+{
+    initialize_data(50, 3);
+    auto solver =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref)->generate(
+            csr_mtx);
+    auto d_solver =
+        gko::solver::UpperTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_num_rhs(3u)
+            .on(exec)
+            ->generate(d_csr_mtx);
+    auto db2_strided = Mtx2::create(exec, b->get_size(), 4);
+    d_b2->convert_to(db2_strided);
+    auto dx2_strided = Mtx2::create(exec, x->get_size(), 5);
+
+    solver->apply(b2, x2);
+    d_solver->apply(db2_strided, dx2_strided);
+
+    GKO_ASSERT_MTX_NEAR(dx2_strided, x2, 1e-6);
+}
+
+
+TEST_F(UpperTrs, CudaMultipleRhsMixedApplySyncfreeIsEquivalentToRef2)
+{
+    initialize_data(50, 3);
+    auto solver =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref)->generate(
+            csr_mtx);
+    auto d_solver =
+        gko::solver::UpperTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_num_rhs(3u)
+            .on(exec)
+            ->generate(d_csr_mtx);
+    auto db2_strided = Mtx2::create(exec, b->get_size(), 4);
     d_b2->convert_to(db2_strided);
     auto dx_strided = Mtx::create(exec, x->get_size(), 5);
 
     solver->apply(b2, x);
     d_solver->apply(db2_strided, dx_strided);
 
-    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-6);
+}
+
+
+TEST_F(UpperTrs, CudaMultipleRhsMixedApplySyncfreeIsEquivalentToRef3)
+{
+    initialize_data(50, 3);
+    auto solver =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref)->generate(
+            csr_mtx);
+    auto d_solver =
+        gko::solver::UpperTrs<>::build()
+            .with_algorithm(gko::solver::trisolve_algorithm::syncfree)
+            .with_num_rhs(3u)
+            .on(exec)
+            ->generate(d_csr_mtx);
+    auto db_strided = Mtx::create(exec, b->get_size(), 4);
+    d_b->convert_to(db_strided);
+    auto dx2_strided = Mtx2::create(exec, x->get_size(), 5);
+
+    solver->apply(b, x2);
+    d_solver->apply(db_strided, dx2_strided);
+
+    GKO_ASSERT_MTX_NEAR(dx2_strided, x2, 1e-6);
 }
 
 
@@ -159,18 +284,18 @@ TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
     auto in_stride = 4;
     auto out_stride = 5;
 #endif
-    auto upper_trs_factory =
-        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref);
-    auto d_upper_trs_factory =
-        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(exec);
-    auto solver = upper_trs_factory->generate(csr_mtx);
-    auto d_solver = d_upper_trs_factory->generate(d_csr_mtx);
-    auto db2_strided = Mtx::create(exec, b->get_size(), in_stride);
-    d_b2->convert_to(db2_strided);
+    auto solver =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(ref)->generate(
+            csr_mtx);
+    auto d_solver =
+        gko::solver::UpperTrs<>::build().with_num_rhs(3u).on(exec)->generate(
+            d_csr_mtx);
+    auto db_strided = Mtx::create(exec, b->get_size(), in_stride);
+    d_b->convert_to(db_strided);
     auto dx_strided = Mtx::create(exec, x->get_size(), out_stride);
 
-    solver->apply(b2, x);
-    d_solver->apply(db2_strided, dx_strided);
+    solver->apply(b, x);
+    d_solver->apply(db_strided, dx_strided);
 
     GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
 }
@@ -179,10 +304,10 @@ TEST_F(UpperTrs, CudaMultipleRhsApplyIsEquivalentToRef)
 TEST_F(UpperTrs, CudaApplyThrowsWithWrongNumRHS)
 {
     initialize_data(50, 3);
-    auto d_lower_trs_factory = gko::solver::UpperTrs<>::build().on(exec);
-    auto d_solver = d_lower_trs_factory->generate(d_csr_mtx);
+    auto d_solver =
+        gko::solver::UpperTrs<>::build().on(exec)->generate(d_csr_mtx);
 
-    ASSERT_THROW(d_solver->apply(d_b2, d_x), gko::ValueMismatch);
+    ASSERT_THROW(d_solver->apply(d_b, d_x), gko::ValueMismatch);
 }
 
 
