@@ -38,23 +38,23 @@ namespace {
 template <typename T>
 struct cudss_data_type_impl {};
 
-#define GKO_EXT_CUDSS_DATA_TYPE(_type, _value)           \
-    template <>                                          \
-    struct cudss_data_type_impl<_type> {                 \
-        static constexpr cudssDataType_t value = _value; \
+#define GKO_EXT_CUDSS_DATA_TYPE(_type, _value)          \
+    template <>                                         \
+    struct cudss_data_type_impl<_type> {                \
+        static constexpr cudaDataType_t value = _value; \
     }
 
-GKO_EXT_CUDSS_DATA_TYPE(float, CUDSS_R_32F);
-GKO_EXT_CUDSS_DATA_TYPE(double, CUDSS_R_64F);
-GKO_EXT_CUDSS_DATA_TYPE(std::complex<float>, CUDSS_C_32F);
-GKO_EXT_CUDSS_DATA_TYPE(std::complex<double>, CUDSS_C_64F);
-GKO_EXT_CUDSS_DATA_TYPE(int32, CUDSS_R_32I);
-GKO_EXT_CUDSS_DATA_TYPE(int64, CUDSS_R_64I);
+GKO_EXT_CUDSS_DATA_TYPE(float, CUDA_R_32F);
+GKO_EXT_CUDSS_DATA_TYPE(double, CUDA_R_64F);
+GKO_EXT_CUDSS_DATA_TYPE(std::complex<float>, CUDA_C_32F);
+GKO_EXT_CUDSS_DATA_TYPE(std::complex<double>, CUDA_C_64F);
+GKO_EXT_CUDSS_DATA_TYPE(int32, CUDA_R_32I);
+GKO_EXT_CUDSS_DATA_TYPE(int64, CUDA_R_64I);
 
 #undef GKO_EXT_CUDSS_DATA_TYPE
 
 template <typename T>
-constexpr cudssDataType_t cudss_data_type()
+constexpr cudaDataType_t cudss_data_type()
 {
     return cudss_data_type_impl<T>::value;
 }
