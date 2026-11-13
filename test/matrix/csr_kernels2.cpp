@@ -36,6 +36,7 @@ class Csr : public CommonTestFixture {
 protected:
     using Arr = gko::array<index_type>;
     using Vec = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Mtx = gko::matrix::Csr<value_type>;
     using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
     using ComplexMtx = gko::matrix::Csr<std::complex<value_type>>;
@@ -80,9 +81,9 @@ protected:
     void set_up_apply_data(int num_vectors = 1)
     {
         mtx = Mtx::create(ref, strategy);
-        mtx->move_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[1], 1));
+        mtx->move_from(gen_mtx<Dense>(mtx_size[0], mtx_size[1], 1));
         square_mtx = Mtx::create(ref, strategy);
-        square_mtx->move_from(gen_mtx<Mtx>(mtx_size[0], mtx_size[0], 1));
+        square_mtx->move_from(gen_mtx<Dense>(mtx_size[0], mtx_size[0], 1));
         expected = gen_mtx<Vec>(mtx_size[0], num_vectors, 1);
         y = gen_mtx<Vec>(mtx_size[1], num_vectors, 1);
         alpha = gko::initialize<Vec>({2.0}, ref);

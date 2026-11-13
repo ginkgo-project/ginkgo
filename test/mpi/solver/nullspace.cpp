@@ -265,7 +265,7 @@ TEST_F(NullspaceDistributed, RejectsNonDistributedBasis)
                   {1., 1., 1., 1., 1., 0., 0., 0., 0.}, exec))}));
     auto v = distributed(x_star);
 
-    ASSERT_THROW(nullspace->project(v), gko::NotSupported);
+    ASSERT_THROW(nullspace->project(v), gko::DimensionMismatch);
     ASSERT_THROW(factory("cg", nullspace, nullspace)->generate(mtx),
                  gko::InvalidStateError);
 }

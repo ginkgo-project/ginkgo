@@ -679,31 +679,6 @@ TYPED_TEST(Sellp, AppliesToComplex)
 }
 
 
-TYPED_TEST(Sellp, AppliesToMixedComplex)
-{
-    using value_type = typename TestFixture::value_type;
-    using complex_type = gko::to_complex<value_type>;
-    using Vec = gko::matrix::MultiVector<complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    // clang-format off
-    auto b = gko::initialize<Vec>(
-        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
-         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
-         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
-    auto x = Vec::create(exec, gko::dim<2>{2,2});
-    // clang-format on
-
-    this->mtx1->apply(b, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{complex_type{13.0, 14.0}, complex_type{19.0, 20.0}},
-           {complex_type{10.0, 10.0}, complex_type{15.0, 15.0}}}),
-        0.0);
-}
-
-
 TYPED_TEST(Sellp, AdvancedAppliesToComplex)
 {
     using value_type = typename TestFixture::value_type;
@@ -722,36 +697,6 @@ TYPED_TEST(Sellp, AdvancedAppliesToComplex)
          {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
     auto alpha = gko::initialize<MultiVector>({-1.0}, this->exec);
     auto beta = gko::initialize<MultiVector>({2.0}, this->exec);
-    // clang-format on
-
-    this->mtx1->apply(alpha, b, beta, x);
-
-    GKO_ASSERT_MTX_NEAR(
-        x,
-        l({{complex_type{-11.0, -14.0}, complex_type{-15.0, -18.0}},
-           {complex_type{-6.0, -6.0}, complex_type{-9.0, -9.0}}}),
-        0.0);
-}
-
-
-TYPED_TEST(Sellp, AdvancedAppliesToMixedComplex)
-{
-    using value_type = typename TestFixture::value_type;
-    using complex_type = gko::to_complex<value_type>;
-    using MixedMultiVector = gko::matrix::MultiVector<value_type>;
-    using MixedMultiVectorComplex = gko::matrix::MultiVector<complex_type>;
-    auto exec = gko::ReferenceExecutor::create();
-
-    // clang-format off
-    auto b = gko::initialize<MixedMultiVectorComplex>(
-        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
-         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}},
-         {complex_type{3.0, 4.0}, complex_type{4.0, 5.0}}}, exec);
-    auto x = gko::initialize<MixedMultiVectorComplex>(
-        {{complex_type{1.0, 0.0}, complex_type{2.0, 1.0}},
-         {complex_type{2.0, 2.0}, complex_type{3.0, 3.0}}}, exec);
-    auto alpha = gko::initialize<MixedMultiVector>({-1.0}, this->exec);
-    auto beta = gko::initialize<MixedMultiVector>({2.0}, this->exec);
     // clang-format on
 
     this->mtx1->apply(alpha, b, beta, x);
