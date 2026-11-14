@@ -86,8 +86,6 @@ inline bool operator>=(const version& first, const version& second)
     return !(first < second);
 }
 
-#undef GKO_ENABLE_VERSION_COMPARISON
-
 
 /**
  * Prints version information to a stream.

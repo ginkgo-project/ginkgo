@@ -430,8 +430,8 @@ struct BlasBenchmark : Benchmark<dimensions> {
 
     BlasBenchmark(map_type operation_map, bool do_print = true)
         : operation_map{std::move(operation_map)},
-          name{"blas"},
           operations{split(FLAGS_operations)},
+          name{"blas"},
           do_print{do_print}
     {}
 

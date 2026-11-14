@@ -146,7 +146,15 @@ public:
         exec_->add_logger(logger_);
     }
 
-    ~scoped_logger() { exec_->remove_logger(logger_); }
+    ~scoped_logger()
+    {
+        try {
+            exec_->remove_logger(logger_);
+            // NOLINTNEXTLINE(bugprone-empty-catch)
+        } catch (const gko::OutOfBoundsError&) {
+            // the logger was already removed from the executor
+        }
+    }
 
     scoped_logger(const scoped_logger&) = delete;
 

@@ -93,7 +93,6 @@ void symbolic_factorize(
 {
     const auto num_rows = mtx.size[0];
     const auto row_ptrs = mtx.row_ptrs;
-    const auto cols = mtx.col_idxs;
     const auto postorder_parent = forest.postorder_parents.get_const_data();
     const auto out_row_ptrs = l_factor.row_ptrs;
     const auto out_cols = l_factor.col_idxs;
