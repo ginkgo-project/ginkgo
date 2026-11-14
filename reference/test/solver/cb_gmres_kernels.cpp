@@ -1,13 +1,16 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <cfenv>
+#include <limits>
 #include <tuple>
 
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
@@ -142,6 +145,161 @@ using TestTypes = gko::test::merge_type_list_t<
         gko::test::RealValueTypesBase, ::testing::Types<st_i, st_ir1, st_ir2>>>;
 
 TYPED_TEST_SUITE(CbGmres, TestTypes, PairTypenameNameGenerator);
+
+
+TYPED_TEST(CbGmres, PreservesExactInitialSolutionWithoutResidualCriterion)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Solver = typename TestFixture::gmres_type;
+    auto matrix = gko::share(
+        gko::initialize<Mtx>({{T{2.0}, T{0.0}}, {T{0.0}, T{4.0}}}, this->exec));
+    auto b = gko::initialize<Mtx>({2.0, 8.0}, this->exec);
+    auto x = gko::initialize<Mtx>({1.0, 2.0}, this->exec);
+    auto logger = gko::share(gko::log::Convergence<T>::create());
+    auto solver =
+        Solver::build()
+            .with_storage_precision(this->storage_prec)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .on(this->exec)
+            ->generate(matrix);
+    solver->add_logger(logger);
+    std::feclearexcept(FE_ALL_EXCEPT);
+
+    solver->apply(b, x);
+
+    const auto invalid = std::fetestexcept(FE_INVALID);
+    EXPECT_EQ(x->at(0, 0), T{1.0});
+    EXPECT_EQ(x->at(1, 0), T{2.0});
+    EXPECT_EQ(logger->get_num_iterations(), 0);
+    EXPECT_EQ(invalid, 0);
+}
+
+
+TYPED_TEST(CbGmres, PreservesSolvedColumnWhileOtherColumnAdvances)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Solver = typename TestFixture::gmres_type;
+    auto matrix = gko::share(
+        gko::initialize<Mtx>({{T{2.0}, T{0.0}}, {T{0.0}, T{4.0}}}, this->exec));
+    auto b =
+        gko::initialize<Mtx>({{T{2.0}, T{2.0}}, {T{8.0}, T{8.0}}}, this->exec);
+    auto x =
+        gko::initialize<Mtx>({{T{1.0}, T{0.0}}, {T{2.0}, T{0.0}}}, this->exec);
+    auto solver =
+        Solver::build()
+            .with_storage_precision(this->storage_prec)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec)
+            ->generate(matrix);
+
+    std::feclearexcept(FE_ALL_EXCEPT);
+
+    solver->apply(b, x);
+
+    const auto invalid = std::fetestexcept(FE_INVALID);
+    EXPECT_EQ(invalid, 0);
+
+    EXPECT_EQ(x->at(0, 0), T{1.0});
+    EXPECT_EQ(x->at(1, 0), T{2.0});
+    const auto alpha = (T{4.0} * T{2.0} + T{32.0} * T{8.0}) /
+                       (gko::squared_norm(T{4.0}) + gko::squared_norm(T{32.0}));
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({{T{1.0}, alpha * T{2.0}}, {T{2.0}, alpha * T{8.0}}}),
+                        this->assert_precision() * 10);
+}
+
+
+TYPED_TEST(CbGmres, PreservesSolvedColumnWithResidualCriterion)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Solver = typename TestFixture::gmres_type;
+    auto matrix = gko::share(
+        gko::initialize<Mtx>({{T{2.0}, T{0.0}}, {T{0.0}, T{4.0}}}, this->exec));
+    auto b =
+        gko::initialize<Mtx>({{T{2.0}, T{2.0}}, {T{8.0}, T{8.0}}}, this->exec);
+    auto x =
+        gko::initialize<Mtx>({{T{1.0}, T{0.0}}, {T{2.0}, T{0.0}}}, this->exec);
+    auto solver =
+        Solver::build()
+            .with_storage_precision(this->storage_prec)
+            .with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u),
+                gko::stop::ResidualNorm<T>::build().with_reduction_factor(1e-6))
+            .on(this->exec)
+            ->generate(matrix);
+
+    std::feclearexcept(FE_ALL_EXCEPT);
+
+    solver->apply(b, x);
+
+    const auto invalid = std::fetestexcept(FE_INVALID);
+    EXPECT_EQ(invalid, 0);
+
+    EXPECT_EQ(x->at(0, 0), T{1.0});
+    EXPECT_EQ(x->at(1, 0), T{2.0});
+    const auto alpha = (T{4.0} * T{2.0} + T{32.0} * T{8.0}) /
+                       (gko::squared_norm(T{4.0}) + gko::squared_norm(T{32.0}));
+    GKO_ASSERT_MTX_NEAR(x,
+                        l({{T{1.0}, alpha * T{2.0}}, {T{2.0}, alpha * T{8.0}}}),
+                        this->assert_precision() * 10);
+}
+
+
+TYPED_TEST(CbGmres, DoesNotReportUnderflowedNonzeroResidualAsConverged)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Solver = typename TestFixture::gmres_type;
+    const auto tiny = std::numeric_limits<gko::remove_complex<T>>::min();
+    auto matrix = gko::share(gko::initialize<Mtx>({T{1.0}}, this->exec));
+    auto b = gko::initialize<Mtx>({T{tiny}}, this->exec);
+    auto x = gko::initialize<Mtx>({T{0.0}}, this->exec);
+    auto logger = gko::share(gko::log::Convergence<T>::create());
+    auto solver =
+        Solver::build()
+            .with_storage_precision(st_enum::keep)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec)
+            ->generate(matrix);
+    solver->add_logger(logger);
+
+    solver->apply(b, x);
+
+    EXPECT_EQ(logger->get_num_iterations(), 1);
+    EXPECT_FALSE(logger->has_converged());
+}
+
+
+TYPED_TEST(CbGmres, PreservesExactSolutionWhenWorkspaceIsReused)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using T = typename TestFixture::value_type;
+    using Solver = typename TestFixture::gmres_type;
+    auto matrix = gko::share(
+        gko::initialize<Mtx>({{T{2.0}, T{0.0}}, {T{0.0}, T{4.0}}}, this->exec));
+    auto b = gko::initialize<Mtx>({T{2.0}, T{8.0}}, this->exec);
+    auto x = gko::initialize<Mtx>({T{0.0}, T{0.0}}, this->exec);
+    auto solver =
+        Solver::build()
+            .with_storage_precision(this->storage_prec)
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(1u))
+            .on(this->exec)
+            ->generate(matrix);
+    solver->apply(b, x);
+    x->at(0, 0) = T{1.0};
+    x->at(1, 0) = T{2.0};
+    std::feclearexcept(FE_ALL_EXCEPT);
+
+    solver->apply(b, x);
+
+    const auto invalid = std::fetestexcept(FE_INVALID);
+    EXPECT_EQ(x->at(0, 0), T{1.0});
+    EXPECT_EQ(x->at(1, 0), T{2.0});
+    EXPECT_EQ(invalid, 0);
+}
 
 
 TYPED_TEST(CbGmres, SolvesStencilSystem)

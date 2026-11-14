@@ -49,7 +49,11 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                     residual_norm_collection(0, j) = residual_norm(0, j);
                     final_iter_nums[j] = 0;
                 }
-                krylov_bases(i, j) = residual(i, j) / residual_norm(0, j);
+                const auto divisor =
+                    is_zero(residual(i, j)) && is_zero(residual_norm(0, j))
+                        ? one(residual_norm(0, j))
+                        : residual_norm(0, j);
+                krylov_bases(i, j) = residual(i, j) / divisor;
             },
             residual.size, residual, residual_norm, residual_norm_collection,
             krylov_bases, final_iter_nums);
@@ -57,6 +61,27 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_RESTART_KERNEL);
+
+
+template <typename ValueType>
+void normalize(std::shared_ptr<const DefaultExecutor> exec,
+               matrix::view::dense<const ValueType> norm,
+               matrix::view::dense<ValueType> vector,
+               const stopping_status* stop_status)
+{
+    run_kernel(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto norm, auto vector,
+                      auto stop_status) {
+            const auto stopped = stop_status[j].has_stopped();
+            const auto divisor = stopped ? one(norm(0, j)) : norm(0, j);
+            const auto value = stopped ? zero(vector(i, j)) : vector(i, j);
+            vector(i, j) = value / divisor;
+        },
+        vector.size, norm, vector, stop_status);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_NORMALIZE_KERNEL);
 
 
 template <typename ValueType>

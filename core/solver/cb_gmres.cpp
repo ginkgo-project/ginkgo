@@ -22,6 +22,7 @@
 #include "core/config/solver_config.hpp"
 #include "core/solver/cb_gmres_accessor.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
+#include "core/solver/common_gmres_kernels.hpp"
 
 
 namespace gko {
@@ -30,6 +31,8 @@ namespace cb_gmres {
 namespace {
 
 
+GKO_REGISTER_OPERATION(check_initial_residual,
+                       common_gmres::check_initial_residual_values);
 GKO_REGISTER_OPERATION(initialize, cb_gmres::initialize);
 GKO_REGISTER_OPERATION(restart, cb_gmres::restart);
 GKO_REGISTER_OPERATION(arnoldi, cb_gmres::arnoldi);
@@ -289,6 +292,20 @@ void CbGmres<ValueType>::apply_dense_impl(
         this->get_system_matrix()->apply(neg_one_op, dense_x, one_op, residual);
         // residual = residual - Ax
 
+        bool initially_solved{};
+        // Restart resets final_iter_nums after this reduction reuses its
+        // storage. residual_norm holds zero/nonzero markers until restart.
+        exec->run(cb_gmres::make_check_initial_residual(
+            residual->get_const_device_view(), residual_norm->get_device_view(),
+            RelativeStoppingId, stop_status.get_data(), final_iter_nums,
+            reduction_tmp, &initially_solved));
+        if (initially_solved) {
+            this->template log<log::Logger::iteration_complete>(
+                this, dense_b, dense_x, 0, residual.get(), residual_norm.get(),
+                nullptr, &stop_status, true);
+            return;
+        }
+
         exec->run(cb_gmres::make_restart(
             residual->get_const_device_view(), residual_norm->get_device_view(),
             residual_norm_collection->get_device_view(),
@@ -380,7 +397,7 @@ void CbGmres<ValueType>::apply_dense_impl(
                     if (host_array_changed) {
                         perform_reset = true;
                         stop_status = host_stop_status;
-                    } else {
+                    } else if (all_changed) {
                         // Stop here can happen if all RHS are "fully_converged"
                         // or if it was stopped for non-convergence reason
                         // (like time or iteration)

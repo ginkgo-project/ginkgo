@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <algorithm>
+#include <cfenv>
 #include <memory>
 #include <numeric>
 #include <random>
@@ -15,6 +16,7 @@
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/log/convergence.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
@@ -617,3 +619,150 @@ TYPED_TEST(Solver, MixedAdvancedApplyIsEquivalentToRef)
     });
 }
 #endif
+
+
+class GmresInitialResidual : public CommonMpiTestFixture {
+protected:
+    using Partition =
+        gko::experimental::distributed::Partition<gko::int32, gko::int64>;
+    using Matrix =
+        gko::experimental::distributed::Matrix<value_type, gko::int32,
+                                               gko::int64>;
+    using Vector = gko::experimental::distributed::Vector<value_type>;
+    using GmresSolver = gko::solver::Gmres<value_type>;
+
+    void SetUp() override
+    {
+        ASSERT_EQ(comm.size(), 3);
+        partition = gko::share(Partition::build_from_contiguous(
+            ref, gko::array<gko::int64>{ref, {0, 2, 2, 4}}));
+        gko::matrix_data<value_type, gko::int64> data{gko::dim<2>{4, 4}};
+        for (gko::int64 i = 0; i < 4; ++i) {
+            data.nonzeros.emplace_back(i, i, value_type(1u << (i + 1)));
+        }
+        auto host = Matrix::create(ref, comm);
+        host->read_distributed(data, partition);
+        matrix = gko::share(gko::clone(exec, host));
+    }
+
+    std::unique_ptr<Vector> vector(
+        const std::vector<std::vector<value_type>>& columns)
+    {
+        gko::matrix_data<value_type, gko::int64> data{
+            gko::dim<2>{4, columns.size()}};
+        for (gko::size_type j = 0; j < columns.size(); ++j) {
+            for (gko::int64 i = 0; i < 4; ++i) {
+                data.nonzeros.emplace_back(i, j, columns[j][i]);
+            }
+        }
+        auto host = Vector::create(ref, comm);
+        host->read_distributed(data, partition);
+        return gko::clone(exec, host);
+    }
+
+    void check_mixed(bool residual_criterion, bool single_rhs = false)
+    {
+        auto solution = single_rhs ? vector({{0, 0, 1, 1}})
+                                   : vector({{1, 2, 3, 4}, {0, 0, 1, 1}});
+        auto b = gko::clone(solution);
+        matrix->apply(solution, b);
+        auto x = single_rhs ? vector({{0, 0, 0, 0}})
+                            : vector({{1, 2, 3, 4}, {0, 0, 0, 0}});
+        auto parameters = GmresSolver::build().with_criteria(
+            gko::stop::Iteration::build().with_max_iters(1u));
+        if (residual_criterion) {
+            parameters.with_criteria(
+                gko::stop::Iteration::build().with_max_iters(1u),
+                gko::stop::ResidualNorm<value_type>::build()
+                    .with_reduction_factor(1e-6));
+        }
+        auto solver = parameters.on(exec)->generate(matrix);
+        auto logger = gko::share(gko::log::Convergence<value_type>::create());
+        solver->add_logger(logger);
+        std::feclearexcept(FE_ALL_EXCEPT);
+
+        solver->apply(b, x);
+
+        const auto invalid = std::fetestexcept(FE_INVALID);
+        const auto w0 = value_type{8} * value_type{8};
+        const auto w1 = value_type{16} * value_type{16};
+        const auto alpha =
+            (w0 * value_type{8} + w1 * value_type{16}) / (w0 * w0 + w1 * w1);
+        auto expected = single_rhs ? vector({{0, 0, alpha * value_type{8},
+                                              alpha * value_type{16}}})
+                                   : vector({{1, 2, 3, 4},
+                                             {0, 0, alpha * value_type{8},
+                                              alpha * value_type{16}}});
+        auto actual_local = gko::clone(ref, x->get_local_vector());
+        auto expected_local = gko::clone(ref, expected->get_local_vector());
+        ASSERT_EQ(actual_local->get_size(), expected_local->get_size());
+        for (gko::size_type i = 0; i < actual_local->get_size()[0]; ++i) {
+            if (!single_rhs) {
+                EXPECT_EQ(actual_local->at(i, 0), expected_local->at(i, 0));
+            }
+            const auto active_column = single_rhs ? 0 : 1;
+            EXPECT_NEAR(actual_local->at(i, active_column),
+                        expected_local->at(i, active_column),
+                        r<value_type>::value * 100);
+        }
+        EXPECT_EQ(logger->get_num_iterations(), 1);
+        EXPECT_EQ(invalid, 0);
+    }
+
+    std::shared_ptr<Partition> partition;
+    std::shared_ptr<Matrix> matrix;
+};
+
+
+TEST_F(GmresInitialResidual, ExactSolutionReturnsWithEmptyRank)
+{
+    auto x = vector({{1, 2, 3, 4}, {0, 0, 1, 1}});
+    auto expected = gko::clone(ref, x->get_local_vector());
+    auto b = gko::clone(x);
+    matrix->apply(x, b);
+    auto solver =
+        GmresSolver::build()
+            .with_criteria(gko::stop::Iteration::build().with_max_iters(2u))
+            .on(exec)
+            ->generate(matrix);
+    auto logger = gko::share(gko::log::Convergence<value_type>::create());
+    solver->add_logger(logger);
+    std::feclearexcept(FE_ALL_EXCEPT);
+
+    solver->apply(b, x);
+
+    const auto invalid = std::fetestexcept(FE_INVALID);
+    auto result = gko::clone(ref, x->get_local_vector());
+    for (gko::size_type i = 0; i < result->get_size()[0]; ++i) {
+        for (gko::size_type j = 0; j < result->get_size()[1]; ++j) {
+            EXPECT_EQ(result->at(i, j), expected->at(i, j));
+        }
+    }
+    EXPECT_EQ(logger->get_num_iterations(), 0);
+    EXPECT_TRUE(logger->has_converged());
+    EXPECT_EQ(invalid, 0);
+}
+
+
+TEST_F(GmresInitialResidual, LocallyZeroResidualDoesNotStopOtherRanks)
+{
+    check_mixed(false);
+}
+
+
+TEST_F(GmresInitialResidual, LocallyZeroResidualWithResidualCriterion)
+{
+    check_mixed(true);
+}
+
+
+TEST_F(GmresInitialResidual, SingleRhsLocallyZeroResidualDoesNotStopOtherRanks)
+{
+    check_mixed(false, true);
+}
+
+
+TEST_F(GmresInitialResidual, SingleRhsLocallyZeroResidualWithResidualCriterion)
+{
+    check_mixed(true, true);
+}

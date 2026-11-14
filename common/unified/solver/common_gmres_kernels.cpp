@@ -7,6 +7,7 @@
 #include <ginkgo/core/base/math.hpp>
 
 #include "common/unified/base/kernel_launch.hpp"
+#include "common/unified/base/kernel_launch_reduction.hpp"
 #include "core/solver/cb_gmres_kernels.hpp"
 
 
@@ -18,6 +19,68 @@ namespace GKO_DEVICE_NAMESPACE {
  *
  */
 namespace common_gmres {
+
+
+template <typename ValueType>
+void check_initial_residual(std::shared_ptr<const DefaultExecutor> exec,
+                            matrix::view::dense<const ValueType> norm,
+                            uint8 stopping_id, stopping_status* stop_status,
+                            array<size_type>& num_active,
+                            array<char>& reduction_tmp, bool* all_stopped)
+{
+    if (norm.size[1] == 0) {
+        *all_stopped = true;
+        return;
+    }
+    run_kernel_reduction_cached(
+        exec,
+        [] GKO_KERNEL(auto i, auto norm, auto stopping_id, auto stop_status) {
+            if (is_zero(norm(0, i))) {
+                stop_status[i].converge(stopping_id, false);
+            }
+            return size_type{!stop_status[i].has_stopped()};
+        },
+        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        [] GKO_KERNEL(auto value) { return value; }, size_type{},
+        num_active.get_data(), norm.size[1], reduction_tmp, norm, stopping_id,
+        stop_status);
+    *all_stopped = exec->copy_val_to_host(num_active.get_const_data()) == 0;
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_COMMON_GMRES_CHECK_INITIAL_RESIDUAL_KERNEL);
+
+
+template <typename ValueType>
+void check_initial_residual_values(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::dense<const ValueType> residual,
+    matrix::view::dense<remove_complex<ValueType>> nonzero, uint8 stopping_id,
+    stopping_status* stop_status, array<size_type>& num_active,
+    array<char>& reduction_tmp, bool* all_stopped)
+{
+    if (residual.size[1] == 0) {
+        *all_stopped = true;
+        return;
+    }
+    using real_type = remove_complex<ValueType>;
+    using device_real_type = device_type<real_type>;
+    // Reduce zero/one markers with max: neither magnitudes nor counts are
+    // needed, including for low-precision value types.
+    run_kernel_col_reduction_cached(
+        exec,
+        [] GKO_KERNEL(auto i, auto j, auto residual) {
+            return is_zero(residual(i, j)) ? zero<device_real_type>()
+                                           : one<device_real_type>();
+        },
+        GKO_KERNEL_REDUCE_MAX(real_type), nonzero.values, residual.size,
+        reduction_tmp, residual);
+    check_initial_residual(exec, nonzero.as_const(), stopping_id, stop_status,
+                           num_active, reduction_tmp, all_stopped);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_COMMON_GMRES_CHECK_INITIAL_RESIDUAL_VALUES_KERNEL);
 
 
 template <typename ValueType>

@@ -22,6 +22,58 @@ namespace reference {
  *
  */
 namespace common_gmres {
+
+
+template <typename ValueType>
+void check_initial_residual(std::shared_ptr<const ReferenceExecutor> exec,
+                            matrix::view::dense<const ValueType> norm,
+                            uint8 stopping_id, stopping_status* stop_status,
+                            array<size_type>& num_active, array<char>&,
+                            bool* all_stopped)
+{
+    size_type active{};
+    for (size_type i = 0; i < norm.size[1]; ++i) {
+        if (is_zero(norm(0, i))) {
+            stop_status[i].converge(stopping_id, false);
+        }
+        active += !stop_status[i].has_stopped();
+    }
+    if (norm.size[1] != 0) {
+        num_active.get_data()[0] = active;
+    }
+    *all_stopped = active == 0;
+}
+
+GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_TYPE(
+    GKO_DECLARE_COMMON_GMRES_CHECK_INITIAL_RESIDUAL_KERNEL);
+
+
+template <typename ValueType>
+void check_initial_residual_values(
+    std::shared_ptr<const ReferenceExecutor> exec,
+    matrix::view::dense<const ValueType> residual,
+    matrix::view::dense<remove_complex<ValueType>> nonzero, uint8 stopping_id,
+    stopping_status* stop_status, array<size_type>& num_active,
+    array<char>& reduction_tmp, bool* all_stopped)
+{
+    using real_type = remove_complex<ValueType>;
+    for (size_type j = 0; j < residual.size[1]; ++j) {
+        nonzero(0, j) = zero<real_type>();
+        for (size_type i = 0; i < residual.size[0]; ++i) {
+            if (!is_zero(residual(i, j))) {
+                nonzero(0, j) = one<real_type>();
+                break;
+            }
+        }
+    }
+    check_initial_residual(exec, nonzero.as_const(), stopping_id, stop_status,
+                           num_active, reduction_tmp, all_stopped);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
+    GKO_DECLARE_COMMON_GMRES_CHECK_INITIAL_RESIDUAL_VALUES_KERNEL);
+
+
 namespace {
 
 

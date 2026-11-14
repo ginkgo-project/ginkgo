@@ -137,8 +137,13 @@ void restart_2_kernel(
     }
 
     if (row_idx < num_rows && col_idx < num_rhs) {
-        auto value = residual[row_idx * stride_residual + col_idx] /
-                     residual_norm[col_idx];
+        const auto residual_value =
+            residual[row_idx * stride_residual + col_idx];
+        const auto divisor =
+            is_zero(residual_value) && is_zero(residual_norm[col_idx])
+                ? one<remove_complex<ValueType>>()
+                : residual_norm[col_idx];
+        auto value = residual_value / divisor;
         krylov_bases(0, row_idx, col_idx) = value;
         next_krylov_basis[row_idx * stride_next_krylov + col_idx] = value;
     }
@@ -752,8 +757,11 @@ void set_scalar_kernel(size_type num_rhs, size_type num_blocks,
         if (blk_idx == 0) {
             const auto num1 = residual_norm[col_idx];
             const auto num2 = arnoldi_inf[col_idx];
+            const auto zero_norm = is_zero(num1) && is_zero(num2);
+            const auto numerator = zero_norm ? one<RealValueType>() : num2;
+            const auto divisor = zero_norm ? one<RealValueType>() : num1;
             gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
-                krylov_bases, {0}, col_idx, num2 / num1);
+                krylov_bases, {0}, col_idx, numerator / divisor);
         } else {
             const auto num = one<RealValueType>();
             gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
