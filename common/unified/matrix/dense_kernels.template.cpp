@@ -57,7 +57,7 @@ template <typename ValueType>
 void fill(std::shared_ptr<const DefaultExecutor> exec,
           matrix::view::dense<ValueType> mat, ValueType value)
 {
-    run_kernel(
+    run_kernel_simd(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto mat, auto value) {
             mat(row, col) = value;
@@ -94,7 +94,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
             },
             x.size, alpha.values, x);
     } else {
-        run_kernel(
+        run_kernel_simd(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 if (is_zero(alpha[0])) {
@@ -121,7 +121,7 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
             },
             x.size, alpha.values, x);
     } else {
-        run_kernel(
+        run_kernel_simd(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) /= alpha[0];
@@ -145,7 +145,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
             },
             x.size, alpha.values, x, y);
     } else {
-        run_kernel(
+        run_kernel_simd(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 if (is_nonzero(alpha[0])) {
@@ -171,7 +171,7 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
             },
             x.size, alpha.values, x, y);
     } else {
-        run_kernel(
+        run_kernel_simd(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 if (is_nonzero(alpha[0])) {
@@ -223,7 +223,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
                  matrix::view::dense<const ValueType> y,
                  matrix::view::dense<ValueType> result, array<char>& tmp)
 {
-    run_kernel_col_reduction_cached(
+    run_kernel_col_reduction_cached_simd(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return x(i, j) * y(i, j);
@@ -238,7 +238,7 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
                       matrix::view::dense<const ValueType> y,
                       matrix::view::dense<ValueType> result, array<char>& tmp)
 {
-    run_kernel_col_reduction_cached(
+    run_kernel_col_reduction_cached_simd(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return conj(x(i, j)) * y(i, j);
@@ -253,10 +253,10 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
                    matrix::view::dense<remove_complex<ValueType>> result,
                    array<char>& tmp)
 {
-    run_kernel_col_reduction_cached(
+    run_kernel_col_reduction_cached_simd(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
-        [] GKO_KERNEL(auto a, auto b) { return a + b; },
+        reduce_sum_op<remove_complex<ValueType>>{},
         [] GKO_KERNEL(auto a) { return sqrt(a); }, remove_complex<ValueType>{},
         result.values, x.size, tmp, x);
 }
@@ -267,7 +267,7 @@ void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
                    matrix::view::dense<remove_complex<ValueType>> result,
                    array<char>& tmp)
 {
-    run_kernel_col_reduction_cached(
+    run_kernel_col_reduction_cached_simd(
         exec, [] GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
         GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result.values, x.size,
         tmp, x);
@@ -354,7 +354,7 @@ void compute_squared_norm2(
     matrix::view::dense<const ValueType> x,
     matrix::view::dense<remove_complex<ValueType>> result, array<char>& tmp)
 {
-    run_kernel_col_reduction_cached(
+    run_kernel_col_reduction_cached_simd(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
         GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result.values, x.size,

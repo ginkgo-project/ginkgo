@@ -19,4 +19,8 @@ if(GINKGO_TEST_NONDEFAULT_STREAM)
     add_subdirectory(identify_stream_usage)
 endif()
 
+if(GINKGO_BUILD_OMP AND GINKGO_OMP_WITH_HIGHWAY AND (NOT HWY_FOUND))
+    add_subdirectory(highway)
+endif()
+
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)

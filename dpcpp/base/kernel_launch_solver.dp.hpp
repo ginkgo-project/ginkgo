@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,9 @@
 #error \
     "This file can only be used from inside common/unified/base/kernel_launch_solver.hpp"
 #endif
+
+
+#include <utility>
 
 
 namespace gko {
@@ -40,6 +43,17 @@ void run_kernel_solver(std::shared_ptr<const DpcppExecutor> exec,
             static_cast<int64>(default_stride), fn,
             kernels::dpcpp::map_to_device(args)...);
     });
+}
+
+
+/** @internal Only OMP vectorizes; here the *_simd names are the plain ones. */
+template <typename KernelFunction, typename... KernelArgs>
+void run_kernel_solver_simd(std::shared_ptr<const DpcppExecutor> exec,
+                            KernelFunction fn, dim<2> size,
+                            size_type default_stride, KernelArgs&&... args)
+{
+    run_kernel_solver(exec, fn, size, default_stride,
+                      std::forward<KernelArgs>(args)...);
 }
 
 
