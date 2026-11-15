@@ -22,7 +22,7 @@ It does not change the interface, and the supported systems and requirements are
 + Fixes the CUDA and HIP column reduction kernels for matrices with many columns [#2074](https://github.com/ginkgo-project/ginkgo/pull/2074).
 + Fixes the OpenMP reduction kernels when fewer threads than requested are available, and aligns the `CpuAllocator` allocations to 128 bytes [#2106](https://github.com/ginkgo-project/ginkgo/pull/2106).
 + Fixes `ParIc` running no sweeps on device executors when the number of iterations is set to automatic [#2123](https://github.com/ginkgo-project/ginkgo/pull/2123).
-+ Fixes block-Jacobi and the CSR sorting for empty matrices [#2101](https://github.com/ginkgo-project/ginkgo/pull/2101).
++ Fixes block-Jacobi and the CSR sorting for empty matrices [#2101](https://github.com/ginkgo-project/ginkgo/pull/2101), and block-Jacobi for empty matrices with DPC++ [#2018](https://github.com/ginkgo-project/ginkgo/issues/2018).
 + Fixes the move assignment of `mpi::window` leaking the previous window [#2123](https://github.com/ginkgo-project/ginkgo/pull/2123).
 + Fixes a race in the distributed matrix assembly, and the dense communicator always using a blocking all-to-all [#2114](https://github.com/ginkgo-project/ginkgo/pull/2114).
 + Fixes the uninitialized `force_host_buffer` of split communicators, the ELL padding in the conversion to `Hybrid`, overflows in the OpenMP prefix sum, `Dense::create_submatrix` of empty matrices, and the stopping criterion configuration check [#2137](https://github.com/ginkgo-project/ginkgo/pull/2137).
@@ -34,7 +34,7 @@ It does not change the interface, and the supported systems and requirements are
 + Fixes building with ROCm 7.2 [#2002](https://github.com/ginkgo-project/ginkgo/pull/2002).
 + Fixes building with MSVC and Thrust [#2002](https://github.com/ginkgo-project/ginkgo/pull/2002), with nested `initializer_list`s [#2029](https://github.com/ginkgo-project/ginkgo/pull/2029), and with CMake 4.1+ [#2049](https://github.com/ginkgo-project/ginkgo/pull/2049).
 + Fixes linking the OpenMP module with MinGW [#2168](https://github.com/ginkgo-project/ginkgo/issues/2168).
-+ Fixes DPC++ deprecation warnings and building with oneMKL 2025.3+ and icpx 2026+ [#1988](https://github.com/ginkgo-project/ginkgo/pull/1988).
++ Fixes DPC++ deprecation warnings and building with oneMKL 2025.3+ and icpx 2026+ [#1988](https://github.com/ginkgo-project/ginkgo/pull/1988), and building the DPC++ module on Windows [#2108](https://github.com/ginkgo-project/ginkgo/issues/2108).
 + Works around icpx 2024 reading wrong kernel arguments in the OpenMP reduction kernels [#2123](https://github.com/ginkgo-project/ginkgo/pull/2123).
 + Fixes the swapped apply arguments in the `ginkgo-overhead` example [#2167](https://github.com/ginkgo-project/ginkgo/pull/2167).
 + Fixes the benchmark output parsing with MPI [#2090](https://github.com/ginkgo-project/ginkgo/pull/2090), [#2114](https://github.com/ginkgo-project/ginkgo/pull/2114).
