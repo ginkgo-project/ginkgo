@@ -17,7 +17,7 @@ int main(int argc, char* argv[])
     using ValueType = double;
     using MixedType = float;
     using IndexType = int;
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using ir = gko::solver::Ir<ValueType>;
     using ir2 = gko::solver::Ir<MixedType>;

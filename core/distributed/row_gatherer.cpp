@@ -10,7 +10,7 @@
 #include <ginkgo/core/distributed/neighborhood_communicator.hpp>
 #include <ginkgo/core/distributed/row_scatterer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/dispatch_helper.hpp"
 #include "core/base/event_kernels.hpp"

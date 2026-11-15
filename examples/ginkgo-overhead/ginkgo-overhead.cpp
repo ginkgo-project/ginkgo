@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     using ValueType = double;
     using IndexType = int;
 
-    using vec = gko::matrix::Dense<ValueType>;
+    using vec = gko::matrix::MultiVector<ValueType>;
     using mtx = gko::matrix::Csr<ValueType, IndexType>;
     using cg = gko::solver::Cg<ValueType>;
 

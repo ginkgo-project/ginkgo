@@ -17,8 +17,8 @@
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/combined.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
@@ -115,8 +115,8 @@ public:
 protected:
     void apply_impl(const LinOp* b, LinOp* x) const override;
 
-    void apply_dense_impl(const matrix::Dense<ValueType>* b,
-                          matrix::Dense<ValueType>* x) const;
+    void apply_dense_impl(const matrix::MultiVector<ValueType>* b,
+                          matrix::MultiVector<ValueType>* x) const;
 
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;

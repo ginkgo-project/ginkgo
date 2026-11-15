@@ -8,7 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/minres.hpp>
 #include <ginkgo/core/stop/combined.hpp>
@@ -25,7 +25,7 @@ namespace {
 
 class Minres : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Minres<value_type>;
 
     std::unique_ptr<Mtx> gen_mtx(gko::size_type num_rows,

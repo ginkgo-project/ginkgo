@@ -1,11 +1,11 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/dense_cache.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/dense_cache_accessor.hpp"
 #include "core/test/utils.hpp"
@@ -82,11 +82,11 @@ TYPED_TEST(DenseCache, SecondInitWithDifferentSizeInitializes)
 }
 
 
-TYPED_TEST(DenseCache, CanInitFromDense)
+TYPED_TEST(DenseCache, CanInitFromMultiVector)
 {
     using value_type = typename TestFixture::value_type;
     gko::dim<2> size{5, 2};
-    auto dense = gko::matrix::Dense<value_type>::create(this->ref, size);
+    auto dense = gko::matrix::MultiVector<value_type>::create(this->ref, size);
 
     this->cache.init_from(dense.get());
 
@@ -96,11 +96,11 @@ TYPED_TEST(DenseCache, CanInitFromDense)
 }
 
 
-TYPED_TEST(DenseCache, SecondInitFromSameDenseIsNoOp)
+TYPED_TEST(DenseCache, SecondInitFromSameMultiVectorIsNoOp)
 {
     using value_type = typename TestFixture::value_type;
     gko::dim<2> size{4, 7};
-    auto dense = gko::matrix::Dense<value_type>::create(this->ref, size);
+    auto dense = gko::matrix::MultiVector<value_type>::create(this->ref, size);
     this->cache.init_from(dense.get());
     auto first_ptr = this->cache.get();
 
@@ -111,12 +111,14 @@ TYPED_TEST(DenseCache, SecondInitFromSameDenseIsNoOp)
 }
 
 
-TYPED_TEST(DenseCache, SecondInitFromDifferentDenseWithSameSizeIsNoOp)
+TYPED_TEST(DenseCache, SecondInitFromDifferentMultiVectorWithSameSizeIsNoOp)
 {
     using value_type = typename TestFixture::value_type;
     gko::dim<2> size{4, 7};
-    auto first_dense = gko::matrix::Dense<value_type>::create(this->ref, size);
-    auto second_dense = gko::matrix::Dense<value_type>::create(this->ref, size);
+    auto first_dense =
+        gko::matrix::MultiVector<value_type>::create(this->ref, size);
+    auto second_dense =
+        gko::matrix::MultiVector<value_type>::create(this->ref, size);
     this->cache.init_from(first_dense.get());
     auto first_ptr = this->cache.get();
 
@@ -127,14 +129,16 @@ TYPED_TEST(DenseCache, SecondInitFromDifferentDenseWithSameSizeIsNoOp)
 }
 
 
-TYPED_TEST(DenseCache, SecondInitFromDifferentDenseWithDifferentSizeInitializes)
+TYPED_TEST(DenseCache,
+           SecondInitFromDifferentMultiVectorWithDifferentSizeInitializes)
 {
     using value_type = typename TestFixture::value_type;
     gko::dim<2> size{4, 7};
     gko::dim<2> second_size{7, 4};
-    auto first_dense = gko::matrix::Dense<value_type>::create(this->ref, size);
+    auto first_dense =
+        gko::matrix::MultiVector<value_type>::create(this->ref, size);
     auto second_dense =
-        gko::matrix::Dense<value_type>::create(this->ref, second_size);
+        gko::matrix::MultiVector<value_type>::create(this->ref, second_size);
     this->cache.init_from(first_dense.get());
     auto first_ptr = this->cache.get();
 

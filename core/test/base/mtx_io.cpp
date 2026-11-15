@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mtx_io.hpp>
 #include <ginkgo/core/base/name_demangling.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 
@@ -20,7 +20,7 @@
 namespace {
 
 
-TEST(MtxReader, ReadsDenseDoubleRealMtx)
+TEST(MtxReader, ReadsMultiVectorDoubleRealMtx)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
     std::istringstream iss(
@@ -46,7 +46,7 @@ TEST(MtxReader, ReadsDenseDoubleRealMtx)
 }
 
 
-TEST(MtxReader, ReadsDenseDoubleRealMtxWith64Index)
+TEST(MtxReader, ReadsMultiVectorDoubleRealMtxWith64Index)
 {
     using tpl = gko::matrix_data<double, gko::int64>::nonzero_type;
     std::istringstream iss(
@@ -72,7 +72,7 @@ TEST(MtxReader, ReadsDenseDoubleRealMtxWith64Index)
 }
 
 
-TEST(MtxReader, ReadsDenseFloatIntegerMtx)
+TEST(MtxReader, ReadsMultiVectorFloatIntegerMtx)
 {
     using tpl = gko::matrix_data<float, gko::int32>::nonzero_type;
     std::istringstream iss(
@@ -98,7 +98,7 @@ TEST(MtxReader, ReadsDenseFloatIntegerMtx)
 }
 
 
-TEST(MtxReader, ReadsDenseFloatIntegerMtxWith64Index)
+TEST(MtxReader, ReadsMultiVectorFloatIntegerMtxWith64Index)
 {
     using tpl = gko::matrix_data<float, gko::int64>::nonzero_type;
     std::istringstream iss(
@@ -124,7 +124,7 @@ TEST(MtxReader, ReadsDenseFloatIntegerMtxWith64Index)
 }
 
 
-TEST(MtxReader, ReadsDenseComplexDoubleMtx)
+TEST(MtxReader, ReadsMultiVectorComplexDoubleMtx)
 {
     using cpx = std::complex<double>;
     using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
@@ -151,7 +151,7 @@ TEST(MtxReader, ReadsDenseComplexDoubleMtx)
 }
 
 
-TEST(MtxReader, ReadsDenseComplexDoubleMtxWith64Index)
+TEST(MtxReader, ReadsMultiVectorComplexDoubleMtxWith64Index)
 {
     using cpx = std::complex<double>;
     using tpl = gko::matrix_data<cpx, gko::int64>::nonzero_type;
@@ -178,7 +178,7 @@ TEST(MtxReader, ReadsDenseComplexDoubleMtxWith64Index)
 }
 
 
-TEST(MtxReader, ReadsDenseComplexFloatMtx)
+TEST(MtxReader, ReadsMultiVectorComplexFloatMtx)
 {
     using cpx = std::complex<float>;
     using tpl = gko::matrix_data<cpx, gko::int32>::nonzero_type;
@@ -205,7 +205,7 @@ TEST(MtxReader, ReadsDenseComplexFloatMtx)
 }
 
 
-TEST(MtxReader, ReadsDenseComplexFloatMtxWith64Index)
+TEST(MtxReader, ReadsMultiVectorComplexFloatMtxWith64Index)
 {
     using cpx = std::complex<float>;
     using tpl = gko::matrix_data<cpx, gko::int64>::nonzero_type;
@@ -232,7 +232,7 @@ TEST(MtxReader, ReadsDenseComplexFloatMtxWith64Index)
 }
 
 
-TEST(MtxReader, ReadsDenseIgnoresExtraCharactersInRow)
+TEST(MtxReader, ReadsMultiVectorIgnoresExtraCharactersInRow)
 {
     using tpl = gko::matrix_data<double, gko::int32>::nonzero_type;
     std::istringstream iss(
@@ -1240,17 +1240,17 @@ TYPED_TEST(RealDummyLinOpTest, WritesAndReadsBinaryLinOpToStreamArray)
 
 
 template <typename ValueIndexType>
-class DenseTest : public ::testing::Test {
+class MultiVectorTest : public ::testing::Test {
 protected:
     using value_type = typename std::tuple_element<0, ValueIndexType>::type;
     using index_type = typename std::tuple_element<1, ValueIndexType>::type;
 };
 
-TYPED_TEST_SUITE(DenseTest, gko::test::RealValueIndexTypes,
+TYPED_TEST_SUITE(MultiVectorTest, gko::test::RealValueIndexTypes,
                  PairTypenameNameGenerator);
 
 
-TYPED_TEST(DenseTest, WritesToStreamDefault)
+TYPED_TEST(MultiVectorTest, WritesToStreamDefault)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -1263,7 +1263,7 @@ TYPED_TEST(DenseTest, WritesToStreamDefault)
         "5.0\n"
         "2.0\n"
         "0.0\n");
-    auto lin_op = gko::read<gko::matrix::Dense<value_type>>(
+    auto lin_op = gko::read<gko::matrix::MultiVector<value_type>>(
         iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 
@@ -1281,7 +1281,7 @@ TYPED_TEST(DenseTest, WritesToStreamDefault)
 }
 
 
-TYPED_TEST(DenseTest, WritesToStreamFromLinOpPtrOnDense)
+TYPED_TEST(MultiVectorTest, WritesToStreamFromLinOpPtrOnMultiVector)
 {
     using value_type = typename TestFixture::value_type;
     using index_type = typename TestFixture::index_type;
@@ -1295,7 +1295,7 @@ TYPED_TEST(DenseTest, WritesToStreamFromLinOpPtrOnDense)
         "2.0\n"
         "0.0\n");
     std::unique_ptr<gko::LinOp> lin_op =
-        gko::read<gko::matrix::Dense<value_type>>(
+        gko::read<gko::matrix::MultiVector<value_type>>(
             iss, gko::ReferenceExecutor::create());
     std::ostringstream oss{};
 

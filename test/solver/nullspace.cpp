@@ -20,7 +20,7 @@
 
 class Nullspace : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using NullspaceType = gko::solver::Nullspace<value_type>;
     using Cg = gko::solver::Cg<value_type>;

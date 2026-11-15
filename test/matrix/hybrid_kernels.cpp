@@ -11,9 +11,9 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/hybrid.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
@@ -22,8 +22,8 @@
 class Hybrid : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Hybrid<value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
-    using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
+    using Vec = gko::matrix::MultiVector<value_type>;
+    using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
 
     Hybrid() : rand_engine(42) {}
 
@@ -113,7 +113,7 @@ TEST_F(Hybrid, AdvancedApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Hybrid, SimpleApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Hybrid, SimpleApplyToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
@@ -124,7 +124,7 @@ TEST_F(Hybrid, SimpleApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Hybrid, AdvancedApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Hybrid, AdvancedApplyToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 

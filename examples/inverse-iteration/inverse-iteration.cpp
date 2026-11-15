@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -18,8 +18,8 @@ int main(int argc, char* argv[])
     // Some shortcuts
     using precision = std::complex<double>;
     using real_precision = gko::remove_complex<precision>;
-    using vec = gko::matrix::Dense<precision>;
-    using real_vec = gko::matrix::Dense<real_precision>;
+    using vec = gko::matrix::MultiVector<precision>;
+    using real_vec = gko::matrix::MultiVector<real_precision>;
     using mtx = gko::matrix::Csr<precision>;
     using solver_type = gko::solver::Bicgstab<precision>;
 

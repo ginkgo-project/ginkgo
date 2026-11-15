@@ -19,7 +19,7 @@
 #include <ginkgo/core/distributed/vector.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
@@ -48,7 +48,7 @@ protected:
         gko::experimental::distributed::Matrix<value_type, local_index_type,
                                                global_index_type>;
     using dist_vec_type = gko::experimental::distributed::Vector<value_type>;
-    using local_vec_type = gko::matrix::Dense<value_type>;
+    using local_vec_type = gko::matrix::MultiVector<value_type>;
     using dist_prec_type =
         gko::experimental::distributed::preconditioner::Schwarz<
             value_type, local_index_type, global_index_type>;

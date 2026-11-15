@@ -12,7 +12,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/test/utils.hpp"
@@ -101,11 +101,11 @@ TEST_F(SparsityCsr, ToAdjacencyMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(SparsityCsr, ConvertToDenseIsEquivalentToRef)
+TEST_F(SparsityCsr, ConvertToMultiVectorIsEquivalentToRef)
 {
-    const auto out_dense = gko::matrix::Dense<value_type>::create(
+    const auto out_dense = gko::matrix::MultiVector<value_type>::create(
         exec, mtx->get_size(), mtx->get_size()[1] + 2);
-    const auto dout_dense = gko::matrix::Dense<value_type>::create(
+    const auto dout_dense = gko::matrix::MultiVector<value_type>::create(
         exec, mtx->get_size(), mtx->get_size()[1] + 2);
 
     mtx->convert_to(out_dense);

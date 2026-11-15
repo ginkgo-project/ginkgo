@@ -12,7 +12,6 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 
 #include "accessor/block_col_major.hpp"
 #include "core/base/allocator.hpp"

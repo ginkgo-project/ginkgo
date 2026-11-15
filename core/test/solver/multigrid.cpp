@@ -7,7 +7,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/direct.hpp>
 #include <ginkgo/core/solver/ir.hpp>
@@ -43,7 +43,7 @@ class DummyLinOpWithFactory
     : public gko::LinOp,
       public gko::multigrid::EnableMultigridLevel<ValueType> {
 public:
-    using Mtx = gko::matrix::Dense<ValueType>;
+    using Mtx = gko::matrix::MultiVector<ValueType>;
 
     DummyLinOpWithFactory(std::shared_ptr<const gko::Executor> exec)
         : gko::LinOp(exec)
@@ -95,7 +95,7 @@ template <typename T>
 class Multigrid : public ::testing::Test {
 protected:
     using value_type = T;
-    using Mtx = gko::matrix::Dense<value_type>;
+    using Mtx = gko::matrix::MultiVector<value_type>;
     using Solver = gko::solver::Multigrid;
     using DummyRPFactory = DummyLinOpWithFactory<value_type>;
     using DummyFactory = DummyLinOpWithFactory<value_type>;

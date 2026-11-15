@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,8 +12,8 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/common_fixture.hpp"
@@ -22,8 +22,8 @@
 class Sellp : public CommonTestFixture {
 protected:
     using Mtx = gko::matrix::Sellp<value_type>;
-    using Vec = gko::matrix::Dense<value_type>;
-    using ComplexVec = gko::matrix::Dense<std::complex<value_type>>;
+    using Vec = gko::matrix::MultiVector<value_type>;
+    using ComplexVec = gko::matrix::MultiVector<std::complex<value_type>>;
 
     Sellp() : rand_engine(42) {}
 
@@ -191,11 +191,11 @@ TEST_F(Sellp, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Sellp, ConvertToDenseIsEquivalentToRef)
+TEST_F(Sellp, ConvertToMultiVectorIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx);
     dmtx->convert_to(ddense_mtx);
@@ -217,11 +217,11 @@ TEST_F(Sellp, ConvertToCsrIsEquivalentToRef)
 }
 
 
-TEST_F(Sellp, ConvertEmptyToDenseIsEquivalentToRef)
+TEST_F(Sellp, ConvertEmptyToMultiVectorIsEquivalentToRef)
 {
     set_up_apply_matrix(64);
-    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
 
     empty->convert_to(dense_mtx);
     dempty->convert_to(ddense_mtx);

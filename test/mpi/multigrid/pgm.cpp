@@ -194,7 +194,7 @@ TYPED_TEST(Pgm, CanGenerateReuseFromDistributedMatrix)
     auto first = factory->generate_reuse(block_mat, *reuse_data);
     auto expected_diag = gko::clone(gko::as<local_matrix_type>(
         gko::as<dist_mtx_type>(first->get_coarse_op())->get_diag_matrix()));
-    expected_diag->scale(gko::initialize<gko::matrix::Dense<value_type>>(
+    expected_diag->scale(gko::initialize<gko::matrix::MultiVector<value_type>>(
         {value_type{2}}, this->exec));
 
     auto scaled = factory->generate_reuse(scaled_mat, *reuse_data);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,8 +12,8 @@ int main()
     auto gpu = gko::CudaExecutor::create(0, gko::OmpExecutor::create());
     // Read data
     auto A = gko::read<gko::matrix::Csr<>>(std::cin, gpu);
-    auto b = gko::read<gko::matrix::Dense<>>(std::cin, gpu);
-    auto x = gko::read<gko::matrix::Dense<>>(std::cin, gpu);
+    auto b = gko::read<gko::matrix::MultiVector<>>(std::cin, gpu);
+    auto x = gko::read<gko::matrix::MultiVector<>>(std::cin, gpu);
     // Create the solver
     auto solver =
         gko::solver::Cg<>::build()

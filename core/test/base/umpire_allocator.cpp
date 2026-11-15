@@ -341,7 +341,7 @@ TEST(UmpireAllocator, CsrApplyOnPoolMemoryMatchesDefaultAllocator)
     using value_type = double;
     using index_type = gko::int32;
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Dense = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     auto alloc =
         gko::make_umpire_cpu_pool("gko_test_pool_csr", small_pool_config());
     auto umpire_exec = gko::ReferenceExecutor::create(alloc);
@@ -355,15 +355,15 @@ TEST(UmpireAllocator, CsrApplyOnPoolMemoryMatchesDefaultAllocator)
                                     exec);
     };
     auto make_vector = [](std::shared_ptr<const gko::Executor> exec) {
-        return gko::initialize<Dense>({1.0, 2.0, -3.0, 4.0}, exec);
+        return gko::initialize<Vec>({1.0, 2.0, -3.0, 4.0}, exec);
     };
     const auto size_before = alloc->get_current_size();
     auto mtx = make_matrix(umpire_exec);
     auto b = make_vector(umpire_exec);
-    auto x = Dense::create(umpire_exec, gko::dim<2>{4, 1});
+    auto x = Vec::create(umpire_exec, gko::dim<2>{4, 1});
     auto default_mtx = make_matrix(default_exec);
     auto default_b = make_vector(default_exec);
-    auto default_x = Dense::create(default_exec, gko::dim<2>{4, 1});
+    auto default_x = Vec::create(default_exec, gko::dim<2>{4, 1});
     ASSERT_GT(alloc->get_current_size(), size_before);
 
     mtx->apply(b, x);

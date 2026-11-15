@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -13,9 +13,9 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/fbcsr.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/matrix/sparsity_csr.hpp>
 
 #include "core/test/matrix/fbcsr_sample.hpp"
@@ -32,8 +32,8 @@ protected:
     using index_type = int;
     using Arr = gko::array<index_type>;
     using Mtx = gko::matrix::Fbcsr<real_type, index_type>;
-    using Vec = gko::matrix::Dense<real_type>;
-    using ComplexVec = gko::matrix::Dense<std::complex<real_type>>;
+    using Vec = gko::matrix::MultiVector<real_type>;
+    using ComplexVec = gko::matrix::MultiVector<std::complex<real_type>>;
     using ComplexMtx = gko::matrix::Fbcsr<std::complex<real_type>>;
 
     Fbcsr() : rand_engine(42) {}
@@ -162,7 +162,7 @@ TEST_F(Fbcsr, SimpleApplyIsEquivalentToRef)
 }
 
 
-TEST_F(Fbcsr, SimpleApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Fbcsr, SimpleApplyToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 
@@ -173,7 +173,7 @@ TEST_F(Fbcsr, SimpleApplyToDenseMatrixIsEquivalentToRef)
 }
 
 
-TEST_F(Fbcsr, SimpleApplyToDenseMatrixIsEquivalentToRefUnsorted)
+TEST_F(Fbcsr, SimpleApplyToMultiVectorMatrixIsEquivalentToRefUnsorted)
 {
     set_up_apply_data(3);
     auto pair = gen_unsorted_mtx();
@@ -185,7 +185,7 @@ TEST_F(Fbcsr, SimpleApplyToDenseMatrixIsEquivalentToRefUnsorted)
 }
 
 
-TEST_F(Fbcsr, AdvancedApplyToDenseMatrixIsEquivalentToRef)
+TEST_F(Fbcsr, AdvancedApplyToMultiVectorMatrixIsEquivalentToRef)
 {
     set_up_apply_data(3);
 

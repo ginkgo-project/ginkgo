@@ -9,9 +9,9 @@
 // can't include ginkgo/core/distributed/vector.hpp since that requires linking
 // against MPI
 #include <ginkgo/core/base/array.hpp>
-#include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/device_views.hpp>
 
 #include "core/base/kernel_declaration.hpp"
 

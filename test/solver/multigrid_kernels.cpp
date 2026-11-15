@@ -11,7 +11,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
-#include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/multigrid/pgm.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
 #include <ginkgo/core/solver/ir.hpp>
@@ -28,7 +28,7 @@
 
 class Multigrid : public CommonTestFixture {
 protected:
-    using Mtx = gko::matrix::Dense<>;
+    using Mtx = gko::matrix::MultiVector<>;
     Multigrid() : rand_engine(30) {}
 
     std::unique_ptr<Mtx> gen_mtx(int num_rows, int num_cols)
@@ -212,7 +212,7 @@ TEST_F(Multigrid, MultigridKCycleCheckStopIsEquivalentToRef)
 class MultigridReuse : public CommonTestFixture {
 protected:
     using Csr = gko::matrix::Csr<value_type, index_type>;
-    using Vec = gko::matrix::Dense<value_type>;
+    using Vec = gko::matrix::MultiVector<value_type>;
     using Coarse = gko::multigrid::Pgm<value_type, index_type>;
     using Smoother = gko::solver::Ir<value_type>;
     using InnerSolver = gko::preconditioner::Jacobi<value_type>;

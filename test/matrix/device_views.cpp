@@ -15,13 +15,13 @@
 
 
 template <typename ValueType>
-class DenseView : public CommonTestFixture {
+class MultiVectorView : public CommonTestFixture {
 public:
     using value_type = ValueType;
     using view_type = gko::matrix::view::dense<value_type>;
 };
 
-TYPED_TEST_SUITE(DenseView, gko::test::ValueTypes, TypenameNameGenerator);
+TYPED_TEST_SUITE(MultiVectorView, gko::test::ValueTypes, TypenameNameGenerator);
 
 
 template <typename ValueType>
@@ -47,7 +47,7 @@ void assert_dense_view(std::shared_ptr<const gko::EXEC_TYPE> exec)
     ASSERT_TRUE(get_element(correct, 0));
 }
 
-TYPED_TEST(DenseView, WorksOnDevice)
+TYPED_TEST(MultiVectorView, WorksOnDevice)
 {
     assert_dense_view<TypeParam>(this->exec);
 }
