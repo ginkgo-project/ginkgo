@@ -12,7 +12,27 @@ on:
       - 'doc/**'
 
 jobs:
+  # push events carry no PR information, so look up the labels of the open PR for this branch
+  check-skip-ci:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      skip: ${{ steps.labels.outputs.skip }}
+    steps:
+      - name: Check for 1:ST:SKIP_ALL_CI label
+        id: labels
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          SKIP=$(gh pr list --repo "${{ github.repository }}" --head "${{ github.ref_name }}" --state open \
+            --json labels --jq 'any(.[].labels[].name; . == "1:ST:SKIP_ALL_CI")')
+          echo "skip=${SKIP}" >> "$GITHUB_OUTPUT"
+
   mirror:
     name: mirror
+    needs: check-skip-ci
     uses: ./.github/workflows/mirror.yml
     secrets: inherit
+    with:
+      skip: "${{ needs.check-skip-ci.outputs.skip }}"
