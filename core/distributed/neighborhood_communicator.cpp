@@ -4,6 +4,8 @@
 
 #include "ginkgo/core/distributed/neighborhood_communicator.hpp"
 
+#include <numeric>
+
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
