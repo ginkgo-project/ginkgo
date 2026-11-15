@@ -742,7 +742,7 @@ endif()
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${Ginkgo_SOURCE_DIR}/README.md")
 set(CPACK_RESOURCE_FILE_LICENSE "${Ginkgo_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGE_ICON "${Ginkgo_SOURCE_DIR}/assets/logo.png")
-set(CPACK_PACKAGE_CONTACT "ginkgo.library@gmail.com")
+set(CPACK_PACKAGE_CONTACT "contact@gko-project.org")
 include(CPack)
 
 # And finally, print the configuration to screen:
