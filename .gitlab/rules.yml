@@ -44,6 +44,14 @@
   dependencies: []
 
 
+# Like .deploy_condition, and additionally in the full pipeline of release branches
+.sanitizer_condition:
+  rules:
+    - if: $RUN_CI_TAG && ($CI_COMMIT_BRANCH == "main" || $CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_TAG) && $CI_PIPELINE_SOURCE != "schedule"
+    - if: $RUN_CI_TAG && $STATUS_CONTEXT == "full" && $CI_COMMIT_REF_NAME =~ /^release\//
+  dependencies: []
+
+
 .develop_condition:
   rules:
     - if: $RUN_CI_TAG && $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE != "schedule"

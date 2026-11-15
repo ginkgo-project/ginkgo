@@ -589,7 +589,7 @@ addresssanitizer:
   needs: []
   extends:
     - .default_variables
-    - .deploy_condition
+    - .sanitizer_condition
     - .before_script_template
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
@@ -603,7 +603,7 @@ undefinedsanitizer:
   needs: []
   extends:
     - .default_variables
-    - .deploy_condition
+    - .sanitizer_condition
     - .before_script_template
     - .use_gko-rocm514-nompi-gnu11-llvm11
   variables:
