@@ -133,6 +133,7 @@ void generate_natural_block_pointer(size_type num_rows, int32 max_block_size,
                                     size_type* __restrict__ num_blocks_arr)
 {
     block_ptrs[0] = 0;
+    num_blocks_arr[0] = 0;
     if (num_rows == 0) {
         return;
     }
@@ -325,15 +326,18 @@ size_type find_natural_blocks(std::shared_ptr<const DefaultExecutor> exec,
 {
     array<size_type> nums(exec, 1);
 
-    array<bool> matching_next_row(exec, mtx->get_size()[0] - 1);
+    array<bool> matching_next_row(
+        exec, mtx->get_size()[0] > 0 ? mtx->get_size()[0] - 1 : size_type{0});
 
     const dim3 block_size(config::warp_size, 1, 1);
     const dim3 grid_size(
         ceildiv(mtx->get_size()[0] * config::warp_size, block_size.x), 1, 1);
-    compare_adjacent_rows(grid_size, block_size, 0, exec->get_queue(),
-                          mtx->get_size()[0], max_block_size,
-                          mtx->get_const_row_ptrs(), mtx->get_const_col_idxs(),
-                          matching_next_row.get_data());
+    if (grid_size.x > 0) {
+        compare_adjacent_rows(
+            grid_size, block_size, 0, exec->get_queue(), mtx->get_size()[0],
+            max_block_size, mtx->get_const_row_ptrs(),
+            mtx->get_const_col_idxs(), matching_next_row.get_data());
+    }
     generate_natural_block_pointer(
         1, 1, 0, exec->get_queue(), mtx->get_size()[0], max_block_size,
         matching_next_row.get_const_data(), block_ptrs, nums.get_data());
