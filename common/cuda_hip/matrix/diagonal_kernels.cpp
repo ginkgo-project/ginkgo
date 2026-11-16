@@ -7,11 +7,13 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 
 
 namespace gko {
@@ -30,12 +32,13 @@ constexpr int default_block_size = 512;
 namespace kernel {
 
 
-template <typename ValueType, typename IndexType>
+template <typename DiagAccessor, typename IndexType, typename ValueAccessor>
 __global__ __launch_bounds__(default_block_size) void apply_to_csr(
-    size_type num_rows, const ValueType* __restrict__ diag,
-    const IndexType* __restrict__ row_ptrs,
-    ValueType* __restrict__ result_values, bool inverse)
+    size_type num_rows, DiagAccessor diag,
+    const IndexType* __restrict__ row_ptrs, ValueAccessor result_values,
+    bool inverse)
 {
+    using arithmetic_type = arithmetic_type_t<DiagAccessor>;
     constexpr auto warp_size = config::warp_size;
     auto warp_tile =
         group::tiled_partition<warp_size>(group::this_thread_block());
@@ -46,7 +49,8 @@ __global__ __launch_bounds__(default_block_size) void apply_to_csr(
         return;
     }
 
-    const auto diag_val = inverse ? one<ValueType>() / diag[row] : diag[row];
+    const auto diag_val =
+        inverse ? one<arithmetic_type>() / diag[row] : diag[row];
 
     for (size_type idx = row_ptrs[row] + tid_in_warp; idx < row_ptrs[row + 1];
          idx += warp_size) {
@@ -65,8 +69,9 @@ void apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
                   matrix::view::csr<ValueType, IndexType> c, bool inverse)
 {
     const auto num_rows = b.size[0];
-    const auto diag_values = a->get_const_values();
-    auto csr_values = c.values;
+    const auto diag_values =
+        arithmetic<ValueType>(a->get_const_values(), num_rows);
+    const auto csr_values = arithmetic<ValueType>(c);
     const auto csr_row_ptrs = c.row_ptrs;
 
     const auto grid_dim =
@@ -74,8 +79,8 @@ void apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim > 0) {
         kernel::apply_to_csr<<<grid_dim, default_block_size, 0,
                                exec->get_stream()>>>(
-            num_rows, as_device_type(diag_values), csr_row_ptrs,
-            as_device_type(csr_values), inverse);
+            num_rows, acc::as_device_range(diag_values), csr_row_ptrs,
+            acc::as_device_range(csr_values), inverse);
     }
 }
 
