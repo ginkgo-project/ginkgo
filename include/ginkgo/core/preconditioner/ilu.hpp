@@ -16,6 +16,7 @@
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/base/type_traits.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
@@ -84,7 +85,9 @@ namespace preconditioner {
  */
 template <typename ValueType = default_precision, bool ReverseApply = false,
           typename IndexType = int32>
-class Ilu : public LinOp, public Transposable {
+class Ilu : public LinOp,
+            public Transposable,
+            public gko::detail::WorkspaceHolder {
 public:
     using value_type = ValueType;
     static constexpr bool performs_reverse_apply = ReverseApply;
@@ -239,36 +242,16 @@ protected:
     explicit Ilu(const Factory* factory, LinOpGenerateComponents components);
 
     /**
-     * Prepares the intermediate vector for the solve by creating it and
-     * by copying the values from `b`, so `b` acts as the initial guess.
-     *
-     * @param b  Right hand side of the first solve. Also acts as the initial
-     *           guess, meaning the intermediate value will be a copy of b
+     * Returns the intermediate vector of the solve from the workspace,
+     * holding a copy of `b`, which serves as the initial guess of the first
+     * triangular solve.
      */
-    void set_cache_to(const LinOp* b) const;
+    matrix::Dense<value_type>* set_cache_to(
+        const matrix::Dense<value_type>* b) const;
 
 private:
     std::shared_ptr<const LinOp> l_solver_{};
     std::shared_ptr<const LinOp> u_solver_{};
-    /**
-     * Manages a vector as a cache, so there is no need to allocate one every
-     * time an intermediate vector is required.
-     * Copying an instance will only yield an empty object since copying the
-     * cached vector would not make sense.
-     *
-     * @internal  The struct is present so the whole class can be copyable
-     *            (could also be done with writing `operator=` and copy
-     *            constructor of the enclosing class by hand)
-     */
-    mutable struct cache_struct {
-        cache_struct() = default;
-        ~cache_struct() = default;
-        cache_struct(const cache_struct&) {}
-        cache_struct(cache_struct&&) noexcept {}
-        cache_struct& operator=(const cache_struct&) { return *this; }
-        cache_struct& operator=(cache_struct&&) noexcept { return *this; }
-        std::unique_ptr<LinOp> intermediate{};
-    } cache_;
 };
 
 

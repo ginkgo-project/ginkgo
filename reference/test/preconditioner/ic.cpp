@@ -131,6 +131,18 @@ TYPED_TEST(Ic, BuildsFromMatrix)
 }
 
 
+TYPED_TEST(Ic, MoveAssignmentEmptiesTheMovedFromObject)
+{
+    auto ic = this->ic_pre_factory->generate(this->mtx);
+    auto target = this->ic_pre_factory->generate(this->mtx);
+
+    *target = std::move(*ic);
+
+    ASSERT_EQ(target->get_size(), this->mtx->get_size());
+    ASSERT_EQ(ic->get_size(), gko::dim<2>{});
+}
+
+
 TYPED_TEST(Ic, BuildsIsaiFromMatrix)
 {
     using isai_type = typename TestFixture::isai_type;

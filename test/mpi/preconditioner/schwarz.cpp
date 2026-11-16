@@ -13,6 +13,7 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/distributed/matrix.hpp>
 #include <ginkgo/core/distributed/partition.hpp>
 #include <ginkgo/core/distributed/preconditioner/schwarz.hpp>
@@ -354,6 +355,106 @@ TYPED_TEST(SchwarzPreconditioner, CanAdvancedApplyPreconditioner)
 
     this->assert_equal_to_non_distributed_vector(this->dist_x,
                                                  this->non_dist_x);
+}
+
+
+struct SchwarzAllocationCounter : gko::log::Logger {
+    SchwarzAllocationCounter()
+        : gko::log::Logger(gko::log::Logger::allocation_completed_mask)
+    {}
+
+    void on_allocation_completed(const gko::Executor*, const gko::size_type&,
+                                 const gko::uintptr&) const override
+    {
+        ++count;
+    }
+
+    mutable int count = 0;
+};
+
+
+TYPED_TEST(SchwarzPreconditioner, TwolevelKeepsCoarseVectorsAcrossRegeneration)
+{
+    using value_type = typename TestFixture::value_type;
+    using prec = typename TestFixture::dist_prec_type;
+    auto precond_factory = prec::build()
+                               .with_local_solver(this->local_solver_factory)
+                               .with_coarse_solver(this->coarse_solver_factory)
+                               .with_coarse_level(this->pgm_factory)
+                               .on(this->exec);
+    auto expected = gko::clone(this->dist_x);
+    precond_factory->generate(this->dist_mat)->apply(this->dist_b, expected);
+    std::unique_ptr<gko::LinOp> precond = precond_factory->generate(
+        this->dist_mat, gko::Workspace::create(this->exec));
+    auto x = gko::clone(this->dist_x);
+    precond->apply(this->dist_b, x);
+    auto ws = gko::invalidate_and_extract_workspace(std::move(precond));
+    // slots 1 and 2 hold the coarse solution and right-hand side
+    const auto* coarse_solution = ws->get_const_op(1);
+    const auto* coarse_rhs = ws->get_const_op(2);
+    precond = precond_factory->generate(this->dist_mat, std::move(ws));
+    x = gko::clone(this->dist_x);
+
+    precond->apply(this->dist_b, x);
+
+    ws = gko::invalidate_and_extract_workspace(std::move(precond));
+    ASSERT_NE(coarse_solution, nullptr);
+    ASSERT_EQ(ws->get_const_op(1), coarse_solution);
+    ASSERT_EQ(ws->get_const_op(2), coarse_rhs);
+    GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected->get_local_vector(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(SchwarzPreconditioner, AdvancedApplyReusesWorkspaceAfterRegeneration)
+{
+    using value_type = typename TestFixture::value_type;
+    using prec = typename TestFixture::dist_prec_type;
+    using vec = typename TestFixture::local_vec_type;
+    auto precond_factory = prec::build()
+                               .with_local_solver(this->local_solver_factory)
+                               .on(this->exec);
+    auto one = gko::initialize<vec>({gko::one<value_type>()}, this->exec);
+    auto two = gko::initialize<vec>({2.0}, this->exec);
+    auto expected = gko::clone(this->dist_x);
+    precond_factory->generate(this->dist_mat)
+        ->apply(two, this->dist_b, one, expected);
+    std::unique_ptr<gko::LinOp> precond = precond_factory->generate(
+        this->dist_mat, gko::Workspace::create(this->exec));
+    auto x = gko::clone(this->dist_x);
+    precond->apply(two, this->dist_b, one, x);
+    auto ws = gko::invalidate_and_extract_workspace(std::move(precond));
+    precond = precond_factory->generate(this->dist_mat, std::move(ws));
+    auto counter = std::make_shared<SchwarzAllocationCounter>();
+    x = gko::clone(this->dist_x);
+    auto y = gko::clone(this->dist_x);
+    this->exec->add_logger(counter);
+    precond->apply(two, this->dist_b, one, x);
+    const auto first = counter->count;
+    counter->count = 0;
+    precond->apply(two, this->dist_b, one, y);
+    const auto steady = counter->count;
+    this->exec->remove_logger(counter);
+
+    ASSERT_EQ(first, steady);
+    GKO_ASSERT_MTX_NEAR(x->get_local_vector(), expected->get_local_vector(),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(SchwarzPreconditioner, CopyKeepsExecutor)
+{
+    using prec = typename TestFixture::dist_prec_type;
+    auto precond = gko::as<prec>(
+        gko::share(prec::build()
+                       .with_local_solver(this->local_solver_factory)
+                       .on(this->exec)
+                       ->generate(this->dist_mat)));
+
+    prec copy{*precond};
+
+    ASSERT_EQ(copy.get_executor(), this->exec);
+    ASSERT_EQ(copy.get_size(), precond->get_size());
 }
 
 

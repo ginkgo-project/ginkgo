@@ -1,0 +1,1 @@
+Check that solvers reuse their workspace instead of reallocating it.

@@ -11,6 +11,7 @@
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 #include <ginkgo/core/config/property_tree.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/config/type_descriptor.hpp>
@@ -50,7 +51,8 @@ template <typename ValueType = default_precision>
 class NullspaceProjection
     : public LinOp,
       public EnableCloneable<NullspaceProjection<ValueType>>,
-      public Transposable {
+      public Transposable,
+      public gko::detail::WorkspaceHolder {
     friend class EnableCloneable<NullspaceProjection>;
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
@@ -158,23 +160,20 @@ protected:
                     LinOp* x) const override;
 
 private:
-    // a vector of the same kind as the input, which is not copied along with
-    // the object
-    struct vector_cache {
-        vector_cache() = default;
-        vector_cache(const vector_cache&) {}
-        vector_cache(vector_cache&&) noexcept {}
-        vector_cache& operator=(const vector_cache&) { return *this; }
-        vector_cache& operator=(vector_cache&&) noexcept { return *this; }
+    // workspace slots
+    static constexpr int projected_input_id = 0;
+    static constexpr int result_id = 1;
 
-        mutable std::unique_ptr<LinOp> vec;
-    };
+    /**
+     * Returns workspace vector `id`, recreated unless it has the type,
+     * executor, global and local size of `like`.
+     */
+    template <typename VectorType>
+    VectorType* workspace_vector_like(int id, const VectorType* like) const;
 
     std::shared_ptr<const LinOp> preconditioner_;
     std::shared_ptr<const solver::Nullspace<ValueType>> nullspace_;
     std::shared_ptr<const solver::Nullspace<ValueType>> left_nullspace_;
-    vector_cache projected_input_;
-    vector_cache result_;
 };
 
 
