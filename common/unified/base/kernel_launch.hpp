@@ -138,6 +138,10 @@ GKO_INLINE GKO_ATTRIBUTES constexpr unpack_member_type<T> unpack_member(T value)
 #endif
 
 
+// needs device_type, which the preamble above defines for OpenMP
+#include "common/unified/base/arithmetic_accessor.hpp"
+
+
 namespace gko {
 namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {

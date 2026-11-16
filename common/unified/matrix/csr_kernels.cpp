@@ -78,9 +78,10 @@ void inv_col_scale_permute(
                 out_row_ptrs[tid] = in_row_ptrs[tid];
             }
         },
-        size, num_rows, nnz, scale, perm, orig.row_ptrs, orig.col_idxs,
-        orig.values, col_permuted.row_ptrs, col_permuted.col_idxs,
-        col_permuted.values);
+        size, num_rows, nnz, arithmetic<ValueType>(scale, orig.size[1]), perm,
+        orig.row_ptrs, orig.col_idxs, arithmetic<ValueType>(orig),
+        col_permuted.row_ptrs, col_permuted.col_idxs,
+        arithmetic<ValueType>(col_permuted));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -95,7 +96,8 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] *= alpha[0]; },
-        x.num_stored_elements, alpha.values, x.values);
+        x.num_stored_elements, arithmetic<ValueType, 1>(alpha),
+        arithmetic<ValueType>(x));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_SCALE_KERNEL);
@@ -109,7 +111,8 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto nnz, auto alpha, auto x) { x[nnz] /= alpha[0]; },
-        x.num_stored_elements, alpha.values, x.values);
+        x.num_stored_elements, arithmetic<ValueType, 1>(alpha),
+        arithmetic<ValueType>(x));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_CSR_INV_SCALE_KERNEL);
@@ -355,12 +358,14 @@ void row_wise_absolute_sum(
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto row_ptrs, auto value_ptr, auto sum_ptr) {
-            sum_ptr[row] = zero<device_type<ValueType>>();
+            sum_ptr[row] =
+                zero<device_type<device_arithmetic_type<ValueType>>>();
             for (auto k = row_ptrs[row]; k < row_ptrs[row + 1]; ++k) {
                 sum_ptr[row] += abs(value_ptr[k]);
             }
         },
-        sum.get_size(), orig.row_ptrs, orig.values, sum.get_data());
+        sum.get_size(), orig.row_ptrs, arithmetic<ValueType>(orig),
+        arithmetic<ValueType>(sum.get_data(), sum.get_size()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

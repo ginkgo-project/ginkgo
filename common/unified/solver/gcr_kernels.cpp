@@ -100,7 +100,10 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 residual(row, col) -= tmp * Ap(row, col);
             }
         },
-        x.size, p.stride, x, residual, p, Ap, Ap_norm, rAp, stop_status);
+        x.size, p.stride, arithmetic<ValueType>(x),
+        arithmetic<ValueType>(residual), arithmetic<ValueType>(p),
+        arithmetic<ValueType>(Ap), arithmetic<ValueType, 1>(Ap_norm),
+        arithmetic<ValueType, 1>(rAp), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GCR_STEP_1_KERNEL);

@@ -20,15 +20,15 @@ namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__ __launch_bounds__(
     default_block_size) void generic_kernel_reduction_1d(int64 size,
                                                          KernelFunction fn,
                                                          ReductionOp op,
                                                          FinalizeOp finalize,
                                                          ValueType identity,
-                                                         ValueType* storage,
+                                                         ResultType* storage,
                                                          KernelArgs... args)
 {
     __shared__
@@ -56,21 +56,21 @@ __global__ __launch_bounds__(
                              : identity,
                          op);
         if (threadIdx.x == 0) {
-            storage[blockIdx.x] = finalize(partial);
+            storage[blockIdx.x] = static_cast<ResultType>(finalize(partial));
         }
     }
 }
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__ __launch_bounds__(
     default_block_size) void generic_kernel_reduction_2d(int64 rows, int64 cols,
                                                          KernelFunction fn,
                                                          ReductionOp op,
                                                          FinalizeOp finalize,
                                                          ValueType identity,
-                                                         ValueType* storage,
+                                                         ResultType* storage,
                                                          KernelArgs... args)
 {
     __shared__
@@ -100,18 +100,18 @@ __global__ __launch_bounds__(
                              : identity,
                          op);
         if (threadIdx.x == 0) {
-            storage[blockIdx.x] = finalize(partial);
+            storage[blockIdx.x] = static_cast<ResultType>(finalize(partial));
         }
     }
 }
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
-                                 ValueType* result, size_type size,
+                                 ResultType* result, size_type size,
                                  array<char>& tmp, KernelArgs&&... args)
 {
     constexpr int oversubscription = 16;
@@ -144,12 +144,12 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
                                  KernelFunction fn, ReductionOp op,
                                  FinalizeOp finalize, ValueType identity,
-                                 ValueType* result, dim<2> size,
+                                 ResultType* result, dim<2> size,
                                  array<char>& tmp, KernelArgs&&... args)
 {
     constexpr int oversubscription = 16;
@@ -184,12 +184,13 @@ void run_kernel_reduction_cached(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
-template <int subwarp_size, typename ValueType, typename KernelFunction,
-          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
+template <int subwarp_size, typename ValueType, typename ResultType,
+          typename KernelFunction, typename ReductionOp, typename FinalizeOp,
+          typename... KernelArgs>
 __global__
 __launch_bounds__(default_block_size) void generic_kernel_row_reduction_2d(
     int64 rows, int64 cols, int64 col_blocks, KernelFunction fn, ReductionOp op,
-    FinalizeOp finalize, ValueType identity, ValueType* result,
+    FinalizeOp finalize, ValueType identity, ResultType* result,
     int64 result_stride, KernelArgs... args)
 {
     const auto idx = thread::get_subwarp_id_flat<subwarp_size, int64>();
@@ -211,17 +212,19 @@ __launch_bounds__(default_block_size) void generic_kernel_row_reduction_2d(
     }
     partial = reduce(subwarp, partial, op);
     if (subwarp.thread_rank() == 0) {
-        result[(row + col_block * rows) * result_stride] = finalize(partial);
+        result[(row + col_block * rows) * result_stride] =
+            static_cast<ResultType>(finalize(partial));
     }
 }
 
 
-template <int subwarp_size, typename ValueType, typename KernelFunction,
-          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
+template <int subwarp_size, typename ValueType, typename ResultType,
+          typename KernelFunction, typename ReductionOp, typename FinalizeOp,
+          typename... KernelArgs>
 __global__
 __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_small(
     int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-    FinalizeOp finalize, ValueType identity, ValueType* result,
+    FinalizeOp finalize, ValueType identity, ResultType* result,
     KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
@@ -273,18 +276,19 @@ __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_small
             partial = op(partial, warp.shfl_xor(partial, i));
         }
         if (warp_rank < cols) {
-            result[warp_rank + blockIdx.x * cols] = finalize(partial);
+            result[warp_rank + blockIdx.x * cols] =
+                static_cast<ResultType>(finalize(partial));
         }
     }
 }
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 __global__
 __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_blocked(
     int64 rows, int64 cols, KernelFunction fn, ReductionOp op,
-    FinalizeOp finalize, ValueType identity, ValueType* result,
+    FinalizeOp finalize, ValueType identity, ResultType* result,
     KernelArgs... args)
 {
     constexpr auto warp_size = config::warp_size;
@@ -317,7 +321,8 @@ __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_block
                 partial = op(partial, block_partial[i + warp_rank]);
             }
             if (col < cols) {
-                result[col + blockIdx.x * cols] = finalize(partial);
+                result[col + blockIdx.x * cols] =
+                    static_cast<ResultType>(finalize(partial));
             }
         }
         // only sync if block_partial will be reused by another iteration
@@ -328,12 +333,13 @@ __launch_bounds__(default_block_size) void generic_kernel_col_reduction_2d_block
 }
 
 
-template <typename ValueType, typename ReductionOp, typename FinalizeOp>
+template <typename ValueType, typename ResultType, typename ReductionOp,
+          typename FinalizeOp>
 __global__
 __launch_bounds__(default_block_size) void generic_kernel_reduction_finalize_2d(
     int64 num_results, int64 num_blocks, ReductionOp op, FinalizeOp finalize,
     ValueType identity, const ValueType* input, int64 result_stride,
-    ValueType* result)
+    ResultType* result)
 {
     const auto idx = thread::get_thread_id_flat<int64>();
     if (idx >= num_results) {
@@ -343,20 +349,21 @@ __launch_bounds__(default_block_size) void generic_kernel_reduction_finalize_2d(
     for (int64 block = 0; block < num_blocks; block++) {
         partial = op(partial, input[idx + block * num_results]);
     }
-    result[idx * result_stride] = finalize(partial);
+    result[idx * result_stride] = static_cast<ResultType>(finalize(partial));
 }
 
 
 namespace {
 
 
-template <int subwarp_size, typename ValueType, typename KernelFunction,
-          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
+template <int subwarp_size, typename ValueType, typename ResultType,
+          typename KernelFunction, typename ReductionOp, typename FinalizeOp,
+          typename... KernelArgs>
 void run_generic_kernel_row_reduction(
     syn::value_list<int, subwarp_size>,
     std::shared_ptr<const DefaultExecutor> exec, int64 rows, int64 cols,
     int64 col_blocks, KernelFunction fn, ReductionOp op, FinalizeOp finalize,
-    ValueType identity, ValueType* result, int64 result_stride,
+    ValueType identity, ResultType* result, int64 result_stride,
     KernelArgs... args)
 {
     const auto num_blocks =
@@ -374,13 +381,13 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_run_generic_kernel_row_reduction,
                                     run_generic_kernel_row_reduction);
 
 
-template <int subwarp_size, typename ValueType, typename KernelFunction,
-          typename ReductionOp, typename FinalizeOp,
+template <int subwarp_size, typename ValueType, typename ResultType,
+          typename KernelFunction, typename ReductionOp, typename FinalizeOp,
           typename... MappedKernelArgs>
 void run_generic_col_reduction_small(
     syn::value_list<int, subwarp_size>, int64 max_blocks,
     std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
-    ReductionOp op, FinalizeOp finalize, ValueType identity, ValueType* result,
+    ReductionOp op, FinalizeOp finalize, ValueType identity, ResultType* result,
     dim<2> size, array<char>& tmp, MappedKernelArgs... args)
 {
     const auto rows = static_cast<int64>(size[0]);
@@ -422,11 +429,11 @@ GKO_ENABLE_IMPLEMENTATION_SELECTION(select_generic_col_reduction_small,
 }  // namespace
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 void run_kernel_row_reduction_cached(
     std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
-    ReductionOp op, FinalizeOp finalize, ValueType identity, ValueType* result,
+    ReductionOp op, FinalizeOp finalize, ValueType identity, ResultType* result,
     size_type result_stride, dim<2> size, array<char>& tmp,
     KernelArgs&&... args)
 {
@@ -473,11 +480,11 @@ void run_kernel_row_reduction_cached(
 }
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 void run_kernel_col_reduction_cached(
     std::shared_ptr<const DefaultExecutor> exec, KernelFunction fn,
-    ReductionOp op, FinalizeOp finalize, ValueType identity, ValueType* result,
+    ReductionOp op, FinalizeOp finalize, ValueType identity, ResultType* result,
     dim<2> size, array<char>& tmp, KernelArgs&&... args)
 {
     using subwarp_sizes =

@@ -41,9 +41,11 @@ void compute_coefficients(std::shared_ptr<const DefaultExecutor> exec,
             return l < offset ? x(i, j) * inv_size
                               : conj(basis(i, l - offset)) * x(i, j);
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), coefficients.values,
-        dim<2>{x.size[0], coefficients.size[0] * x.size[1]}, tmp, x, basis,
-        num_rhs, offset, inv_size);
+        GKO_KERNEL_REDUCE_SUM(device_arithmetic_type<ValueType>),
+        coefficients.values,
+        dim<2>{x.size[0], coefficients.size[0] * x.size[1]}, tmp,
+        arithmetic<ValueType>(x), arithmetic<ValueType>(basis), num_rhs, offset,
+        arithmetic<ValueType>(inv_size));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -68,8 +70,10 @@ void subtract_projection(std::shared_ptr<const DefaultExecutor> exec,
             }
             output(i, j) = x(i, j) - value;
         },
-        x.size, basis, static_cast<int64>(basis.size[1]),
-        static_cast<int64>(has_constant ? 1 : 0), coefficients, x, output);
+        x.size, arithmetic<ValueType>(basis), static_cast<int64>(basis.size[1]),
+        static_cast<int64>(has_constant ? 1 : 0),
+        arithmetic<ValueType>(coefficients), arithmetic<ValueType>(x),
+        arithmetic<ValueType>(output));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

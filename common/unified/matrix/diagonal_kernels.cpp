@@ -32,7 +32,8 @@ void apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
             result(row, col) = inverse ? source(row, col) / diag[row]
                                        : source(row, col) * diag[row];
         },
-        b.size, a->get_const_values(), b, c, inverse);
+        b.size, arithmetic<ValueType>(a->get_const_values(), a->get_size()[0]),
+        arithmetic<ValueType>(b), arithmetic<ValueType>(c), inverse);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_DIAGONAL_APPLY_TO_DENSE_KERNEL);
@@ -49,7 +50,8 @@ void right_apply_to_dense(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto diag, auto source, auto result) {
             result(row, col) = source(row, col) * diag[col];
         },
-        b.size, a->get_const_values(), b, c);
+        b.size, arithmetic<ValueType>(a->get_const_values(), a->get_size()[0]),
+        arithmetic<ValueType>(b), arithmetic<ValueType>(c));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -67,7 +69,9 @@ void right_apply_to_csr(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto tidx, auto diag, auto result_values, auto col_idxs) {
             result_values[tidx] *= diag[col_idxs[tidx]];
         },
-        c.num_stored_elements, a->get_const_values(), c.values, c.col_idxs);
+        c.num_stored_elements,
+        arithmetic<ValueType>(a->get_const_values(), a->get_size()[0]),
+        arithmetic<ValueType>(c), c.col_idxs);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

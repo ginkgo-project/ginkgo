@@ -153,7 +153,7 @@ void find_strongest_neighbor(
         exec,
         [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs, auto weight_vals,
                       auto diag, auto agg, auto strongest_neighbor) {
-            using value_type = device_type<ValueType>;
+            using value_type = device_type<device_arithmetic_type<ValueType>>;
             auto max_weight_unagg = zero<value_type>();
             auto max_weight_agg = zero<value_type>();
             IndexType strongest_unagg = -1;
@@ -196,8 +196,9 @@ void find_strongest_neighbor(
             }
         },
         agg.get_size(), weight_mtx.row_ptrs, weight_mtx.col_idxs,
-        weight_mtx.values, diag->get_const_values(), agg.get_data(),
-        strongest_neighbor.get_data());
+        arithmetic<ValueType>(weight_mtx),
+        arithmetic<ValueType>(diag->get_const_values(), diag->get_size()[0]),
+        agg.get_data(), strongest_neighbor.get_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_NON_COMPLEX_VALUE_AND_INDEX_TYPE(
@@ -221,7 +222,8 @@ void assign_to_exist_agg(
                 if (agg_val[row] != -1) {
                     return;
                 }
-                using value_type = device_type<ValueType>;
+                using value_type =
+                    device_type<device_arithmetic_type<ValueType>>;
                 auto max_weight_agg = zero<value_type>();
                 IndexType strongest_agg = -1;
                 for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
@@ -244,9 +246,11 @@ void assign_to_exist_agg(
                     agg_val[row] = row;
                 }
             },
-            num, weight_mtx.row_ptrs, weight_mtx.col_idxs, weight_mtx.values,
-            diag->get_const_values(), agg.get_const_data(),
-            intermediate_agg.get_data());
+            num, weight_mtx.row_ptrs, weight_mtx.col_idxs,
+            arithmetic<ValueType>(weight_mtx),
+            arithmetic<ValueType>(diag->get_const_values(),
+                                  diag->get_size()[0]),
+            agg.get_const_data(), intermediate_agg.get_data());
         // Copy the intermediate_agg to agg
         agg = intermediate_agg;
     } else {
@@ -258,7 +262,8 @@ void assign_to_exist_agg(
                 if (agg_val[row] != -1) {
                     return;
                 }
-                using value_type = device_type<ValueType>;
+                using value_type =
+                    device_type<device_arithmetic_type<ValueType>>;
                 auto max_weight_agg = zero<value_type>();
                 IndexType strongest_agg = -1;
                 for (auto idx = row_ptrs[row]; idx < row_ptrs[row + 1]; idx++) {
@@ -281,8 +286,11 @@ void assign_to_exist_agg(
                     agg_val[row] = row;
                 }
             },
-            num, weight_mtx.row_ptrs, weight_mtx.col_idxs, weight_mtx.values,
-            diag->get_const_values(), agg.get_data());
+            num, weight_mtx.row_ptrs, weight_mtx.col_idxs,
+            arithmetic<ValueType>(weight_mtx),
+            arithmetic<ValueType>(diag->get_const_values(),
+                                  diag->get_size()[0]),
+            agg.get_data());
     }
 }
 

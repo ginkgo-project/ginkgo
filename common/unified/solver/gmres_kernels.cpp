@@ -37,8 +37,8 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                 residual_norm_collection(0, j) = residual_norm(0, j);
                 final_iter_nums[j] = 0;
             },
-            residual.size[1], residual_norm, residual_norm_collection,
-            final_iter_nums);
+            residual.size[1], arithmetic<ValueType>(residual_norm),
+            arithmetic<ValueType>(residual_norm_collection), final_iter_nums);
     } else {
         run_kernel(
             exec,
@@ -51,8 +51,10 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                 }
                 krylov_bases(i, j) = residual(i, j) / residual_norm(0, j);
             },
-            residual.size, residual, residual_norm, residual_norm_collection,
-            krylov_bases, final_iter_nums);
+            residual.size, arithmetic<ValueType>(residual),
+            arithmetic<ValueType>(residual_norm),
+            arithmetic<ValueType>(residual_norm_collection),
+            arithmetic<ValueType>(krylov_bases), final_iter_nums);
     }
 }
 
@@ -79,7 +81,8 @@ void multi_axpy(std::shared_ptr<const DefaultExecutor> exec,
             }
             out(row, col) = value;
         },
-        before_preconditioner.size, krylov_bases, y, before_preconditioner,
+        before_preconditioner.size, arithmetic<ValueType>(krylov_bases),
+        arithmetic<ValueType>(y), arithmetic<ValueType>(before_preconditioner),
         final_iter_nums, stop_status, before_preconditioner.size[0]);
     run_kernel(
         exec,
@@ -109,11 +112,13 @@ void multi_dot(std::shared_ptr<const DefaultExecutor> exec,
             return conj(bases(ivec * num_rows + row, irhs)) *
                    next_krylov(row, irhs);
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), hessenberg_col.values,
+        GKO_KERNEL_REDUCE_SUM(device_arithmetic_type<ValueType>),
+        hessenberg_col.values,
         gko::dim<2>{next_krylov.size[0],
                     hessenberg_col.size[0] * hessenberg_col.size[1] -
                         next_krylov.size[1]},
-        krylov_bases, next_krylov, next_krylov.size[1], next_krylov.size[0]);
+        arithmetic<ValueType>(krylov_bases), arithmetic<ValueType>(next_krylov),
+        next_krylov.size[1], next_krylov.size[0]);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_GMRES_MULTI_DOT_KERNEL);

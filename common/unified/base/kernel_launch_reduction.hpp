@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,12 +33,12 @@ namespace kernels {
 namespace GKO_DEVICE_NAMESPACE {
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 void run_kernel_reduction(std::shared_ptr<const DefaultExecutor> exec,
                           KernelFunction fn, ReductionOp op,
                           FinalizeOp finalize, ValueType identity,
-                          ValueType* result, size_type size,
+                          ResultType* result, size_type size,
                           KernelArgs&&... args)
 {
     array<char> cache{exec};
@@ -47,12 +47,12 @@ void run_kernel_reduction(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 void run_kernel_reduction(std::shared_ptr<const DefaultExecutor> exec,
                           KernelFunction fn, ReductionOp op,
                           FinalizeOp finalize, ValueType identity,
-                          ValueType* result, dim<2> size, KernelArgs&&... args)
+                          ResultType* result, dim<2> size, KernelArgs&&... args)
 {
     array<char> cache{exec};
     run_kernel_reduction_cached(exec, fn, op, finalize, identity, result, size,
@@ -60,12 +60,12 @@ void run_kernel_reduction(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 void run_kernel_row_reduction(std::shared_ptr<const DefaultExecutor> exec,
                               KernelFunction fn, ReductionOp op,
                               FinalizeOp finalize, ValueType identity,
-                              ValueType* result, size_type result_stride,
+                              ResultType* result, size_type result_stride,
                               dim<2> size, KernelArgs&&... args)
 {
     array<char> cache{exec};
@@ -75,12 +75,12 @@ void run_kernel_row_reduction(std::shared_ptr<const DefaultExecutor> exec,
 }
 
 
-template <typename ValueType, typename KernelFunction, typename ReductionOp,
-          typename FinalizeOp, typename... KernelArgs>
+template <typename ValueType, typename ResultType, typename KernelFunction,
+          typename ReductionOp, typename FinalizeOp, typename... KernelArgs>
 void run_kernel_col_reduction(std::shared_ptr<const DefaultExecutor> exec,
                               KernelFunction fn, ReductionOp op,
                               FinalizeOp finalize, ValueType identity,
-                              ValueType* result, dim<2> size,
+                              ResultType* result, dim<2> size,
                               KernelArgs&&... args)
 {
     array<char> cache{exec};
