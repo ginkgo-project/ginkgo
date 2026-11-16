@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -291,6 +291,7 @@ std::unique_ptr<LinOp> SparsityCsr<ValueType, IndexType>::transpose() const
     auto exec = this->get_executor();
     auto trans_cpy = SparsityCsr::create(exec, gko::transpose(this->get_size()),
                                          this->get_num_nonzeros());
+    trans_cpy->value_ = this->value_;
 
     exec->run(sparsity_csr::make_transpose(this, trans_cpy.get()));
     return std::move(trans_cpy);

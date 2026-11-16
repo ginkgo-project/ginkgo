@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -27,7 +27,7 @@ void initialize_weighted_l(
         factorization::helpers::triangular_mtx_closure(
             [inv_weight](auto val) { return val * inv_weight; },
             [](auto val) { return val; }));
-};
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_SOR_INITIALIZE_WEIGHTED_L);

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -228,9 +228,10 @@ struct nested_summary : summary_base {
     };
 
     struct pair_hash {
-        int64 operator()(std::pair<int64, int64> pair) const
+        size_type operator()(std::pair<int64, int64> pair) const
         {
-            return pair.first ^ (pair.second << 32);
+            return static_cast<uint64>(pair.first) ^
+                   (static_cast<uint64>(pair.second) << 32);
         }
     };
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -220,18 +220,6 @@ TYPED_TEST(ZipIterator, IncreasingIterator)
 #ifndef NDEBUG
 
 
-bool check_assertion_exit_code(int exit_code)
-{
-#ifdef _MSC_VER
-    // MSVC picks up the exit code incorrectly,
-    // so we can only check that it exits
-    return true;
-#else
-    return exit_code != 0;
-#endif
-}
-
-
 TYPED_TEST(ZipIterator, IncompatibleIteratorDeathTest)
 {
     using index_type = typename TestFixture::index_type;
@@ -243,13 +231,13 @@ TYPED_TEST(ZipIterator, IncompatibleIteratorDeathTest)
 
     // a set of operations that return inconsistent results for the two
     // different iterators
-    EXPECT_EXIT((void)(it2 - it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it2 == it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it2 != it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it1 < it2), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it2 <= it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it2 > it1), check_assertion_exit_code, "");
-    EXPECT_EXIT((void)(it1 >= it2), check_assertion_exit_code, "");
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 - it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 == it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 != it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it1 < it2));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 <= it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it2 > it1));
+    GKO_EXPECT_ASSERTION_FAILURE((void)(it1 >= it2));
 }
 
 

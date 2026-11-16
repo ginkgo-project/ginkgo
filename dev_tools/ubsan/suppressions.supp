@@ -1,0 +1,2 @@
+# the solver mixins use self() while the solver is being constructed
+vptr:include/ginkgo/core/solver/solver_base.hpp

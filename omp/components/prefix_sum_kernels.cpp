@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,8 +54,9 @@ void prefix_sum_nonnegative(std::shared_ptr<const OmpExecutor> exec,
             counts[i] = partial_sum;
             if (max - partial_sum < nnz) {
                 overflow = true;
+            } else {
+                partial_sum = partial_sum + nnz;
             }
-            partial_sum = partial_sum + nnz;
         }
 
         proc_sums[thread_id] = partial_sum;
@@ -67,8 +68,9 @@ void prefix_sum_nonnegative(std::shared_ptr<const OmpExecutor> exec,
             for (int i = 0; i < nthreads - 1; i++) {
                 if (max - proc_sums[i + 1] < proc_sums[i]) {
                     overflow = true;
+                } else {
+                    proc_sums[i + 1] = proc_sums[i + 1] + proc_sums[i];
                 }
-                proc_sums[i + 1] = proc_sums[i + 1] + proc_sums[i];
             }
         }
 
@@ -76,8 +78,9 @@ void prefix_sum_nonnegative(std::shared_ptr<const OmpExecutor> exec,
             for (size_type i = startidx; i < endidx; i++) {
                 if (max - counts[i] < proc_sums[thread_id - 1]) {
                     overflow = true;
+                } else {
+                    counts[i] += proc_sums[thread_id - 1];
                 }
-                counts[i] += proc_sums[thread_id - 1];
             }
         }
     }

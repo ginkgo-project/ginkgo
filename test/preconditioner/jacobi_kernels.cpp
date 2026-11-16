@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -145,6 +145,27 @@ TEST_F(Jacobi, FindNaturalBlocksEquivalentToRef)
 
     ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
     // TODO: actually check if the results are the same
+}
+
+
+TEST_F(Jacobi, BlockJacobiOnEmptyMatrixIsEquivalentToRef)
+{
+    auto mtx = share(Mtx::create(ref));
+    auto b = Vec::create(ref, gko::dim<2>{0, 1});
+    auto x = Vec::create(ref, gko::dim<2>{0, 1});
+    auto d_b = gko::clone(exec, b);
+    auto d_x = gko::clone(exec, x);
+
+    auto bj = Bj::build().with_max_block_size(32u).on(ref)->generate(mtx);
+    auto d_bj = Bj::build().with_max_block_size(32u).on(exec)->generate(mtx);
+    bj->apply(b, x);
+    d_bj->apply(d_b, d_x);
+
+    ASSERT_EQ(d_bj->get_num_blocks(), gko::size_type{});
+    ASSERT_EQ(d_bj->get_num_blocks(), bj->get_num_blocks());
+    GKO_ASSERT_ARRAY_EQ(d_bj->get_parameters().block_pointers,
+                        bj->get_parameters().block_pointers);
+    GKO_ASSERT_MTX_NEAR(d_x, x, 0.0);
 }
 
 

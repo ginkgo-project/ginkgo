@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -94,7 +94,6 @@ void symbolic_factorize(
 {
     const auto num_rows = mtx->get_size()[0];
     const auto row_ptrs = mtx->get_const_row_ptrs();
-    const auto cols = mtx->get_const_col_idxs();
     const auto postorder_parent = forest.postorder_parents.get_const_data();
     const auto out_row_ptrs = l_factor->get_const_row_ptrs();
     const auto out_cols = l_factor->get_col_idxs();

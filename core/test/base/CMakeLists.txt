@@ -19,6 +19,12 @@ ginkgo_create_test(half)
 ginkgo_create_test(highest_precision)
 ginkgo_create_test(index_range)
 ginkgo_create_test(iterator_factory)
+# returning device_tuple<int, complex<float>> by value triggers an
+# informational note about an ABI change in GCC 4.4
+target_compile_options(
+    core_test_base_iterator_factory
+    PRIVATE $<$<CXX_COMPILER_ID:GNU>:-Wno-psabi>
+)
 ginkgo_create_test(lin_op)
 ginkgo_create_test(math)
 ginkgo_create_test(matrix_assembly_data)

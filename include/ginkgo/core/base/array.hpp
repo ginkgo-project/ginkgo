@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -634,8 +634,8 @@ public:
         }
 
         if (size > 0 && this->is_owning()) {
-            size_ = size;
             data_.reset(exec_->alloc<value_type>(size));
+            size_ = size;
         } else {
             this->clear();
         }

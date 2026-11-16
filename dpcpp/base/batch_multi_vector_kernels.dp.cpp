@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -47,7 +47,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
     constexpr int max_subgroup_size = config::warp_size;
     const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
-    long max_group_size =
+    int64 max_group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
     int group_size =
         std::min(ceildiv(num_rows, max_subgroup_size) * max_subgroup_size,
@@ -119,7 +119,7 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
     const int num_cols = x->get_common_size()[1];
     const auto num_batches = x->get_num_batch_items();
     auto device = exec->get_queue()->get_device();
-    long max_group_size =
+    int64 max_group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
     int group_size =
         std::min(ceildiv(num_rows, max_subgroup_size) * max_subgroup_size,
@@ -182,7 +182,7 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
     const int num_rows = x_ub.num_rows;
     auto device = exec->get_queue()->get_device();
 
-    long max_group_size =
+    int64 max_group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
     int group_size =
         std::min(ceildiv(num_rows, max_subgroup_size) * max_subgroup_size,
@@ -250,7 +250,7 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
     const int num_rows = x->get_common_size()[0];
     const auto num_batches = x_ub.num_batch_items;
     auto device = exec->get_queue()->get_device();
-    long max_group_size =
+    int64 max_group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
     int group_size =
         std::min(ceildiv(num_rows, max_subgroup_size) * max_subgroup_size,
@@ -294,7 +294,7 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
     auto device = exec->get_queue()->get_device();
 
     constexpr int max_subgroup_size = config::warp_size;
-    long max_group_size =
+    int64 max_group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
     int group_size =
         std::min(ceildiv(num_rows, max_subgroup_size) * max_subgroup_size,
@@ -352,7 +352,7 @@ void copy(std::shared_ptr<const DefaultExecutor> exec,
     const int num_rows = x->get_common_size()[0];
     auto device = exec->get_queue()->get_device();
     constexpr int max_subgroup_size = config::warp_size;
-    long max_group_size =
+    int64 max_group_size =
         device.get_info<sycl::info::device::max_work_group_size>();
     int group_size =
         std::min(ceildiv(num_rows, max_subgroup_size) * max_subgroup_size,

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -211,6 +211,32 @@ TYPED_TEST(CollectiveCommunicator, CanCommunicateIalltoall)
     req.wait();
 
     GKO_ASSERT_ARRAY_EQ(recv_buffer, this->recv_connections[this->rank]);
+}
+
+
+TYPED_TEST(CollectiveCommunicator, IalltoallIsNonBlocking)
+{
+#if GINKGO_HAVE_OPENMPI_PRE_4_1_X
+    GTEST_SKIP() << "the communication is blocking for Open MPI < 4.1";
+#endif
+    auto spcomm = this->create_default_comm();
+    gko::array<gko::int64> recv_buffer{
+        this->ref, this->recv_connections[this->rank].get_size()};
+    gko::array<gko::int64> send_buffers[] = {
+        {this->ref, {0, 1, 1, 2}},
+        {this->ref, {3, 5, 3, 4, 4, 5}},
+        {this->ref, {7, 8}},
+        {this->ref, {10, 11, 9, 10}},
+        {this->ref, {12, 13, 12, 14, 12, 13, 14}},
+        {this->ref, {17, 16, 15}}};
+
+    auto req = spcomm.i_all_to_all_v(this->ref,
+                                     send_buffers[this->rank].get_const_data(),
+                                     recv_buffer.get_data());
+
+    // only a blocking implementation hands out an already completed request
+    ASSERT_NE(*req.get(), MPI_REQUEST_NULL);
+    req.wait();
 }
 
 

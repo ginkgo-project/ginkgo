@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -168,8 +168,6 @@ void convert_to_csr(std::shared_ptr<const DefaultExecutor> exec,
             const auto slice = row / slice_size;
             const auto local_row = row % slice_size;
             const auto slice_begin = slice_sets[slice];
-            const auto slice_end = slice_sets[slice + 1];
-            const auto slice_length = slice_end - slice_begin;
             auto in_idx = slice_begin * slice_size + local_row;
             for (auto i = row_begin; i < row_end; i++) {
                 out_cols[i] = cols[in_idx];

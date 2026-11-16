@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,7 +12,9 @@
 #include <thrust/iterator/counting_iterator.h>
 #include <thrust/iterator/transform_output_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
+#include <thrust/pair.h>
 #include <thrust/sort.h>
+#include <thrust/tuple.h>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -99,8 +101,8 @@ __host__ __device__ __forceinline__ T ceildivT(T nom, T denom)
 
 
 template <typename ValueType, typename IndexType>
-__device__ __forceinline__ bool block_segment_scan_reverse(
-    const IndexType* __restrict__ ind, ValueType* __restrict__ val)
+__device__ __forceinline__ bool block_segment_scan_reverse(const IndexType* ind,
+                                                           ValueType* val)
 {
     bool last = true;
     const auto reg_ind = ind[threadIdx.x];
@@ -1771,7 +1773,6 @@ void compute_submatrix(std::shared_ptr<const DefaultExecutor> exec,
     auto col_offset = col_span.begin;
     auto num_rows = result->get_size()[0];
     auto num_cols = result->get_size()[1];
-    auto row_ptrs = source->get_const_row_ptrs();
     auto grid_dim = ceildiv(num_rows, default_block_size);
     if (grid_dim > 0) {
         kernel::compute_submatrix_idxs_and_vals<<<grid_dim, default_block_size,
@@ -2718,7 +2719,6 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto b_row_ptrs = b->get_const_row_ptrs();
     auto b_col_idxs = b->get_const_col_idxs();
     auto vbeta = exec->copy_val_to_host(beta->get_const_values());
-    auto d_nnz = IndexType(d->get_num_stored_elements());
     auto d_vals = d->get_const_values();
     auto d_row_ptrs = d->get_const_row_ptrs();
     auto d_col_idxs = d->get_const_col_idxs();
@@ -3064,6 +3064,10 @@ template <typename ValueType, typename IndexType>
 void sort_by_column_index(std::shared_ptr<const DefaultExecutor> exec,
                           matrix::Csr<ValueType, IndexType>* to_sort)
 {
+    // the vendor csrsort may reject empty inputs
+    if (to_sort->get_num_stored_elements() == 0) {
+        return;
+    }
     if (sparselib::is_supported<ValueType, IndexType>::value) {
         auto handle = exec->get_sparselib_handle();
         auto descr = sparselib::create_mat_descr();

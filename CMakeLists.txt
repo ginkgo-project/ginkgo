@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(
     Ginkgo
     LANGUAGES CXX
-    VERSION 1.11.0
+    VERSION 1.11.1
     DESCRIPTION
         "A numerical linear algebra library targeting many-core architectures"
 )
@@ -237,9 +237,8 @@ if(GINKGO_BUILD_HIP)
     elseif(
         GINKGO_HIP_PLATFORM_AMD
         AND GINKGO_HIP_VERSION VERSION_GREATER_EQUAL 7.1
-        AND GINKGO_HIP_VERSION VERSION_LESS 7.2
     )
-        # https://github.com/ROCm/rocm-libraries/pull/1769 should fix this issue in ROCm 7.1.1.
+        # track this issue by https://github.com/ROCm/rocm-libraries/issues/6309 
         # HIP VERSION does not use the exact version number as ROCm. Need to wait for ROCm 7.1.1 to set proper range for ROCm 7.1.0
         message(
             STATUS
@@ -251,6 +250,7 @@ if(GINKGO_BUILD_HIP)
         set(GINKGO_HIP_CUSTOM_THRUST_NAMESPACE ON)
     endif()
 endif()
+
 if(GINKGO_BUILD_SYCL)
     include(cmake/sycl.cmake)
 endif()
@@ -268,7 +268,14 @@ include(cmake/compiler_features.cmake)
 include(cmake/generate_ginkgo_hpp.cmake)
 
 if(MSVC)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /bigobj /permissive-")
+    # MSVC has macro for min/max, it leads C2589 issue with CUDA 13.2.
+    # We disable it by -DNOMINMAX
+    # similar issue: https://stackoverflow.com/questions/1825904/error-c2589-on-stdnumeric-limitsdoublemin
+    # After CMake 4.1, they do not add several flags for MSVC. (see Other Changes section in https://cmake.org/cmake/help/v4.1/release/4.1.html)
+    # `/Zc:inline` is required in Ginkgo to reduce the symbol significantly, so we add it back here.
+    set(CMAKE_CXX_FLAGS
+        "${CMAKE_CXX_FLAGS} -DNOMINMAX /bigobj /permissive- /Zc:inline"
+    )
 endif()
 if(MINGW OR CYGWIN)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -178,7 +178,6 @@ __global__ __launch_bounds__(default_block_size) void spmv(
 {
     using arithmetic_type = typename a_accessor::arithmetic_type;
     const auto alpha_val = alpha(0);
-    const OutputValueType beta_val = beta[0];
     if constexpr (atomic) {
         // Because the atomic operation changes the values of c during
         // computation, it can not directly do alpha * a * b + beta * c
@@ -192,6 +191,7 @@ __global__ __launch_bounds__(default_block_size) void spmv(
                 return static_cast<OutputValueType>(alpha_val * x);
             });
     } else {
+        const OutputValueType beta_val = beta[0];
         if (is_zero(beta_val)) {
             spmv_kernel<num_thread_per_worker, atomic>(
                 num_rows, num_worker_per_row, val, col, stride,

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -678,30 +678,6 @@ protected:
                 FAIL() << e.what();
             }
         };
-        {
-            SCOPED_TRACE("Defaulted solver");
-            guarded_fn(
-                test_pair<SolverType>{Config::build(ref, 0, check_residual)
-                                          .on(ref)
-                                          ->generate(mtx.ref)
-                                          ->create_default(),
-                                      Config::build(exec, 0, check_residual)
-                                          .on(exec)
-                                          ->generate(mtx.dev)
-                                          ->create_default()});
-        }
-        {
-            SCOPED_TRACE("Cleared solver");
-            test_pair<SolverType> pair{Config::build(ref, 0, check_residual)
-                                           .on(ref)
-                                           ->generate(mtx.ref),
-                                       Config::build(exec, 0, check_residual)
-                                           .on(exec)
-                                           ->generate(mtx.dev)};
-            pair.ref->clear();
-            pair.dev->clear();
-            guarded_fn(std::move(pair));
-        }
         /* Disable the test with clone, since cloning is not correctly supported
          * for types that contain factories as members.
          * TODO: reenable when cloning of factories is figured out

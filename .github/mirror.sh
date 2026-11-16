@@ -16,5 +16,11 @@ ssh-keyscan -t rsa gitlab.com github.com >>~/.ssh/known_hosts
 git fetch fork "$BRANCH_NAME"
 git checkout -B "$BRANCH_NAME"
 git reset --hard fork/"$BRANCH_NAME"
+
+# Check if the pipelines should be skipped
+if [[ "$SKIP" == "true" ]]; then
+    export PUSH_OPTIONS="ci.skip"
+fi
+
 # Push to gitlab
-git push -u --force gitlab HEAD:$BRANCH_NAME
+git push -u --force --push-option="$PUSH_OPTIONS" gitlab HEAD:$BRANCH_NAME

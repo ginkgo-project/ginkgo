@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -209,7 +209,15 @@ private:
 };
 
 
-/** A timer using kernels for timing on a DpcppExecutor in profiling mode. */
+/**
+ * A timer using kernels for timing on a DpcppExecutor in profiling mode.
+ *
+ * @note With the Level Zero backend, the SYCL runtime truncates the event
+ *       timestamps to the valid bits of the GPU's kernel timestamps, so they
+ *       wrap around periodically, about every 223 seconds on an Intel Arc
+ *       A770. A difference between two time points that spans a wrap-around
+ *       is too small by one period, which usually makes it negative.
+ */
 class DpcppTimer : public Timer {
 public:
     void record(time_point& time) override;

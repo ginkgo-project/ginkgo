@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -113,8 +113,11 @@ public:
 #if INTEL_MKL_VERSION >= 20240000
             *(this->get_device_exec()->get_queue()),
 #endif
-            this->get_mat_handle(), static_cast<int>(this->get_size()[0]),
-            static_cast<int>(this->get_size()[1]),
+            this->get_mat_handle(), static_cast<IndexType>(this->get_size()[0]),
+            static_cast<IndexType>(this->get_size()[1]),
+#if INTEL_MKL_VERSION >= 20250300
+            static_cast<std::int64_t>(csr_->get_num_stored_elements()),
+#endif
             oneapi::mkl::index_base::zero, csr_->get_row_ptrs(),
             csr_->get_col_idxs(), csr_->get_values());
         if (optimized) {

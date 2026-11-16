@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -218,6 +218,22 @@ TYPED_TEST(SparsityCsr, GeneratesCorrectMatrixData)
     EXPECT_EQ(data.nonzeros[1], tpl(0, 1, value_type{1.0}));
     EXPECT_EQ(data.nonzeros[2], tpl(0, 2, value_type{1.0}));
     EXPECT_EQ(data.nonzeros[3], tpl(1, 1, value_type{1.0}));
+}
+
+
+TYPED_TEST(SparsityCsr, TransposePreservesValue)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    auto mtx = Mtx::create(
+        this->exec, gko::dim<2>{1, 2}, gko::array<index_type>{this->exec, {1}},
+        gko::array<index_type>{this->exec, {0, 1}}, value_type{5.0});
+
+    auto trans = mtx->transpose();
+    auto trans_as_sparsity = static_cast<Mtx*>(trans.get());
+
+    ASSERT_EQ(trans_as_sparsity->get_const_value()[0], value_type{5.0});
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -581,7 +581,8 @@ void symbolic_validate(
     if (size > 0) {
         const auto num_blocks =
             ceildiv(size, default_block_size / config::warp_size);
-        kernel::symbolic_validate<<<num_blocks, default_block_size>>>(
+        kernel::symbolic_validate<<<num_blocks, default_block_size, 0,
+                                    exec->get_stream()>>>(
             row_ptrs, col_idxs, factor_row_ptrs, factor_col_idxs, size,
             factors_lookup.storage_offsets.get_const_data(),
             factors_lookup.row_descs.get_const_data(),

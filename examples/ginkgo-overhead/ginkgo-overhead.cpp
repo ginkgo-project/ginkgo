@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
     auto tic = std::chrono::steady_clock::now();
 
     auto solver = cg_factory->generate(gko::give(A));
-    solver->apply(x, b);
+    solver->apply(b, x);
     exec->synchronize();
 
     auto tac = std::chrono::steady_clock::now();

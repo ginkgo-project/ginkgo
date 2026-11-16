@@ -1,67 +1,81 @@
 name: OSX-build
 
 on:
-  push:
-    branches:
-      - 'main'
-      - 'master'
-      - 'develop'
-      - 'release/**'
-    tags:
-      - '**'
-  pull_request:
-    types: [opened,synchronize]
-    paths-ignore:
-      - 'doc/**'
+  workflow_call:
+    inputs:
+      full:
+        description: 'Run all configurations instead of the reduced pull request set'
+        type: boolean
+        default: true
   workflow_dispatch:
     inputs:
       debug_enabled:
         description: 'Run the build with tmate debugging enabled by `debug_enabled` keyword (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
+      full:
+        description: 'Run all configurations instead of the reduced pull request set'
+        type: boolean
+        default: true
 
-concurrency:
-  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
   osx-clang-omp:
+    if: ${{ !inputs.full }}
     strategy:
       fail-fast: false
       matrix:
         config:
-          - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", mixed: "OFF", half: "ON", bfloat16: "OFF"}
           - {shared: "OFF", build_type: "Release", name: "omp/release/static", mixed: "ON", half: "ON", bfloat16: "OFF"}
-          - {shared: "ON", build_type: "Release", name: "omp/release/shared", mixed: "ON", half: "OFF", bfloat16: "ON"}
-          - {shared: "ON", build_type: "Release", name: "omp/release/shared-16bit", mixed: "ON", half: "ON", bfloat16: "ON"}
     name: ${{ matrix.config.name }}
     runs-on: [macos-latest]
+    timeout-minutes: 240
+    env: &env
+      # compiled objects are cached between runs, see the ccache steps
+      CCACHE_DIR: ${{ github.workspace }}/.ccache
+      CCACHE_BASEDIR: ${{ github.workspace }}
+      CCACHE_MAXSIZE: 500M
 
-    steps:
+    steps: &steps
       - name: Checkout the latest code (shallow clone)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: setup
         run: |
-          brew install libomp
+          brew install libomp ccache
 
       - name: info
         run: |
           g++ -v
           cmake --version
 
+      # restores the cache of this configuration and branch or, as a fallback,
+      # of any branch (e.g. develop for a new pull request)
+      - name: restore ccache
+        uses: actions/cache/restore@v6
+        with:
+          path: .ccache
+          key: ccache-osx-${{ matrix.config.name }}-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            ccache-osx-${{ matrix.config.name }}-${{ github.ref_name }}-
+            ccache-osx-${{ matrix.config.name }}-
+
       - name: Debug over SSH (tmate)
-        uses: mxschmitt/action-tmate@v3.5
+        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24
         if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: configure
         run: |
           mkdir build
           mkdir install
-          export INSTALL_PREFIX=`pwd`/install
+          INSTALL_PREFIX="${PWD}/install"
           cd build
-          cmake .. -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp/ -DCMAKE_CXX_FLAGS=-Wpedantic -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_ENABLE_HALF=${{ matrix.config.half }} -DGINKGO_ENABLE_BFLOAT16=${{ matrix.config.bfloat16 }}
+          cmake .. -DCMAKE_PREFIX_PATH=/opt/homebrew/opt/libomp/ -DCMAKE_CXX_FLAGS=-Wpedantic -DBUILD_SHARED_LIBS=${{ matrix.config.shared }} -DCMAKE_INSTALL_PREFIX="${INSTALL_PREFIX}" -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} -DGINKGO_MIXED_PRECISION=${{ matrix.config.mixed }} -DGINKGO_ENABLE_HALF=${{ matrix.config.half }} -DGINKGO_ENABLE_BFLOAT16=${{ matrix.config.bfloat16 }}
+          ccache --zero-stats
           make -j8
+          ccache --show-stats
           ctest -j10 --output-on-failure
 
       - name: install
@@ -69,3 +83,27 @@ jobs:
           cd build
           make install
           make test_install
+
+      # saved even if the build fails or times out, so the next run is faster
+      - name: save ccache
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: .ccache
+          key: ccache-osx-${{ matrix.config.name }}-${{ github.ref_name }}-${{ github.run_id }}
+
+  # the remaining configurations, they reuse env and steps of osx-clang-omp
+  osx-clang-omp-full:
+    if: inputs.full
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {shared: "ON", build_type: "Debug", name: "omp/debug/shared", mixed: "OFF", half: "ON", bfloat16: "OFF"}
+          - {shared: "ON", build_type: "Release", name: "omp/release/shared", mixed: "ON", half: "OFF", bfloat16: "ON"}
+          - {shared: "ON", build_type: "Release", name: "omp/release/shared-16bit", mixed: "ON", half: "ON", bfloat16: "ON"}
+    name: ${{ matrix.config.name }}
+    runs-on: [macos-latest]
+    timeout-minutes: 240
+    env: *env
+    steps: *steps

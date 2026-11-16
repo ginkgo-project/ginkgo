@@ -1,0 +1,177 @@
+# Entry point for the CSCS CI (https://docs.cscs.ch/services/cicd/).
+#
+# This file is not part of the gitlab.com pipeline in .gitlab-ci.yml. CSCS
+# mirrors the GitHub repository into its own GitLab instance, runs this file
+# there and submits the jobs to the Alps clusters through FirecREST. Which
+# branches and pull requests trigger it is configured on the CSCS CI setup
+# page. CSCS specifics: CI_PIPELINE_SOURCE is always `trigger`, and
+# `rules: changes` has no effect.
+#
+# The jobs run on Daint's Grace-Hopper nodes (4 GH200 per node) and on
+# Beverin's AMD nodes (MI300A and MI250X). Nodes are not shared and are billed
+# as a whole, so each job builds Ginkgo and runs all tests within the same
+# Slurm job, using all GPUs of the node for the tests.
+
+include:
+  - remote: 'https://gitlab.com/cscs-ci/recipes/-/raw/master/templates/v2/.ci-ext.yml'
+
+stages:
+  - test
+
+variables:
+  UENV: prgenv-gnu/26.3:v1
+
+.daint_build_and_test:
+  extends: .baremetal-runner-daint-gh200
+  stage: test
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "develop"
+  variables:
+    GIT_STRATEGY: fetch
+    SLURM_JOB_NUM_NODES: 1
+    # must be quoted, otherwise Slurm reads the value as minutes
+    SLURM_TIMELIMIT: "01:30:00"
+    CXX: g++
+    CUDAHOSTCXX: g++
+    BUILD_TYPE: Release
+    # a node has 288 cores, but nvcc processes need several GB each
+    BUILD_JOBS: 64
+    CTEST_JOBS: 64
+    OMP_NUM_THREADS: 64
+    EXTRA_CMAKE_FLAGS: ""
+  script:
+    # The baremetal runner does not download the uenv. Downloaded images are
+    # kept in $SCRATCH/.uenv-images, which is exempt from the scratch cleanup,
+    # so this only pulls once per uenv version. The lock keeps jobs from
+    # pulling the same image concurrently.
+    - flock ${SCRATCH}/.ginkgo-ci-uenv-pull.lock bash -c
+        "uenv image inspect ${UENV} > /dev/null 2>&1 || uenv image pull ${UENV}"
+    # GCC fuses multiplications and additions on ARM by default, which changes
+    # the rounding enough for some tests to fail, so turn that off (like in
+    # .github/workflows/arm.yml). MPI tests are launched with srun, which CTest
+    # only finds with its absolute path.
+    - uenv run --view=default ${UENV} -- cmake -S . -B build -G Ninja
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_CXX_FLAGS=-ffp-contract=off
+        -DMPIEXEC_EXECUTABLE="$(command -v srun)"
+        -DGINKGO_BUILD_CUDA=ON -DGINKGO_CUDA_ARCHITECTURES=90
+        -DGINKGO_BUILD_OMP=ON -DGINKGO_DEVEL_TOOLS=OFF
+        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=OFF
+        -DGINKGO_BUILD_BENCHMARKS=OFF
+        -DCMAKE_DISABLE_FIND_PACKAGE_Kokkos=ON
+        ${EXTRA_CMAKE_FLAGS}
+    - uenv run --view=default ${UENV} -- cmake --build build --parallel ${BUILD_JOBS}
+    - cd build
+    # srun calls of the MPI tests inherit the uenv loaded by `uenv run`
+    - CTEST_JUNIT_DIR=${CI_PROJECT_DIR}/test-results
+        uenv run --view=default ${UENV} -- bash ../.gitlab/run-ctest.sh
+  artifacts:
+    when: always
+    reports:
+      junit: test-results/*.xml
+
+# GPU-aware Cray MPICH, with up to 8 ranks per MPI test
+.daint_mpi:
+  variables:
+    SLURM_NTASKS: 8
+    SLURM_CPUS_PER_TASK: 32
+    MPICH_GPU_SUPPORT_ENABLED: 1
+    MPI_CMAKE_FLAGS: -DGINKGO_BUILD_MPI=ON -DGINKGO_FORCE_GPU_AWARE_MPI=ON
+      -DMPIEXEC_MAX_NUMPROCS=8
+
+daint/cuda131/cray-mpich/gcc/omp/debug/shared:
+  extends: [.daint_build_and_test, .daint_mpi]
+  variables:
+    BUILD_TYPE: Debug
+    SLURM_TIMELIMIT: "02:00:00"
+    EXTRA_CMAKE_FLAGS: ${MPI_CMAKE_FLAGS}
+
+# the previous uenv: CUDA 12.9, GCC 14.2, Cray MPICH 8.1.32
+daint/cuda129/cray-mpich/gcc/omp/release/static:
+  extends: [.daint_build_and_test, .daint_mpi]
+  variables:
+    UENV: prgenv-gnu/25.11:v1
+    SLURM_TIMELIMIT: "02:00:00"
+    EXTRA_CMAKE_FLAGS: -DBUILD_SHARED_LIBS=OFF ${MPI_CMAKE_FLAGS}
+
+# Beverin: mi300 nodes have 4 MI300A and 96 cores, mi200 nodes 8 MI250X GCDs
+# and 64 cores. Jobs extend the runner first, so these override its defaults.
+.beverin_build_and_test:
+  stage: test
+  rules:
+    - if: $CI_COMMIT_REF_NAME != "develop"
+  variables:
+    GIT_STRATEGY: fetch
+    # ROCm 6.3.3, GCC 13.4 and Cray MPICH, with all ROCm libraries Ginkgo uses
+    UENV: prgenv-gnu/25.07-6.3.3:v12
+    SLURM_JOB_NUM_NODES: 1
+    # must be quoted, otherwise Slurm reads the value as minutes
+    SLURM_TIMELIMIT: "01:30:00"
+    # the MPI tests use up to 8 processes
+    SLURM_NTASKS: 8
+    MPICH_GPU_SUPPORT_ENABLED: 1
+    BUILD_TYPE: Release
+    BUILD_JOBS: 64
+    CTEST_JOBS: 64
+    OMP_NUM_THREADS: 64
+    EXTRA_CMAKE_FLAGS: ""
+  script:
+    # see .daint_build_and_test
+    - flock ${SCRATCH}/.ginkgo-ci-uenv-pull.lock bash -c
+        "uenv image inspect ${UENV} > /dev/null 2>&1 || uenv image pull ${UENV}"
+    # Without explicit compilers, CMake picks the system GCC 7 instead of the
+    # GCC of the uenv. The HIP clang also needs the uenv's GCC
+    # (--gcc-toolchain), otherwise it uses the C++ library of GCC 7.
+    - GCC_ROOT=$(uenv run --view=default ${UENV} -- bash -c
+        'dirname "$(dirname "$(readlink -f "$(command -v g++)")")"' | tail -n 1)
+    - echo "GCC of the uenv in ${GCC_ROOT}"
+    - if [[ "${GCC_ROOT}" != /user-environment/* ]]; then
+        echo "The uenv has no GCC"; exit 1; fi
+    - uenv run --view=default ${UENV} -- cmake -S . -B build -G Ninja
+        -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+        -DCMAKE_C_COMPILER=${GCC_ROOT}/bin/gcc
+        -DCMAKE_CXX_COMPILER=${GCC_ROOT}/bin/g++
+        -DCMAKE_HIP_COMPILER=/user-environment/env/default/bin/clang++
+        -DCMAKE_HIP_FLAGS=--gcc-toolchain=${GCC_ROOT}
+        -DMPIEXEC_EXECUTABLE="$(command -v srun)"
+        -DGINKGO_BUILD_HIP=ON -DGINKGO_BUILD_OMP=ON
+        -DGINKGO_BUILD_MPI=ON -DGINKGO_FORCE_GPU_AWARE_MPI=ON
+        -DMPIEXEC_MAX_NUMPROCS=${SLURM_NTASKS} -DGINKGO_DEVEL_TOOLS=OFF
+        -DGINKGO_BUILD_TESTS=ON -DGINKGO_BUILD_EXAMPLES=OFF
+        -DGINKGO_BUILD_BENCHMARKS=OFF
+        -DCMAKE_DISABLE_FIND_PACKAGE_Kokkos=ON
+        ${EXTRA_CMAKE_FLAGS}
+    - uenv run --view=default ${UENV} -- cmake --build build --parallel ${BUILD_JOBS}
+    - cd build
+    - CTEST_JUNIT_DIR=${CI_PROJECT_DIR}/test-results
+        uenv run --view=default ${UENV} -- bash ../.gitlab/run-ctest.sh
+  artifacts:
+    when: always
+    reports:
+      junit: test-results/*.xml
+
+beverin/mi300a/rocm633/cray-mpich/gcc/omp/release/shared:
+  extends: [.baremetal-runner-beverin-mi300, .beverin_build_and_test]
+  variables:
+    SLURM_CPUS_PER_TASK: 12
+    EXTRA_CMAKE_FLAGS: -DCMAKE_HIP_ARCHITECTURES=gfx942
+
+beverin/mi250x/rocm633/cray-mpich/gcc/omp/release/static:
+  extends: [.baremetal-runner-beverin-mi200, .beverin_build_and_test]
+  variables:
+    SLURM_CPUS_PER_TASK: 8
+    # fewer cores than on the mi300 nodes, and static linking
+    SLURM_TIMELIMIT: "02:00:00"
+    EXTRA_CMAKE_FLAGS: -DCMAKE_HIP_ARCHITECTURES=gfx90a -DBUILD_SHARED_LIBS=OFF
+
+# develop only: the distributed tests on 2 nodes, one GCD per rank
+beverin/mi250x/rocm633/cray-mpich/gcc/omp/release/shared/2-nodes:
+  extends: [.baremetal-runner-beverin-mi200, .beverin_build_and_test]
+  rules:
+    - if: $CI_COMMIT_REF_NAME == "develop"
+  variables:
+    SLURM_JOB_NUM_NODES: 2
+    SLURM_NTASKS: 8
+    SLURM_NTASKS_PER_NODE: 4
+    SLURM_CPUS_PER_TASK: 16
+    CTEST_ONLY_DISTRIBUTED: 1
+    EXTRA_CMAKE_FLAGS: -DCMAKE_HIP_ARCHITECTURES=gfx90a

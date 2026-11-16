@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -120,6 +120,7 @@ void compute_factor(std::shared_ptr<const DefaultExecutor> exec,
                     const matrix::Coo<ValueType, IndexType>* a_lower,
                     matrix::Csr<ValueType, IndexType>* l)
 {
+    iterations = (iterations == 0) ? 10 : iterations;
     auto nnz = l->get_num_stored_elements();
     auto num_blocks = ceildiv(nnz, default_block_size);
     if (num_blocks > 0) {

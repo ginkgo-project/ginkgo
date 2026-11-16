@@ -500,8 +500,9 @@ function(ginkgo_create_common_device_test test_name)
         )
         target_link_options(
             ${test_target_name}_dpcpp
-            PRIVATE -fsycl-device-lib=all -fsycl-device-code-split=per_kernel
+            PRIVATE -fsycl-device-code-split=per_kernel
         )
+        ginkgo_add_sycl_device_lib(${test_target_name}_dpcpp)
     endif()
     if(
         GINKGO_BUILD_OMP
