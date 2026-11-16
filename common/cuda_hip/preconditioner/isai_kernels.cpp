@@ -8,6 +8,7 @@
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
@@ -18,6 +19,7 @@
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 
@@ -48,17 +50,17 @@ namespace kernel {
  * `subwarp_size` elements are considered both for the values and for the
  * sparsity pattern.
  */
-template <int subwarp_size, int subwarps_per_block, typename ValueType,
-          typename IndexType, typename Callable>
+template <int subwarp_size, int subwarps_per_block, typename MAccessor,
+          typename IndexType, typename IAccessor, typename Callable>
 __forceinline__ __device__ void generic_generate(
     IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
-    const IndexType* __restrict__ m_col_idxs,
-    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ m_col_idxs, MAccessor m_values,
     const IndexType* __restrict__ i_row_ptrs,
-    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
+    const IndexType* __restrict__ i_col_idxs, IAccessor i_values,
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, Callable direct_solve)
 {
+    using arithmetic_type = arithmetic_type_t<IAccessor>;
     static_assert(subwarp_size >= row_size_limit, "incompatible subwarp_size");
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
 
@@ -102,20 +104,21 @@ __forceinline__ __device__ void generic_generate(
         }
 
         // subwarp_size^2 storage per subwarp
-        __shared__ uninitialized_array<ValueType, subwarp_size * subwarp_size *
-                                                      subwarps_per_block>
+        __shared__ uninitialized_array<
+            arithmetic_type, subwarp_size * subwarp_size * subwarps_per_block>
             storage;
 
         auto dense_system_ptr = storage + (threadIdx.x / subwarp_size) *
                                               subwarp_size * subwarp_size;
         // row-major accessor
-        auto dense_system = [&](IndexType row, IndexType col) -> ValueType& {
+        auto dense_system = [&](IndexType row,
+                                IndexType col) -> arithmetic_type& {
             return dense_system_ptr[row * subwarp_size + col];
         };
 
 #pragma unroll
         for (int i = 0; i < subwarp_size; ++i) {
-            dense_system(i, local_id) = zero<ValueType>();
+            dense_system(i, local_id) = zero<arithmetic_type>();
         }
 
         subwarp.sync();
@@ -160,7 +163,7 @@ __forceinline__ __device__ void generic_generate(
 
         // Now, read a full col of `dense_system` into local registers, which
         // will be row elements after this (implicit) transpose
-        ValueType local_row[subwarp_size];
+        arithmetic_type local_row[subwarp_size];
 #pragma unroll
         for (int i = 0; i < subwarp_size; ++i) {
             local_row[i] = dense_system(i, local_id);
@@ -175,31 +178,33 @@ __forceinline__ __device__ void generic_generate(
             if (is_finite(rhs)) {
                 i_values[idx] = rhs;
             } else {
-                i_values[idx] = i_col_idxs[idx] == row ? one<ValueType>()
-                                                       : zero<ValueType>();
+                i_values[idx] = i_col_idxs[idx] == row
+                                    ? one<arithmetic_type>()
+                                    : zero<arithmetic_type>();
             }
         }
     }
 }
 
 
-template <int subwarp_size, int subwarps_per_block, typename ValueType,
-          typename IndexType>
+template <int subwarp_size, int subwarps_per_block, typename MAccessor,
+          typename IndexType, typename IAccessor>
 __global__ __launch_bounds__(default_block_size) void generate_l_inverse(
     IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
-    const IndexType* __restrict__ m_col_idxs,
-    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ m_col_idxs, MAccessor m_values,
     const IndexType* __restrict__ i_row_ptrs,
-    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
+    const IndexType* __restrict__ i_col_idxs, IAccessor i_values,
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz)
 {
+    using arithmetic_type = arithmetic_type_t<IAccessor>;
     auto trs_solve =
-        [](IndexType num_elems, const ValueType* __restrict__ local_row,
+        [](IndexType num_elems, const arithmetic_type* __restrict__ local_row,
            group::thread_block_tile<subwarp_size>& subwarp, size_type) {
             const int local_id = subwarp.thread_rank();
-            ValueType rhs = local_id == num_elems - 1 ? one<ValueType>()
-                                                      : zero<ValueType>();
+            arithmetic_type rhs = local_id == num_elems - 1
+                                      ? one<arithmetic_type>()
+                                      : zero<arithmetic_type>();
             // Solve Triangular system
             for (int d_col = num_elems - 1; d_col >= 0; --d_col) {
                 const auto elem = local_row[d_col];
@@ -207,7 +212,7 @@ __global__ __launch_bounds__(default_block_size) void generate_l_inverse(
                     rhs /= elem;
                 }
 
-                const ValueType bot = subwarp.shfl(rhs, d_col);
+                const arithmetic_type bot = subwarp.shfl(rhs, d_col);
                 if (local_id < d_col) {
                     rhs -= bot * elem;
                 }
@@ -222,38 +227,38 @@ __global__ __launch_bounds__(default_block_size) void generate_l_inverse(
 }
 
 
-template <int subwarp_size, int subwarps_per_block, typename ValueType,
-          typename IndexType>
+template <int subwarp_size, int subwarps_per_block, typename MAccessor,
+          typename IndexType, typename IAccessor>
 __global__ __launch_bounds__(default_block_size) void generate_u_inverse(
     IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
-    const IndexType* __restrict__ m_col_idxs,
-    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ m_col_idxs, MAccessor m_values,
     const IndexType* __restrict__ i_row_ptrs,
-    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
+    const IndexType* __restrict__ i_col_idxs, IAccessor i_values,
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz)
 {
-    auto trs_solve = [](IndexType num_elems,
-                        const ValueType* __restrict__ local_row,
-                        group::thread_block_tile<subwarp_size>& subwarp,
-                        size_type) {
-        const int local_id = subwarp.thread_rank();
-        ValueType rhs = local_id == 0 ? one<ValueType>() : zero<ValueType>();
-        // Solve Triangular system
-        for (int d_col = 0; d_col < num_elems; ++d_col) {
-            const auto elem = local_row[d_col];
-            if (d_col == local_id) {
-                rhs /= elem;
+    using arithmetic_type = arithmetic_type_t<IAccessor>;
+    auto trs_solve =
+        [](IndexType num_elems, const arithmetic_type* __restrict__ local_row,
+           group::thread_block_tile<subwarp_size>& subwarp, size_type) {
+            const int local_id = subwarp.thread_rank();
+            arithmetic_type rhs = local_id == 0 ? one<arithmetic_type>()
+                                                : zero<arithmetic_type>();
+            // Solve Triangular system
+            for (int d_col = 0; d_col < num_elems; ++d_col) {
+                const auto elem = local_row[d_col];
+                if (d_col == local_id) {
+                    rhs /= elem;
+                }
+
+                const arithmetic_type top = subwarp.shfl(rhs, d_col);
+                if (d_col < local_id) {
+                    rhs -= top * elem;
+                }
             }
 
-            const ValueType top = subwarp.shfl(rhs, d_col);
-            if (d_col < local_id) {
-                rhs -= top * elem;
-            }
-        }
-
-        return rhs;
-    };
+            return rhs;
+        };
 
     generic_generate<subwarp_size, subwarps_per_block>(
         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs, i_col_idxs,
@@ -261,54 +266,55 @@ __global__ __launch_bounds__(default_block_size) void generate_u_inverse(
 }
 
 
-template <int subwarp_size, int subwarps_per_block, typename ValueType,
-          typename IndexType>
+template <int subwarp_size, int subwarps_per_block, typename MAccessor,
+          typename IndexType, typename IAccessor>
 __global__ __launch_bounds__(default_block_size) void generate_general_inverse(
     IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
-    const IndexType* __restrict__ m_col_idxs,
-    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ m_col_idxs, MAccessor m_values,
     const IndexType* __restrict__ i_row_ptrs,
-    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
+    const IndexType* __restrict__ i_col_idxs, IAccessor i_values,
     IndexType* __restrict__ excess_rhs_sizes,
     IndexType* __restrict__ excess_nnz, bool spd)
 {
+    using arithmetic_type = arithmetic_type_t<IAccessor>;
     // __device__ is important to hip. Without __device__, hip might consider it
     // is a normal function first such that it ends up some ambiguous sqrt from
     // the system header for bfloat16. Using __device__ helps only search the
     // device part and we will not use float/long double from the system for
     // bfloat16.
-    auto general_solve =
-        [spd] __device__(IndexType num_elems, ValueType* __restrict__ local_row,
-                         group::thread_block_tile<subwarp_size> & subwarp,
-                         size_type rhs_one_idx) {
-            const int local_id = subwarp.thread_rank();
-            ValueType rhs =
-                local_id == rhs_one_idx ? one<ValueType>() : zero<ValueType>();
-            size_type perm = local_id;
-            auto pivoted = subwarp.thread_rank() >= num_elems;
-            auto status = true;
-            for (size_type i = 0; i < num_elems; i++) {
-                const auto piv = choose_pivot(subwarp, local_row[i], pivoted);
-                if (local_id == piv) {
-                    pivoted = true;
-                }
-                if (local_id == i) {
-                    perm = piv;
-                }
-
-                apply_gauss_jordan_transform_with_rhs<subwarp_size>(
-                    subwarp, piv, i, local_row, &rhs, status);
+    auto general_solve = [spd] __device__(
+                             IndexType num_elems,
+                             arithmetic_type* __restrict__ local_row,
+                             group::thread_block_tile<subwarp_size> & subwarp,
+                             size_type rhs_one_idx) {
+        const int local_id = subwarp.thread_rank();
+        arithmetic_type rhs = local_id == rhs_one_idx ? one<arithmetic_type>()
+                                                      : zero<arithmetic_type>();
+        size_type perm = local_id;
+        auto pivoted = subwarp.thread_rank() >= num_elems;
+        auto status = true;
+        for (size_type i = 0; i < num_elems; i++) {
+            const auto piv = choose_pivot(subwarp, local_row[i], pivoted);
+            if (local_id == piv) {
+                pivoted = true;
+            }
+            if (local_id == i) {
+                perm = piv;
             }
 
-            ValueType sol = subwarp.shfl(rhs, perm);
+            apply_gauss_jordan_transform_with_rhs<subwarp_size>(
+                subwarp, piv, i, local_row, &rhs, status);
+        }
 
-            if (spd) {
-                auto diag = subwarp.shfl(sol, num_elems - 1);
-                sol /= sqrt(diag);
-            }
+        arithmetic_type sol = subwarp.shfl(rhs, perm);
 
-            return sol;
-        };
+        if (spd) {
+            auto diag = subwarp.shfl(sol, num_elems - 1);
+            sol /= sqrt(diag);
+        }
+
+        return sol;
+    };
 
     generic_generate<subwarp_size, subwarps_per_block>(
         num_rows, m_row_ptrs, m_col_idxs, m_values, i_row_ptrs, i_col_idxs,
@@ -390,11 +396,12 @@ __global__ __launch_bounds__(default_block_size) void generate_excess_system(
     }
 }
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename IndexType, typename ValueAccessor>
 __global__ __launch_bounds__(default_block_size) void scale_excess_solution(
     const IndexType* __restrict__ excess_block_ptrs,
-    ValueType* __restrict__ excess_solution, size_type e_start, size_type e_end)
+    ValueAccessor excess_solution, size_type e_start, size_type e_end)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     const auto warp_id = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -411,8 +418,9 @@ __global__ __launch_bounds__(default_block_size) void scale_excess_solution(
     if (block_end == block_begin) {
         return;
     }
-    const auto diag = excess_solution[block_end - 1];
-    const ValueType scal = one<ValueType>() / sqrt(diag);
+    const auto diag =
+        static_cast<arithmetic_type>(excess_solution[block_end - 1]);
+    const auto scal = one<arithmetic_type>() / sqrt(diag);
 
     for (size_type i = block_begin + local_id; i < block_end;
          i += subwarp_size) {
@@ -467,22 +475,24 @@ void generate_tri_inverse(
 
     const auto block = default_block_size;
     const auto grid = ceildiv(num_rows, block / subwarp_size);
+    const auto input_vals = arithmetic<ValueType>(input);
+    const auto inverse_vals = arithmetic<ValueType>(inverse);
     if (grid > 0) {
         if (lower) {
             kernel::generate_l_inverse<subwarp_size, subwarps_per_block>
                 <<<grid, block, 0, exec->get_stream()>>>(
                     static_cast<IndexType>(num_rows), input.row_ptrs,
-                    input.col_idxs, as_device_type(input.values),
+                    input.col_idxs, acc::as_device_range(input_vals),
                     inverse.row_ptrs, inverse.col_idxs,
-                    as_device_type(inverse.values), excess_rhs_ptrs,
+                    acc::as_device_range(inverse_vals), excess_rhs_ptrs,
                     excess_nz_ptrs);
         } else {
             kernel::generate_u_inverse<subwarp_size, subwarps_per_block>
                 <<<grid, block, 0, exec->get_stream()>>>(
                     static_cast<IndexType>(num_rows), input.row_ptrs,
-                    input.col_idxs, as_device_type(input.values),
+                    input.col_idxs, acc::as_device_range(input_vals),
                     inverse.row_ptrs, inverse.col_idxs,
-                    as_device_type(inverse.values), excess_rhs_ptrs,
+                    acc::as_device_range(inverse_vals), excess_rhs_ptrs,
                     excess_nz_ptrs);
         }
     }
@@ -505,13 +515,16 @@ void generate_general_inverse(
 
     const auto block = default_block_size;
     const auto grid = ceildiv(num_rows, block / subwarp_size);
+    const auto input_vals = arithmetic<ValueType>(input);
+    const auto inverse_vals = arithmetic<ValueType>(inverse);
     if (grid > 0) {
         kernel::generate_general_inverse<subwarp_size, subwarps_per_block>
             <<<grid, block, 0, exec->get_stream()>>>(
                 static_cast<IndexType>(num_rows), input.row_ptrs,
-                input.col_idxs, as_device_type(input.values), inverse.row_ptrs,
-                inverse.col_idxs, as_device_type(inverse.values),
-                excess_rhs_ptrs, excess_nz_ptrs, spd);
+                input.col_idxs, acc::as_device_range(input_vals),
+                inverse.row_ptrs, inverse.col_idxs,
+                acc::as_device_range(inverse_vals), excess_rhs_ptrs,
+                excess_nz_ptrs, spd);
     }
     components::prefix_sum_nonnegative(exec, excess_rhs_ptrs, num_rows + 1);
     components::prefix_sum_nonnegative(exec, excess_nz_ptrs, num_rows + 1);
@@ -559,10 +572,11 @@ void scale_excess_solution(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto block = default_block_size;
     const auto grid = ceildiv(e_end - e_start, block / subwarp_size);
+    const auto excess_solution_vals = arithmetic<ValueType, 1>(excess_solution);
     if (grid > 0) {
         kernel::scale_excess_solution<subwarp_size>
             <<<grid, block, 0, exec->get_stream()>>>(
-                excess_block_ptrs, as_device_type(excess_solution.values),
+                excess_block_ptrs, acc::as_device_range(excess_solution_vals),
                 e_start, e_end);
     }
 }

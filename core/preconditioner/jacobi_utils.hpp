@@ -108,8 +108,10 @@ GKO_ATTRIBUTES GKO_INLINE uint32 get_supported_storage_reductions(
     using gko::detail::float_traits;
     using type = remove_complex<ValueType>;
     using prd = precision_reduction_descriptor;
+    // compares in the type of cond
     auto accurate = [&cond, &accuracy](auto eps) {
-        return cond * static_cast<type>(eps) < accuracy;
+        return cond * static_cast<CondType>(static_cast<type>(eps)) <
+               static_cast<CondType>(accuracy);
     };
     uint8 is_verified1 = 2;
     auto supported = static_cast<uint32>(prd::p0n0);
