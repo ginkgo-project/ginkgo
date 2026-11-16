@@ -8,6 +8,7 @@
 #include <ginkgo/core/matrix/batch_csr.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/batch_struct.hpp"
 #include "common/cuda_hip/components/intrinsics.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
@@ -119,16 +120,17 @@ void compute_block_jacobi_helper(
     const auto nbatch = sys_csr->get_num_batch_items();
     const auto nrows = sys_csr->get_common_size()[0];
     const auto nnz = sys_csr->get_num_stored_elements() / nbatch;
+    const auto sys_vals = arithmetic<ValueType>(
+        sys_csr->get_const_values(), sys_csr->get_num_stored_elements());
 
     dim3 block(default_block_size);
     dim3 grid(ceildiv(num_blocks * nbatch * subwarp_size, default_block_size));
 
     batch_single_kernels::compute_block_jacobi_kernel<subwarp_size>
         <<<grid, block, 0, exec->get_stream()>>>(
-            nbatch, static_cast<int>(nnz),
-            as_cuda_type(sys_csr->get_const_values()), num_blocks,
-            cumulative_block_storage, block_pointers, blocks_pattern,
-            as_cuda_type(blocks));
+            nbatch, static_cast<int>(nnz), acc::as_device_range(sys_vals),
+            num_blocks, cumulative_block_storage, block_pointers,
+            blocks_pattern, as_device_type(blocks));
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -35,13 +35,13 @@ int get_num_threads_per_block(std::shared_ptr<const DefaultExecutor> exec,
     };
     const int num_regs_used = std::max(
         get_num_regs(
-            batch_single_kernels::apply_kernel<StopType, 5, true, PrecType,
-                                               LogType, BatchMatrixType,
-                                               ValueType>),
+            batch_single_kernels::get_apply_kernel<StopType, 5, true, PrecType,
+                                                   LogType, BatchMatrixType,
+                                                   ValueType>()),
         get_num_regs(
-            batch_single_kernels::apply_kernel<StopType, 0, false, PrecType,
-                                               LogType, BatchMatrixType,
-                                               ValueType>));
+            batch_single_kernels::get_apply_kernel<StopType, 0, false, PrecType,
+                                                   LogType, BatchMatrixType,
+                                                   ValueType>()));
     int max_regs_blk = 0;
     cudaDeviceGetAttribute(&max_regs_blk, cudaDevAttrMaxRegistersPerBlock,
                            exec->get_device_id());
@@ -62,14 +62,15 @@ int get_max_dynamic_shared_memory(std::shared_ptr<const DefaultExecutor> exec)
                            cudaDevAttrMaxSharedMemoryPerMultiprocessor,
                            exec->get_device_id());
     GKO_ASSERT_NO_CUDA_ERRORS(cudaFuncSetAttribute(
-        batch_single_kernels::apply_kernel<StopType, 5, true, PrecType, LogType,
-                                           BatchMatrixType, ValueType>,
+        batch_single_kernels::get_apply_kernel<
+            StopType, 5, true, PrecType, LogType, BatchMatrixType, ValueType>(),
         cudaFuncAttributePreferredSharedMemoryCarveout, 99 /*%*/));
     cudaFuncAttributes funcattr;
     cudaFuncGetAttributes(
         &funcattr,
-        batch_single_kernels::apply_kernel<StopType, 5, true, PrecType, LogType,
-                                           BatchMatrixType, ValueType>);
+        batch_single_kernels::get_apply_kernel<StopType, 5, true, PrecType,
+                                               LogType, BatchMatrixType,
+                                               ValueType>());
     return funcattr.maxDynamicSharedSizeBytes;
 }
 

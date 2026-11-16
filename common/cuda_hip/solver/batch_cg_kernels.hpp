@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,9 @@
 
 
 #include "core/solver/batch_cg_kernels.hpp"
+
+#include <type_traits>
+#include <utility>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -38,20 +41,19 @@ namespace batch_single_kernels {
 
 
 template <typename Group, typename BatchMatrixType_entry, typename PrecType,
-          typename ValueType>
+          typename BValues, typename XValues, typename ValueType>
 __device__ __forceinline__ void initialize(
     Group subgroup, const int num_rows, const BatchMatrixType_entry& mat_entry,
-    const ValueType* const b_global_entry,
-    const ValueType* const x_global_entry, ValueType* const x_shared_entry,
-    ValueType* const r_shared_entry, const PrecType& prec_shared,
-    ValueType* const z_shared_entry, ValueType& rho_old_shared_entry,
-    ValueType* const p_shared_entry,
+    const BValues b_global_entry, const XValues x_global_entry,
+    ValueType* const x_shared_entry, ValueType* const r_shared_entry,
+    const PrecType& prec_shared, ValueType* const z_shared_entry,
+    ValueType& rho_old_shared_entry, ValueType* const p_shared_entry,
     typename gko::remove_complex<ValueType>& rhs_norms_sh)
 {
     // copy x from global to shared memory
     // r = b
     for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
-        x_shared_entry[iz] = x_global_entry[iz];
+        x_shared_entry[iz] = static_cast<ValueType>(x_global_entry[iz]);
         r_shared_entry[iz] = b_global_entry[iz];
     }
     __syncthreads();
@@ -117,19 +119,31 @@ __device__ __forceinline__ void update_x_and_r(
 }
 
 
+/**
+ * The matrix, b and x are arithmetic() ranges, and the solver computes in
+ * their arithmetic type, also in shared memory and in the workspace. The
+ * workspace is allocated for StorageType, which has the same size.
+ */
 template <typename StopType, const int n_shared, const bool prec_shared_bool,
           typename PrecType, typename LogType, typename BatchMatrixType,
-          typename ValueType>
+          typename BValues, typename XValues, typename RealType,
+          typename StorageType>
 __global__ void __launch_bounds__(max_cg_threads)
     apply_kernel(const gko::kernels::batch_cg::storage_config sconf,
-                 const int max_iter, const gko::remove_complex<ValueType> tol,
-                 LogType logger, PrecType prec_shared,
-                 const BatchMatrixType mat,
-                 const ValueType* const __restrict__ b,
-                 ValueType* const __restrict__ x,
-                 ValueType* const __restrict__ workspace = nullptr)
+                 const int max_iter, const RealType tol, LogType logger,
+                 PrecType prec_shared, const BatchMatrixType mat,
+                 const BValues b, const XValues x,
+                 StorageType* const __restrict__ workspace)
 {
+    using ValueType = arithmetic_type_t<XValues>;
+    static_assert(
+        std::is_same_v<ValueType, typename PrecType::arithmetic_type>,
+        "the preconditioner has to compute in the same type as the solver");
+    static_assert(sizeof(ValueType) == sizeof(StorageType),
+                  "the workspace is allocated for the storage type");
     using real_type = typename gko::remove_complex<ValueType>;
+    static_assert(std::is_same_v<real_type, RealType>);
+    ValueType* const work = reinterpret_cast<ValueType*>(workspace);
     const auto num_batch_items = mat.num_batch_items;
     const auto num_rows = mat.num_rows;
 
@@ -153,30 +167,30 @@ __global__ void __launch_bounds__(max_cg_threads)
         if (n_shared >= 1) {
             r_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         } else {
-            r_sh = workspace + gmem_offset;
+            r_sh = work + gmem_offset;
         }
         if (n_shared == 1) {
-            z_sh = workspace + gmem_offset;
+            z_sh = work + gmem_offset;
         } else {
             z_sh = r_sh + sconf.padded_vec_len;
         }
         if (n_shared == 2) {
-            p_sh = workspace + gmem_offset;
+            p_sh = work + gmem_offset;
         } else {
             p_sh = z_sh + sconf.padded_vec_len;
         }
         if (n_shared == 3) {
-            Ap_sh = workspace + gmem_offset;
+            Ap_sh = work + gmem_offset;
         } else {
             Ap_sh = p_sh + sconf.padded_vec_len;
         }
         if (n_shared == 4) {
-            x_sh = workspace + gmem_offset;
+            x_sh = work + gmem_offset;
         } else {
             x_sh = Ap_sh + sconf.padded_vec_len;
         }
         if (!prec_shared_bool && n_shared == 5) {
-            prec_work_sh = workspace + gmem_offset;
+            prec_work_sh = work + gmem_offset;
         } else {
             prec_work_sh = x_sh + sconf.padded_vec_len;
         }
@@ -184,14 +198,14 @@ __global__ void __launch_bounds__(max_cg_threads)
         __shared__ uninitialized_array<ValueType, 1> rho_old_sh;
         __shared__ uninitialized_array<ValueType, 1> rho_new_sh;
         __shared__ uninitialized_array<ValueType, 1> alpha_sh;
-        __shared__ real_type norms_rhs_sh[1];
-        __shared__ real_type norms_res_sh[1];
+        __shared__ uninitialized_array<real_type, 1> norms_rhs_sh;
+        __shared__ uninitialized_array<real_type, 1> norms_res_sh;
 
         const auto mat_entry =
             gko::batch::matrix::extract_batch_item(mat, batch_id);
-        const ValueType* const b_global_entry =
+        const auto b_global_entry =
             gko::batch::multi_vector::batch_item_ptr(b, 1, num_rows, batch_id);
-        ValueType* const x_global_entry =
+        const auto x_global_entry =
             gko::batch::multi_vector::batch_item_ptr(x, 1, num_rows, batch_id);
 
         // generate preconditioner
@@ -260,6 +274,25 @@ __global__ void __launch_bounds__(max_cg_threads)
         single_rhs_copy(num_rows, x_sh, x_global_entry);
         __syncthreads();
     }
+}
+
+
+/**
+ * Returns the instantiation of apply_kernel that launch_apply_kernel launches,
+ * e.g. to query the attributes of the kernel.
+ */
+template <typename StopType, int n_shared, bool prec_shared, typename PrecType,
+          typename LogType, typename BatchMatrixType, typename ValueType>
+auto get_apply_kernel()
+{
+    return apply_kernel<
+        StopType, n_shared, prec_shared, PrecType, LogType,
+        decltype(arithmetic<ValueType>(std::declval<BatchMatrixType>())),
+        decltype(arithmetic<ValueType>(std::declval<const ValueType*>(),
+                                       size_type{})),
+        decltype(arithmetic<ValueType>(std::declval<ValueType*>(),
+                                       size_type{})),
+        device_type<device_real_arithmetic_type<ValueType>>, ValueType>;
 }
 
 

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,13 +29,19 @@ namespace GKO_DEVICE_NAMESPACE {
 namespace batch_single_kernels {
 
 
-template <typename ValueType>
-__device__ __forceinline__ void simple_apply(
-    const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
-    const ValueType* const __restrict__ b, ValueType* const __restrict__ x)
-{
-    constexpr auto tile_size = config::warp_size;
+// The values of the batch items below are pointers or arithmetic() ranges, and
+// the functions compute in the type the elements of the result read as.
 
+
+template <typename ValueType, typename MatValues, typename BValues,
+          typename XValues>
+__device__ __forceinline__ void simple_apply(
+    const gko::batch::matrix::dense::batch_item<const ValueType, MatValues>&
+        mat,
+    const BValues b, const XValues x)
+{
+    using arithmetic_type = arithmetic_type_t<decltype(x)>;
+    constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
     auto subgroup = group::tiled_partition<tile_size>(thread_block);
     const auto subgroup_id = static_cast<int>(threadIdx.x / tile_size);
@@ -43,15 +49,15 @@ __device__ __forceinline__ void simple_apply(
 
     for (int row = subgroup_id; row < mat.num_rows;
          row += num_subgroups_per_block) {
-        ValueType temp = zero<ValueType>();
+        arithmetic_type temp = zero<arithmetic_type>();
         for (int j = subgroup.thread_rank(); j < mat.num_cols;
              j += subgroup.size()) {
-            const ValueType val = mat.values[row * mat.stride + j];
+            const arithmetic_type val = mat.values[row * mat.stride + j];
             temp += val * b[j];
         }
 
         // subgroup level reduction
-        temp = reduce(subgroup, temp, thrust::plus<ValueType>{});
+        temp = reduce(subgroup, temp, thrust::plus<arithmetic_type>{});
 
         if (subgroup.thread_rank() == 0) {
             x[row] = temp;
@@ -59,11 +65,13 @@ __device__ __forceinline__ void simple_apply(
     }
 }
 
-template <typename ValueType>
+template <typename ValueType, typename MatValues, typename BValues,
+          typename XValues>
 __global__ __launch_bounds__(default_block_size) void simple_apply_kernel(
-    const gko::batch::matrix::dense::uniform_batch<const ValueType> mat,
-    const gko::batch::multi_vector::uniform_batch<const ValueType> b,
-    const gko::batch::multi_vector::uniform_batch<ValueType> x)
+    const gko::batch::matrix::dense::uniform_batch<const ValueType, MatValues>
+        mat,
+    const gko::batch::multi_vector::uniform_batch<const ValueType, BValues> b,
+    const gko::batch::multi_vector::uniform_batch<ValueType, XValues> x)
 {
     for (size_type batch_id = blockIdx.x; batch_id < mat.num_batch_items;
          batch_id += gridDim.x) {
@@ -76,15 +84,15 @@ __global__ __launch_bounds__(default_block_size) void simple_apply_kernel(
 }
 
 
-template <typename ValueType>
+template <typename ArithmeticType, typename ValueType, typename MatValues,
+          typename BValues, typename XValues>
 __device__ __forceinline__ void advanced_apply(
-    const ValueType alpha,
-    const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
-    const ValueType* const __restrict__ b, const ValueType beta,
-    ValueType* const __restrict__ x)
+    const ArithmeticType alpha,
+    const gko::batch::matrix::dense::batch_item<const ValueType, MatValues>&
+        mat,
+    const BValues b, const ArithmeticType beta, const XValues x)
 {
     constexpr auto tile_size = config::warp_size;
-
     auto thread_block = group::this_thread_block();
     auto subgroup = group::tiled_partition<tile_size>(thread_block);
     const auto subgroup_id = static_cast<int>(threadIdx.x / tile_size);
@@ -92,15 +100,15 @@ __device__ __forceinline__ void advanced_apply(
 
     for (int row = subgroup_id; row < mat.num_rows;
          row += num_subgroups_per_block) {
-        ValueType temp = zero<ValueType>();
+        ArithmeticType temp = zero<ArithmeticType>();
         for (int j = subgroup.thread_rank(); j < mat.num_cols;
              j += subgroup.size()) {
-            const ValueType val = mat.values[row * mat.stride + j];
+            const ArithmeticType val = mat.values[row * mat.stride + j];
             temp += alpha * val * b[j];
         }
 
         // subgroup level reduction
-        temp = reduce(subgroup, temp, thrust::plus<ValueType>{});
+        temp = reduce(subgroup, temp, thrust::plus<ArithmeticType>{});
 
         if (subgroup.thread_rank() == 0) {
             x[row] = temp + beta * x[row];
@@ -108,13 +116,17 @@ __device__ __forceinline__ void advanced_apply(
     }
 }
 
-template <typename ValueType>
+template <typename ValueType, typename AlphaValues, typename MatValues,
+          typename BValues, typename BetaValues, typename XValues>
 __global__ __launch_bounds__(default_block_size) void advanced_apply_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
-    const gko::batch::matrix::dense::uniform_batch<const ValueType> mat,
-    const gko::batch::multi_vector::uniform_batch<const ValueType> b,
-    const gko::batch::multi_vector::uniform_batch<const ValueType> beta,
-    const gko::batch::multi_vector::uniform_batch<ValueType> x)
+    const gko::batch::multi_vector::uniform_batch<const ValueType, AlphaValues>
+        alpha,
+    const gko::batch::matrix::dense::uniform_batch<const ValueType, MatValues>
+        mat,
+    const gko::batch::multi_vector::uniform_batch<const ValueType, BValues> b,
+    const gko::batch::multi_vector::uniform_batch<const ValueType, BetaValues>
+        beta,
+    const gko::batch::multi_vector::uniform_batch<ValueType, XValues> x)
 {
     for (size_type batch_id = blockIdx.x; batch_id < mat.num_batch_items;
          batch_id += gridDim.x) {
@@ -130,12 +142,12 @@ __global__ __launch_bounds__(default_block_size) void advanced_apply_kernel(
 }
 
 
-template <typename ValueType>
+template <typename ScaleValues, typename MatValues>
 __device__ __forceinline__ void scale(const int num_rows, const int stride,
                                       const int num_cols,
-                                      const ValueType* const col_scale,
-                                      const ValueType* const row_scale,
-                                      ValueType* const mat)
+                                      const ScaleValues col_scale,
+                                      const ScaleValues row_scale,
+                                      const MatValues mat)
 {
     for (int iz = threadIdx.x; iz < num_rows * num_cols; iz += blockDim.x) {
         const int row = iz / stride;
@@ -145,11 +157,10 @@ __device__ __forceinline__ void scale(const int num_rows, const int stride,
 }
 
 
-template <typename ValueType>
+template <typename ScaleValues, typename ValueType, typename Values>
 __global__ void scale_kernel(
-    const ValueType* const __restrict__ col_scale_vals,
-    const ValueType* const __restrict__ row_scale_vals,
-    const gko::batch::matrix::dense::uniform_batch<ValueType> mat)
+    const ScaleValues col_scale_vals, const ScaleValues row_scale_vals,
+    const gko::batch::matrix::dense::uniform_batch<ValueType, Values> mat)
 {
     const int num_rows = mat.num_rows;
     const int stride = mat.stride;
@@ -157,8 +168,10 @@ __global__ void scale_kernel(
     const size_type num_batch_items = mat.num_batch_items;
     for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
          batch_id += gridDim.x) {
-        const auto col_scale_b = col_scale_vals + num_cols * batch_id;
-        const auto row_scale_b = row_scale_vals + num_rows * batch_id;
+        const auto col_scale_b = gko::batch::multi_vector::batch_item_ptr(
+            col_scale_vals, 1, num_cols, batch_id);
+        const auto row_scale_b = gko::batch::multi_vector::batch_item_ptr(
+            row_scale_vals, 1, num_rows, batch_id);
         const auto mat_b =
             gko::batch::matrix::extract_batch_item(mat, batch_id);
         scale(num_rows, stride, num_cols, col_scale_b, row_scale_b,
@@ -167,11 +180,13 @@ __global__ void scale_kernel(
 }
 
 
-template <typename ValueType>
+template <typename ArithmeticType, typename ValueType, typename MatValues,
+          typename InOutValues>
 __device__ __forceinline__ void scale_add(
-    const ValueType alpha,
-    const gko::batch::matrix::dense::batch_item<const ValueType>& mat,
-    const gko::batch::matrix::dense::batch_item<ValueType>& in_out)
+    const ArithmeticType alpha,
+    const gko::batch::matrix::dense::batch_item<const ValueType, MatValues>&
+        mat,
+    const gko::batch::matrix::dense::batch_item<ValueType, InOutValues>& in_out)
 {
     // TODO: add stride support
     for (int iz = threadIdx.x; iz < mat.num_rows * mat.num_cols;
@@ -185,11 +200,15 @@ __device__ __forceinline__ void scale_add(
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename AlphaValues, typename MatValues,
+          typename InOutValues>
 __global__ void scale_add_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
-    const gko::batch::matrix::dense::uniform_batch<const ValueType> mat,
-    const gko::batch::matrix::dense::uniform_batch<ValueType> in_out)
+    const gko::batch::multi_vector::uniform_batch<const ValueType, AlphaValues>
+        alpha,
+    const gko::batch::matrix::dense::uniform_batch<const ValueType, MatValues>
+        mat,
+    const gko::batch::matrix::dense::uniform_batch<ValueType, InOutValues>
+        in_out)
 {
     const size_type num_batch_items = mat.num_batch_items;
     for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;
@@ -204,10 +223,10 @@ __global__ void scale_add_kernel(
 }
 
 
-template <typename ValueType>
+template <typename ArithmeticType, typename ValueType, typename Values>
 __device__ __forceinline__ void add_scaled_identity(
-    const ValueType alpha, const ValueType beta,
-    const gko::batch::matrix::dense::batch_item<ValueType>& mat)
+    const ArithmeticType alpha, const ArithmeticType beta,
+    const gko::batch::matrix::dense::batch_item<ValueType, Values>& mat)
 {
     // TODO: add stride support
     for (int iz = threadIdx.x; iz < mat.num_rows * mat.num_cols;
@@ -222,11 +241,14 @@ __device__ __forceinline__ void add_scaled_identity(
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename AlphaValues, typename BetaValues,
+          typename Values>
 __global__ void add_scaled_identity_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
-    const gko::batch::multi_vector::uniform_batch<const ValueType> beta,
-    const gko::batch::matrix::dense::uniform_batch<ValueType> mat)
+    const gko::batch::multi_vector::uniform_batch<const ValueType, AlphaValues>
+        alpha,
+    const gko::batch::multi_vector::uniform_batch<const ValueType, BetaValues>
+        beta,
+    const gko::batch::matrix::dense::uniform_batch<ValueType, Values> mat)
 {
     const size_type num_batch_items = mat.num_batch_items;
     for (size_type batch_id = blockIdx.x; batch_id < num_batch_items;

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -182,15 +182,19 @@ __device__ __forceinline__ void invert_dense_block(Group subwarp_grp,
 }
 
 
-template <int subwarp_size, typename ValueType>
+/**
+ * Inverts the diagonal blocks in the arithmetic type of A_vals.
+ */
+template <int subwarp_size, typename AValues, typename BlockValueType>
 __global__
 __launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
-    const gko::size_type nbatch, const int nnz, const ValueType* const A_vals,
+    const gko::size_type nbatch, const int nnz, const AValues A_vals,
     const gko::size_type num_blocks,
     const int* const __restrict__ blocks_cumulative_offsets,
     const int* const __restrict__ block_pointers,
-    const int* const blocks_pattern, ValueType* const blocks)
+    const int* const blocks_pattern, BlockValueType* const blocks)
 {
+    using ValueType = arithmetic_type_t<AValues>;
     auto thread_block = group::this_thread_block();
     auto subwarp_grp = group::tiled_partition<subwarp_size>(thread_block);
     const int subwarp_id_in_grid =
@@ -213,7 +217,7 @@ __launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
         const int* __restrict__ current_block_pattern =
             blocks_pattern + gko::detail::batch_jacobi::get_block_offset(
                                  block_idx, blocks_cumulative_offsets);
-        ValueType* __restrict__ current_block_data =
+        const auto current_block_data =
             blocks +
             gko::detail::batch_jacobi::get_global_block_offset(
                 batch_idx, num_blocks, block_idx, blocks_cumulative_offsets);
@@ -266,7 +270,9 @@ __launch_bounds__(default_block_size) void compute_block_jacobi_kernel(
 
             if (id_within_subwarp < block_size) {
                 current_block_data[row_diag_block * stride + col_diag_block] =
-                    val_to_write;  // non-coalesced accesses due to pivoting
+                    static_cast<BlockValueType>(
+                        val_to_write);  // non-coalesced accesses due to
+                                        // pivoting
             }
         }
     }

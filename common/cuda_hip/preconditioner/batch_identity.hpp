@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,6 +28,11 @@ template <typename ValueType>
 class Identity final {
 public:
     using value_type = ValueType;
+    /**
+     * The type of the vectors it is applied to, which is the type the solvers
+     * compute in.
+     */
+    using arithmetic_type = device_type<device_arithmetic_type<value_type>>;
 
     static constexpr int work_size = 0;
 
@@ -38,12 +43,12 @@ public:
 
     template <typename batch_item_type>
     __device__ __forceinline__ void generate(size_type, const batch_item_type&,
-                                             ValueType*)
+                                             arithmetic_type*)
     {}
 
     __device__ __forceinline__ void apply(const int num_rows,
-                                          const ValueType* const r,
-                                          ValueType* const z) const
+                                          const arithmetic_type* const r,
+                                          arithmetic_type* const z) const
     {
         for (int li = threadIdx.x; li < num_rows; li += blockDim.x) {
             z[li] = r[li];

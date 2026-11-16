@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -33,6 +33,11 @@ class ScalarJacobi final {
 public:
     using value_type = ValueType;
     using index_type = int;
+    /**
+     * The type of the work vector and of the vectors it is applied to, which is
+     * the type the solvers compute in.
+     */
+    using arithmetic_type = device_type<device_arithmetic_type<value_type>>;
 
     /**
      * The size of the work vector (in bytes) required in case of dynamic
@@ -41,7 +46,7 @@ public:
     __host__ __device__ static constexpr int dynamic_work_size(
         const int num_rows, int)
     {
-        return num_rows * sizeof(value_type);
+        return num_rows * sizeof(arithmetic_type);
     }
 
     /**
@@ -53,17 +58,18 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by dynamic_work_size.
      */
+    template <typename MatValues>
     __device__ __forceinline__ void generate(
         size_type,
-        const gko::batch::matrix::ell::batch_item<const value_type,
-                                                  const index_type>& mat,
-        value_type* const __restrict__ work)
+        const gko::batch::matrix::ell::batch_item<
+            const value_type, const index_type, MatValues>& mat,
+        arithmetic_type* const __restrict__ work)
     {
         const auto col = mat.col_idxs;
         const auto val = mat.values;
         work_ = work;
         for (int tidx = threadIdx.x; tidx < mat.num_rows; tidx += blockDim.x) {
-            auto temp = one<ValueType>();
+            auto temp = one<arithmetic_type>();
             for (size_type idx = 0; idx < mat.num_stored_elems_per_row; idx++) {
                 const auto ind = tidx + idx * mat.stride;
                 const auto col_idx = col[ind];
@@ -71,7 +77,7 @@ public:
                     break;
                 } else {
                     if (col_idx == tidx) {
-                        temp = one<ValueType>() / val[ind];
+                        temp = one<arithmetic_type>() / val[ind];
                     }
                 }
             }
@@ -89,11 +95,12 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by dynamic_work_size.
      */
+    template <typename MatValues>
     __device__ __forceinline__ void generate(
         size_type,
-        const gko::batch::matrix::csr::batch_item<const value_type,
-                                                  const index_type>& mat,
-        value_type* const __restrict__ work)
+        const gko::batch::matrix::csr::batch_item<
+            const value_type, const index_type, MatValues>& mat,
+        arithmetic_type* const __restrict__ work)
     {
         work_ = work;
         constexpr auto warp_size = config::warp_size;
@@ -105,9 +112,10 @@ public:
             for (int j = mat.row_ptrs[irow] + tile.thread_rank();
                  j < mat.row_ptrs[irow + 1]; j += warp_size) {
                 if (mat.col_idxs[j] == irow) {
-                    work_[irow] = (mat.values[j] != zero<ValueType>())
-                                      ? one<ValueType>() / mat.values[j]
-                                      : one<ValueType>();
+                    const arithmetic_type diag = mat.values[j];
+                    work_[irow] = (diag != zero<arithmetic_type>())
+                                      ? one<arithmetic_type>() / diag
+                                      : one<arithmetic_type>();
                 }
             }
         }
@@ -123,10 +131,12 @@ public:
      *              entries. It must be allocated with at least the amount
      *              of memory given by dynamic_work_size.
      */
+    template <typename MatValues>
     __device__ __forceinline__ void generate(
         size_type,
-        const gko::batch::matrix::dense::batch_item<const value_type>& mat,
-        value_type* const __restrict__ work)
+        const gko::batch::matrix::dense::batch_item<const value_type,
+                                                    MatValues>& mat,
+        arithmetic_type* const __restrict__ work)
     {
         work_ = work;
         constexpr auto warp_size = config::warp_size;
@@ -136,16 +146,17 @@ public:
         const int num_tiles = (blockDim.x - 1) / warp_size + 1;
         for (int irow = tile_rank; irow < mat.num_rows; irow += num_tiles) {
             const int iz = irow * static_cast<int>(mat.stride) + irow;
-            work_[irow] = (mat.values[iz] != zero<ValueType>())
-                              ? one<ValueType>() / mat.values[iz]
-                              : one<ValueType>();
+            const arithmetic_type diag = mat.values[iz];
+            work_[irow] = (diag != zero<arithmetic_type>())
+                              ? one<arithmetic_type>() / diag
+                              : one<arithmetic_type>();
         }
         __syncthreads();
     }
 
     __device__ __forceinline__ void apply(const int num_rows,
-                                          const value_type* const r,
-                                          value_type* const z) const
+                                          const arithmetic_type* const r,
+                                          arithmetic_type* const z) const
     {
         for (int i = threadIdx.x; i < num_rows; i += blockDim.x) {
             z[i] = work_[i] * r[i];
@@ -153,7 +164,7 @@ public:
     }
 
 private:
-    value_type* __restrict__ work_;
+    arithmetic_type* __restrict__ work_;
 };
 
 

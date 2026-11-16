@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -128,6 +128,67 @@ get_batch_struct(batch::matrix::Ell<ValueType, IndexType>* const op)
             static_cast<IndexType>(op->get_common_size()[0]),
             static_cast<IndexType>(op->get_common_size()[1]),
             static_cast<IndexType>(op->get_num_stored_elements_per_row())};
+}
+
+
+/**
+ * Passes a batch of csr matrices to a kernel on values of type KernelValueType
+ * with its values as an arithmetic() range.
+ */
+template <typename KernelValueType, typename ValueType, typename IndexType>
+inline auto arithmetic(
+    const batch::matrix::csr::uniform_batch<ValueType, IndexType>& batch)
+{
+    const auto values = arithmetic<KernelValueType>(
+        batch.values, batch.num_batch_items * batch.num_nnz_per_item);
+    return batch::matrix::csr::uniform_batch<ValueType, IndexType,
+                                             decltype(values)>{
+        values,
+        batch.col_idxs,
+        batch.row_ptrs,
+        batch.num_batch_items,
+        batch.num_rows,
+        batch.num_cols,
+        batch.num_nnz_per_item};
+}
+
+
+/**
+ * @copydoc arithmetic(const batch::matrix::csr::uniform_batch<ValueType,
+ * IndexType>&)
+ */
+template <typename KernelValueType, typename ValueType>
+inline auto arithmetic(
+    const batch::matrix::dense::uniform_batch<ValueType>& batch)
+{
+    const auto values = arithmetic<KernelValueType>(
+        batch.values, batch.num_batch_items * batch.num_rows * batch.stride);
+    return batch::matrix::dense::uniform_batch<ValueType, decltype(values)>{
+        values, batch.num_batch_items, batch.stride, batch.num_rows,
+        batch.num_cols};
+}
+
+
+/**
+ * @copydoc arithmetic(const batch::matrix::csr::uniform_batch<ValueType,
+ * IndexType>&)
+ */
+template <typename KernelValueType, typename ValueType, typename IndexType>
+inline auto arithmetic(
+    const batch::matrix::ell::uniform_batch<ValueType, IndexType>& batch)
+{
+    const auto values = arithmetic<KernelValueType>(
+        batch.values, batch.num_batch_items * batch.num_rows *
+                          batch.num_stored_elems_per_row);
+    return batch::matrix::ell::uniform_batch<ValueType, IndexType,
+                                             decltype(values)>{
+        values,
+        batch.col_idxs,
+        batch.num_batch_items,
+        batch.stride,
+        batch.num_rows,
+        batch.num_cols,
+        batch.num_stored_elems_per_row};
 }
 
 

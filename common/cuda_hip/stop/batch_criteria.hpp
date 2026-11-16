@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,6 +7,8 @@
 
 
 #include <ginkgo/core/base/math.hpp>
+
+#include "common/unified/base/arithmetic_accessor.hpp"
 
 
 namespace gko {
@@ -21,7 +23,11 @@ namespace batch_stop {
 template <typename ValueType>
 class SimpleRelResidual {
 public:
-    using real_type = remove_complex<ValueType>;
+    /**
+     * The type the norms and the tolerance are compared in, which is the real
+     * type the solvers compute in.
+     */
+    using real_type = device_type<device_real_arithmetic_type<ValueType>>;
 
     __device__ __forceinline__ SimpleRelResidual(
         const real_type rel_res_tol, const real_type* const rhs_b_norms)
@@ -46,7 +52,10 @@ private:
 template <typename ValueType>
 class SimpleAbsResidual {
 public:
-    using real_type = remove_complex<ValueType>;
+    /**
+     * @copydoc SimpleRelResidual::real_type
+     */
+    using real_type = device_type<device_real_arithmetic_type<ValueType>>;
 
     __device__ __forceinline__ SimpleAbsResidual(const real_type tol,
                                                  const real_type*)

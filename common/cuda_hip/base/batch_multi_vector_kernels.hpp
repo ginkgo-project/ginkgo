@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -31,10 +31,17 @@ namespace batch_single_kernels {
 constexpr auto default_block_size = 256;
 
 
-template <typename ValueType, typename Mapping>
+// The values of the batch items below are pointers or arithmetic() ranges, and
+// the functions compute in the type their elements read as.
+
+
+template <typename ValueType, typename AlphaValues, typename XValues,
+          typename Mapping>
 __device__ __forceinline__ void scale(
-    const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
-    const gko::batch::multi_vector::batch_item<ValueType>& x, Mapping map)
+    const gko::batch::multi_vector::batch_item<const ValueType, AlphaValues>&
+        alpha,
+    const gko::batch::multi_vector::batch_item<ValueType, XValues>& x,
+    Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
@@ -48,10 +55,13 @@ __device__ __forceinline__ void scale(
 }
 
 
-template <typename ValueType, typename Mapping>
+template <typename ValueType, typename AlphaValues, typename XValues,
+          typename Mapping>
 __global__ __launch_bounds__(default_block_size) void scale_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
-    const gko::batch::multi_vector::uniform_batch<ValueType> x, Mapping map)
+    const gko::batch::multi_vector::uniform_batch<const ValueType, AlphaValues>
+        alpha,
+    const gko::batch::multi_vector::uniform_batch<ValueType, XValues> x,
+    Mapping map)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
@@ -62,11 +72,14 @@ __global__ __launch_bounds__(default_block_size) void scale_kernel(
 }
 
 
-template <typename ValueType, typename Mapping>
+template <typename ValueType, typename AlphaValues, typename XValues,
+          typename YValues, typename Mapping>
 __device__ __forceinline__ void add_scaled(
-    const gko::batch::multi_vector::batch_item<const ValueType>& alpha,
-    const gko::batch::multi_vector::batch_item<const ValueType>& x,
-    const gko::batch::multi_vector::batch_item<ValueType>& y, Mapping map)
+    const gko::batch::multi_vector::batch_item<const ValueType, AlphaValues>&
+        alpha,
+    const gko::batch::multi_vector::batch_item<const ValueType, XValues>& x,
+    const gko::batch::multi_vector::batch_item<ValueType, YValues>& y,
+    Mapping map)
 {
     const int max_li = x.num_rows * x.num_rhs;
     for (int li = threadIdx.x; li < max_li; li += blockDim.x) {
@@ -79,11 +92,14 @@ __device__ __forceinline__ void add_scaled(
 }
 
 
-template <typename ValueType, typename Mapping>
+template <typename ValueType, typename AlphaValues, typename XValues,
+          typename YValues, typename Mapping>
 __global__ __launch_bounds__(default_block_size) void add_scaled_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> alpha,
-    const gko::batch::multi_vector::uniform_batch<const ValueType> x,
-    const gko::batch::multi_vector::uniform_batch<ValueType> y, Mapping map)
+    const gko::batch::multi_vector::uniform_batch<const ValueType, AlphaValues>
+        alpha,
+    const gko::batch::multi_vector::uniform_batch<const ValueType, XValues> x,
+    const gko::batch::multi_vector::uniform_batch<ValueType, YValues> y,
+    Mapping map)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
          batch_id += gridDim.x) {
@@ -95,11 +111,15 @@ __global__ __launch_bounds__(default_block_size) void add_scaled_kernel(
 }
 
 
-template <typename Group, typename ValueType>
+/**
+ * Computes the dot product of two vectors in the type of result.
+ */
+template <typename Group, typename XValues, typename YValues,
+          typename ValueType>
 __device__ __forceinline__ void single_rhs_compute_conj_dot(Group subgroup,
                                                             const int num_rows,
-                                                            const ValueType* x,
-                                                            const ValueType* y,
+                                                            const XValues x,
+                                                            const YValues y,
                                                             ValueType& result)
 
 {
@@ -117,15 +137,17 @@ __device__ __forceinline__ void single_rhs_compute_conj_dot(Group subgroup,
 }
 
 
-template <typename Group, typename ValueType, typename Mapping>
+template <typename Group, typename ValueType, typename XValues,
+          typename YValues, typename ResultValues, typename Mapping>
 __device__ __forceinline__ void gen_one_dot(
-    const gko::batch::multi_vector::batch_item<const ValueType>& x,
-    const gko::batch::multi_vector::batch_item<const ValueType>& y,
+    const gko::batch::multi_vector::batch_item<const ValueType, XValues>& x,
+    const gko::batch::multi_vector::batch_item<const ValueType, YValues>& y,
     const int rhs_index,
-    const gko::batch::multi_vector::batch_item<ValueType>& result,
+    const gko::batch::multi_vector::batch_item<ValueType, ResultValues>& result,
     Group subgroup, Mapping conj_map)
 {
-    ValueType val = zero<ValueType>();
+    using arithmetic_type = arithmetic_type_t<decltype(result.values)>;
+    arithmetic_type val = zero<arithmetic_type>();
 
     for (int r = subgroup.thread_rank(); r < x.num_rows; r += subgroup.size()) {
         val += conj_map(x.values[r * x.stride + rhs_index]) *
@@ -133,7 +155,7 @@ __device__ __forceinline__ void gen_one_dot(
     }
 
     // subgroup level reduction
-    val = reduce(subgroup, val, thrust::plus<ValueType>{});
+    val = reduce(subgroup, val, thrust::plus<arithmetic_type>{});
 
     if (subgroup.thread_rank() == 0) {
         result.values[rhs_index] = val;
@@ -141,11 +163,12 @@ __device__ __forceinline__ void gen_one_dot(
 }
 
 
-template <typename ValueType, typename Mapping>
+template <typename ValueType, typename XValues, typename YValues,
+          typename ResultValues, typename Mapping>
 __device__ __forceinline__ void compute_gen_dot_product(
-    const gko::batch::multi_vector::batch_item<const ValueType>& x,
-    const gko::batch::multi_vector::batch_item<const ValueType>& y,
-    const gko::batch::multi_vector::batch_item<ValueType>& result,
+    const gko::batch::multi_vector::batch_item<const ValueType, XValues>& x,
+    const gko::batch::multi_vector::batch_item<const ValueType, YValues>& y,
+    const gko::batch::multi_vector::batch_item<ValueType, ResultValues>& result,
     Mapping conj_map)
 {
     constexpr auto tile_size = config::warp_size;
@@ -161,12 +184,14 @@ __device__ __forceinline__ void compute_gen_dot_product(
 }
 
 
-template <typename ValueType, typename Mapping>
+template <typename ValueType, typename XValues, typename YValues,
+          typename ResultValues, typename Mapping>
 __global__
 __launch_bounds__(default_block_size) void compute_gen_dot_product_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> x,
-    const gko::batch::multi_vector::uniform_batch<const ValueType> y,
-    const gko::batch::multi_vector::uniform_batch<ValueType> result,
+    const gko::batch::multi_vector::uniform_batch<const ValueType, XValues> x,
+    const gko::batch::multi_vector::uniform_batch<const ValueType, YValues> y,
+    const gko::batch::multi_vector::uniform_batch<ValueType, ResultValues>
+        result,
     Mapping map)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
@@ -179,20 +204,23 @@ __launch_bounds__(default_block_size) void compute_gen_dot_product_kernel(
 }
 
 
-template <typename Group, typename ValueType>
-__device__ __forceinline__ void single_rhs_compute_norm2(
-    Group subgroup, const int num_rows, const ValueType* x,
-    remove_complex<ValueType>& result)
+/**
+ * Computes the 2-norm of a vector in the type of result.
+ */
+template <typename Group, typename XValues, typename RealType>
+__device__ __forceinline__ void single_rhs_compute_norm2(Group subgroup,
+                                                         const int num_rows,
+                                                         const XValues x,
+                                                         RealType& result)
 {
-    using real_type = typename gko::remove_complex<ValueType>;
-    real_type val = zero<real_type>();
+    RealType val = zero<RealType>();
 
     for (int r = subgroup.thread_rank(); r < num_rows; r += subgroup.size()) {
         val += squared_norm(x[r]);
     }
 
     // subgroup level reduction
-    val = reduce(subgroup, val, thrust::plus<remove_complex<ValueType>>{});
+    val = reduce(subgroup, val, thrust::plus<RealType>{});
 
     if (subgroup.thread_rank() == 0) {
         result = sqrt(val);
@@ -200,15 +228,16 @@ __device__ __forceinline__ void single_rhs_compute_norm2(
 }
 
 
-template <typename Group, typename ValueType>
+template <typename Group, typename ValueType, typename XValues,
+          typename ResultValues>
 __device__ __forceinline__ void one_norm2(
-    const gko::batch::multi_vector::batch_item<const ValueType>& x,
+    const gko::batch::multi_vector::batch_item<const ValueType, XValues>& x,
     const int rhs_index,
-    const gko::batch::multi_vector::batch_item<remove_complex<ValueType>>&
-        result,
+    const gko::batch::multi_vector::batch_item<remove_complex<ValueType>,
+                                               ResultValues>& result,
     Group subgroup)
 {
-    using real_type = typename gko::remove_complex<ValueType>;
+    using real_type = arithmetic_type_t<decltype(result.values)>;
     real_type val = zero<real_type>();
 
     for (int r = subgroup.thread_rank(); r < x.num_rows; r += subgroup.size()) {
@@ -216,7 +245,7 @@ __device__ __forceinline__ void one_norm2(
     }
 
     // subgroup level reduction
-    val = reduce(subgroup, val, thrust::plus<remove_complex<ValueType>>{});
+    val = reduce(subgroup, val, thrust::plus<real_type>{});
 
     if (subgroup.thread_rank() == 0) {
         result.values[rhs_index] = sqrt(val);
@@ -230,11 +259,11 @@ __device__ __forceinline__ void one_norm2(
  * @param x  A row-major multivector with nrhs columns.
  * @param result  Holds norm value for each vector in x.
  */
-template <typename ValueType>
+template <typename ValueType, typename XValues, typename ResultValues>
 __device__ __forceinline__ void compute_norm2(
-    const gko::batch::multi_vector::batch_item<const ValueType>& x,
-    const gko::batch::multi_vector::batch_item<remove_complex<ValueType>>&
-        result)
+    const gko::batch::multi_vector::batch_item<const ValueType, XValues>& x,
+    const gko::batch::multi_vector::batch_item<remove_complex<ValueType>,
+                                               ResultValues>& result)
 {
     constexpr auto tile_size = config::warp_size;
     auto thread_block = group::this_thread_block();
@@ -249,10 +278,11 @@ __device__ __forceinline__ void compute_norm2(
 }
 
 
-template <typename ValueType>
+template <typename ValueType, typename XValues, typename ResultValues>
 __global__ __launch_bounds__(default_block_size) void compute_norm2_kernel(
-    const gko::batch::multi_vector::uniform_batch<const ValueType> x,
-    const gko::batch::multi_vector::uniform_batch<remove_complex<ValueType>>
+    const gko::batch::multi_vector::uniform_batch<const ValueType, XValues> x,
+    const gko::batch::multi_vector::uniform_batch<remove_complex<ValueType>,
+                                                  ResultValues>
         result)
 {
     for (size_type batch_id = blockIdx.x; batch_id < x.num_batch_items;
@@ -264,10 +294,13 @@ __global__ __launch_bounds__(default_block_size) void compute_norm2_kernel(
 }
 
 
-template <typename ValueType>
+/**
+ * Copies a vector, where in and out are pointers or arithmetic() ranges.
+ */
+template <typename InValues, typename OutValues>
 __device__ __forceinline__ void single_rhs_copy(const int num_rows,
-                                                const ValueType* in,
-                                                ValueType* out)
+                                                const InValues in,
+                                                const OutValues out)
 {
     for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
         out[iz] = in[iz];

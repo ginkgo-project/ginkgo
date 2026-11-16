@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -12,6 +12,8 @@
 #include <ginkgo/core/matrix/batch_dense.hpp>
 #include <ginkgo/core/matrix/batch_ell.hpp>
 
+#include "core/base/batch_struct.hpp"
+
 
 namespace gko {
 namespace batch {
@@ -21,13 +23,16 @@ namespace csr {
 
 /**
  * Encapsulates one matrix from a batch of csr matrices.
+ *
+ * @tparam Values  a pointer or a range over the values
  */
-template <typename ValueType, typename IndexType = const int32>
+template <typename ValueType, typename IndexType = const int32,
+          typename Values = ValueType*>
 struct batch_item {
     using value_type = ValueType;
     using index_type = IndexType;
 
-    ValueType* values;
+    Values values;
     index_type* col_idxs;
     index_type* row_ptrs;
     index_type num_rows;
@@ -43,14 +48,17 @@ struct batch_item {
 
 /**
  * A 'simple' structure to store a global uniform batch of csr matrices.
+ *
+ * @tparam Values  the type that accesses the values, see batch_item
  */
-template <typename ValueType, typename IndexType = const int32>
+template <typename ValueType, typename IndexType = const int32,
+          typename Values = ValueType*>
 struct uniform_batch {
     using value_type = ValueType;
     using index_type = IndexType;
-    using entry_type = batch_item<value_type, index_type>;
+    using entry_type = batch_item<value_type, index_type, Values>;
 
-    ValueType* values;
+    Values values;
     index_type* col_idxs;
     index_type* row_ptrs;
     size_type num_batch_items;
@@ -73,11 +81,13 @@ namespace dense {
 
 /**
  * Encapsulates one matrix from a batch of dense matrices.
+ *
+ * @tparam Values  a pointer or a range over the values
  */
-template <typename ValueType>
+template <typename ValueType, typename Values = ValueType*>
 struct batch_item {
     using value_type = ValueType;
-    value_type* values;
+    Values values;
     int32 stride;
     int32 num_rows;
     int32 num_cols;
@@ -91,13 +101,15 @@ struct batch_item {
 
 /**
  * A 'simple' structure to store a global uniform batch of dense matrices.
+ *
+ * @tparam Values  the type that accesses the values, see batch_item
  */
-template <typename ValueType>
+template <typename ValueType, typename Values = ValueType*>
 struct uniform_batch {
     using value_type = ValueType;
-    using entry_type = batch_item<ValueType>;
+    using entry_type = batch_item<ValueType, Values>;
 
-    ValueType* values;
+    Values values;
     size_type num_batch_items;
     int32 stride;
     int32 num_rows;
@@ -118,13 +130,16 @@ namespace ell {
 
 /**
  * Encapsulates one matrix from a batch of ell matrices.
+ *
+ * @tparam Values  a pointer or a range over the values
  */
-template <typename ValueType, typename IndexType = const int32>
+template <typename ValueType, typename IndexType = const int32,
+          typename Values = ValueType*>
 struct batch_item {
     using value_type = ValueType;
     using index_type = IndexType;
 
-    ValueType* values;
+    Values values;
     index_type* col_idxs;
     index_type stride;
     index_type num_rows;
@@ -140,14 +155,17 @@ struct batch_item {
 
 /**
  * A 'simple' structure to store a global uniform batch of ell matrices.
+ *
+ * @tparam Values  the type that accesses the values, see batch_item
  */
-template <typename ValueType, typename IndexType = const int32>
+template <typename ValueType, typename IndexType = const int32,
+          typename Values = ValueType*>
 struct uniform_batch {
     using value_type = ValueType;
     using index_type = IndexType;
-    using entry_type = batch_item<value_type, index_type>;
+    using entry_type = batch_item<value_type, index_type, Values>;
 
-    ValueType* values;
+    Values values;
     index_type* col_idxs;
     size_type num_batch_items;
     index_type stride;
@@ -183,12 +201,14 @@ to_const(const csr::uniform_batch<ValueType, IndexType>& ub)
 }
 
 
-template <typename ValueType, typename IndexType>
-GKO_ATTRIBUTES GKO_INLINE csr::batch_item<ValueType, IndexType>
-extract_batch_item(const csr::uniform_batch<ValueType, IndexType>& batch,
-                   const size_type batch_idx)
+template <typename ValueType, typename IndexType, typename Values>
+GKO_ATTRIBUTES GKO_INLINE csr::batch_item<ValueType, IndexType, Values>
+extract_batch_item(
+    const csr::uniform_batch<ValueType, IndexType, Values>& batch,
+    const size_type batch_idx)
 {
-    return {batch.values + batch_idx * batch.num_nnz_per_item,
+    return {multi_vector::batch_item_ptr(batch.values, batch.num_nnz_per_item,
+                                         1, batch_idx),
             batch.col_idxs,
             batch.row_ptrs,
             batch.num_rows,
@@ -229,11 +249,13 @@ GKO_ATTRIBUTES GKO_INLINE dense::uniform_batch<const ValueType> to_const(
 }
 
 
-template <typename ValueType>
-GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType> extract_batch_item(
-    const dense::uniform_batch<ValueType>& batch, const size_type batch_idx)
+template <typename ValueType, typename Values>
+GKO_ATTRIBUTES GKO_INLINE dense::batch_item<ValueType, Values>
+extract_batch_item(const dense::uniform_batch<ValueType, Values>& batch,
+                   const size_type batch_idx)
 {
-    return {batch.values + batch_idx * batch.stride * batch.num_rows,
+    return {multi_vector::batch_item_ptr(batch.values, batch.stride,
+                                         batch.num_rows, batch_idx),
             batch.stride, batch.num_rows, batch.num_cols};
 }
 
@@ -265,13 +287,15 @@ to_const(const ell::uniform_batch<ValueType, IndexType>& ub)
 }
 
 
-template <typename ValueType, typename IndexType>
-GKO_ATTRIBUTES GKO_INLINE ell::batch_item<ValueType, IndexType>
-extract_batch_item(const ell::uniform_batch<ValueType, IndexType>& batch,
-                   const size_type batch_idx)
+template <typename ValueType, typename IndexType, typename Values>
+GKO_ATTRIBUTES GKO_INLINE ell::batch_item<ValueType, IndexType, Values>
+extract_batch_item(
+    const ell::uniform_batch<ValueType, IndexType, Values>& batch,
+    const size_type batch_idx)
 {
-    return {batch.values +
-                batch_idx * batch.num_stored_elems_per_row * batch.num_rows,
+    return {multi_vector::batch_item_ptr(batch.values,
+                                         batch.num_stored_elems_per_row,
+                                         batch.num_rows, batch_idx),
             batch.col_idxs,
             batch.stride,
             batch.num_rows,

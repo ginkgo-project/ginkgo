@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -34,8 +34,8 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
            batch::MultiVector<ValueType>* x)
 {
     const auto num_blocks = x->get_num_batch_items();
-    const auto alpha_ub = get_batch_struct(alpha);
-    const auto x_ub = get_batch_struct(x);
+    const auto alpha_ub = arithmetic<ValueType>(get_batch_struct(alpha));
+    const auto x_ub = arithmetic<ValueType>(get_batch_struct(x));
     if (alpha->get_common_size()[1] == 1) {
         batch_single_kernels::scale_kernel<<<num_blocks, default_block_size, 0,
                                              exec->get_stream()>>>(
@@ -67,9 +67,9 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_blocks = x->get_num_batch_items();
     const size_type nrhs = x->get_common_size()[1];
-    const auto alpha_ub = get_batch_struct(alpha);
-    const auto x_ub = get_batch_struct(x);
-    const auto y_ub = get_batch_struct(y);
+    const auto alpha_ub = arithmetic<ValueType>(get_batch_struct(alpha));
+    const auto x_ub = arithmetic<ValueType>(get_batch_struct(x));
+    const auto y_ub = arithmetic<ValueType>(get_batch_struct(y));
     if (alpha->get_common_size()[1] == 1) {
         batch_single_kernels::add_scaled_kernel<<<
             num_blocks, default_block_size, 0, exec->get_stream()>>>(
@@ -93,9 +93,9 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_blocks = x->get_num_batch_items();
     const auto num_rhs = x->get_common_size()[1];
-    const auto x_ub = get_batch_struct(x);
-    const auto y_ub = get_batch_struct(y);
-    const auto res_ub = get_batch_struct(result);
+    const auto x_ub = arithmetic<ValueType>(get_batch_struct(x));
+    const auto y_ub = arithmetic<ValueType>(get_batch_struct(y));
+    const auto res_ub = arithmetic<ValueType>(get_batch_struct(result));
     batch_single_kernels::compute_gen_dot_product_kernel<<<
         num_blocks, default_block_size, 0, exec->get_stream()>>>(
         x_ub, y_ub, res_ub, [] __device__(auto val) { return val; });
@@ -113,9 +113,9 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_blocks = x->get_num_batch_items();
     const auto num_rhs = x->get_common_size()[1];
-    const auto x_ub = get_batch_struct(x);
-    const auto y_ub = get_batch_struct(y);
-    const auto res_ub = get_batch_struct(result);
+    const auto x_ub = arithmetic<ValueType>(get_batch_struct(x));
+    const auto y_ub = arithmetic<ValueType>(get_batch_struct(y));
+    const auto res_ub = arithmetic<ValueType>(get_batch_struct(result));
     batch_single_kernels::compute_gen_dot_product_kernel<<<
         num_blocks, default_block_size, 0, exec->get_stream()>>>(
         x_ub, y_ub, res_ub, [] __device__(auto val) { return conj(val); });
@@ -132,8 +132,8 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
 {
     const auto num_blocks = x->get_num_batch_items();
     const auto num_rhs = x->get_common_size()[1];
-    const auto x_ub = get_batch_struct(x);
-    const auto res_ub = get_batch_struct(result);
+    const auto x_ub = arithmetic<ValueType>(get_batch_struct(x));
+    const auto res_ub = arithmetic<ValueType>(get_batch_struct(result));
     batch_single_kernels::compute_norm2_kernel<<<num_blocks, default_block_size,
                                                  0, exec->get_stream()>>>(
         x_ub, res_ub);
