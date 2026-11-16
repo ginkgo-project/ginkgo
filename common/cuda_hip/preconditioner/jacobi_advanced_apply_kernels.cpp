@@ -31,8 +31,8 @@ void advanced_apply(
     const IndexType* block_pointers, const ValueType* blocks,
     const preconditioner::block_interleaved_storage_scheme<IndexType>&
         storage_scheme,
-    const ValueType* alpha, const ValueType* b, size_type b_stride,
-    ValueType* x, size_type x_stride);
+    const ValueType* alpha, matrix::view::dense<const ValueType> b,
+    matrix::view::dense<ValueType> x);
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_advanced_apply, advanced_apply);
 
@@ -62,7 +62,10 @@ void apply(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
             syn::type_list<>(), exec, num_blocks,
             block_precisions.get_const_data(), block_pointers.get_const_data(),
             blocks.get_const_data(), storage_scheme, alpha.values,
-            b.values + col, b.stride, x.values + col, x.stride);
+            matrix::view::dense<const ValueType>{dim<2>{b.size[0], 1}, b.stride,
+                                                 b.values + col},
+            matrix::view::dense<ValueType>{dim<2>{x.size[0], 1}, x.stride,
+                                           x.values + col});
     }
 }
 

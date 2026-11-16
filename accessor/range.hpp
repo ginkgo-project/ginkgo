@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 #define GKO_ACCESSOR_RANGE_HPP_
 
 
+#include <type_traits>
 #include <utility>
 
 #include "utils.hpp"
@@ -95,6 +96,25 @@ public:
         static_assert(sizeof...(dimensions) <= dimensionality,
                       "Too many dimensions in range call");
         return accessor_(std::forward<DimensionTypes>(dimensions)...);
+    }
+
+    /**
+     * Returns the value at the specified index of a one-dimensional range.
+     *
+     * @tparam IndexType  an integer type
+     *
+     * @param index  the index of the value
+     *
+     * @return the value on position `index`, like `(*this)(index)`
+     */
+    template <typename IndexType,
+              std::enable_if_t<are_all_integral<IndexType>::value, int> = 0>
+    GKO_ACC_ATTRIBUTES constexpr auto operator[](IndexType&& index) const
+        -> decltype(std::declval<accessor>()(std::forward<IndexType>(index)))
+    {
+        static_assert(dimensionality == 1,
+                      "operator[] requires a one-dimensional range");
+        return accessor_(std::forward<IndexType>(index));
     }
 
     /**

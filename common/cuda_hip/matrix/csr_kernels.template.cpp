@@ -45,6 +45,7 @@
 #include "common/cuda_hip/components/segment_scan.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/base/array_access.hpp"
 #include "core/base/index_range.hpp"
 #include "core/base/mixed_precision_types.hpp"
@@ -463,8 +464,8 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_merge_path_spmv(
     typename output_accessor::arithmetic_type* __restrict__ val_out)
 {
     using type = typename output_accessor::arithmetic_type;
-    const type alpha_val = alpha[0];
-    const type beta_val = beta[0];
+    const auto alpha_val = static_cast<type>(alpha[0]);
+    const auto beta_val = static_cast<type>(beta[0]);
     if (is_zero(beta_val)) {
         merge_path_spmv<items_per_thread>(
             num_rows, val, col_idxs, row_ptrs, b, c, row_out, val_out,
@@ -570,8 +571,8 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
     acc::range<output_accessor> c)
 {
     using type = typename output_accessor::arithmetic_type;
-    const type alpha_val = alpha[0];
-    const type beta_val = beta[0];
+    const auto alpha_val = static_cast<type>(alpha[0]);
+    const auto beta_val = static_cast<type>(beta[0]);
     if (is_zero(beta_val)) {
         device_classical_spmv<subwarp_size>(
             num_rows, val, col_idxs, row_ptrs, b, c,
@@ -622,19 +623,17 @@ __global__ __launch_bounds__(default_block_size) void spgeam_nnz(
 }
 
 
-template <int subwarp_size, bool write_cols, typename ValueType,
-          typename IndexType>
+template <int subwarp_size, bool write_cols, typename ValueAccessor,
+          typename IndexType, typename OutputAccessor>
 __global__ __launch_bounds__(default_block_size) void spgeam(
-    const ValueType* __restrict__ palpha,
-    const IndexType* __restrict__ a_row_ptrs,
-    const IndexType* __restrict__ a_col_idxs,
-    const ValueType* __restrict__ a_vals, const ValueType* __restrict__ pbeta,
-    const IndexType* __restrict__ b_row_ptrs,
-    const IndexType* __restrict__ b_col_idxs,
-    const ValueType* __restrict__ b_vals, IndexType num_rows,
-    const IndexType* __restrict__ c_row_ptrs,
-    IndexType* __restrict__ c_col_idxs, ValueType* __restrict__ c_vals)
+    ValueAccessor palpha, const IndexType* __restrict__ a_row_ptrs,
+    const IndexType* __restrict__ a_col_idxs, ValueAccessor a_vals,
+    ValueAccessor pbeta, const IndexType* __restrict__ b_row_ptrs,
+    const IndexType* __restrict__ b_col_idxs, ValueAccessor b_vals,
+    IndexType num_rows, const IndexType* __restrict__ c_row_ptrs,
+    IndexType* __restrict__ c_col_idxs, OutputAccessor c_vals)
 {
+    using arithmetic_type = arithmetic_type_t<OutputAccessor>;
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
@@ -676,10 +675,10 @@ __global__ __launch_bounds__(default_block_size) void spgeam(
                 if constexpr (write_cols) {
                     c_col_idxs[c_begin + c_ofs] = c_col;
                 }
-                auto a_val =
-                    a_col <= b_col ? a_vals[a_nz + a_begin] : zero<ValueType>();
-                auto b_val =
-                    b_col <= a_col ? b_vals[b_nz + b_begin] : zero<ValueType>();
+                auto a_val = a_col <= b_col ? a_vals[a_nz + a_begin]
+                                            : zero<arithmetic_type>();
+                auto b_val = b_col <= a_col ? b_vals[b_nz + b_begin]
+                                            : zero<arithmetic_type>();
                 c_vals[c_begin + c_ofs] = alpha * a_val + beta * b_val;
             }
             // advance by the number of merged elements
@@ -869,15 +868,15 @@ __global__ __launch_bounds__(default_block_size) void inv_nonsymm_permute(
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueAccessor, typename IndexType,
+          typename OutputAccessor>
 __global__ __launch_bounds__(default_block_size) void row_scale_permute(
-    size_type num_rows, const ValueType* __restrict__ scale,
+    size_type num_rows, ValueAccessor scale,
     const IndexType* __restrict__ permutation,
     const IndexType* __restrict__ in_row_ptrs,
-    const IndexType* __restrict__ in_cols,
-    const ValueType* __restrict__ in_vals,
+    const IndexType* __restrict__ in_cols, ValueAccessor in_vals,
     const IndexType* __restrict__ out_row_ptrs,
-    IndexType* __restrict__ out_cols, ValueType* __restrict__ out_vals)
+    IndexType* __restrict__ out_cols, OutputAccessor out_vals)
 {
     auto tid = thread::get_subwarp_id_flat<subwarp_size>();
     if (tid >= num_rows) {
@@ -896,15 +895,15 @@ __global__ __launch_bounds__(default_block_size) void row_scale_permute(
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueAccessor, typename IndexType,
+          typename OutputAccessor>
 __global__ __launch_bounds__(default_block_size) void inv_row_scale_permute(
-    size_type num_rows, const ValueType* __restrict__ scale,
+    size_type num_rows, ValueAccessor scale,
     const IndexType* __restrict__ permutation,
     const IndexType* __restrict__ in_row_ptrs,
-    const IndexType* __restrict__ in_cols,
-    const ValueType* __restrict__ in_vals,
+    const IndexType* __restrict__ in_cols, ValueAccessor in_vals,
     const IndexType* __restrict__ out_row_ptrs,
-    IndexType* __restrict__ out_cols, ValueType* __restrict__ out_vals)
+    IndexType* __restrict__ out_cols, OutputAccessor out_vals)
 {
     auto tid = thread::get_subwarp_id_flat<subwarp_size>();
     if (tid >= num_rows) {
@@ -923,15 +922,15 @@ __global__ __launch_bounds__(default_block_size) void inv_row_scale_permute(
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueAccessor, typename IndexType,
+          typename OutputAccessor>
 __global__ __launch_bounds__(default_block_size) void inv_symm_scale_permute(
-    size_type num_rows, const ValueType* __restrict__ scale,
+    size_type num_rows, ValueAccessor scale,
     const IndexType* __restrict__ permutation,
     const IndexType* __restrict__ in_row_ptrs,
-    const IndexType* __restrict__ in_cols,
-    const ValueType* __restrict__ in_vals,
+    const IndexType* __restrict__ in_cols, ValueAccessor in_vals,
     const IndexType* __restrict__ out_row_ptrs,
-    IndexType* __restrict__ out_cols, ValueType* __restrict__ out_vals)
+    IndexType* __restrict__ out_cols, OutputAccessor out_vals)
 {
     auto tid = thread::get_subwarp_id_flat<subwarp_size>();
     if (tid >= num_rows) {
@@ -952,17 +951,16 @@ __global__ __launch_bounds__(default_block_size) void inv_symm_scale_permute(
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueAccessor, typename IndexType,
+          typename OutputAccessor>
 __global__ __launch_bounds__(default_block_size) void inv_nonsymm_scale_permute(
-    size_type num_rows, const ValueType* __restrict__ row_scale,
-    const IndexType* __restrict__ row_permutation,
-    const ValueType* __restrict__ col_scale,
+    size_type num_rows, ValueAccessor row_scale,
+    const IndexType* __restrict__ row_permutation, ValueAccessor col_scale,
     const IndexType* __restrict__ col_permutation,
     const IndexType* __restrict__ in_row_ptrs,
-    const IndexType* __restrict__ in_cols,
-    const ValueType* __restrict__ in_vals,
+    const IndexType* __restrict__ in_cols, ValueAccessor in_vals,
     const IndexType* __restrict__ out_row_ptrs,
-    IndexType* __restrict__ out_cols, ValueType* __restrict__ out_vals)
+    IndexType* __restrict__ out_cols, OutputAccessor out_vals)
 {
     auto tid = thread::get_subwarp_id_flat<subwarp_size>();
     if (tid >= num_rows) {
@@ -1033,14 +1031,13 @@ __launch_bounds__(default_block_size) void calculate_nnz_per_row_in_span(
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueAccessor, typename IndexType, typename OutputAccessor>
 __global__ __launch_bounds__(default_block_size) void add_scaled_identity(
-    const ValueType* const __restrict__ alpha,
-    const ValueType* const __restrict__ beta, const IndexType num_rows,
+    ValueAccessor alpha, ValueAccessor beta, const IndexType num_rows,
     const IndexType* const __restrict__ row_ptrs,
-    const IndexType* const __restrict__ col_idxs,
-    ValueType* const __restrict__ values)
+    const IndexType* const __restrict__ col_idxs, OutputAccessor values)
 {
+    using arithmetic_type = arithmetic_type_t<OutputAccessor>;
     constexpr int warp_size = config::warp_size;
     auto tile_grp =
         group::tiled_partition<warp_size>(group::this_thread_block());
@@ -1052,11 +1049,11 @@ __global__ __launch_bounds__(default_block_size) void add_scaled_identity(
         const auto beta_val = beta[0];
         const auto alpha_val = alpha[0];
         for (IndexType iz = tid_in_warp; iz < num_nz; iz += warp_size) {
-            if (beta_val != one<ValueType>()) {
+            if (beta_val != one<arithmetic_type>()) {
                 values[iz + row_start] *= beta_val;
             }
             if (col_idxs[iz + row_start] == warpid &&
-                alpha_val != zero<ValueType>()) {
+                alpha_val != zero<arithmetic_type>()) {
                 values[iz + row_start] += alpha_val;
             }
         }
@@ -1351,11 +1348,11 @@ namespace {
 
 template <int subwarp_size, typename ValueType, typename IndexType>
 void spgeam(syn::value_list<int, subwarp_size>,
-            std::shared_ptr<const DefaultExecutor> exec, const ValueType* alpha,
-            const IndexType* a_row_ptrs, const IndexType* a_col_idxs,
-            const ValueType* a_vals, const ValueType* beta,
-            const IndexType* b_row_ptrs, const IndexType* b_col_idxs,
-            const ValueType* b_vals,
+            std::shared_ptr<const DefaultExecutor> exec,
+            matrix::view::dense<const ValueType> alpha,
+            matrix::view::csr<const ValueType, const IndexType> a,
+            matrix::view::dense<const ValueType> beta,
+            matrix::view::csr<const ValueType, const IndexType> b,
             matrix::CsrBuilder<ValueType, IndexType>* c_builder)
 {
     auto c = c_builder->get_matrix();
@@ -1367,7 +1364,7 @@ void spgeam(syn::value_list<int, subwarp_size>,
     if (num_blocks > 0) {
         kernel::spgeam_nnz<subwarp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                a_row_ptrs, a_col_idxs, b_row_ptrs, b_col_idxs, m, c_row_ptrs);
+                a.row_ptrs, a.col_idxs, b.row_ptrs, b.col_idxs, m, c_row_ptrs);
     }
 
     // build row pointers
@@ -1378,14 +1375,18 @@ void spgeam(syn::value_list<int, subwarp_size>,
     c_builder->get_col_idx_array().resize_and_reset(c_nnz);
     c_builder->get_value_array().resize_and_reset(c_nnz);
     auto c_col_idxs = c->get_col_idxs();
-    auto c_vals = c->get_values();
+    const auto alpha_val = arithmetic<ValueType, 1>(alpha);
+    const auto beta_val = arithmetic<ValueType, 1>(beta);
+    const auto a_vals = arithmetic<ValueType>(a);
+    const auto b_vals = arithmetic<ValueType>(b);
+    const auto c_vals = arithmetic<ValueType>(c->get_values(), c_nnz);
     if (num_blocks > 0) {
         kernel::spgeam<subwarp_size, true>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                as_device_type(alpha), a_row_ptrs, a_col_idxs,
-                as_device_type(a_vals), as_device_type(beta), b_row_ptrs,
-                b_col_idxs, as_device_type(b_vals), m, c_row_ptrs, c_col_idxs,
-                as_device_type(c_vals));
+                acc::as_device_range(alpha_val), a.row_ptrs, a.col_idxs,
+                acc::as_device_range(a_vals), acc::as_device_range(beta_val),
+                b.row_ptrs, b.col_idxs, acc::as_device_range(b_vals), m,
+                c_row_ptrs, c_col_idxs, acc::as_device_range(c_vals));
     }
 }
 
@@ -1411,9 +1412,8 @@ void spgeam(std::shared_ptr<const DefaultExecutor> exec,
             return compiled_subwarp_size >= nnz_per_row ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
-        a.row_ptrs, a.col_idxs, a.values, beta.values, b.row_ptrs, b.col_idxs,
-        b.values, c_builder);
+        syn::value_list<int>(), syn::type_list<>(), exec, alpha, a, beta, b,
+        c_builder);
 }
 
 
@@ -1423,23 +1423,28 @@ namespace {
 template <int subwarp_size, typename ValueType, typename IndexType>
 void spgeam_numeric(syn::value_list<int, subwarp_size>,
                     std::shared_ptr<const DefaultExecutor> exec,
-                    const ValueType* alpha, const IndexType* a_row_ptrs,
-                    const IndexType* a_col_idxs, const ValueType* a_vals,
-                    const ValueType* beta, const IndexType* b_row_ptrs,
-                    const IndexType* b_col_idxs, const ValueType* b_vals,
-                    const IndexType* c_row_ptrs, ValueType* c_vals,
-                    size_type num_rows)
+                    matrix::view::dense<const ValueType> alpha,
+                    matrix::view::csr<const ValueType, const IndexType> a,
+                    matrix::view::dense<const ValueType> beta,
+                    matrix::view::csr<const ValueType, const IndexType> b,
+                    matrix::view::csr<ValueType, IndexType> c)
 {
-    auto m = static_cast<IndexType>(num_rows);
+    auto m = static_cast<IndexType>(a.size[0]);
     auto subwarps_per_block = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(m, subwarps_per_block);
+    const auto alpha_val = arithmetic<ValueType, 1>(alpha);
+    const auto beta_val = arithmetic<ValueType, 1>(beta);
+    const auto a_vals = arithmetic<ValueType>(a);
+    const auto b_vals = arithmetic<ValueType>(b);
+    const auto c_vals = arithmetic<ValueType>(c);
     if (num_blocks > 0) {
         kernel::spgeam<subwarp_size, false>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                as_device_type(alpha), a_row_ptrs, a_col_idxs,
-                as_device_type(a_vals), as_device_type(beta), b_row_ptrs,
-                b_col_idxs, as_device_type(b_vals), m, c_row_ptrs,
-                static_cast<IndexType*>(nullptr), as_device_type(c_vals));
+                acc::as_device_range(alpha_val), a.row_ptrs, a.col_idxs,
+                acc::as_device_range(a_vals), acc::as_device_range(beta_val),
+                b.row_ptrs, b.col_idxs, acc::as_device_range(b_vals), m,
+                c.row_ptrs, static_cast<IndexType*>(nullptr),
+                acc::as_device_range(c_vals));
     }
 }
 
@@ -1465,9 +1470,7 @@ void spgeam_numeric(std::shared_ptr<const DefaultExecutor> exec,
             return compiled_subwarp_size >= nnz_per_row ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
-        a.row_ptrs, a.col_idxs, a.values, beta.values, b.row_ptrs, b.col_idxs,
-        b.values, c.row_ptrs, c.values, a.size[0]);
+        syn::value_list<int>(), syn::type_list<>(), exec, alpha, a, beta, b, c);
 }
 
 
@@ -1617,12 +1620,16 @@ void inv_symm_scale_permute(
     components::prefix_sum_nonnegative(exec, permuted.row_ptrs, num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
+    const auto scale_vals = arithmetic<ValueType>(scale, num_rows);
+    const auto orig_vals = arithmetic<ValueType>(orig);
+    const auto permuted_vals = arithmetic<ValueType>(permuted);
     if (copy_num_blocks > 0) {
         kernel::inv_symm_scale_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                num_rows, as_device_type(scale), perm, orig.row_ptrs,
-                orig.col_idxs, as_device_type(orig.values), permuted.row_ptrs,
-                permuted.col_idxs, as_device_type(permuted.values));
+                num_rows, acc::as_device_range(scale_vals), perm, orig.row_ptrs,
+                orig.col_idxs, acc::as_device_range(orig_vals),
+                permuted.row_ptrs, permuted.col_idxs,
+                acc::as_device_range(permuted_vals));
     }
 }
 
@@ -1645,13 +1652,18 @@ void inv_nonsymm_scale_permute(
     components::prefix_sum_nonnegative(exec, permuted.row_ptrs, num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
+    const auto row_scale_vals = arithmetic<ValueType>(row_scale, num_rows);
+    const auto col_scale_vals = arithmetic<ValueType>(col_scale, orig.size[1]);
+    const auto orig_vals = arithmetic<ValueType>(orig);
+    const auto permuted_vals = arithmetic<ValueType>(permuted);
     if (copy_num_blocks > 0) {
         kernel::inv_nonsymm_scale_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                num_rows, as_device_type(row_scale), row_perm,
-                as_device_type(col_scale), col_perm, orig.row_ptrs,
-                orig.col_idxs, as_device_type(orig.values), permuted.row_ptrs,
-                permuted.col_idxs, as_device_type(permuted.values));
+                num_rows, acc::as_device_range(row_scale_vals), row_perm,
+                acc::as_device_range(col_scale_vals), col_perm, orig.row_ptrs,
+                orig.col_idxs, acc::as_device_range(orig_vals),
+                permuted.row_ptrs, permuted.col_idxs,
+                acc::as_device_range(permuted_vals));
     }
 }
 
@@ -1673,13 +1685,16 @@ void row_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
+    const auto scale_vals = arithmetic<ValueType>(scale, num_rows);
+    const auto orig_vals = arithmetic<ValueType>(orig);
+    const auto row_permuted_vals = arithmetic<ValueType>(row_permuted);
     if (copy_num_blocks > 0) {
         kernel::row_scale_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                num_rows, as_device_type(scale), perm, orig.row_ptrs,
-                orig.col_idxs, as_device_type(orig.values),
+                num_rows, acc::as_device_range(scale_vals), perm, orig.row_ptrs,
+                orig.col_idxs, acc::as_device_range(orig_vals),
                 row_permuted.row_ptrs, row_permuted.col_idxs,
-                as_device_type(row_permuted.values));
+                acc::as_device_range(row_permuted_vals));
     }
 }
 
@@ -1702,13 +1717,16 @@ void inv_row_scale_permute(
                                        num_rows + 1);
     auto copy_num_blocks =
         ceildiv(num_rows, default_block_size / config::warp_size);
+    const auto scale_vals = arithmetic<ValueType>(scale, num_rows);
+    const auto orig_vals = arithmetic<ValueType>(orig);
+    const auto row_permuted_vals = arithmetic<ValueType>(row_permuted);
     if (copy_num_blocks > 0) {
         kernel::inv_row_scale_permute<config::warp_size>
             <<<copy_num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                num_rows, as_device_type(scale), perm, orig.row_ptrs,
-                orig.col_idxs, as_device_type(orig.values),
+                num_rows, acc::as_device_range(scale_vals), perm, orig.row_ptrs,
+                orig.col_idxs, acc::as_device_range(orig_vals),
                 row_permuted.row_ptrs, row_permuted.col_idxs,
-                as_device_type(row_permuted.values));
+                acc::as_device_range(row_permuted_vals));
     }
 }
 
@@ -1906,11 +1924,14 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
     }
     const auto nthreads = nrows * config::warp_size;
     const auto nblocks = ceildiv(nthreads, default_block_size);
+    const auto alpha_val = arithmetic<ValueType, 1>(alpha);
+    const auto beta_val = arithmetic<ValueType, 1>(beta);
+    const auto mtx_vals = arithmetic<ValueType>(mtx);
     kernel::add_scaled_identity<<<nblocks, default_block_size, 0,
                                   exec->get_stream()>>>(
-        as_device_type(alpha.values), as_device_type(beta.values),
+        acc::as_device_range(alpha_val), acc::as_device_range(beta_val),
         static_cast<IndexType>(nrows), mtx.row_ptrs, mtx.col_idxs,
-        as_device_type(mtx.values));
+        acc::as_device_range(mtx_vals));
 }
 
 
@@ -1933,8 +1954,8 @@ void merge_path_spmv(
         std::optional<matrix::view::dense<const OutputValueType>>>
         beta = {})
 {
-    using arithmetic_type =
-        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    using arithmetic_type = device_arithmetic_type<
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>>;
     const IndexType total = a.size[0] + a.num_stored_elements;
     const IndexType grid_num =
         ceildiv(total, spmv_block_size * items_per_thread);
@@ -2079,8 +2100,8 @@ void classical_spmv(
         std::optional<matrix::view::dense<const OutputValueType>>>
         beta = {})
 {
-    using arithmetic_type =
-        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    using arithmetic_type = device_arithmetic_type<
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>>;
 
     const auto nwarps = exec->get_num_warps_per_sm() *
                         exec->get_num_multiprocessor() *
@@ -2136,8 +2157,8 @@ bool load_balance_spmv(
         std::optional<matrix::view::dense<const OutputValueType>>>
         beta = {})
 {
-    using arithmetic_type =
-        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    using arithmetic_type = device_arithmetic_type<
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>>;
 
 // not support 16 bit atomic
 #if !defined(CUDA_VERSION)
@@ -2353,8 +2374,8 @@ void spmv(std::shared_ptr<const DefaultExecutor> exec,
         return;
     }
     if (strategy == matrix::csr::spmv_strategy::merge_path) {
-        using arithmetic_type =
-            highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+        using arithmetic_type = device_arithmetic_type<highest_precision<
+            InputValueType, OutputValueType, MatrixValueType>>;
         int items_per_thread =
             host_kernel::compute_items_per_thread<arithmetic_type, IndexType>(
                 exec);
@@ -2406,8 +2427,8 @@ void advanced_spmv(std::shared_ptr<const DefaultExecutor> exec,
         return;
     }
     if (strategy == matrix::csr::spmv_strategy::merge_path) {
-        using arithmetic_type =
-            highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+        using arithmetic_type = device_arithmetic_type<highest_precision<
+            InputValueType, OutputValueType, MatrixValueType>>;
         int items_per_thread =
             host_kernel::compute_items_per_thread<arithmetic_type, IndexType>(
                 exec);
@@ -2614,9 +2635,6 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
         auto b_vals = b.values;
         auto b_row_ptrs = b.row_ptrs;
         auto b_col_idxs = b.col_idxs;
-        auto d_vals = d.values;
-        auto d_row_ptrs = d.row_ptrs;
-        auto d_col_idxs = d.col_idxs;
         auto null_value = static_cast<ValueType*>(nullptr);
         auto null_index = static_cast<IndexType*>(nullptr);
         auto one_value = one<ValueType>();
@@ -2661,6 +2679,9 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
         sparselib::destroy(b_descr);
         sparselib::destroy(a_descr);
 
+        const matrix::view::csr<const ValueType, const IndexType> c_tmp{
+            dim<2>{a.size[0], b.size[1]}, static_cast<size_type>(c_nnz),
+            c_tmp_vals, c_tmp_row_ptrs, c_tmp_col_idxs};
         auto total_nnz = c_nnz + d.num_stored_elements;
         auto nnz_per_row = total_nnz / m;
         select_spgeam(
@@ -2669,9 +2690,8 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
                 return compiled_subwarp_size >= nnz_per_row ||
                        compiled_subwarp_size == config::warp_size;
             },
-            syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
-            c_tmp_row_ptrs, c_tmp_col_idxs, c_tmp_vals, beta.values, d_row_ptrs,
-            d_col_idxs, d_vals, c_builder);
+            syn::value_list<int>(), syn::type_list<>(), exec, alpha, c_tmp,
+            beta, d, c_builder);
     } else {
         GKO_NOT_IMPLEMENTED;
     }
@@ -2687,9 +2707,6 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     auto b_vals = b.values;
     auto b_row_ptrs = b.row_ptrs;
     auto b_col_idxs = b.col_idxs;
-    auto d_vals = d.values;
-    auto d_row_ptrs = d.row_ptrs;
-    auto d_col_idxs = d.col_idxs;
     auto m = IndexType(a.size[0]);
     auto n = IndexType(b.size[1]);
     auto k = IndexType(a.size[1]);
@@ -2748,6 +2765,11 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
     sparselib::destroy(a_descr);
     sparselib::destroy(spgemm_descr);
 
+    const matrix::view::csr<const ValueType, const IndexType> c_tmp{
+        dim<2>{a.size[0], b.size[1]}, c_tmp_nnz,
+        c_tmp_vals_array.get_const_data(),
+        c_tmp_row_ptrs_array.get_const_data(),
+        c_tmp_col_idxs_array.get_const_data()};
     auto spgeam_total_nnz = c_tmp_nnz + d.num_stored_elements;
     auto nnz_per_row = spgeam_total_nnz / m;
     select_spgeam(
@@ -2756,11 +2778,8 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
             return compiled_subwarp_size >= nnz_per_row ||
                    compiled_subwarp_size == config::warp_size;
         },
-        syn::value_list<int>(), syn::type_list<>(), exec, alpha.values,
-        c_tmp_row_ptrs_array.get_const_data(),
-        c_tmp_col_idxs_array.get_const_data(),
-        c_tmp_vals_array.get_const_data(), beta.values, d_row_ptrs, d_col_idxs,
-        d_vals, c_builder);
+        syn::value_list<int>(), syn::type_list<>(), exec, alpha, c_tmp, beta, d,
+        c_builder);
 #endif  // GKO_COMPILING_CUDA
 }
 
@@ -2768,18 +2787,20 @@ void advanced_spgemm(std::shared_ptr<const DefaultExecutor> exec,
 namespace kernel {
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename IndexType, typename ConstValueAccessor,
+          typename ValueAccessor>
 __global__ __launch_bounds__(default_block_size) void spgemm_reuse(
     const IndexType* __restrict__ a_row_ptrs,
-    const IndexType* __restrict__ a_cols, const ValueType* __restrict__ a_vals,
+    const IndexType* __restrict__ a_cols, ConstValueAccessor a_vals,
     const IndexType* __restrict__ b_row_ptrs,
-    const IndexType* __restrict__ b_cols, const ValueType* __restrict__ b_vals,
+    const IndexType* __restrict__ b_cols, ConstValueAccessor b_vals,
     const IndexType* __restrict__ c_row_ptrs,
-    const IndexType* __restrict__ c_cols, ValueType* __restrict__ c_vals,
+    const IndexType* __restrict__ c_cols, ValueAccessor c_vals,
     const IndexType* __restrict__ lookup_storage_offsets,
     const int32* __restrict__ lookup_storage,
     const int64* __restrict__ lookup_descs, IndexType num_rows)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     const auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
@@ -2795,7 +2816,7 @@ __global__ __launch_bounds__(default_block_size) void spgemm_reuse(
         c_row_ptrs,     c_cols,       lookup_storage_offsets,
         lookup_storage, lookup_descs, static_cast<size_type>(row)};
     for (auto i = c_begin + lane; i < c_end; i += subwarp_size) {
-        c_vals[i] = zero<ValueType>();
+        c_vals[i] = zero<arithmetic_type>();
     }
     for (const auto a_nz : irange{a_begin, a_end}) {
         const auto a_col = a_cols[a_nz];
@@ -2816,21 +2837,23 @@ __global__ __launch_bounds__(default_block_size) void spgemm_reuse(
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename IndexType, typename ConstValueAccessor,
+          typename ValueAccessor>
 __global__ __launch_bounds__(default_block_size) void advanced_spgemm_reuse(
     const IndexType* __restrict__ a_row_ptrs,
-    const IndexType* __restrict__ a_cols, const ValueType* __restrict__ a_vals,
+    const IndexType* __restrict__ a_cols, ConstValueAccessor a_vals,
     const IndexType* __restrict__ b_row_ptrs,
-    const IndexType* __restrict__ b_cols, const ValueType* __restrict__ b_vals,
+    const IndexType* __restrict__ b_cols, ConstValueAccessor b_vals,
     const IndexType* __restrict__ d_row_ptrs,
-    const IndexType* __restrict__ d_cols, const ValueType* __restrict__ d_vals,
-    const ValueType* __restrict__ alpha, const ValueType* __restrict__ beta,
+    const IndexType* __restrict__ d_cols, ConstValueAccessor d_vals,
+    ConstValueAccessor alpha, ConstValueAccessor beta,
     const IndexType* __restrict__ c_row_ptrs,
-    const IndexType* __restrict__ c_cols, ValueType* __restrict__ c_vals,
+    const IndexType* __restrict__ c_cols, ValueAccessor c_vals,
     const IndexType* __restrict__ lookup_storage_offsets,
     const int32* __restrict__ lookup_storage,
     const int64* __restrict__ lookup_descs, IndexType num_rows)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     const auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
@@ -2850,7 +2873,7 @@ __global__ __launch_bounds__(default_block_size) void advanced_spgemm_reuse(
         c_row_ptrs,     c_cols,       lookup_storage_offsets,
         lookup_storage, lookup_descs, static_cast<size_type>(row)};
     for (auto i = c_begin + lane; i < c_end; i += subwarp_size) {
-        c_vals[i] = zero<ValueType>();
+        c_vals[i] = zero<arithmetic_type>();
     }
     for (const auto a_nz : irange{a_begin, a_end}) {
         const auto a_col = a_cols[a_nz];
@@ -2901,9 +2924,9 @@ void spgemm_reuse(syn::value_list<int, subwarp_size>,
     const auto a_cols = a.col_idxs;
     const auto b_cols = b.col_idxs;
     const auto c_cols = c.col_idxs;
-    const auto a_vals = as_device_type(a.values);
-    const auto b_vals = as_device_type(b.values);
-    const auto c_vals = as_device_type(c.values);
+    const auto a_vals = arithmetic<ValueType>(a);
+    const auto b_vals = arithmetic<ValueType>(b);
+    const auto c_vals = arithmetic<ValueType>(c);
     const auto lookup_storage_offsets =
         c_lookup.storage_offsets.get_const_data();
     const auto lookup_storage = c_lookup.storage.get_const_data();
@@ -2913,8 +2936,9 @@ void spgemm_reuse(syn::value_list<int, subwarp_size>,
             ceildiv(num_rows, default_block_size / subwarp_size);
         kernel::spgemm_reuse<subwarp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
-                c_row_ptrs, c_cols, c_vals, lookup_storage_offsets,
+                a_row_ptrs, a_cols, acc::as_device_range(a_vals), b_row_ptrs,
+                b_cols, acc::as_device_range(b_vals), c_row_ptrs, c_cols,
+                acc::as_device_range(c_vals), lookup_storage_offsets,
                 lookup_storage, lookup_descs, num_rows);
     }
 }
@@ -2943,12 +2967,12 @@ void advanced_spgemm_reuse(
     const auto b_cols = b.col_idxs;
     const auto c_cols = c.col_idxs;
     const auto d_cols = d.col_idxs;
-    const auto a_vals = as_device_type(a.values);
-    const auto b_vals = as_device_type(b.values);
-    const auto c_vals = as_device_type(c.values);
-    const auto d_vals = as_device_type(d.values);
-    const auto palpha = as_device_type(alpha.values);
-    const auto pbeta = as_device_type(beta.values);
+    const auto a_vals = arithmetic<ValueType>(a);
+    const auto b_vals = arithmetic<ValueType>(b);
+    const auto c_vals = arithmetic<ValueType>(c);
+    const auto d_vals = arithmetic<ValueType>(d);
+    const auto palpha = arithmetic<ValueType, 1>(alpha);
+    const auto pbeta = arithmetic<ValueType, 1>(beta);
     const auto lookup_storage_offsets =
         c_lookup.storage_offsets.get_const_data();
     const auto lookup_storage = c_lookup.storage.get_const_data();
@@ -2958,10 +2982,12 @@ void advanced_spgemm_reuse(
             ceildiv(num_rows, default_block_size / subwarp_size);
         kernel::advanced_spgemm_reuse<subwarp_size>
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                a_row_ptrs, a_cols, a_vals, b_row_ptrs, b_cols, b_vals,
-                d_row_ptrs, d_cols, d_vals, palpha, pbeta, c_row_ptrs, c_cols,
-                c_vals, lookup_storage_offsets, lookup_storage, lookup_descs,
-                num_rows);
+                a_row_ptrs, a_cols, acc::as_device_range(a_vals), b_row_ptrs,
+                b_cols, acc::as_device_range(b_vals), d_row_ptrs, d_cols,
+                acc::as_device_range(d_vals), acc::as_device_range(palpha),
+                acc::as_device_range(pbeta), c_row_ptrs, c_cols,
+                acc::as_device_range(c_vals), lookup_storage_offsets,
+                lookup_storage, lookup_descs, num_rows);
     }
 }
 

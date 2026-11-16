@@ -1,11 +1,15 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <ginkgo/core/base/math.hpp>
+
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/factorization/factorization_helpers.hpp"
 
 
@@ -97,6 +101,30 @@ __global__ __launch_bounds__(default_block_size) void initialize_l(
         auto l_diag_idx = l_row_ptrs[row + 1] - 1;
         l_col_idxs[l_diag_idx] = row;
         l_values[l_diag_idx] = l_closure.map_diag(diag_val);
+    }
+}
+
+
+/**
+ * Replaces the diagonal entry of each row of L, which is stored last in the
+ * row, by its square root, or by one if the square root is not finite.
+ */
+template <typename IndexType, typename ValueAccessor>
+__global__ __launch_bounds__(default_block_size) void ic_init(
+    const IndexType* __restrict__ l_row_ptrs, ValueAccessor l_vals,
+    size_type num_rows)
+{
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
+    auto row = thread::get_thread_id_flat();
+    if (row >= num_rows) {
+        return;
+    }
+    auto l_nz = l_row_ptrs[row + 1] - 1;
+    auto diag = sqrt(static_cast<arithmetic_type>(l_vals[l_nz]));
+    if (is_finite(diag)) {
+        l_vals[l_nz] = diag;
+    } else {
+        l_vals[l_nz] = one<arithmetic_type>();
     }
 }
 

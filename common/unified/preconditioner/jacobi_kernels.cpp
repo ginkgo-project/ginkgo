@@ -46,7 +46,9 @@ void invert_diagonal(std::shared_ptr<const DefaultExecutor> exec,
             inv_diag[elem] = is_zero(diag[elem]) ? one(diag[elem])
                                                  : one(diag[elem]) / diag[elem];
         },
-        diag.get_size(), diag, inv_diag);
+        diag.get_size(),
+        arithmetic<ValueType>(diag.get_const_data(), diag.get_size()),
+        arithmetic<ValueType>(inv_diag.get_data(), inv_diag.get_size()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_JACOBI_INVERT_DIAGONAL_KERNEL);
@@ -68,7 +70,10 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                 x(row, col) = beta[col] * x(row, col) +
                               alpha[col] * b(row, col) * diag[row];
             },
-            x.size, diag, alpha.values, b, beta.values, x);
+            x.size,
+            arithmetic<ValueType>(diag.get_const_data(), diag.get_size()),
+            arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(b),
+            arithmetic<ValueType, 1>(beta), arithmetic<ValueType>(x));
     } else {
         run_kernel(
             exec,
@@ -77,7 +82,10 @@ void scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
                 x(row, col) =
                     beta[0] * x(row, col) + alpha[0] * b(row, col) * diag[row];
             },
-            x.size, diag, alpha.values, b, beta.values, x);
+            x.size,
+            arithmetic<ValueType>(diag.get_const_data(), diag.get_size()),
+            arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(b),
+            arithmetic<ValueType, 1>(beta), arithmetic<ValueType>(x));
     }
 }
 
@@ -95,7 +103,8 @@ void simple_scalar_apply(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto row, auto col, auto diag, auto b, auto x) {
             x(row, col) = b(row, col) * diag[row];
         },
-        x.size, diag, b, x);
+        x.size, arithmetic<ValueType>(diag.get_const_data(), diag.get_size()),
+        arithmetic<ValueType>(b), arithmetic<ValueType>(x));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -131,7 +140,8 @@ void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto row_ptrs, auto col_idxs, auto vals,
                       auto diag) {
-            auto off_diag = zero(vals[0]);
+            auto off_diag =
+                zero<device_type<device_arithmetic_type<ValueType>>>();
             for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
                 if (col_idxs[i] == row) {
                     continue;
@@ -143,8 +153,8 @@ void scalar_l1(std::shared_ptr<const DefaultExecutor> exec,
             // value.
             diag[row] += off_diag;
         },
-        csr.size[0], csr.row_ptrs, csr.col_idxs, csr.values,
-        diag->get_values());
+        csr.size[0], csr.row_ptrs, csr.col_idxs, arithmetic<ValueType>(csr),
+        arithmetic<ValueType>(diag->get_values(), diag->get_size()[0]));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -168,7 +178,8 @@ void block_l1(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
             auto start = block_ptrs[block_id];
             auto end = block_ptrs[block_id + 1];
             for (auto row = start; row < end; row++) {
-                auto off_diag = zero(vals[0]);
+                auto off_diag =
+                    zero<device_type<device_arithmetic_type<ValueType>>>();
                 IndexType diag_idx = -1;
                 for (auto i = row_ptrs[row]; i < row_ptrs[row + 1]; i++) {
                     auto col = col_idxs[i];
@@ -187,7 +198,7 @@ void block_l1(std::shared_ptr<const DefaultExecutor> exec, size_type num_blocks,
             }
         },
         num_blocks, block_ptrs.get_const_data(), csr.row_ptrs, csr.col_idxs,
-        csr.values);
+        arithmetic<ValueType>(csr));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

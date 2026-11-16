@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/array.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
@@ -18,6 +19,7 @@
 #include "common/cuda_hip/components/searching.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/factorization/factorization_helpers.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
@@ -536,17 +538,14 @@ void initialize_l(
             num_rows, system_matrix.row_ptrs, system_matrix.col_idxs,
             as_device_type(system_matrix.values), csr_l.row_ptrs,
             csr_l.col_idxs, as_device_type(csr_l.values),
-            triangular_mtx_closure(
-                [diag_sqrt] __device__(auto val) {
-                    if (diag_sqrt) {
-                        val = sqrt(val);
-                        if (!is_finite(val)) {
-                            val = one(val);
-                        }
-                    }
-                    return val;
-                },
-                identity{}));
+            triangular_mtx_closure(identity{}, identity{}));
+        // the square root is computed separately, so that the copy above stays
+        // exact
+        if (diag_sqrt) {
+            const auto l_vals = arithmetic<ValueType>(csr_l);
+            helpers::ic_init<<<grid_dim, block_size, 0, exec->get_stream()>>>(
+                csr_l.row_ptrs, acc::as_device_range(l_vals), num_rows);
+        }
     }
 }
 

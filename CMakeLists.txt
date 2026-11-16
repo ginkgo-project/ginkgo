@@ -96,6 +96,17 @@ if(MSVC OR MINGW)
         FORCE
     )
 endif()
+option(
+    GINKGO_EMULATE_DOUBLE
+    "Compute double in two float words in the accessor-based CUDA and HIP kernels, the values stay double in memory"
+    OFF
+)
+if(GINKGO_EMULATE_DOUBLE)
+    message(
+        STATUS
+        "Computing double in two float words in the accessor-based CUDA and HIP kernels, all other kernels use native double"
+    )
+endif()
 
 option(
     GINKGO_SKIP_DEPENDENCY_UPDATE

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -30,11 +30,18 @@ void launch_apply_kernel(
     device_type<ValueType>* const __restrict__ workspace_data,
     const int& block_size, const size_t& shared_size)
 {
-    batch_single_kernels::apply_kernel<StopType, n_shared, prec_shared>
-        <<<mat.num_batch_items, block_size, shared_size, exec->get_stream()>>>(
-            sconf, settings.max_iterations,
-            as_device_type(settings.residual_tol), logger, prec, mat, b_values,
-            x_values, workspace_data);
+    // the solver computes in the arithmetic type of the values
+    const auto kernel = batch_single_kernels::get_apply_kernel<
+        StopType, n_shared, prec_shared, PrecType, LogType, BatchMatrixType,
+        device_type<ValueType>>();
+    kernel<<<mat.num_batch_items, block_size, shared_size,
+             exec->get_stream()>>>(
+        sconf, settings.max_iterations,
+        arithmetic<ValueType>(settings.residual_tol), logger, prec,
+        arithmetic<ValueType>(mat),
+        arithmetic<ValueType>(b_values, mat.num_batch_items * mat.num_rows),
+        arithmetic<ValueType>(x_values, mat.num_batch_items * mat.num_rows),
+        workspace_data);
 }
 
 

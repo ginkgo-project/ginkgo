@@ -80,8 +80,9 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 p(row, col) = z(row, col) + tmp * p(row, col);
             }
         },
-        p.size, p.stride, default_stride(p), default_stride(z),
-        row_vector(rho_t), row_vector(prev_rho), stop_status);
+        p.size, p.stride, arithmetic<ValueType>(p), arithmetic<ValueType>(z),
+        arithmetic<ValueType, 1>(rho_t), arithmetic<ValueType, 1>(prev_rho),
+        stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_1_KERNEL);
@@ -101,17 +102,20 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto col, auto x, auto r, auto t, auto p,
                       auto q, auto beta, auto rho, auto stop) {
+            using arithmetic_type = arithmetic_type_t<decltype(r)>;
             if (!stop[col].has_stopped() && is_nonzero(beta[col])) {
                 auto tmp = rho[col] / beta[col];
-                auto prev_r = r(row, col);
+                // a copy, not the reference to the element that changes below
+                auto prev_r = static_cast<arithmetic_type>(r(row, col));
                 x(row, col) += tmp * p(row, col);
                 r(row, col) -= tmp * q(row, col);
                 t(row, col) = r(row, col) - prev_r;
             }
         },
-        x.size, r.stride, x, default_stride(r), default_stride(t),
-        default_stride(p), default_stride(q), row_vector(beta), row_vector(rho),
-        stop_status);
+        x.size, r.stride, arithmetic<ValueType>(x), arithmetic<ValueType>(r),
+        arithmetic<ValueType>(t), arithmetic<ValueType>(p),
+        arithmetic<ValueType>(q), arithmetic<ValueType, 1>(beta),
+        arithmetic<ValueType, 1>(rho), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_FCG_STEP_2_KERNEL);

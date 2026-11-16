@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <numeric>
 #include <random>
+#include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -1222,7 +1223,13 @@ TEST_F(Dense, CanAdvancedGatherRowsIntoDenseCrossExecutor)
     sub_x->row_gather(alpha, rgather_idxs.get(), beta, r_gather);
     sub_dx->row_gather(dalpha, rgather_idxs.get(), dbeta, dr_gather);
 
-    GKO_ASSERT_MTX_NEAR(r_gather, dr_gather, 0);
+    // the device computes in tested_arithmetic, which rounds differently
+    GKO_ASSERT_MTX_NEAR(
+        r_gather, dr_gather,
+        (std::is_same_v<gko::test::detail::tested_arithmetic<value_type>,
+                        value_type>
+             ? 0.0
+             : r<value_type>::value));
 }
 
 

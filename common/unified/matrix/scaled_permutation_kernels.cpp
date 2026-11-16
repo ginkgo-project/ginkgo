@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -29,7 +29,8 @@ void invert(std::shared_ptr<const DefaultExecutor> exec,
             output_permutation[ip] = i;
             output_scale[i] = one(input_scale[ip]) / input_scale[ip];
         },
-        size, input_scale, input_permutation, output_scale, output_permutation);
+        size, arithmetic<ValueType>(input_scale, size), input_permutation,
+        arithmetic<ValueType>(output_scale, size), output_permutation);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -54,8 +55,9 @@ void compose(std::shared_ptr<const DefaultExecutor> exec,
             output_scale[combined_permuted] =
                 first_scale[combined_permuted] * second_scale[second_permuted];
         },
-        size, first_scale, first_permutation, second_scale, second_permutation,
-        output_permutation, output_scale);
+        size, arithmetic<ValueType>(first_scale, size), first_permutation,
+        arithmetic<ValueType>(second_scale, size), second_permutation,
+        output_permutation, arithmetic<ValueType>(output_scale, size));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

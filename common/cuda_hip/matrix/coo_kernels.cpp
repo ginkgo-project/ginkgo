@@ -10,6 +10,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
@@ -20,6 +21,7 @@
 #include "common/cuda_hip/components/format_conversion.hpp"
 #include "common/cuda_hip/components/segment_scan.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/matrix/dense_kernels.hpp"
 
 
@@ -58,17 +60,18 @@ namespace {
  * @tparam IndexType  type of matrix indexes stored in the structure
  * @tparam Closure  type of the function used to write the result
  */
-template <int subwarp_size = config::warp_size, typename ValueType,
-          typename IndexType, typename Closure>
+template <int subwarp_size = config::warp_size, typename ValueAccessor,
+          typename IndexType, typename BAccessor, typename OutputType,
+          typename Closure>
 __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
-                            const ValueType* __restrict__ val,
+                            ValueAccessor val,
                             const IndexType* __restrict__ col,
-                            const IndexType* __restrict__ row,
-                            const ValueType* __restrict__ b,
-                            const size_type b_stride, ValueType* __restrict__ c,
+                            const IndexType* __restrict__ row, BAccessor b,
+                            OutputType* __restrict__ c,
                             const size_type c_stride, Closure scale)
 {
-    ValueType temp_val = zero<ValueType>();
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
+    arithmetic_type temp_val = zero<arithmetic_type>();
     const auto start = static_cast<size_type>(blockDim.x) * blockIdx.x *
                            blockDim.y * num_lines +
                        threadIdx.y * blockDim.x * num_lines;
@@ -82,31 +85,31 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
     const auto tile_block =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     for (; ind < ind_end; ind += subwarp_size) {
-        temp_val += (ind < nnz) ? val[ind] * b[col[ind] * b_stride + column_id]
-                                : zero<ValueType>();
+        temp_val += (ind < nnz) ? val[ind] * b(col[ind], column_id)
+                                : zero<arithmetic_type>();
         auto next_row =
             (ind + subwarp_size < nnz) ? row[ind + subwarp_size] : row[nnz - 1];
         // segmented scan
         if (tile_block.any(curr_row != next_row)) {
             bool is_first_in_segment = segment_scan<subwarp_size>(
                 tile_block, curr_row, temp_val,
-                [](ValueType a, ValueType b) { return a + b; });
+                [](arithmetic_type a, arithmetic_type b) { return a + b; });
             if (is_first_in_segment) {
                 atomic_add(&(c[curr_row * c_stride + column_id]),
                            scale(temp_val));
             }
-            temp_val = zero<ValueType>();
+            temp_val = zero<arithmetic_type>();
         }
         curr_row = next_row;
     }
     if (num > 0) {
         ind = ind_end;
-        temp_val += (ind < nnz) ? val[ind] * b[col[ind] * b_stride + column_id]
-                                : zero<ValueType>();
+        temp_val += (ind < nnz) ? val[ind] * b(col[ind], column_id)
+                                : zero<arithmetic_type>();
         // segmented scan
         bool is_first_in_segment = segment_scan<subwarp_size>(
             tile_block, curr_row, temp_val,
-            [](ValueType a, ValueType b) { return a + b; });
+            [](arithmetic_type a, arithmetic_type b) { return a + b; });
         if (is_first_in_segment) {
             atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp_val));
         }
@@ -114,31 +117,32 @@ __device__ void spmv_kernel(const size_type nnz, const size_type num_lines,
 }
 
 
-template <typename ValueType, typename IndexType>
+// c is written with atomic_add, which takes the storage type
+template <typename ValueAccessor, typename IndexType, typename BAccessor,
+          typename OutputType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const size_type nnz, const size_type num_lines,
-    const ValueType* __restrict__ val, const IndexType* __restrict__ col,
-    const IndexType* __restrict__ row, const ValueType* __restrict__ b,
-    const size_type b_stride, ValueType* __restrict__ c,
-    const size_type c_stride)
+    const size_type nnz, const size_type num_lines, ValueAccessor val,
+    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
+    BAccessor b, OutputType* __restrict__ c, const size_type c_stride)
 {
-    spmv_kernel(nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
-                [](const ValueType& x) { return x; });
+    spmv_kernel(nnz, num_lines, val, col, row, b, c, c_stride,
+                [](const auto& x) { return static_cast<OutputType>(x); });
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueAccessor, typename IndexType, typename BAccessor,
+          typename OutputType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
-    const size_type nnz, const size_type num_lines,
-    const ValueType* __restrict__ alpha, const ValueType* __restrict__ val,
-    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride)
+    const size_type nnz, const size_type num_lines, ValueAccessor alpha,
+    ValueAccessor val, const IndexType* __restrict__ col,
+    const IndexType* __restrict__ row, BAccessor b, OutputType* __restrict__ c,
+    const size_type c_stride)
 {
-    ValueType scale_factor = alpha[0];
-    spmv_kernel(
-        nnz, num_lines, val, col, row, b, b_stride, c, c_stride,
-        [&scale_factor](const ValueType& x) { return scale_factor * x; });
+    const auto scale_factor = alpha[0];
+    spmv_kernel(nnz, num_lines, val, col, row, b, c, c_stride,
+                [&scale_factor](const auto& x) {
+                    return static_cast<OutputType>(scale_factor * x);
+                });
 }
 
 
@@ -161,17 +165,18 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_spmv(
  * @tparam IndexType  type of matrix indexes stored in the structure
  * @tparam Closure  type of the function used to write the result
  */
-template <typename ValueType, typename IndexType, typename Closure>
+template <typename ValueAccessor, typename IndexType, typename BAccessor,
+          typename OutputType, typename Closure>
 __device__ void spmm_kernel(const size_type nnz, const size_type num_elems,
-                            const ValueType* __restrict__ val,
+                            ValueAccessor val,
                             const IndexType* __restrict__ col,
                             const IndexType* __restrict__ row,
-                            const size_type num_cols,
-                            const ValueType* __restrict__ b,
-                            const size_type b_stride, ValueType* __restrict__ c,
+                            const size_type num_cols, BAccessor b,
+                            OutputType* __restrict__ c,
                             const size_type c_stride, Closure scale)
 {
-    ValueType temp = zero<ValueType>();
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
+    arithmetic_type temp = zero<arithmetic_type>();
     const auto coo_idx =
         (static_cast<size_type>(blockDim.y) * blockIdx.x + threadIdx.y) *
         num_elems;
@@ -182,46 +187,46 @@ __device__ void spmm_kernel(const size_type nnz, const size_type num_elems,
         auto curr_row = row[coo_idx];
         auto idx = coo_idx;
         for (; idx < coo_end - 1; idx++) {
-            temp += val[idx] * b[col[idx] * b_stride + column_id];
+            temp += val[idx] * b(col[idx], column_id);
             const auto next_row = row[idx + 1];
             if (next_row != curr_row) {
                 atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp));
                 curr_row = next_row;
-                temp = zero<ValueType>();
+                temp = zero<arithmetic_type>();
             }
         }
-        temp += val[idx] * b[col[idx] * b_stride + column_id];
+        temp += val[idx] * b(col[idx], column_id);
         atomic_add(&(c[curr_row * c_stride + column_id]), scale(temp));
     }
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueAccessor, typename IndexType, typename BAccessor,
+          typename OutputType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmm(
-    const size_type nnz, const size_type num_elems,
-    const ValueType* __restrict__ val, const IndexType* __restrict__ col,
-    const IndexType* __restrict__ row, const size_type num_cols,
-    const ValueType* __restrict__ b, const size_type b_stride,
-    ValueType* __restrict__ c, const size_type c_stride)
+    const size_type nnz, const size_type num_elems, ValueAccessor val,
+    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
+    const size_type num_cols, BAccessor b, OutputType* __restrict__ c,
+    const size_type c_stride)
 {
-    spmm_kernel(nnz, num_elems, val, col, row, num_cols, b, b_stride, c,
-                c_stride, [](const ValueType& x) { return x; });
+    spmm_kernel(nnz, num_elems, val, col, row, num_cols, b, c, c_stride,
+                [](const auto& x) { return static_cast<OutputType>(x); });
 }
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueAccessor, typename IndexType, typename BAccessor,
+          typename OutputType>
 __global__ __launch_bounds__(spmv_block_size) void abstract_spmm(
-    const size_type nnz, const size_type num_elems,
-    const ValueType* __restrict__ alpha, const ValueType* __restrict__ val,
-    const IndexType* __restrict__ col, const IndexType* __restrict__ row,
-    const size_type num_cols, const ValueType* __restrict__ b,
-    const size_type b_stride, ValueType* __restrict__ c,
-    const size_type c_stride)
+    const size_type nnz, const size_type num_elems, ValueAccessor alpha,
+    ValueAccessor val, const IndexType* __restrict__ col,
+    const IndexType* __restrict__ row, const size_type num_cols, BAccessor b,
+    OutputType* __restrict__ c, const size_type c_stride)
 {
-    ValueType scale_factor = alpha[0];
-    spmm_kernel(
-        nnz, num_elems, val, col, row, num_cols, b, b_stride, c, c_stride,
-        [&scale_factor](const ValueType& x) { return scale_factor * x; });
+    const auto scale_factor = alpha[0];
+    spmm_kernel(nnz, num_elems, val, col, row, num_cols, b, c, c_stride,
+                [&scale_factor](const auto& x) {
+                    return static_cast<OutputType>(scale_factor * x);
+                });
 }
 
 
@@ -288,14 +293,16 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
     } else
 #endif
     {
+        const auto a_vals = arithmetic<ValueType>(a.values, nnz);
+        const auto b_vals = arithmetic<ValueType>(b);
         // TODO: b_ncols needs to be tuned for ROCm.
         if (b_ncols < 4) {
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
 
             abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
-                nnz, num_lines, as_device_type(a.values), a.col_idxs,
-                a.row_idxs, as_device_type(b.values), b.stride,
+                nnz, num_lines, acc::as_device_range(a_vals), a.col_idxs,
+                a.row_idxs, acc::as_device_range(b_vals),
                 as_device_type(c.values), c.stride);
         } else {
             int num_elems =
@@ -304,8 +311,8 @@ void spmv2(std::shared_ptr<const DefaultExecutor> exec,
                                 ceildiv(b_ncols, config::warp_size));
 
             abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
-                nnz, num_elems, as_device_type(a.values), a.col_idxs,
-                a.row_idxs, b_ncols, as_device_type(b.values), b.stride,
+                nnz, num_elems, acc::as_device_range(a_vals), a.col_idxs,
+                a.row_idxs, b_ncols, acc::as_device_range(b_vals),
                 as_device_type(c.values), c.stride);
         }
     }
@@ -346,15 +353,18 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
     } else
 #endif
     {
+        const auto alpha_val = arithmetic<ValueType, 1>(alpha);
+        const auto a_vals = arithmetic<ValueType>(a.values, nnz);
+        const auto b_vals = arithmetic<ValueType>(b);
         // TODO: b_ncols needs to be tuned for ROCm.
         if (b_ncols < 4) {
             int num_lines = ceildiv(nnz, nwarps * config::warp_size);
             const dim3 coo_grid(ceildiv(nwarps, warps_in_block), b_ncols);
 
             abstract_spmv<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
-                nnz, num_lines, as_device_type(alpha.values),
-                as_device_type(a.values), a.col_idxs, a.row_idxs,
-                as_device_type(b.values), b.stride, as_device_type(c.values),
+                nnz, num_lines, acc::as_device_range(alpha_val),
+                acc::as_device_range(a_vals), a.col_idxs, a.row_idxs,
+                acc::as_device_range(b_vals), as_device_type(c.values),
                 c.stride);
         } else {
             int num_elems =
@@ -363,9 +373,9 @@ void advanced_spmv2(std::shared_ptr<const DefaultExecutor> exec,
                                 ceildiv(b_ncols, config::warp_size));
 
             abstract_spmm<<<coo_grid, coo_block, 0, exec->get_stream()>>>(
-                nnz, num_elems, as_device_type(alpha.values),
-                as_device_type(a.values), a.col_idxs, a.row_idxs, b_ncols,
-                as_device_type(b.values), b.stride, as_device_type(c.values),
+                nnz, num_elems, acc::as_device_range(alpha_val),
+                acc::as_device_range(a_vals), a.col_idxs, a.row_idxs, b_ncols,
+                acc::as_device_range(b_vals), as_device_type(c.values),
                 c.stride);
         }
     }

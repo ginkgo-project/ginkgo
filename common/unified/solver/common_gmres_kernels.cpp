@@ -69,21 +69,27 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
                       auto residual_norm, auto residual_norm_collection,
                       auto hessenberg_iter, auto iter, auto final_iter_nums,
                       auto stop_status) {
-            using value_type = std::decay_t<decltype(givens_sin(0, 0))>;
+            using arithmetic_type =
+                arithmetic_type_t<decltype(hessenberg_iter)>;
             if (stop_status[rhs].has_stopped()) {
                 return;
             }
             // increment iteration count
             final_iter_nums[rhs]++;
-            auto hess_this = hessenberg_iter(0, rhs);
-            auto hess_next = hessenberg_iter(1, rhs);
+            // copies, not references to the elements that change below
+            auto hess_this =
+                static_cast<arithmetic_type>(hessenberg_iter(0, rhs));
+            auto hess_next =
+                static_cast<arithmetic_type>(hessenberg_iter(1, rhs));
             // apply previous Givens rotations to column
             for (decltype(iter) j = 0; j < iter; ++j) {
                 // in here: hess_this = hessenberg_iter(j, rhs);
                 //          hess_next = hessenberg_iter(j+1, rhs);
                 hess_next = hessenberg_iter(j + 1, rhs);
-                const auto gc = givens_cos(j, rhs);
-                const auto gs = givens_sin(j, rhs);
+                const auto gc =
+                    static_cast<arithmetic_type>(givens_cos(j, rhs));
+                const auto gs =
+                    static_cast<arithmetic_type>(givens_sin(j, rhs));
                 const auto out1 = gc * hess_this + gs * hess_next;
                 const auto out2 = -conj(gs) * hess_this + conj(gc) * hess_next;
                 hessenberg_iter(j, rhs) = out1;
@@ -92,12 +98,12 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
             }
             // hess_this is hessenberg_iter(iter, rhs) and
             // hess_next is hessenberg_iter(iter + 1, rhs)
-            auto gs = givens_sin(iter, rhs);
-            auto gc = givens_cos(iter, rhs);
+            auto gs = static_cast<arithmetic_type>(givens_sin(iter, rhs));
+            auto gc = static_cast<arithmetic_type>(givens_cos(iter, rhs));
             // compute new Givens rotation
-            if (hess_this == zero<value_type>()) {
-                givens_cos(iter, rhs) = gc = zero<value_type>();
-                givens_sin(iter, rhs) = gs = one<value_type>();
+            if (hess_this == zero<arithmetic_type>()) {
+                givens_cos(iter, rhs) = gc = zero<arithmetic_type>();
+                givens_sin(iter, rhs) = gs = one<arithmetic_type>();
             } else {
                 const auto scale = abs(hess_this) + abs(hess_next);
                 const auto hypotenuse =
@@ -109,7 +115,7 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
             }
             // apply new Givens rotation to column
             hessenberg_iter(iter, rhs) = gc * hess_this + gs * hess_next;
-            hessenberg_iter(iter + 1, rhs) = zero<value_type>();
+            hessenberg_iter(iter + 1, rhs) = zero<arithmetic_type>();
             // apply new Givens rotation to RHS of least-squares problem
             const auto rnc_new =
                 -conj(gs) * residual_norm_collection(iter, rhs);
@@ -118,8 +124,10 @@ void hessenberg_qr(std::shared_ptr<const DefaultExecutor> exec,
                 gc * residual_norm_collection(iter, rhs);
             residual_norm(0, rhs) = abs(rnc_new);
         },
-        hessenberg_iter.size[1], givens_sin, givens_cos, residual_norm,
-        residual_norm_collection, hessenberg_iter, iter, final_iter_nums,
+        hessenberg_iter.size[1], arithmetic<ValueType>(givens_sin),
+        arithmetic<ValueType>(givens_cos), arithmetic<ValueType>(residual_norm),
+        arithmetic<ValueType>(residual_norm_collection),
+        arithmetic<ValueType>(hessenberg_iter), iter, final_iter_nums,
         stop_status);
 }
 
@@ -152,8 +160,10 @@ void solve_krylov(std::shared_ptr<const DefaultExecutor> exec,
                 y(i, col) = value / mtx(i, i * num_cols + col);
             }
         },
-        residual_norm_collection.size[1], residual_norm_collection, hessenberg,
-        y, final_iter_nums, stop_status, residual_norm_collection.size[1]);
+        residual_norm_collection.size[1],
+        arithmetic<ValueType>(residual_norm_collection),
+        arithmetic<ValueType>(hessenberg), arithmetic<ValueType>(y),
+        final_iter_nums, stop_status, residual_norm_collection.size[1]);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(

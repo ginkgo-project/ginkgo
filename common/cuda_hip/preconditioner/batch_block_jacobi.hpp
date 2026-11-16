@@ -1,10 +1,12 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef GKO_COMMON_CUDA_HIP_PRECONDITIONER_BATCH_BLOCK_JACOBI_HPP_
 #define GKO_COMMON_CUDA_HIP_PRECONDITIONER_BATCH_BLOCK_JACOBI_HPP_
 
+
+#include <utility>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -34,6 +36,15 @@ class BlockJacobi final {
 public:
     using value_type = ValueType;
     using index_type = int;
+    /**
+     * The type of the vectors it is applied to, which is the type the solvers
+     * compute in.
+     */
+    /**
+     * The type of the work vector and of the vectors it is applied to, which is
+     * the type the solvers compute in.
+     */
+    using arithmetic_type = device_type<device_arithmetic_type<value_type>>;
 
 
     /**
@@ -68,35 +79,39 @@ public:
         return 0;
     }
 
+    template <typename MatValues>
     __device__ __forceinline__ void generate(
         size_type batch_id,
         const gko::batch::matrix::ell::batch_item<const value_type,
-                                                  const index_type>&,
-        value_type* const __restrict__)
+                                                  const index_type, MatValues>&,
+        arithmetic_type* const __restrict__)
     {
         common_generate_for_all_system_matrix_types(batch_id);
     }
 
+    template <typename MatValues>
     __device__ __forceinline__ void generate(
         size_type batch_id,
         const gko::batch::matrix::csr::batch_item<const value_type,
-                                                  const index_type>&,
-        value_type* const __restrict__)
+                                                  const index_type, MatValues>&,
+        arithmetic_type* const __restrict__)
     {
         common_generate_for_all_system_matrix_types(batch_id);
     }
 
+    template <typename MatValues>
     __device__ __forceinline__ void generate(
         size_type batch_id,
-        const gko::batch::matrix::dense::batch_item<const value_type>&,
-        value_type* const __restrict__)
+        const gko::batch::matrix::dense::batch_item<const value_type,
+                                                    MatValues>&,
+        arithmetic_type* const __restrict__)
     {
         common_generate_for_all_system_matrix_types(batch_id);
     }
 
     __device__ __forceinline__ void apply(const int num_rows,
-                                          const value_type* const r,
-                                          value_type* const z) const
+                                          const arithmetic_type* const r,
+                                          arithmetic_type* const z) const
     {
         const int required_subwarp_size = get_larger_power(max_block_size_);
 
@@ -141,8 +156,8 @@ public:
 
     template <int tile_size>
     __device__ __forceinline__ void apply_helper(const int num_rows,
-                                                 const ValueType* const r,
-                                                 ValueType* const z) const
+                                                 const arithmetic_type* const r,
+                                                 arithmetic_type* const z) const
     {
         // Structure-aware SpMV
         auto thread_block = group::this_thread_block();
@@ -155,7 +170,7 @@ public:
         for (int row_idx = subwarp_grp_id; row_idx < num_rows;
              row_idx += num_subwarp_grps_per_block) {
             const int block_idx = row_block_map_[row_idx];
-            const value_type* dense_block_ptr =
+            const auto dense_block_ptr =
                 blocks_arr_entry_ + gko::detail::batch_jacobi::get_block_offset(
                                         block_idx, blocks_cumulative_offsets_);
             const auto stride = gko::detail::batch_jacobi::get_stride(
@@ -166,13 +181,13 @@ public:
             const int bsize = idx_end - idx_start;
 
             const int dense_block_row = row_idx - idx_start;
-            auto sum = zero<value_type>();
+            auto sum = zero<arithmetic_type>();
 
             for (int dense_block_col = id_within_subwarp;
                  dense_block_col < bsize; dense_block_col += tile_size) {
-                const auto block_val =
+                const auto block_val = static_cast<arithmetic_type>(
                     dense_block_ptr[dense_block_row * stride +
-                                    dense_block_col];  // coalesced accesses
+                                    dense_block_col]);  // coalesced accesses
                 sum += block_val * r[dense_block_col + idx_start];
             }
 

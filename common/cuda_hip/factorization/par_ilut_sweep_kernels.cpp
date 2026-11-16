@@ -8,6 +8,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
@@ -18,6 +19,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/searching.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
@@ -48,11 +50,11 @@ using compiled_kernels =
 namespace kernel {
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType,
+          typename AAccessor>
 __global__ __launch_bounds__(default_block_size) void sweep(
     const IndexType* __restrict__ a_row_ptrs,
-    const IndexType* __restrict__ a_col_idxs,
-    const ValueType* __restrict__ a_vals,
+    const IndexType* __restrict__ a_col_idxs, AAccessor a_vals,
     const IndexType* __restrict__ l_row_ptrs,
     const IndexType* __restrict__ l_row_idxs,
     const IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_vals,
@@ -62,6 +64,7 @@ __global__ __launch_bounds__(default_block_size) void sweep(
     const IndexType* __restrict__ ut_row_idxs, ValueType* __restrict__ ut_vals,
     IndexType u_nnz)
 {
+    using arithmetic_type = arithmetic_type_t<AAccessor>;
     auto tidx = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     if (tidx >= l_nnz + u_nnz) {
         return;
@@ -86,12 +89,12 @@ __global__ __launch_bounds__(default_block_size) void sweep(
         group_wide_search(a_row_begin, a_row_size, subwarp,
                           [&](IndexType i) { return a_col_idxs[i] >= col; });
     bool has_a = a_idx < a_row_end && a_col_idxs[a_idx] == col;
-    auto a_val = has_a ? a_vals[a_idx] : zero<ValueType>();
+    auto a_val = has_a ? a_vals[a_idx] : zero<arithmetic_type>();
     auto l_row_begin = l_row_ptrs[row];
     auto l_row_size = l_row_ptrs[row + 1] - l_row_begin;
     auto ut_col_begin = ut_col_ptrs[col];
     auto ut_col_size = ut_col_ptrs[col + 1] - ut_col_begin;
-    ValueType sum{};
+    arithmetic_type sum{};
     IndexType ut_nz{};
     auto last_entry = min(row, col);
     group_merge<subwarp_size>(
@@ -102,8 +105,10 @@ __global__ __launch_bounds__(default_block_size) void sweep(
             // we don't need to use the `bool valid` because last_entry is
             // already a smaller sentinel value than the one used in group_merge
             if (l_col == ut_row && l_col < last_entry) {
-                sum += load_relaxed(l_vals + (l_idx + l_row_begin)) *
-                       load_relaxed(ut_vals + (ut_idx + ut_col_begin));
+                sum += static_cast<arithmetic_type>(
+                           load_relaxed(l_vals + (l_idx + l_row_begin))) *
+                       static_cast<arithmetic_type>(
+                           load_relaxed(ut_vals + (ut_idx + ut_col_begin)));
             }
             // remember the transposed element
             auto found_transp = group::ballot(subwarp, ut_row == row);
@@ -114,20 +119,23 @@ __global__ __launch_bounds__(default_block_size) void sweep(
             return true;
         });
     // accumulate result from all threads
-    sum = reduce(subwarp, sum, [](ValueType a, ValueType b) { return a + b; });
+    sum = reduce(subwarp, sum,
+                 [](arithmetic_type a, arithmetic_type b) { return a + b; });
 
     if (subwarp.thread_rank() == 0) {
         if (lower) {
-            auto to_write = (a_val - sum) /
-                            load_relaxed(ut_vals + (ut_col_ptrs[col + 1] - 1));
+            auto to_write =
+                (a_val - sum) / static_cast<arithmetic_type>(load_relaxed(
+                                    ut_vals + (ut_col_ptrs[col + 1] - 1)));
             if (is_finite(to_write)) {
-                store_relaxed(l_vals + l_nz, to_write);
+                store_relaxed(l_vals + l_nz, static_cast<ValueType>(to_write));
             }
         } else {
             auto to_write = a_val - sum;
             if (is_finite(to_write)) {
-                store_relaxed(u_vals + u_nz, to_write);
-                store_relaxed(ut_vals + ut_nz, to_write);
+                store_relaxed(u_vals + u_nz, static_cast<ValueType>(to_write));
+                store_relaxed(ut_vals + ut_nz,
+                              static_cast<ValueType>(to_write));
             }
         }
     }
@@ -155,6 +163,7 @@ void compute_l_u_factors(
         static_cast<IndexType>(l.num_stored_elements + u.num_stored_elements);
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
+    const auto a_vals = arithmetic<ValueType>(a);
     if (num_blocks > 0) {
 #ifdef GKO_COMPILING_HIP
         if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
@@ -165,7 +174,7 @@ void compute_l_u_factors(
         {
             kernel::sweep<subwarp_size>
                 <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                    a.row_ptrs, a.col_idxs, as_device_type(a.values),
+                    a.row_ptrs, a.col_idxs, acc::as_device_range(a_vals),
                     l.row_ptrs, l_coo.row_idxs, l.col_idxs,
                     as_device_type(l.values),
                     static_cast<IndexType>(l.num_stored_elements),

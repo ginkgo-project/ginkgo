@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -455,6 +455,33 @@ TEST_F(ScaledReducedStorageXd, CanWrite2)
     data_equal_except_for(5);
     scalar_equal_except_for(99);
     EXPECT_NEAR(r2(1, 1), 0.5, delta);
+}
+
+
+TEST(ScaledReducedStorageWithScalarType, ConvertsScalarsOnReadAndWrite)
+{
+    // computes in double, while the scalars are stored as float
+    using accessor = gko::acc::scaled_reduced_row_major<2, double, std::int32_t,
+                                                        0b01, float>;
+    std::int32_t data[2]{3, -4};
+    float scalar[2]{0.5f, 0.25f};
+    gko::acc::range<accessor> r{std::array<gko::acc::size_type, 2>{{1, 2}},
+                                data, scalar};
+    const double third = 1.0 / 3.0;
+
+    static_assert(std::is_same_v<accessor::arithmetic_type, double>);
+    static_assert(std::is_same_v<accessor::scalar_type, float>);
+    static_assert(std::is_same_v<decltype(r->read_scalar_direct(0)), double>);
+    static_assert(
+        std::is_same_v<accessor::const_accessor::scalar_type, const float>);
+    EXPECT_EQ(r(0, 0), 1.5);
+    EXPECT_EQ(r(0, 1), -1.0);
+    EXPECT_EQ(r->write_scalar_direct(third, 1),
+              static_cast<double>(static_cast<float>(third)));
+    EXPECT_EQ(scalar[1], static_cast<float>(third));
+    // the value is divided by the scalar and then rounded towards zero
+    r(0, 0) = 2.25;
+    EXPECT_EQ(data[0], 4);
 }
 
 

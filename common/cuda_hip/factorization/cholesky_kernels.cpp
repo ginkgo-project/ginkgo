@@ -17,6 +17,7 @@
 
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
@@ -26,6 +27,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/syncfree.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
 #include "core/factorization/elimination_forest.hpp"
@@ -162,15 +164,16 @@ __global__ __launch_bounds__(default_block_size) void symbolic_factorize(
 }
 
 
-template <bool full_fillin, typename ValueType, typename IndexType>
+template <bool full_fillin, typename IndexType, typename ValueAccessor>
 __global__ __launch_bounds__(default_block_size) void factorize(
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ cols,
     const IndexType* __restrict__ storage_offsets,
     const int32* __restrict__ storage, const int64* __restrict__ row_descs,
     const IndexType* __restrict__ diag_idxs,
-    const IndexType* __restrict__ transpose_idxs, ValueType* __restrict__ vals,
+    const IndexType* __restrict__ transpose_idxs, ValueAccessor vals,
     syncfree_storage dep_storage, size_type num_rows)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     using scheduler_t =
         syncfree_scheduler<default_block_size, config::warp_size, IndexType>;
     __shared__ typename scheduler_t::shared_storage sh_dep_storage;
@@ -192,7 +195,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
     for (auto lower_nz = row_begin; lower_nz < row_diag; lower_nz++) {
         const auto dep = cols[lower_nz];
         scheduler.wait(dep);
-        const auto scale = vals[lower_nz];
+        const auto scale = static_cast<arithmetic_type>(vals[lower_nz]);
         const auto diag_idx = diag_idxs[dep];
         const auto dep_end = row_ptrs[dep + 1];
         // subtract column dep from current column
@@ -200,7 +203,8 @@ __global__ __launch_bounds__(default_block_size) void factorize(
              upper_nz += config::warp_size) {
             const auto upper_col = cols[upper_nz];
             if (upper_col >= row) {
-                const auto upper_val = vals[upper_nz];
+                const auto upper_val =
+                    static_cast<arithmetic_type>(vals[upper_nz]);
                 if constexpr (full_fillin) {
                     const auto output_pos =
                         lookup.lookup_unsafe(upper_col) + row_begin;
@@ -214,12 +218,14 @@ __global__ __launch_bounds__(default_block_size) void factorize(
             }
         }
     }
-    auto diag_val = sqrt(vals[row_diag]);
+    const auto diag_val = sqrt(static_cast<arithmetic_type>(vals[row_diag]));
     for (auto upper_nz = row_diag + 1 + lane; upper_nz < row_end;
          upper_nz += config::warp_size) {
-        vals[upper_nz] /= diag_val;
+        const auto upper_val =
+            static_cast<arithmetic_type>(vals[upper_nz]) / diag_val;
+        vals[upper_nz] = upper_val;
         // copy the upper triangular entries to the transpose
-        vals[transpose_idxs[upper_nz]] = conj(vals[upper_nz]);
+        vals[transpose_idxs[upper_nz]] = conj(upper_val);
     }
     if (lane == 0) {
         // store computed diagonal
@@ -310,6 +316,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = factors.size[0];
     if (num_rows > 0) {
         syncfree_storage storage(exec, tmp_storage, num_rows);
+        const auto factor_vals = arithmetic<ValueType>(factors);
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
         if (!full_fillin) {
@@ -317,13 +324,13 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                 <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                     factors.row_ptrs, factors.col_idxs, lookup_offsets,
                     lookup_storage, lookup_descs, diag_idxs, transpose_idxs,
-                    as_device_type(factors.values), storage, num_rows);
+                    acc::as_device_range(factor_vals), storage, num_rows);
         } else {
             kernel::factorize<true>
                 <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                     factors.row_ptrs, factors.col_idxs, lookup_offsets,
                     lookup_storage, lookup_descs, diag_idxs, transpose_idxs,
-                    as_device_type(factors.values), storage, num_rows);
+                    acc::as_device_range(factor_vals), storage, num_rows);
         }
     }
 }

@@ -14,12 +14,14 @@
 
 #include <ginkgo/core/matrix/csr.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/syncfree.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/base/allocator.hpp"
 #include "core/matrix/csr_lookup.hpp"
 
@@ -86,14 +88,15 @@ __global__ __launch_bounds__(default_block_size) void initialize(
 }
 
 
-template <bool full_fillin, typename ValueType, typename IndexType>
+template <bool full_fillin, typename IndexType, typename ValueAccessor>
 __global__ __launch_bounds__(default_block_size) void factorize(
     const IndexType* __restrict__ row_ptrs, const IndexType* __restrict__ cols,
     const IndexType* __restrict__ storage_offsets,
     const int32* __restrict__ storage, const int64* __restrict__ row_descs,
-    const IndexType* __restrict__ diag_idxs, ValueType* __restrict__ vals,
+    const IndexType* __restrict__ diag_idxs, ValueAccessor vals,
     syncfree_storage dep_storage, size_type num_rows)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     using scheduler_t =
         syncfree_scheduler<default_block_size, config::warp_size, IndexType>;
     __shared__ typename scheduler_t::shared_storage sh_dep_storage;
@@ -117,12 +120,12 @@ __global__ __launch_bounds__(default_block_size) void factorize(
         // value without waiting for any dependencies because this warp is the
         // only one writing to this row.
         warp.sync();
-        const auto val = vals[lower_nz];
+        const auto val = static_cast<arithmetic_type>(vals[lower_nz]);
         const auto dep = cols[lower_nz];
         const auto diag_idx = diag_idxs[dep];
         const auto dep_end = row_ptrs[dep + 1];
         scheduler.wait(dep);
-        const auto diag = vals[diag_idx];
+        const auto diag = static_cast<arithmetic_type>(vals[diag_idx]);
         const auto scale = val / diag;
         // prevent data races between preceding read and following write of
         // vals[lower_nz]
@@ -134,7 +137,7 @@ __global__ __launch_bounds__(default_block_size) void factorize(
         for (auto upper_nz = diag_idx + 1 + lane; upper_nz < dep_end;
              upper_nz += config::warp_size) {
             const auto upper_col = cols[upper_nz];
-            const auto upper_val = vals[upper_nz];
+            const auto upper_val = static_cast<arithmetic_type>(vals[upper_nz]);
             if constexpr (full_fillin) {
                 const auto output_pos =
                     lookup.lookup_unsafe(upper_col) + row_begin;
@@ -270,6 +273,7 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = factors.size[0];
     if (num_rows > 0) {
         syncfree_storage storage(exec, tmp_storage, num_rows);
+        const auto factor_vals = arithmetic<ValueType>(factors);
         const auto num_blocks =
             ceildiv(num_rows, default_block_size / config::warp_size);
         if (full_fillin) {
@@ -277,13 +281,13 @@ void factorize(std::shared_ptr<const DefaultExecutor> exec,
                 <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                     factors.row_ptrs, factors.col_idxs, lookup_offsets,
                     lookup_storage, lookup_descs, diag_idxs,
-                    as_device_type(factors.values), storage, num_rows);
+                    acc::as_device_range(factor_vals), storage, num_rows);
         } else {
             kernel::factorize<false>
                 <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                     factors.row_ptrs, factors.col_idxs, lookup_offsets,
                     lookup_storage, lookup_descs, diag_idxs,
-                    as_device_type(factors.values), storage, num_rows);
+                    acc::as_device_range(factor_vals), storage, num_rows);
         }
     }
 }

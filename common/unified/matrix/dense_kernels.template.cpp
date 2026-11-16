@@ -92,7 +92,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) *= alpha[col];
             },
-            x.size, alpha.values, x);
+            x.size, arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(x));
     } else {
         run_kernel(
             exec,
@@ -103,7 +103,7 @@ void scale(std::shared_ptr<const DefaultExecutor> exec,
                     x(row, col) *= alpha[0];
                 }
             },
-            x.size, alpha.values, x);
+            x.size, arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(x));
     }
 }
 
@@ -119,14 +119,14 @@ void inv_scale(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) /= alpha[col];
             },
-            x.size, alpha.values, x);
+            x.size, arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(x));
     } else {
         run_kernel(
             exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x) {
                 x(row, col) /= alpha[0];
             },
-            x.size, alpha.values, x);
+            x.size, arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(x));
     }
 }
 
@@ -143,7 +143,8 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) += alpha[col] * x(row, col);
             },
-            x.size, alpha.values, x, y);
+            x.size, arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(x),
+            arithmetic<ValueType>(y));
     } else {
         run_kernel(
             exec,
@@ -152,7 +153,8 @@ void add_scaled(std::shared_ptr<const DefaultExecutor> exec,
                     y(row, col) += alpha[0] * x(row, col);
                 }
             },
-            x.size, alpha.values, x, y);
+            x.size, arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(x),
+            arithmetic<ValueType>(y));
     }
 }
 
@@ -169,7 +171,8 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
             [] GKO_KERNEL(auto row, auto col, auto alpha, auto x, auto y) {
                 y(row, col) -= alpha[col] * x(row, col);
             },
-            x.size, alpha.values, x, y);
+            x.size, arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(x),
+            arithmetic<ValueType>(y));
     } else {
         run_kernel(
             exec,
@@ -178,7 +181,8 @@ void sub_scaled(std::shared_ptr<const DefaultExecutor> exec,
                     y(row, col) -= alpha[0] * x(row, col);
                 }
             },
-            x.size, alpha.values, x, y);
+            x.size, arithmetic<ValueType, 1>(alpha), arithmetic<ValueType>(x),
+            arithmetic<ValueType>(y));
     }
 }
 
@@ -196,7 +200,9 @@ void add_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
                 y(i, i) += alpha[0] * diag[i];
             }
         },
-        x->get_size()[0], alpha.values, x->get_const_values(), y);
+        x->get_size()[0], arithmetic<ValueType, 1>(alpha),
+        arithmetic<ValueType>(x->get_const_values(), x->get_size()[0]),
+        arithmetic<ValueType>(y));
 }
 
 
@@ -213,7 +219,9 @@ void sub_scaled_diag(std::shared_ptr<const DefaultExecutor> exec,
                 y(i, i) -= alpha[0] * diag[i];
             }
         },
-        x->get_size()[0], alpha.values, x->get_const_values(), y);
+        x->get_size()[0], arithmetic<ValueType, 1>(alpha),
+        arithmetic<ValueType>(x->get_const_values(), x->get_size()[0]),
+        arithmetic<ValueType>(y));
 }
 
 
@@ -228,7 +236,8 @@ void compute_dot(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return x(i, j) * y(i, j);
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), result.values, x.size, tmp, x, y);
+        GKO_KERNEL_REDUCE_SUM(device_arithmetic_type<ValueType>), result.values,
+        x.size, tmp, arithmetic<ValueType>(x), arithmetic<ValueType>(y));
 }
 
 
@@ -243,7 +252,8 @@ void compute_conj_dot(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto y) {
             return conj(x(i, j)) * y(i, j);
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), result.values, x.size, tmp, x, y);
+        GKO_KERNEL_REDUCE_SUM(device_arithmetic_type<ValueType>), result.values,
+        x.size, tmp, arithmetic<ValueType>(x), arithmetic<ValueType>(y));
 }
 
 
@@ -257,8 +267,9 @@ void compute_norm2(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
         [] GKO_KERNEL(auto a, auto b) { return a + b; },
-        [] GKO_KERNEL(auto a) { return sqrt(a); }, remove_complex<ValueType>{},
-        result.values, x.size, tmp, x);
+        [] GKO_KERNEL(auto a) { return sqrt(a); },
+        device_real_arithmetic_type<ValueType>{}, result.values, x.size, tmp,
+        arithmetic<ValueType>(x));
 }
 
 template <typename ValueType>
@@ -269,8 +280,8 @@ void compute_norm1(std::shared_ptr<const DefaultExecutor> exec,
 {
     run_kernel_col_reduction_cached(
         exec, [] GKO_KERNEL(auto i, auto j, auto x) { return abs(x(i, j)); },
-        GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result.values, x.size,
-        tmp, x);
+        GKO_KERNEL_REDUCE_SUM(device_real_arithmetic_type<ValueType>),
+        result.values, x.size, tmp, arithmetic<ValueType>(x));
 }
 
 
@@ -285,8 +296,10 @@ void compute_mean(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto j, auto x, auto inv_total_size) {
             return x(i, j) * inv_total_size;
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), result.values, x.size, tmp, x,
-        ValueType_nc{1.} / std::max<size_type>(1, x.size[0]));
+        GKO_KERNEL_REDUCE_SUM(device_arithmetic_type<ValueType>), result.values,
+        x.size, tmp, arithmetic<ValueType>(x),
+        arithmetic<ValueType>(ValueType_nc{1.} /
+                              std::max<size_type>(1, x.size[0])));
 }
 
 
@@ -357,8 +370,8 @@ void compute_squared_norm2(
     run_kernel_col_reduction_cached(
         exec,
         [] GKO_KERNEL(auto i, auto j, auto x) { return squared_norm(x(i, j)); },
-        GKO_KERNEL_REDUCE_SUM(remove_complex<ValueType>), result.values, x.size,
-        tmp, x);
+        GKO_KERNEL_REDUCE_SUM(device_real_arithmetic_type<ValueType>),
+        result.values, x.size, tmp, arithmetic<ValueType>(x));
 }
 
 
@@ -369,9 +382,10 @@ void compute_sqrt(std::shared_ptr<const DefaultExecutor> exec,
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto x) {
-            x(row, col) = sqrt(x(row, col));
+            using arithmetic_type = arithmetic_type_t<decltype(x)>;
+            x(row, col) = sqrt(static_cast<arithmetic_type>(x(row, col)));
         },
-        x.size, x);
+        x.size, arithmetic<ValueType>(x));
 }
 
 
@@ -481,14 +495,18 @@ void advanced_row_gather(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto col, auto alpha, auto orig, auto rows,
                       auto beta, auto gathered) {
-            using type = device_type<highest_precision<ValueType, OutputType>>;
-            gathered(row, col) = static_cast<device_type<OutputType>>(
+            using type = device_type<device_arithmetic_type<
+                highest_precision<ValueType, OutputType>>>;
+            using output_type = arithmetic_type_t<decltype(gathered)>;
+            gathered(row, col) = static_cast<output_type>(
                 static_cast<type>(alpha[0] * orig(rows[row], col)) +
                 static_cast<type>(beta[0]) *
-                    static_cast<type>(gathered(row, col)));
+                    static_cast<type>(
+                        static_cast<output_type>(gathered(row, col))));
         },
-        row_collection.size, alpha.values, orig, row_idxs, beta.values,
-        row_collection);
+        row_collection.size, arithmetic<ValueType, 1>(alpha),
+        arithmetic<ValueType>(orig), row_idxs, arithmetic<ValueType, 1>(beta),
+        arithmetic<OutputType>(row_collection));
 }
 
 
@@ -551,7 +569,8 @@ void symm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
             const auto col = perm[j];
             permuted(i, j) = scale[row] * scale[col] * orig(row, col);
         },
-        orig.size, scale, perm, orig, permuted);
+        orig.size, arithmetic<ValueType>(scale, orig.size[0]), perm,
+        arithmetic<ValueType>(orig), arithmetic<ValueType>(permuted));
 }
 
 
@@ -569,7 +588,8 @@ void inv_symm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
             const auto col = perm[j];
             permuted(row, col) = orig(i, j) / (scale[row] * scale[col]);
         },
-        orig.size, scale, perm, orig, permuted);
+        orig.size, arithmetic<ValueType>(scale, orig.size[0]), perm,
+        arithmetic<ValueType>(orig), arithmetic<ValueType>(permuted));
 }
 
 
@@ -590,7 +610,9 @@ void nonsymm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
             const auto col = col_perm[j];
             permuted(i, j) = row_scale[row] * col_scale[col] * orig(row, col);
         },
-        orig.size, row_scale, row_perm, col_scale, col_perm, orig, permuted);
+        orig.size, arithmetic<ValueType>(row_scale, orig.size[0]), row_perm,
+        arithmetic<ValueType>(col_scale, orig.size[1]), col_perm,
+        arithmetic<ValueType>(orig), arithmetic<ValueType>(permuted));
 }
 
 
@@ -611,7 +633,9 @@ void inv_nonsymm_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
             const auto col = col_perm[j];
             permuted(row, col) = orig(i, j) / (row_scale[row] * col_scale[col]);
         },
-        orig.size, row_scale, row_perm, col_scale, col_perm, orig, permuted);
+        orig.size, arithmetic<ValueType>(row_scale, orig.size[0]), row_perm,
+        arithmetic<ValueType>(col_scale, orig.size[1]), col_perm,
+        arithmetic<ValueType>(orig), arithmetic<ValueType>(permuted));
 }
 
 
@@ -628,7 +652,8 @@ void row_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
             const auto row = perm[i];
             permuted(i, j) = scale[row] * orig(row, j);
         },
-        orig.size, scale, perm, orig, permuted);
+        orig.size, arithmetic<ValueType>(scale, orig.size[0]), perm,
+        arithmetic<ValueType>(orig), arithmetic<ValueType>(permuted));
 }
 
 
@@ -645,7 +670,8 @@ void inv_row_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
             const auto row = perm[i];
             permuted(row, j) = orig(i, j) / scale[row];
         },
-        orig.size, scale, perm, orig, permuted);
+        orig.size, arithmetic<ValueType>(scale, orig.size[0]), perm,
+        arithmetic<ValueType>(orig), arithmetic<ValueType>(permuted));
 }
 
 
@@ -662,7 +688,8 @@ void col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
             const auto col = perm[j];
             permuted(i, j) = scale[col] * orig(i, col);
         },
-        orig.size, scale, perm, orig, permuted);
+        orig.size, arithmetic<ValueType>(scale, orig.size[1]), perm,
+        arithmetic<ValueType>(orig), arithmetic<ValueType>(permuted));
 }
 
 
@@ -679,7 +706,8 @@ void inv_col_scale_permute(std::shared_ptr<const DefaultExecutor> exec,
             const auto col = perm[j];
             permuted(i, col) = orig(i, j) / scale[col];
         },
-        orig.size, scale, perm, orig, permuted);
+        orig.size, arithmetic<ValueType>(scale, orig.size[1]), perm,
+        arithmetic<ValueType>(orig), arithmetic<ValueType>(permuted));
 }
 
 
@@ -779,7 +807,8 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
                 mtx(row, row) += alpha[0];
             }
         },
-        mtx.size, alpha.values, beta.values, mtx);
+        mtx.size, arithmetic<ValueType, 1>(alpha),
+        arithmetic<ValueType, 1>(beta), arithmetic<ValueType>(mtx));
 }
 
 

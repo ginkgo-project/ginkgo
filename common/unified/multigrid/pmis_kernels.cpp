@@ -4,6 +4,8 @@
 
 #include "core/multigrid/pmis_kernels.hpp"
 
+#include <type_traits>
+
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
@@ -92,9 +94,12 @@ void compute_strong_dep_row(std::shared_ptr<const DefaultExecutor> exec,
             return count;
         },
         GKO_KERNEL_REDUCE_SUM(IndexType), sparsity_rows, 1,
-        dim<2>{csr->get_size()[0], width}, has_diagonal, row_maxabs,
-        strength_threshold, csr->get_const_row_ptrs(),
-        csr->get_const_col_idxs(), csr->get_const_values());
+        dim<2>{csr->get_size()[0], width}, has_diagonal,
+        arithmetic<ValueType>(row_maxabs, csr->get_size()[0]),
+        arithmetic<ValueType>(strength_threshold), csr->get_const_row_ptrs(),
+        csr->get_const_col_idxs(),
+        arithmetic<ValueType>(csr->get_const_values(),
+                              csr->get_num_stored_elements()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -132,10 +137,13 @@ void compute_strong_dep(std::shared_ptr<const DefaultExecutor> exec,
                 }
             }
         },
-        csr->get_size()[0], has_diagonal, row_maxabs, strength_threshold,
-        csr->get_const_row_ptrs(), csr->get_const_col_idxs(),
-        csr->get_const_values(), strong_dep->get_const_row_ptrs(),
-        strong_dep->get_col_idxs());
+        csr->get_size()[0], has_diagonal,
+        arithmetic<ValueType>(row_maxabs, csr->get_size()[0]),
+        arithmetic<ValueType>(strength_threshold), csr->get_const_row_ptrs(),
+        csr->get_const_col_idxs(),
+        arithmetic<ValueType>(csr->get_const_values(),
+                              csr->get_num_stored_elements()),
+        strong_dep->get_const_row_ptrs(), strong_dep->get_col_idxs());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -339,17 +347,55 @@ GKO_INSTANTIATE_FOR_EACH_LOCAL_GLOBAL_INDEX_TYPE(
     GKO_DECLARE_PMIS_COARSE_GLOBAL_INDEX);
 
 
-// run_kernel maps its arguments to device types, but does not map the
-// members of a struct
-template <typename ValueType, typename IndexType>
-kernels::pmis::interpolation_workspace<device_type<ValueType>, IndexType>
-as_device_workspace(
-    kernels::pmis::interpolation_workspace<ValueType, IndexType> ws)
+// kernels::pmis::interpolation_workspace as the kernels access it: Sums is
+// the accessor of the sums, Diag the one of the diagonal
+template <typename Sums, typename Diag, typename IndexType>
+struct device_interpolation_workspace {
+    Sums pos;
+    Sums pos_divisor;
+    Sums neg;
+    Sums neg_divisor;
+    Diag diag;
+    int* enable_pos;
+    int* enable_neg;
+    IndexType* cursor;
+};
+
+
+// run_kernel maps its arguments to device types, but does not map the members
+// of a struct. The sums are passed in the arithmetic type, the diagonal as
+// diag: plain to direct_interpolation_accumulate, which only copies it, and in
+// the arithmetic type to direct_interpolation_emit, which divides by it.
+}  // namespace pmis
+
+
+// the workspace already holds device types, see pmis::as_device_workspace
+template <typename Sums, typename Diag, typename IndexType>
+struct to_device_type_impl<
+    pmis::device_interpolation_workspace<Sums, Diag, IndexType>&> {
+    using type = pmis::device_interpolation_workspace<Sums, Diag, IndexType>;
+    static type map_to_device(type ws) { return ws; }
+};
+
+
+namespace pmis {
+
+
+template <typename ValueType, typename IndexType, typename Diag>
+auto as_device_workspace(
+    kernels::pmis::interpolation_workspace<ValueType, IndexType> ws,
+    size_type num_rows, Diag diag)
 {
-    return {as_device_type(ws.pos),  as_device_type(ws.pos_divisor),
-            as_device_type(ws.neg),  as_device_type(ws.neg_divisor),
-            as_device_type(ws.diag), ws.enable_pos,
-            ws.enable_neg,           ws.cursor};
+    auto pos = arithmetic<ValueType>(ws.pos, num_rows);
+    auto pos_divisor = arithmetic<ValueType>(ws.pos_divisor, num_rows);
+    auto neg = arithmetic<ValueType>(ws.neg, num_rows);
+    auto neg_divisor = arithmetic<ValueType>(ws.neg_divisor, num_rows);
+    return device_interpolation_workspace<
+        decltype(map_to_device(pos)), decltype(map_to_device(diag)), IndexType>{
+        map_to_device(pos),  map_to_device(pos_divisor),
+        map_to_device(neg),  map_to_device(neg_divisor),
+        map_to_device(diag), ws.enable_pos,
+        ws.enable_neg,       ws.cursor};
 }
 
 
@@ -365,7 +411,8 @@ void direct_interpolation_accumulate(
         exec,
         [] GKO_KERNEL(auto row, auto has_diagonal, auto col_offset,
                       auto row_maxabs, auto strength_threshold, auto status,
-                      auto row_ptrs, auto col_idxs, auto values, auto ws) {
+                      auto row_ptrs, auto col_idxs, auto values,
+                      auto stored_values, auto ws) {
             if (status[row] == kernels::pmis::coarse) {
                 return;
             }
@@ -377,7 +424,8 @@ void direct_interpolation_accumulate(
                 const auto val = values[idx];
                 const auto col = col_idxs[idx];
                 if (has_diagonal && col == row) {
-                    ws.diag[row] = val;
+                    // copies the stored value, which val is rounded from
+                    ws.diag[row] = stored_values[idx];
                     continue;
                 }
                 const bool is_coarse =
@@ -398,10 +446,14 @@ void direct_interpolation_accumulate(
                 }
             }
         },
-        csr->get_size()[0], has_diagonal, col_offset, row_maxabs,
-        strength_threshold, status, csr->get_const_row_ptrs(),
-        csr->get_const_col_idxs(), csr->get_const_values(),
-        as_device_workspace(ws));
+        csr->get_size()[0], has_diagonal, col_offset,
+        arithmetic<ValueType>(row_maxabs, csr->get_size()[0]),
+        arithmetic<ValueType>(strength_threshold), status,
+        csr->get_const_row_ptrs(), csr->get_const_col_idxs(),
+        arithmetic<ValueType>(csr->get_const_values(),
+                              csr->get_num_stored_elements()),
+        csr->get_const_values(),
+        as_device_workspace(ws, csr->get_size()[0], ws.diag));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
@@ -423,6 +475,7 @@ void direct_interpolation_emit(
                       auto row_maxabs, auto strength_threshold, auto status,
                       auto row_ptrs, auto col_idxs, auto values, auto ws,
                       auto prolong_col_idxs, auto prolong_values) {
+            using value_type = std::remove_pointer_t<decltype(prolong_values)>;
             if (status[row] == kernels::pmis::coarse) {
                 return;
             }
@@ -445,21 +498,27 @@ void direct_interpolation_emit(
                 }
                 if (real(val) >= zero(real(val)) && ws.enable_pos[row]) {
                     prolong_col_idxs[ws.cursor[row]] = col_offset + col;
-                    prolong_values[ws.cursor[row]] = -beta * val / ws.diag[row];
+                    prolong_values[ws.cursor[row]] =
+                        static_cast<value_type>(-beta * val / ws.diag[row]);
                     ws.cursor[row]++;
                 }
                 if (real(val) < zero(real(val)) && ws.enable_neg[row]) {
                     prolong_col_idxs[ws.cursor[row]] = col_offset + col;
                     prolong_values[ws.cursor[row]] =
-                        -alpha * val / ws.diag[row];
+                        static_cast<value_type>(-alpha * val / ws.diag[row]);
                     ws.cursor[row]++;
                 }
             }
         },
-        csr->get_size()[0], has_diagonal, col_offset, row_maxabs,
-        strength_threshold, status, csr->get_const_row_ptrs(),
-        csr->get_const_col_idxs(), csr->get_const_values(),
-        as_device_workspace(ws), prolong_col_idxs, prolong_values);
+        csr->get_size()[0], has_diagonal, col_offset,
+        arithmetic<ValueType>(row_maxabs, csr->get_size()[0]),
+        arithmetic<ValueType>(strength_threshold), status,
+        csr->get_const_row_ptrs(), csr->get_const_col_idxs(),
+        arithmetic<ValueType>(csr->get_const_values(),
+                              csr->get_num_stored_elements()),
+        as_device_workspace(ws, csr->get_size()[0],
+                            arithmetic<ValueType>(ws.diag, csr->get_size()[0])),
+        prolong_col_idxs, prolong_values);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -10,10 +10,8 @@
 
 #include <thrust/complex.h>
 
-#include "block_col_major.hpp"
-#include "reduced_row_major.hpp"
-#include "row_major.hpp"
-#include "scaled_reduced_row_major.hpp"
+#include "convert_range.hpp"
+#include "range.hpp"
 #include "utils.hpp"
 
 
@@ -131,53 +129,10 @@ as_cuda_type(T val)
  *
  * @return `r` with appropriate types and reinterpreted to CUDA pointers
  */
-template <std::size_t dim, typename Type1, typename Type2>
-GKO_ACC_INLINE auto as_cuda_range(
-    const range<reduced_row_major<dim, Type1, Type2>>& r)
+template <typename Accessor>
+GKO_ACC_INLINE auto as_cuda_range(const range<Accessor>& r)
 {
-    return range<
-        reduced_row_major<dim, cuda_type_t<Type1>, cuda_type_t<Type2>>>(
-        r.get_accessor().get_size(),
-        as_cuda_type(r.get_accessor().get_stored_data()),
-        r.get_accessor().get_stride());
-}
-
-/**
- * @copydoc as_cuda_range()
- */
-template <std::size_t dim, typename Type1, typename Type2, std::uint64_t mask>
-GKO_ACC_INLINE auto as_cuda_range(
-    const range<scaled_reduced_row_major<dim, Type1, Type2, mask>>& r)
-{
-    return range<scaled_reduced_row_major<dim, cuda_type_t<Type1>,
-                                          cuda_type_t<Type2>, mask>>(
-        r.get_accessor().get_size(),
-        as_cuda_type(r.get_accessor().get_stored_data()),
-        r.get_accessor().get_storage_stride(),
-        as_cuda_type(r.get_accessor().get_scalar()),
-        r.get_accessor().get_scalar_stride());
-}
-
-/**
- * @copydoc as_cuda_range()
- */
-template <typename T, size_type dim>
-GKO_ACC_INLINE auto as_cuda_range(const range<block_col_major<T, dim>>& r)
-{
-    return range<block_col_major<cuda_type_t<T>, dim>>(
-        r.get_accessor().lengths, as_cuda_type(r.get_accessor().data),
-        r.get_accessor().stride);
-}
-
-/**
- * @copydoc as_cuda_range()
- */
-template <typename T, size_type dim>
-GKO_ACC_INLINE auto as_cuda_range(const range<row_major<T, dim>>& r)
-{
-    return range<block_col_major<cuda_type_t<T>, dim>>(
-        r.get_accessor().lengths, as_cuda_type(r.get_accessor().data),
-        r.get_accessor().stride);
+    return detail::convert_range<detail::cuda_type>(r);
 }
 
 

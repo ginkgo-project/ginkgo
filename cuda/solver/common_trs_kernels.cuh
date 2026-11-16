@@ -18,6 +18,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/pointer_mode_guard.hpp"
 #include "common/cuda_hip/base/sparselib_bindings.hpp"
@@ -26,6 +27,7 @@
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/base/array_access.hpp"
 #include "core/matrix/dense_kernels.hpp"
 #include "core/synthesizer/implementation_selection.hpp"
@@ -421,13 +423,19 @@ is_nan_exact(const T& value)
 }
 
 
-template <bool is_upper, typename ValueType, typename IndexType>
+/**
+ * The solution x doubles as the flag that tells whether a row is solved (it is
+ * initialized to NaN), so x and its copy in shared memory are accessed in the
+ * storage type ValueType, while the matrix values and b are read through
+ * arithmetic() ranges.
+ */
+template <bool is_upper, typename IndexType, typename ValueAccessor,
+          typename ValueType>
 __global__ void sptrsv_naive_caching_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
-    const ValueType* const vals, const ValueType* const b, size_type b_stride,
-    ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool unit_diag, bool* nan_produced,
-    IndexType* atomic_counter)
+    ValueAccessor vals, ValueAccessor b, size_type b_stride, ValueType* const x,
+    size_type x_stride, const size_type n, const size_type nrhs, bool unit_diag,
+    bool* nan_produced, IndexType* atomic_counter)
 {
     // TODO: need to investigate
     // memory operation on the half-precision shared_memory seem to give
@@ -439,6 +447,12 @@ __global__ void sptrsv_naive_caching_kernel(
         std::conditional_t<is_complex<ValueType>(), thrust::complex<float>,
                            float>,
         ValueType>;
+    // half precision computes in float like its shared memory copy, all other
+    // types in their arithmetic type
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
+    using compute_type =
+        std::conditional_t<std::is_same_v<arithmetic_type, ValueType>,
+                           SharedValueType, arithmetic_type>;
     __shared__ uninitialized_array<SharedValueType, default_block_size>
         x_s_array;
     __shared__ IndexType block_base_idx;
@@ -473,7 +487,7 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    auto sum = zero<SharedValueType>();
+    auto sum = zero<compute_type>();
     auto i = row_begin;
     for (; i != row_end; i += row_step) {
         const auto dependency = colidxs[i];
@@ -503,14 +517,15 @@ __global__ void sptrsv_naive_caching_kernel(
             val = static_cast<SharedValueType>(output_val);
         }
 
-        sum += val * static_cast<SharedValueType>(vals[i]);
+        sum +=
+            static_cast<compute_type>(val) * static_cast<compute_type>(vals[i]);
     }
 
     // The first entry past the triangular part will be the diagonal
-    const auto diag = unit_diag ? one<SharedValueType>()
-                                : static_cast<SharedValueType>(vals[i]);
-    const auto r =
-        (static_cast<SharedValueType>(b[row * b_stride + rhs]) - sum) / diag;
+    const auto diag =
+        unit_diag ? one<compute_type>() : static_cast<compute_type>(vals[i]);
+    const auto r = static_cast<SharedValueType>(
+        (static_cast<compute_type>(b[row * b_stride + rhs]) - sum) / diag);
 
     store_relaxed_shared(x_s + self_shid, r);
     store_relaxed(x + row * x_stride + rhs, static_cast<ValueType>(r));
@@ -524,14 +539,19 @@ __global__ void sptrsv_naive_caching_kernel(
 }
 
 
-template <bool is_upper, typename ValueType, typename IndexType>
+/**
+ * Like sptrsv_naive_caching_kernel, x is accessed in the storage type ValueType
+ * because it doubles as the flag that tells whether a row is solved.
+ */
+template <bool is_upper, typename IndexType, typename ValueAccessor,
+          typename ValueType>
 __global__ void sptrsv_naive_legacy_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
-    const ValueType* const vals, const ValueType* const b, size_type b_stride,
-    ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool unit_diag, bool* nan_produced,
-    IndexType* atomic_counter)
+    ValueAccessor vals, ValueAccessor b, size_type b_stride, ValueType* const x,
+    size_type x_stride, const size_type n, const size_type nrhs, bool unit_diag,
+    bool* nan_produced, IndexType* atomic_counter)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     __shared__ IndexType block_base_idx;
     if (threadIdx.x == 0) {
         block_base_idx =
@@ -553,13 +573,13 @@ __global__ void sptrsv_naive_legacy_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    ValueType sum = zero<ValueType>();
+    auto sum = zero<arithmetic_type>();
     auto j = row_begin;
     auto col = colidxs[j];
     while (j != row_end) {
         auto x_val = load_relaxed(x + col * x_stride + rhs);
         while (!is_nan_exact(x_val)) {
-            sum += vals[j] * x_val;
+            sum += vals[j] * static_cast<arithmetic_type>(x_val);
             j += row_step;
             col = colidxs[j];
             x_val = load_relaxed(x + col * x_stride + rhs);
@@ -570,8 +590,9 @@ __global__ void sptrsv_naive_legacy_kernel(
         // but prevents an infinite loop.
         if (is_upper ? row >= col : row <= col) {
             // assert(row == col);
-            auto diag = unit_diag ? one<ValueType>() : vals[j];
-            const auto r = (b[row * b_stride + rhs] - sum) / diag;
+            const auto diag = unit_diag ? one<arithmetic_type>() : vals[j];
+            const auto r =
+                static_cast<ValueType>((b[row * b_stride + rhs] - sum) / diag);
             store_relaxed(x + row * x_stride + rhs, r);
             // after we encountered the diagonal, we are done
             // this also skips entries outside the triangle
@@ -617,21 +638,23 @@ void sptrsv_naive_caching(
     const dim3 block_size(
         is_fallback_required ? fallback_block_size : default_block_size, 1, 1);
     const dim3 grid_size(ceildiv(n * nrhs, block_size.x), 1, 1);
+    const auto mtx_vals = arithmetic<ValueType>(matrix);
+    const auto b_vals = arithmetic<ValueType, 1>(b);
 
     if (is_fallback_required) {
         sptrsv_naive_legacy_kernel<is_upper>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                matrix.row_ptrs, matrix.col_idxs, as_device_type(matrix.values),
-                as_device_type(b.values), b.stride, as_device_type(x.values),
-                x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
-                atomic_counter.get_data());
+                matrix.row_ptrs, matrix.col_idxs,
+                acc::as_device_range(mtx_vals), acc::as_device_range(b_vals),
+                b.stride, as_device_type(x.values), x.stride, n, nrhs,
+                unit_diag, nan_produced.get_data(), atomic_counter.get_data());
     } else {
         sptrsv_naive_caching_kernel<is_upper>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
-                matrix.row_ptrs, matrix.col_idxs, as_device_type(matrix.values),
-                as_device_type(b.values), b.stride, as_device_type(x.values),
-                x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
-                atomic_counter.get_data());
+                matrix.row_ptrs, matrix.col_idxs,
+                acc::as_device_range(mtx_vals), acc::as_device_range(b_vals),
+                b.stride, as_device_type(x.values), x.stride, n, nrhs,
+                unit_diag, nan_produced.get_data(), atomic_counter.get_data());
     }
 
 #if GKO_VERBOSE_LEVEL >= 1

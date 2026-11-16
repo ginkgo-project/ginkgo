@@ -49,25 +49,21 @@ void init_update(std::shared_ptr<const DefaultExecutor> exec,
 {
     using coeff_type =
         if_single_only_type<solver::detail::coeff_type<ValueType>>;
-    // the coeff_type always be the highest precision, so we need
-    // to cast the others from ValueType to this precision.
-    using arithmetic_type = device_type<coeff_type>;
-
+    // the coeff_type always be the highest precision, so the kernel computes in
+    // its arithmetic type.
     auto alpha_val = static_cast<coeff_type>(alpha);
 
     run_kernel(
         exec,
         [] GKO_KERNEL(auto row, auto col, auto alpha, auto inner_sol,
-                      auto update_sol, auto output) {
-            const auto inner_val =
-                static_cast<arithmetic_type>(inner_sol(row, col));
-            update_sol(row, col) =
-                static_cast<device_type<ValueType>>(inner_val);
-            output(row, col) = static_cast<device_type<ValueType>>(
-                static_cast<arithmetic_type>(output(row, col)) +
-                alpha * inner_val);
+                      auto inner_sol_arith, auto update_sol, auto output) {
+            // a plain copy, which stays exact in the storage type
+            update_sol(row, col) = inner_sol(row, col);
+            output(row, col) += alpha * inner_sol_arith(row, col);
         },
-        output.size, alpha_val, inner_sol, update_sol, output);
+        output.size, arithmetic<coeff_type>(alpha_val), inner_sol,
+        arithmetic<coeff_type>(inner_sol), update_sol,
+        arithmetic<coeff_type>(output));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CHEBYSHEV_INIT_UPDATE_KERNEL);
@@ -83,10 +79,8 @@ void update(std::shared_ptr<const DefaultExecutor> exec,
 {
     using coeff_type =
         if_single_only_type<solver::detail::coeff_type<ValueType>>;
-    // the coeff_type always be the highest precision, so we need
-    // to cast the others from ValueType to this precision.
-    using arithmetic_type = device_type<coeff_type>;
-
+    // the coeff_type always be the highest precision, so the kernel computes in
+    // its arithmetic type.
     auto alpha_val = static_cast<coeff_type>(alpha);
     auto beta_val = static_cast<coeff_type>(beta);
 
@@ -94,15 +88,14 @@ void update(std::shared_ptr<const DefaultExecutor> exec,
         exec,
         [] GKO_KERNEL(auto row, auto col, auto alpha, auto beta, auto inner_sol,
                       auto update_sol, auto output) {
-            const auto val =
-                static_cast<arithmetic_type>(inner_sol(row, col)) +
-                beta * static_cast<arithmetic_type>(update_sol(row, col));
-            inner_sol(row, col) = static_cast<device_type<ValueType>>(val);
-            update_sol(row, col) = static_cast<device_type<ValueType>>(val);
-            output(row, col) = static_cast<device_type<ValueType>>(
-                static_cast<arithmetic_type>(output(row, col)) + alpha * val);
+            const auto val = inner_sol(row, col) + beta * update_sol(row, col);
+            inner_sol(row, col) = val;
+            update_sol(row, col) = val;
+            output(row, col) += alpha * val;
         },
-        output.size, alpha_val, beta_val, inner_sol, update_sol, output);
+        output.size, arithmetic<coeff_type>(alpha_val),
+        arithmetic<coeff_type>(beta_val), arithmetic<coeff_type>(inner_sol),
+        arithmetic<coeff_type>(update_sol), arithmetic<coeff_type>(output));
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CHEBYSHEV_UPDATE_KERNEL);

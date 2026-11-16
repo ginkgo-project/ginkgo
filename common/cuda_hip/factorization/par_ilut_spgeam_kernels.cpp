@@ -8,6 +8,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
@@ -16,6 +17,7 @@
 #include "common/cuda_hip/components/prefix_sum.hpp"
 #include "common/cuda_hip/components/searching.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/factorization/par_ilut_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
@@ -87,7 +89,8 @@ __global__ __launch_bounds__(default_block_size) void tri_spgeam_nnz(
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType,
+          typename UAccessor>
 __global__ __launch_bounds__(default_block_size) void tri_spgeam_init(
     const IndexType* __restrict__ lu_row_ptrs,
     const IndexType* __restrict__ lu_col_idxs,
@@ -100,13 +103,16 @@ __global__ __launch_bounds__(default_block_size) void tri_spgeam_init(
     const ValueType* __restrict__ l_vals,
     const IndexType* __restrict__ u_row_ptrs,
     const IndexType* __restrict__ u_col_idxs,
-    const ValueType* __restrict__ u_vals,
+    const ValueType* __restrict__ u_vals, UAccessor u_values,
     const IndexType* __restrict__ l_new_row_ptrs,
     IndexType* __restrict__ l_new_col_idxs, ValueType* __restrict__ l_new_vals,
     const IndexType* __restrict__ u_new_row_ptrs,
     IndexType* __restrict__ u_new_col_idxs, ValueType* __restrict__ u_new_vals,
     IndexType num_rows)
 {
+    using arithmetic_type = arithmetic_type_t<UAccessor>;
+    // the entries of L and U are copied in the storage type, so that they stay
+    // exact
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
@@ -193,7 +199,8 @@ __global__ __launch_bounds__(default_block_size) void tri_spgeam_init(
         if (r_col != lu_cur_col) {
             lu_cur_val = zero<ValueType>();
         }
-        auto r_val = a_cur_val - lu_cur_val;
+        const auto r_val = static_cast<arithmetic_type>(a_cur_val) -
+                           static_cast<arithmetic_type>(lu_cur_val);
 
         // determine which threads will write output to L or U
         auto use_lpu = lpu_cur_col == r_col;
@@ -203,9 +210,10 @@ __global__ __launch_bounds__(default_block_size) void tri_spgeam_init(
             group::ballot(subwarp, r_col >= row && !prev_equal && valid);
         // store values
         if (!prev_equal && valid) {
-            auto diag =
-                r_col < row ? u_vals[u_row_ptrs[r_col]] : one<ValueType>();
-            auto out_val = use_lpu ? lpu_cur_val : r_val / diag;
+            const auto diag = r_col < row ? u_values[u_row_ptrs[r_col]]
+                                          : one<arithmetic_type>();
+            auto out_val =
+                use_lpu ? lpu_cur_val : static_cast<ValueType>(r_val / diag);
             if (r_col <= row) {
                 auto ofs = popcnt(l_new_advance_mask & lanemask_lt);
                 l_new_col_idxs[l_new_begin + ofs] = r_col;
@@ -320,6 +328,7 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto u_row_ptrs = u.row_ptrs;
     auto u_col_idxs = u.col_idxs;
     auto u_vals = u.values;
+    const auto u_values = arithmetic<ValueType>(u);
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     auto u_new_row_ptrs = u_new->get_row_ptrs();
     if (num_blocks > 0) {
@@ -354,9 +363,10 @@ void add_candidates(syn::value_list<int, subwarp_size>,
                 lu_row_ptrs, lu_col_idxs, as_device_type(lu_vals), a_row_ptrs,
                 a_col_idxs, as_device_type(a_vals), l_row_ptrs, l_col_idxs,
                 as_device_type(l_vals), u_row_ptrs, u_col_idxs,
-                as_device_type(u_vals), l_new_row_ptrs, l_new_col_idxs,
-                as_device_type(l_new_vals), u_new_row_ptrs, u_new_col_idxs,
-                as_device_type(u_new_vals), num_rows);
+                as_device_type(u_vals), acc::as_device_range(u_values),
+                l_new_row_ptrs, l_new_col_idxs, as_device_type(l_new_vals),
+                u_new_row_ptrs, u_new_col_idxs, as_device_type(u_new_vals),
+                num_rows);
     }
 }
 

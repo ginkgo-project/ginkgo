@@ -23,6 +23,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/base/array_access.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/matrix/dense_kernels.hpp"
@@ -86,7 +87,8 @@ __global__ __launch_bounds__(block_size) void restart_1_kernel(
     const auto residual_col = global_id % stride_residual_nc;
 
     if (krylov_idx < krylov_dim + 1 && krylov_row < num_rows && rhs < num_rhs) {
-        krylov_bases(krylov_idx, krylov_row, rhs) = zero<ValueType>();
+        krylov_bases(krylov_idx, krylov_row, rhs) =
+            zero<arithmetic_type_t<Accessor3d>>();
     }
 
     if (residual_row < krylov_dim + 1 && residual_col < num_rhs) {
@@ -119,10 +121,14 @@ __global__ __launch_bounds__(block_size) void restart_2_kernel(
     }
 
     if (row_idx < num_rows && col_idx < num_rhs) {
-        auto value = residual[row_idx * stride_residual + col_idx] /
-                     residual_norm[col_idx];
+        using arithmetic_type = arithmetic_type_t<Accessor3d>;
+        const auto value = static_cast<arithmetic_type>(
+                               residual[row_idx * stride_residual + col_idx]) /
+                           static_cast<remove_complex<arithmetic_type>>(
+                               residual_norm[col_idx]);
         krylov_bases(0, row_idx, col_idx) = value;
-        next_krylov_basis[row_idx * stride_next_krylov + col_idx] = value;
+        next_krylov_basis[row_idx * stride_next_krylov + col_idx] =
+            static_cast<ValueType>(value);
     }
 }
 
@@ -139,14 +145,14 @@ __launch_bounds__(default_block_size) void increase_final_iteration_numbers_kern
 }
 
 
-template <typename ValueType>
+template <typename ValueAccessor, typename RealType>
 __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
-    size_type num_rows, size_type num_cols,
-    const ValueType* __restrict__ next_krylov_basis,
-    size_type stride_next_krylov, remove_complex<ValueType>* __restrict__ norms,
+    size_type num_rows, size_type num_cols, ValueAccessor next_krylov_basis,
+    size_type stride_next_krylov, RealType* __restrict__ norms,
     const stopping_status* __restrict__ stop_status)
 {
-    using rc_vtype = remove_complex<ValueType>;
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
+    using rc_vtype = remove_complex<arithmetic_type>;
     const auto tidx = threadIdx.x;
     const auto tidy = threadIdx.y;
     const auto col_idx = blockIdx.x * default_dot_dim + tidx;
@@ -165,7 +171,8 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            local_res += squared_norm(next_krylov_basis[next_krylov_idx]);
+            local_res += squared_norm(static_cast<arithmetic_type>(
+                next_krylov_basis[next_krylov_idx]));
         }
     }
     reduction_helper[tidx * (default_dot_dim + 1) + tidy] = local_res;
@@ -180,7 +187,7 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_kernel(
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
         const auto norms_idx = new_col_idx;
-        atomic_add(norms + norms_idx, sum);
+        atomic_add(norms + norms_idx, static_cast<RealType>(sum));
     }
 }
 
@@ -235,16 +242,15 @@ __launch_bounds__(default_dot_size) void multinorminf_without_stop_kernel(
 
 
 // ONLY computes the inf-norm (into norms2) when compute_inf is true
-template <bool compute_inf, typename ValueType>
+template <bool compute_inf, typename ValueAccessor, typename RealType>
 __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
-    size_type num_rows, size_type num_cols,
-    const ValueType* __restrict__ next_krylov_basis,
-    size_type stride_next_krylov,
-    remove_complex<ValueType>* __restrict__ norms1,
-    remove_complex<ValueType>* __restrict__ norms2,
+    size_type num_rows, size_type num_cols, ValueAccessor next_krylov_basis,
+    size_type stride_next_krylov, RealType* __restrict__ norms1,
+    RealType* __restrict__ norms2,
     const stopping_status* __restrict__ stop_status)
 {
-    using rc_vtype = remove_complex<ValueType>;
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
+    using rc_vtype = remove_complex<arithmetic_type>;
     const auto tidx = threadIdx.x;
     const auto tidy = threadIdx.y;
     const auto col_idx = blockIdx.x * default_dot_dim + tidx;
@@ -267,7 +273,8 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            const auto num = next_krylov_basis[next_krylov_idx];
+            const auto num = static_cast<arithmetic_type>(
+                next_krylov_basis[next_krylov_idx]);
             local_res += squared_norm(num);
             if (compute_inf) {
                 local_max = ((local_max >= abs(num)) ? local_max : abs(num));
@@ -298,9 +305,9 @@ __global__ __launch_bounds__(default_dot_size) void multinorm2_inf_kernel(
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
         const auto norms_idx = new_col_idx;
-        atomic_add(norms1 + norms_idx, sum);
+        atomic_add(norms1 + norms_idx, static_cast<RealType>(sum));
         if (compute_inf) {
-            atomic_max(norms2 + norms_idx, reduced_max);
+            atomic_max(norms2 + norms_idx, static_cast<RealType>(reduced_max));
         }
     }
 }
@@ -332,17 +339,19 @@ __global__ __launch_bounds__(dot_dim* dot_dim) void multidot_kernel(
     const size_type start_row = blockIdx.y * num_rows_per_thread + threadIdx.y;
     const auto end_row = min((blockIdx.y + 1) * num_rows_per_thread, num_rows);
     const size_type k = blockIdx.z;
+    using arithmetic_type = arithmetic_type_t<Accessor3d>;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__ uninitialized_array<ValueType, dot_dim * dot_dim>
+    __shared__ uninitialized_array<arithmetic_type, dot_dim * dot_dim>
         reduction_helper_array;
-    ValueType* __restrict__ reduction_helper = reduction_helper_array;
+    arithmetic_type* __restrict__ reduction_helper = reduction_helper_array;
 
-    ValueType local_res = zero<ValueType>();
+    arithmetic_type local_res = zero<arithmetic_type>();
     if (col_idx < num_cols && !stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row; i < end_row; i += blockDim.y) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            local_res += next_krylov_basis[next_krylov_idx] *
+            local_res += static_cast<arithmetic_type>(
+                             next_krylov_basis[next_krylov_idx]) *
                          conj(krylov_bases(k, i, col_idx));
         }
     }
@@ -354,13 +363,14 @@ __global__ __launch_bounds__(dot_dim* dot_dim) void multidot_kernel(
     local_res = reduction_helper[tidy * dot_dim + tidx];
     const auto new_col_idx = blockIdx.x * blockDim.x + tidy;
     const auto tile_block = group::tiled_partition<dot_dim>(thread_block);
-    const auto sum =
-        reduce(tile_block, local_res,
-               [](const ValueType& a, const ValueType& b) { return a + b; });
+    const auto sum = reduce(tile_block, local_res,
+                            [](const arithmetic_type& a,
+                               const arithmetic_type& b) { return a + b; });
     if (tidx == 0 && new_col_idx < num_cols &&
         !stop_status[new_col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + new_col_idx;
-        atomic_add(hessenberg_iter + hessenberg_idx, sum);
+        atomic_add(hessenberg_iter + hessenberg_idx,
+                   static_cast<ValueType>(sum));
     }
 }
 
@@ -387,17 +397,19 @@ __global__ __launch_bounds__(block_size) void singledot_kernel(
     const size_type num_rows_per_thread = ceildiv(num_rows, gridDim.x);
     const size_type start_row = blockIdx.x * num_rows_per_thread + threadIdx.x;
     const auto end_row = min((blockIdx.x + 1) * num_rows_per_thread, num_rows);
+    using arithmetic_type = arithmetic_type_t<Accessor3d>;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__ uninitialized_array<ValueType, block_size>
+    __shared__ uninitialized_array<arithmetic_type, block_size>
         reduction_helper_array;
-    ValueType* __restrict__ reduction_helper = reduction_helper_array;
+    arithmetic_type* __restrict__ reduction_helper = reduction_helper_array;
 
-    ValueType local_res = zero<ValueType>();
+    arithmetic_type local_res = zero<arithmetic_type>();
     if (!stop_status[col_idx].has_stopped()) {
         for (size_type i = start_row; i < end_row; i += block_size) {
             const auto next_krylov_idx = i * stride_next_krylov + col_idx;
-            local_res += next_krylov_basis[next_krylov_idx] *
+            local_res += static_cast<arithmetic_type>(
+                             next_krylov_basis[next_krylov_idx]) *
                          conj(krylov_bases(k, i, col_idx));
         }
     }
@@ -407,10 +419,13 @@ __global__ __launch_bounds__(block_size) void singledot_kernel(
     auto thread_block = group::this_thread_block();
     thread_block.sync();
     reduce(thread_block, reduction_helper,
-           [](const ValueType& a, const ValueType& b) { return a + b; });
+           [](const arithmetic_type& a, const arithmetic_type& b) {
+               return a + b;
+           });
     if (tidx == 0 && !stop_status[col_idx].has_stopped()) {
         const auto hessenberg_idx = k * stride_hessenberg + col_idx;
-        atomic_add(hessenberg_iter + hessenberg_idx, reduction_helper[0]);
+        atomic_add(hessenberg_iter + hessenberg_idx,
+                   static_cast<ValueType>(reduction_helper[0]));
     }
 }
 
@@ -431,15 +446,18 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_kernel(
 
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
+        using arithmetic_type = arithmetic_type_t<Accessor3d>;
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        auto local_res = next_krylov_basis[next_krylov_idx];
+        auto local_res =
+            static_cast<arithmetic_type>(next_krylov_basis[next_krylov_idx]);
         for (size_type k = 0; k < num_iters; ++k) {
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
 
-            local_res -= hessenberg_iter[hessenberg_idx] *
-                         krylov_bases(k, row_idx, col_idx);
+            local_res -=
+                static_cast<arithmetic_type>(hessenberg_iter[hessenberg_idx]) *
+                krylov_bases(k, row_idx, col_idx);
         }
-        next_krylov_basis[next_krylov_idx] = local_res;
+        next_krylov_basis[next_krylov_idx] = static_cast<ValueType>(local_res);
     }
 }
 
@@ -462,18 +480,24 @@ __global__ __launch_bounds__(block_size) void update_next_krylov_and_add_kernel(
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped() &&
         !reorth_status[col_idx].has_stopped()) {
+        using arithmetic_type = arithmetic_type_t<Accessor3d>;
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
-        auto local_res = next_krylov_basis[next_krylov_idx];
+        auto local_res =
+            static_cast<arithmetic_type>(next_krylov_basis[next_krylov_idx]);
         for (size_type k = 0; k < num_iters; ++k) {
             const auto hessenberg_idx = k * stride_hessenberg + col_idx;
             const auto buffer_idx = k * stride_buffer + col_idx;
-            local_res -=
-                buffer_iter[buffer_idx] * krylov_bases(k, row_idx, col_idx);
+            const auto buffer =
+                static_cast<arithmetic_type>(buffer_iter[buffer_idx]);
+            local_res -= buffer * krylov_bases(k, row_idx, col_idx);
             if ((row_idx == 0) && !reorth_status[col_idx].has_stopped()) {
-                hessenberg_iter[hessenberg_idx] += buffer_iter[buffer_idx];
+                hessenberg_iter[hessenberg_idx] = static_cast<ValueType>(
+                    static_cast<arithmetic_type>(
+                        hessenberg_iter[hessenberg_idx]) +
+                    buffer);
             }
         }
-        next_krylov_basis[next_krylov_idx] = local_res;
+        next_krylov_basis[next_krylov_idx] = static_cast<ValueType>(local_res);
     }
 }
 
@@ -488,25 +512,32 @@ __global__ __launch_bounds__(block_size) void check_arnoldi_norms(
     stopping_status* __restrict__ reorth_status,
     size_type* __restrict__ num_reorth)
 {
-    const remove_complex<ValueType> eta_squared = 1.0 / 2.0;
+    using real_type = remove_complex<ValueType>;
+    using real_arithmetic_type = remove_complex<arithmetic_type_t<Accessor3d>>;
+    const real_arithmetic_type eta_squared = 1.0f / 2.0f;
     const auto col_idx = thread::get_thread_id_flat();
     constexpr bool has_scalar =
         gko::cb_gmres::detail::has_3d_scaled_accessor<Accessor3d>::value;
 
     if (col_idx < num_rhs && !stop_status[col_idx].has_stopped()) {
-        const auto num0 = (sqrt(eta_squared * arnoldi_norm[col_idx]));
-        const auto num11 = sqrt(arnoldi_norm[col_idx + stride_norm]);
-        const auto num2 = has_scalar ? (arnoldi_norm[col_idx + 2 * stride_norm])
-                                     : remove_complex<ValueType>{};
+        const auto num0 = sqrt(eta_squared * static_cast<real_arithmetic_type>(
+                                                 arnoldi_norm[col_idx]));
+        const auto num11 = sqrt(static_cast<real_arithmetic_type>(
+            arnoldi_norm[col_idx + stride_norm]));
+        const auto num2 = has_scalar
+                              ? static_cast<real_arithmetic_type>(
+                                    arnoldi_norm[col_idx + 2 * stride_norm])
+                              : real_arithmetic_type{};
         if (num11 < num0) {
             reorth_status[col_idx].reset();
             atomic_add(num_reorth, one<size_type>());
         } else {
             reorth_status[col_idx].stop(1);
         }
-        arnoldi_norm[col_idx] = num0;
-        arnoldi_norm[col_idx + stride_norm] = num11;
-        hessenberg_iter[iter * stride_hessenberg + col_idx] = num11;
+        arnoldi_norm[col_idx] = static_cast<real_type>(num0);
+        arnoldi_norm[col_idx + stride_norm] = static_cast<real_type>(num11);
+        hessenberg_iter[iter * stride_hessenberg + col_idx] =
+            static_cast<ValueType>(static_cast<real_type>(num11));
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
             krylov_bases, iter, col_idx, num2 / num11);
     }
@@ -522,6 +553,7 @@ __global__ __launch_bounds__(block_size) void set_scalar_kernel(
 {
     static_assert(!is_complex_s<RealValueType>::value,
                   "ValueType must not be complex!");
+    using real_arithmetic_type = remove_complex<arithmetic_type_t<Accessor3d>>;
     const auto global_id = thread::get_thread_id_flat();
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
@@ -531,12 +563,14 @@ __global__ __launch_bounds__(block_size) void set_scalar_kernel(
 
     if (blk_idx < num_blocks && col_idx < num_rhs) {
         if (blk_idx == 0) {
-            const auto num1 = residual_norm[col_idx];
-            const auto num2 = arnoldi_inf[col_idx];
+            const auto num1 =
+                static_cast<real_arithmetic_type>(residual_norm[col_idx]);
+            const auto num2 =
+                static_cast<real_arithmetic_type>(arnoldi_inf[col_idx]);
             gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, {0}, col_idx, num2 / num1);
         } else {
-            const auto num = one<RealValueType>();
+            const auto num = one<real_arithmetic_type>();
             gko::cb_gmres::helper_functions_accessor<Accessor3d>::write_scalar(
                 krylov_bases, blk_idx, col_idx, num);
         }
@@ -554,20 +588,23 @@ __global__ __launch_bounds__(block_size) void update_krylov_next_krylov_kernel(
     size_type stride_hessenberg,
     const stopping_status* __restrict__ stop_status)
 {
+    using arithmetic_type = arithmetic_type_t<Accessor3d>;
     const auto global_id = thread::get_thread_id_flat();
     const auto row_idx = global_id / stride_next_krylov;
     const auto col_idx = global_id % stride_next_krylov;
-    const auto hessenberg =
-        hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx];
+    const auto hessenberg = static_cast<arithmetic_type>(
+        hessenberg_iter[(iter + 1) * stride_hessenberg + col_idx]);
 
     if (row_idx < num_rows && col_idx < num_cols &&
         !stop_status[col_idx].has_stopped()) {
         const auto next_krylov_idx = row_idx * stride_next_krylov + col_idx;
 
         const auto next_krylov_value =
-            next_krylov_basis[next_krylov_idx] / hessenberg;
+            static_cast<arithmetic_type>(next_krylov_basis[next_krylov_idx]) /
+            hessenberg;
 
-        next_krylov_basis[next_krylov_idx] = next_krylov_value;
+        next_krylov_basis[next_krylov_idx] =
+            static_cast<ValueType>(next_krylov_value);
         krylov_bases(iter + 1, row_idx, col_idx) = next_krylov_value;
     }
 }
@@ -588,11 +625,13 @@ __global__ __launch_bounds__(block_size) void calculate_Qy_kernel(
     const auto col_id = global_id % stride_preconditioner;
 
     if (row_id < num_rows && col_id < num_cols) {
-        ValueType temp = zero<ValueType>();
+        using arithmetic_type = arithmetic_type_t<Accessor3d>;
+        arithmetic_type temp = zero<arithmetic_type>();
         for (size_type j = 0; j < final_iter_nums[col_id]; ++j) {
-            temp += krylov_bases(j, row_id, col_id) * y[j * stride_y + col_id];
+            temp += krylov_bases(j, row_id, col_id) *
+                    static_cast<arithmetic_type>(y[j * stride_y + col_id]);
         }
-        before_preconditioner[global_id] = temp;
+        before_preconditioner[global_id] = static_cast<ValueType>(temp);
     }
 }
 
@@ -655,6 +694,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
     const auto krylov_stride =
         gko::cb_gmres::helper_functions_accessor<Accessor3d>::get_stride(
             krylov_bases);
+    const auto krylov_bases_vals = arithmetic<ValueType>(krylov_bases);
     const auto grid_dim_1 =
         ceildiv((krylov_dim + 1) * krylov_stride[0], default_block_size);
     const auto block_dim = default_block_size;
@@ -665,7 +705,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
         restart_1_kernel<block_size>
             <<<grid_dim_1, block_dim, 0, exec->get_stream()>>>(
                 residual.size[0], residual.size[1], krylov_dim,
-                acc::as_device_range(krylov_bases),
+                acc::as_device_range(krylov_bases_vals),
                 as_device_type(residual_norm_collection.values),
                 residual_norm_collection.stride);
     }
@@ -691,7 +731,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                 num_rhs, krylov_dim + 1, as_device_type(residual_norm.values),
                 residual_norm.stride,
                 as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
-                stride_arnoldi, acc::as_device_range(krylov_bases));
+                stride_arnoldi, acc::as_device_range(krylov_bases_vals));
     }
     const auto grid_dim_2 =
         ceildiv(std::max<size_type>(num_rows, 1) * krylov_stride[1],
@@ -704,7 +744,7 @@ void restart(std::shared_ptr<const DefaultExecutor> exec,
                 as_device_type(residual.values), residual.stride,
                 as_device_type(residual_norm.values),
                 as_device_type(residual_norm_collection.values),
-                acc::as_device_range(krylov_bases),
+                acc::as_device_range(krylov_bases_vals),
                 as_device_type(next_krylov_basis.values),
                 next_krylov_basis.stride,
                 as_device_type(final_iter_nums.get_data()));
@@ -737,6 +777,8 @@ void finish_arnoldi_CGS(
     const auto stride_hessenberg = hessenberg_iter.stride;
     const auto stride_buffer = buffer_iter.stride;
     const auto stride_arnoldi = arnoldi_norm.stride;
+    const auto next_krylov_vals = arithmetic<ValueType, 1>(next_krylov_basis);
+    const auto krylov_bases_vals = arithmetic<ValueType>(krylov_bases);
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
                          exec->get_num_multiprocessor() * 2);
     const dim3 grid_size_num_iters(ceildiv(dim_size[1], default_dot_dim),
@@ -754,7 +796,7 @@ void finish_arnoldi_CGS(
     components::fill_array(exec, arnoldi_norm.values, dim_size[1],
                            zero<non_complex>());
     multinorm2_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
-        dim_size[0], dim_size[1], as_device_type(next_krylov_basis.values),
+        dim_size[0], dim_size[1], acc::as_device_range(next_krylov_vals),
         stride_next_krylov, as_device_type(arnoldi_norm.values),
         as_device_type(stop_status));
     // nrmP = norm(next_krylov_basis)
@@ -765,7 +807,7 @@ void finish_arnoldi_CGS(
             <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
                 dim_size[0], dim_size[1],
                 as_device_type(next_krylov_basis.values), stride_next_krylov,
-                acc::as_device_range(krylov_bases),
+                acc::as_device_range(krylov_bases_vals),
                 as_device_type(hessenberg_iter.values), stride_hessenberg,
                 as_device_type(stop_status));
     } else {
@@ -773,7 +815,7 @@ void finish_arnoldi_CGS(
             <<<grid_size_iters_single, block_size_iters_single, 0,
                exec->get_stream()>>>(
                 dim_size[0], as_device_type(next_krylov_basis.values),
-                stride_next_krylov, acc::as_device_range(krylov_bases),
+                stride_next_krylov, acc::as_device_range(krylov_bases_vals),
                 as_device_type(hessenberg_iter.values), stride_hessenberg,
                 as_device_type(stop_status));
     }
@@ -785,7 +827,7 @@ void finish_arnoldi_CGS(
            default_block_size, 0, exec->get_stream()>>>(
             iter + 1, dim_size[0], dim_size[1],
             as_device_type(next_krylov_basis.values), stride_next_krylov,
-            acc::as_device_range(krylov_bases),
+            acc::as_device_range(krylov_bases_vals),
             as_device_type(hessenberg_iter.values), stride_hessenberg,
             as_device_type(stop_status));
 
@@ -800,7 +842,7 @@ void finish_arnoldi_CGS(
     }
     multinorm2_inf_kernel<use_scalar>
         <<<grid_size, block_size, 0, exec->get_stream()>>>(
-            dim_size[0], dim_size[1], as_device_type(next_krylov_basis.values),
+            dim_size[0], dim_size[1], acc::as_device_range(next_krylov_vals),
             stride_next_krylov,
             as_device_type(arnoldi_norm.values + stride_arnoldi),
             as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
@@ -812,8 +854,8 @@ void finish_arnoldi_CGS(
            exec->get_stream()>>>(
             dim_size[1], as_device_type(arnoldi_norm.values), stride_arnoldi,
             as_device_type(hessenberg_iter.values), stride_hessenberg, iter + 1,
-            acc::as_device_range(krylov_bases), as_device_type(stop_status),
-            as_device_type(reorth_status),
+            acc::as_device_range(krylov_bases_vals),
+            as_device_type(stop_status), as_device_type(reorth_status),
             as_device_type(num_reorth.get_data()));
     num_reorth_host = get_element(num_reorth, 0);
     // num_reorth_host := number of next_krylov vector to be reorthogonalization
@@ -825,7 +867,7 @@ void finish_arnoldi_CGS(
                 <<<grid_size_num_iters, block_size, 0, exec->get_stream()>>>(
                     dim_size[0], dim_size[1],
                     as_device_type(next_krylov_basis.values),
-                    stride_next_krylov, acc::as_device_range(krylov_bases),
+                    stride_next_krylov, acc::as_device_range(krylov_bases_vals),
                     as_device_type(buffer_iter.values), stride_buffer,
                     as_device_type(stop_status));
         } else {
@@ -833,7 +875,7 @@ void finish_arnoldi_CGS(
                 <<<grid_size_iters_single, block_size_iters_single, 0,
                    exec->get_stream()>>>(
                     dim_size[0], as_device_type(next_krylov_basis.values),
-                    stride_next_krylov, acc::as_device_range(krylov_bases),
+                    stride_next_krylov, acc::as_device_range(krylov_bases_vals),
                     as_device_type(buffer_iter.values), stride_buffer,
                     as_device_type(stop_status));
         }
@@ -845,7 +887,7 @@ void finish_arnoldi_CGS(
                default_block_size, 0, exec->get_stream()>>>(
                 iter + 1, dim_size[0], dim_size[1],
                 as_device_type(next_krylov_basis.values), stride_next_krylov,
-                acc::as_device_range(krylov_bases),
+                acc::as_device_range(krylov_bases_vals),
                 as_device_type(hessenberg_iter.values), stride_hessenberg,
                 as_device_type(buffer_iter.values), stride_buffer,
                 as_device_type(stop_status), as_device_type(reorth_status));
@@ -862,7 +904,7 @@ void finish_arnoldi_CGS(
         multinorm2_inf_kernel<use_scalar>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 dim_size[0], dim_size[1],
-                as_device_type(next_krylov_basis.values), stride_next_krylov,
+                acc::as_device_range(next_krylov_vals), stride_next_krylov,
                 as_device_type(arnoldi_norm.values + stride_arnoldi),
                 as_device_type(arnoldi_norm.values + 2 * stride_arnoldi),
                 as_device_type(stop_status));
@@ -874,7 +916,8 @@ void finish_arnoldi_CGS(
                exec->get_stream()>>>(
                 dim_size[1], as_device_type(arnoldi_norm.values),
                 stride_arnoldi, as_device_type(hessenberg_iter.values),
-                stride_hessenberg, iter + 1, acc::as_device_range(krylov_bases),
+                stride_hessenberg, iter + 1,
+                acc::as_device_range(krylov_bases_vals),
                 as_device_type(stop_status), as_device_type(reorth_status),
                 num_reorth.get_data());
         num_reorth_host = get_element(num_reorth, 0);
@@ -886,7 +929,7 @@ void finish_arnoldi_CGS(
            default_block_size, 0, exec->get_stream()>>>(
             iter, dim_size[0], dim_size[1],
             as_device_type(next_krylov_basis.values), stride_next_krylov,
-            acc::as_device_range(krylov_bases),
+            acc::as_device_range(krylov_bases_vals),
             as_device_type(hessenberg_iter.values), stride_hessenberg,
             as_device_type(stop_status));
     // next_krylov_basis /= hessenberg(iter, iter + 1)
@@ -910,15 +953,21 @@ void givens_rotation(
     const auto block_dim = block_size;
     const auto grid_dim =
         static_cast<unsigned int>(ceildiv(num_cols, block_size));
+    const auto hessenberg_iter_vals = arithmetic<ValueType, 1>(hessenberg_iter);
+    const auto givens_sin_vals = arithmetic<ValueType, 1>(givens_sin);
+    const auto givens_cos_vals = arithmetic<ValueType, 1>(givens_cos);
+    const auto residual_norm_vals = arithmetic<ValueType, 1>(residual_norm);
+    const auto residual_norm_collection_vals =
+        arithmetic<ValueType, 1>(residual_norm_collection);
     if (grid_dim != 0) {
         givens_rotation_kernel<block_size>
             <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
                 hessenberg_iter.size[0], hessenberg_iter.size[1], iter,
-                as_device_type(hessenberg_iter.values), hessenberg_iter.stride,
-                as_device_type(givens_sin.values), givens_sin.stride,
-                as_device_type(givens_cos.values), givens_cos.stride,
-                as_device_type(residual_norm.values),
-                as_device_type(residual_norm_collection.values),
+                acc::as_device_range(hessenberg_iter_vals),
+                hessenberg_iter.stride, acc::as_device_range(givens_sin_vals),
+                givens_sin.stride, acc::as_device_range(givens_cos_vals),
+                givens_cos.stride, acc::as_device_range(residual_norm_vals),
+                acc::as_device_range(residual_norm_collection_vals),
                 residual_norm_collection.stride, stop_status.get_const_data());
     }
 }
@@ -973,12 +1022,17 @@ void solve_upper_triangular(
     const auto grid_dim =
         static_cast<unsigned int>(ceildiv(num_rhs, block_size));
 
+    const auto residual_norm_collection_vals =
+        arithmetic<ValueType, 1>(residual_norm_collection);
+    const auto hessenberg_vals = arithmetic<ValueType, 1>(hessenberg);
+    const auto y_vals = arithmetic<ValueType, 1>(y);
     solve_upper_triangular_kernel<block_size>
         <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
             hessenberg.size[1], num_rhs,
-            as_device_type(residual_norm_collection.values),
-            residual_norm_collection.stride, as_device_type(hessenberg.values),
-            hessenberg.stride, as_device_type(y.values), y.stride,
+            acc::as_device_range(residual_norm_collection_vals),
+            residual_norm_collection.stride,
+            acc::as_device_range(hessenberg_vals), hessenberg.stride,
+            acc::as_device_range(y_vals), y.stride,
             as_device_type(final_iter_nums.get_const_data()));
 }
 
@@ -993,6 +1047,7 @@ void calculate_qy(std::shared_ptr<const DefaultExecutor> exec,
     const auto num_rows = before_preconditioner.size[0];
     const auto num_cols = before_preconditioner.size[1];
     const auto stride_before_preconditioner = before_preconditioner.stride;
+    const auto krylov_bases_vals = arithmetic<ValueType>(krylov_bases);
 
     constexpr auto block_size = default_block_size;
     const auto grid_dim = static_cast<unsigned int>(
@@ -1001,7 +1056,7 @@ void calculate_qy(std::shared_ptr<const DefaultExecutor> exec,
     if (grid_dim != 0) {
         calculate_Qy_kernel<block_size>
             <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-                num_rows, num_cols, acc::as_device_range(krylov_bases),
+                num_rows, num_cols, acc::as_device_range(krylov_bases_vals),
                 as_device_type(y.values), y.stride,
                 as_device_type(before_preconditioner.values),
                 stride_before_preconditioner,

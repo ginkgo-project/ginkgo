@@ -97,9 +97,10 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                     u(row, col) + tmp * (q(row, col) + tmp * p(row, col));
             }
         },
-        r.size, r.stride, default_stride(r), default_stride(u),
-        default_stride(p), default_stride(q), row_vector(beta), row_vector(rho),
-        row_vector(prev_rho), stop_status);
+        r.size, r.stride, arithmetic<ValueType>(r), arithmetic<ValueType>(u),
+        arithmetic<ValueType>(p), arithmetic<ValueType>(q),
+        arithmetic<ValueType, 1>(beta), arithmetic<ValueType, 1>(rho),
+        arithmetic<ValueType, 1>(prev_rho), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_1_KERNEL);
@@ -129,9 +130,11 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 t(row, col) = u(row, col) + q(row, col);
             }
         },
-        u.size, u.stride, default_stride(u), default_stride(v_hat),
-        default_stride(q), default_stride(t), row_vector(alpha),
-        row_vector(rho), row_vector(gamma), stop_status);
+        u.size, u.stride, arithmetic<ValueType>(u),
+        arithmetic<ValueType>(v_hat), arithmetic<ValueType>(q),
+        arithmetic<ValueType>(t), arithmetic<ValueType, 1>(alpha),
+        arithmetic<ValueType, 1>(rho), arithmetic<ValueType, 1>(gamma),
+        stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_2_KERNEL);
@@ -153,8 +156,9 @@ void step_3(std::shared_ptr<const DefaultExecutor> exec,
                 r(row, col) -= alpha[col] * t(row, col);
             }
         },
-        t.size, t.stride, default_stride(t), default_stride(u_hat),
-        default_stride(r), x, row_vector(alpha), stop_status);
+        t.size, t.stride, arithmetic<ValueType>(t),
+        arithmetic<ValueType>(u_hat), arithmetic<ValueType>(r),
+        arithmetic<ValueType>(x), arithmetic<ValueType, 1>(alpha), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CGS_STEP_3_KERNEL);

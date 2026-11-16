@@ -131,9 +131,12 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 w(row, col) -= tmp * g(row, col);
             }
         },
-        x.size, x.stride, default_stride(x), r, z1, z2, w, default_stride(p),
-        default_stride(q), default_stride(f), default_stride(g),
-        row_vector(rho), row_vector(beta), stop_status);
+        x.size, x.stride, arithmetic<ValueType>(x), arithmetic<ValueType>(r),
+        arithmetic<ValueType>(z1), arithmetic<ValueType>(z2),
+        arithmetic<ValueType>(w), arithmetic<ValueType>(p),
+        arithmetic<ValueType>(q), arithmetic<ValueType>(f),
+        arithmetic<ValueType>(g), arithmetic<ValueType, 1>(rho),
+        arithmetic<ValueType, 1>(beta), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_1_KERNEL);
@@ -179,10 +182,13 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 g(row, col) = n(row, col) + tmp * g(row, col);
             }
         },
-        p.size, p.stride, row_vector(beta), default_stride(p),
-        default_stride(q), default_stride(f), default_stride(g), z, w,
-        default_stride(m), default_stride(n), row_vector(prev_rho),
-        row_vector(rho), row_vector(delta), stop_status);
+        p.size, p.stride, arithmetic<ValueType, 1>(beta),
+        arithmetic<ValueType>(p), arithmetic<ValueType>(q),
+        arithmetic<ValueType>(f), arithmetic<ValueType>(g),
+        arithmetic<ValueType>(z), arithmetic<ValueType>(w),
+        arithmetic<ValueType>(m), arithmetic<ValueType>(n),
+        arithmetic<ValueType, 1>(prev_rho), arithmetic<ValueType, 1>(rho),
+        arithmetic<ValueType, 1>(delta), stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_PIPE_CG_STEP_2_KERNEL);

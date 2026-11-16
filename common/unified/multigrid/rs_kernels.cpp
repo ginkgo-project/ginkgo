@@ -76,11 +76,11 @@ void compute_soc_and_run_rs(
     array<IndexType>& lambda, array<IndexType>& cf_marker,
     IndexType& coarse_size)
 {
-    using real_type = device_type<remove_complex<ValueType>>;
+    using real_type = device_type<device_real_arithmetic_type<ValueType>>;
     const auto n = A.size[0];
     const auto* a_row_ptrs = A.row_ptrs;
     const auto* a_col_idxs = A.col_idxs;
-    const auto* a_vals = A.values;
+    const auto a_vals = arithmetic<ValueType>(A);
     bool* is_strong_vals = is_strong.get_data();
     auto* lambda_vals = lambda.get_data();
     auto* cf = cf_marker.get_data();
@@ -88,9 +88,9 @@ void compute_soc_and_run_rs(
     /// 1. COMPUTE SoC MASK
     run_kernel(
         exec,
-        [theta = as_device_type(theta)] GKO_KERNEL(auto i, auto row_ptrs,
-                                                   auto col_idxs, auto vals,
-                                                   auto is_strong_vals) {
+        [theta = arithmetic<ValueType>(theta)] GKO_KERNEL(
+            auto i, auto row_ptrs, auto col_idxs, auto vals,
+            auto is_strong_vals) {
             auto max_offdiag = zero<decltype(real(vals[0]))>();
             for (auto jj = row_ptrs[i]; jj < row_ptrs[i + 1]; ++jj) {
                 if (col_idxs[jj] != i) {
@@ -292,11 +292,11 @@ void compute_interpolation(
     const auto n = A.size[0];
     const auto* a_row_ptrs = A.row_ptrs;
     const auto* a_col_idxs = A.col_idxs;
-    const auto* a_vals = A.values;
+    const auto a_vals = arithmetic<ValueType>(A);
     const auto* cf = cf_marker.get_const_data();
     const auto* p_row_ptrs = P.row_ptrs;
     auto* p_col_idxs = P.col_idxs;
-    auto* p_vals = P.values;
+    const auto p_vals = arithmetic<ValueType>(P);
 
     run_kernel(
         exec,
@@ -304,7 +304,7 @@ void compute_interpolation(
                       auto is_strong, auto cf, auto fine_to_coarse,
                       auto p_row_ptrs, auto p_col_idxs, auto p_vals) {
             auto p_idx = p_row_ptrs[i];
-            using value_type = device_type<ValueType>;
+            using value_type = device_type<device_arithmetic_type<ValueType>>;
             if (cf[i] == 1) {
                 p_col_idxs[p_idx] = fine_to_coarse[i];
                 p_vals[p_idx] = one<value_type>();

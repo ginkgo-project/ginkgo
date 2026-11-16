@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -28,12 +28,16 @@ public:
         : final_residuals_{batch_residuals}, final_iters_{batch_iters}
     {}
 
-    __device__ __forceinline__ void log_iteration(const size_type batch_idx,
-                                                  const int iter,
-                                                  const real_type res_norm)
+    /**
+     * Stores the final residual norm as real_type.
+     */
+    template <typename ArithmeticRealType>
+    __device__ __forceinline__ void log_iteration(
+        const size_type batch_idx, const int iter,
+        const ArithmeticRealType res_norm)
     {
         final_iters_[batch_idx] = iter;
-        final_residuals_[batch_idx] = res_norm;
+        final_residuals_[batch_idx] = static_cast<real_type>(res_norm);
     }
 
 private:

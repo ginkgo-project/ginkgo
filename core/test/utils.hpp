@@ -6,6 +6,7 @@
 #define GKO_CORE_TEST_UTILS_HPP_
 
 
+#include <algorithm>
 #include <cmath>
 #include <complex>
 #include <initializer_list>
@@ -28,10 +29,15 @@
 #include <ginkgo/core/base/utils_helper.hpp>
 
 #include "core/base/extended_float.hpp"
+#include "core/emulation/multi_word.hpp"
 #include "core/test/utils/array_generator.hpp"
 #include "core/test/utils/assertions.hpp"
 #include "core/test/utils/matrix_generator.hpp"
 #include "core/test/utils/value_generator.hpp"
+
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
+#include "core/emulation/device_arithmetic.hpp"
+#endif
 
 
 namespace gko {
@@ -392,6 +398,61 @@ using ValueLocalGlobalIndexTypes =
     add_to_cartesian_type_product_left_t<ValueTypes, LocalGlobalIndexTypes>;
 
 
+namespace detail {
+
+
+#if defined(GKO_COMPILING_CUDA) || defined(GKO_COMPILING_HIP)
+// All translation units of a test executable, including its gtest main, are
+// compiled for the same executor, so they agree on this type.
+template <typename T>
+using tested_arithmetic = gko::device_arithmetic_t<T>;
+#else
+template <typename T>
+using tested_arithmetic = T;
+#endif
+
+
+/**
+ * The machine epsilon of tested_arithmetic<T>, but at least the one of `T`,
+ * since the results are stored as `T`.
+ *
+ * @tparam T  the value type of the test, real or complex
+ */
+template <typename T>
+constexpr remove_complex<T> tested_epsilon()
+{
+    using real_type = remove_complex<T>;
+    using arithmetic_type = tested_arithmetic<T>;
+    if constexpr (std::is_same_v<arithmetic_type, std::remove_cv_t<T>>) {
+        return std::numeric_limits<real_type>::epsilon();
+    } else if constexpr (is_multi_word_v<arithmetic_type>) {
+        using word_type = typename arithmetic_type::word_type;
+        // The unit roundoff of a multi_word is the one of a word to the power
+        // of the number of words.
+        const real_type word_roundoff =
+            std::numeric_limits<word_type>::epsilon() / 2;
+        real_type roundoff{1};
+        for (int i = 0; i < arithmetic_type::num_words; ++i) {
+            roundoff *= word_roundoff;
+        }
+        return std::max(2 * roundoff,
+                        std::numeric_limits<real_type>::epsilon());
+    } else {
+        // depends on T, so that it only fails when this branch is instantiated
+        static_assert(sizeof(T) == 0,
+                      "tested_arithmetic<T> is neither T nor a multi_word");
+    }
+}
+
+
+}  // namespace detail
+
+
+/**
+ * The tolerance for results of type `OutputType` computed in `Precision`,
+ * based on detail::tested_epsilon also for kernels that do not compute in
+ * tested_arithmetic.
+ */
 template <typename Precision, typename OutputType>
 struct reduction_factor {
     using nc_output = remove_complex<OutputType>;
@@ -403,7 +464,7 @@ struct reduction_factor {
 template <typename Precision, typename OutputType>
 const remove_complex<OutputType>
     reduction_factor<Precision, OutputType>::value =
-        std::numeric_limits<nc_precision>::epsilon() * nc_output{10} *
+        detail::tested_epsilon<Precision>() * nc_output{10} *
         (gko::is_complex<Precision>() ? nc_output{1.4142} : one<nc_output>());
 
 

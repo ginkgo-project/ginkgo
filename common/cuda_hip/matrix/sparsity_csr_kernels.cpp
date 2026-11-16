@@ -23,6 +23,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/base/mixed_precision_types.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/components/format_conversion_kernels.hpp"
@@ -121,8 +122,8 @@ __global__ __launch_bounds__(spmv_block_size) void abstract_classical_spmv(
     acc::range<output_accessor> c)
 {
     using type = typename output_accessor::arithmetic_type;
-    const type alpha_val = alpha[0];
-    const type beta_val = beta[0];
+    const auto alpha_val = static_cast<type>(alpha[0]);
+    const auto beta_val = static_cast<type>(beta[0]);
     if (is_zero(beta_val)) {
         device_classical_spmv<subwarp_size>(
             num_rows, val, col_idxs, row_ptrs, b, c,
@@ -189,8 +190,8 @@ void classical_spmv(
         std::optional<matrix::view::dense<const OutputValueType>>>
         beta = {})
 {
-    using arithmetic_type =
-        highest_precision<InputValueType, OutputValueType, MatrixValueType>;
+    using arithmetic_type = device_arithmetic_type<
+        highest_precision<InputValueType, OutputValueType, MatrixValueType>>;
     using input_accessor =
         gko::acc::reduced_row_major<2, arithmetic_type, const InputValueType>;
     using output_accessor =

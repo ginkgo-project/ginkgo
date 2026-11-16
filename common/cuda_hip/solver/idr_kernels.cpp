@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/blas_bindings.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
@@ -20,6 +21,7 @@
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/components/fill_array_kernels.hpp"
 
 
@@ -58,24 +60,26 @@ __global__ __launch_bounds__(default_block_size) void initialize_m_kernel(
 }
 
 
-template <size_type block_size, typename ValueType>
+template <size_type block_size, typename ValueAccessor>
 __global__
 __launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
-    size_type num_rows, size_type num_cols, ValueType* __restrict__ values,
+    size_type num_rows, size_type num_cols, ValueAccessor values,
     size_type stride)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
+    using real_arithmetic_type = remove_complex<arithmetic_type>;
     const auto tidx = thread::get_thread_id_flat();
 
-    __shared__ uninitialized_array<ValueType, block_size>
+    __shared__ uninitialized_array<arithmetic_type, block_size>
         reduction_helper_array;
     // they are not be used in the same time.
-    ValueType* reduction_helper = reduction_helper_array;
+    arithmetic_type* reduction_helper = reduction_helper_array;
     auto reduction_helper_real =
-        reinterpret_cast<remove_complex<ValueType>*>(reduction_helper);
+        reinterpret_cast<real_arithmetic_type*>(reduction_helper);
 
     for (size_type row = 0; row < num_rows; row++) {
         for (size_type i = 0; i < row; i++) {
-            auto dot = zero<ValueType>();
+            auto dot = zero<arithmetic_type>();
             for (size_type j = tidx; j < num_cols; j += block_size) {
                 dot += values[row * stride + j] * conj(values[i * stride + j]);
             }
@@ -83,9 +87,10 @@ __launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
             // Ensure already finish reading this shared memory
             __syncthreads();
             reduction_helper[tidx] = dot;
-            reduce(
-                group::this_thread_block(), reduction_helper,
-                [](const ValueType& a, const ValueType& b) { return a + b; });
+            reduce(group::this_thread_block(), reduction_helper,
+                   [](const arithmetic_type& a, const arithmetic_type& b) {
+                       return a + b;
+                   });
             __syncthreads();
 
             dot = reduction_helper[0];
@@ -94,7 +99,7 @@ __launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
             }
         }
 
-        auto norm = zero<remove_complex<ValueType>>();
+        auto norm = zero<real_arithmetic_type>();
         for (size_type j = tidx; j < num_cols; j += block_size) {
             norm += squared_norm(values[row * stride + j]);
         }
@@ -102,8 +107,8 @@ __launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
         __syncthreads();
         reduction_helper_real[tidx] = norm;
         reduce(group::this_thread_block(), reduction_helper_real,
-               [](const remove_complex<ValueType>& a,
-                  const remove_complex<ValueType>& b) { return a + b; });
+               [](const real_arithmetic_type& a,
+                  const real_arithmetic_type& b) { return a + b; });
         __syncthreads();
 
         norm = sqrt(reduction_helper_real[0]);
@@ -114,13 +119,13 @@ __launch_bounds__(block_size) void orthonormalize_subspace_vectors_kernel(
 }
 
 
-template <typename ValueType>
+template <typename MValuesAccessor, typename FValuesAccessor,
+          typename CValuesAccessor>
 __global__
 __launch_bounds__(default_block_size) void solve_lower_triangular_kernel(
-    size_type subspace_dim, size_type nrhs,
-    const ValueType* __restrict__ m_values, size_type m_stride,
-    const ValueType* __restrict__ f_values, size_type f_stride,
-    ValueType* __restrict__ c_values, size_type c_stride,
+    size_type subspace_dim, size_type nrhs, MValuesAccessor m_values,
+    size_type m_stride, FValuesAccessor f_values, size_type f_stride,
+    CValuesAccessor c_values, size_type c_stride,
     const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -143,13 +148,13 @@ __launch_bounds__(default_block_size) void solve_lower_triangular_kernel(
 }
 
 
-template <typename ValueType>
+template <typename ResidualAccessor, typename CAccessor, typename GAccessor,
+          typename OutputAccessor>
 __global__ __launch_bounds__(default_block_size) void step_1_kernel(
     size_type k, size_type num_rows, size_type subspace_dim, size_type nrhs,
-    const ValueType* __restrict__ residual_values, size_type residual_stride,
-    const ValueType* __restrict__ c_values, size_type c_stride,
-    const ValueType* __restrict__ g_values, size_type g_stride,
-    ValueType* __restrict__ v_values, size_type v_stride,
+    ResidualAccessor residual_values, size_type residual_stride,
+    CAccessor c_values, size_type c_stride, GAccessor g_values,
+    size_type g_stride, OutputAccessor v_values, size_type v_stride,
     const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -171,13 +176,13 @@ __global__ __launch_bounds__(default_block_size) void step_1_kernel(
 }
 
 
-template <typename ValueType>
+template <typename OmegaValuesAccessor, typename VValuesAccessor,
+          typename CValuesAccessor, typename UValuesAccessor>
 __global__ __launch_bounds__(default_block_size) void step_2_kernel(
     size_type k, size_type num_rows, size_type subspace_dim, size_type nrhs,
-    const ValueType* __restrict__ omega_values,
-    const ValueType* __restrict__ v_values, size_type v_stride,
-    const ValueType* __restrict__ c_values, size_type c_stride,
-    ValueType* __restrict__ u_values, size_type u_stride,
+    OmegaValuesAccessor omega_values, VValuesAccessor v_values,
+    size_type v_stride, CValuesAccessor c_values, size_type c_stride,
+    UValuesAccessor u_values, size_type u_stride,
     const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -199,11 +204,11 @@ __global__ __launch_bounds__(default_block_size) void step_2_kernel(
 }
 
 
-template <typename ValueType>
+// alpha is written with atomic_add, which takes the storage type
+template <typename PIAccessor, typename GKAccessor, typename ValueType>
 __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
-    size_type num_rows, size_type nrhs, const ValueType* __restrict__ p_i,
-    const ValueType* __restrict__ g_k, size_type g_k_stride,
-    ValueType* __restrict__ alpha,
+    size_type num_rows, size_type nrhs, PIAccessor p_i, GKAccessor g_k,
+    size_type g_k_stride, ValueType* __restrict__ alpha,
     const stopping_status* __restrict__ stop_status)
 {
     const auto tidx = threadIdx.x;
@@ -215,12 +220,13 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
         ((blockIdx.y + 1) * num > num_rows) ? num_rows : (blockIdx.y + 1) * num;
     // Used that way to get around dynamic initialization warning and
     // template error when using `reduction_helper_array` directly in `reduce`
-    __shared__
-        uninitialized_array<ValueType, default_dot_dim*(default_dot_dim + 1)>
-            reduction_helper_array;
-    ValueType* __restrict__ reduction_helper = reduction_helper_array;
+    using arithmetic_type = arithmetic_type_t<PIAccessor>;
+    __shared__ uninitialized_array<arithmetic_type,
+                                   default_dot_dim*(default_dot_dim + 1)>
+        reduction_helper_array;
+    arithmetic_type* __restrict__ reduction_helper = reduction_helper_array;
 
-    ValueType local_res = zero<ValueType>();
+    arithmetic_type local_res = zero<arithmetic_type>();
     if (rhs < nrhs && !stop_status[rhs].has_stopped()) {
         for (size_type i = start_row + tidy; i < end_row;
              i += default_dot_dim) {
@@ -233,23 +239,24 @@ __global__ __launch_bounds__(default_dot_size) void multidot_kernel(
     local_res = reduction_helper[tidy * (default_dot_dim + 1) + tidx];
     const auto tile_block =
         group::tiled_partition<default_dot_dim>(group::this_thread_block());
-    const auto sum =
-        reduce(tile_block, local_res,
-               [](const ValueType& a, const ValueType& b) { return a + b; });
+    const auto sum = reduce(tile_block, local_res,
+                            [](const arithmetic_type& a,
+                               const arithmetic_type& b) { return a + b; });
     const auto new_rhs = blockIdx.x * default_dot_dim + tidy;
     if (tidx == 0 && new_rhs < nrhs && !stop_status[new_rhs].has_stopped()) {
-        atomic_add(alpha + new_rhs, sum);
+        atomic_add(alpha + new_rhs, static_cast<ValueType>(sum));
     }
 }
 
 
-template <size_type block_size, typename ValueType>
+template <size_type block_size, typename AlphaAccessor,
+          typename MValuesAccessor, typename GValuesAccessor,
+          typename GKValuesAccessor, typename UValuesAccessor>
 __global__ __launch_bounds__(block_size) void update_g_k_and_u_kernel(
     size_type k, size_type i, size_type size, size_type nrhs,
-    const ValueType* __restrict__ alpha, const ValueType* __restrict__ m_values,
-    size_type m_stride, const ValueType* __restrict__ g_values,
-    size_type g_stride, ValueType* __restrict__ g_k_values,
-    size_type g_k_stride, ValueType* __restrict__ u_values, size_type u_stride,
+    AlphaAccessor alpha, MValuesAccessor m_values, size_type m_stride,
+    GValuesAccessor g_values, size_type g_stride, GKValuesAccessor g_k_values,
+    size_type g_k_stride, UValuesAccessor u_values, size_type u_stride,
     const stopping_status* __restrict__ stop_status)
 {
     const auto tidx = thread::get_thread_id_flat();
@@ -292,15 +299,15 @@ __global__ __launch_bounds__(block_size) void update_g_kernel(
 }
 
 
-template <typename ValueType>
+template <typename MValuesAccessor, typename GValuesAccessor,
+          typename UValuesAccessor, typename FValuesAccessor,
+          typename RValuesAccessor, typename XValuesAccessor>
 __global__ __launch_bounds__(default_block_size) void update_x_r_and_f_kernel(
     size_type k, size_type size, size_type subspace_dim, size_type nrhs,
-    const ValueType* __restrict__ m_values, size_type m_stride,
-    const ValueType* __restrict__ g_values, size_type g_stride,
-    const ValueType* __restrict__ u_values, size_type u_stride,
-    ValueType* __restrict__ f_values, size_type f_stride,
-    ValueType* __restrict__ r_values, size_type r_stride,
-    ValueType* __restrict__ x_values, size_type x_stride,
+    MValuesAccessor m_values, size_type m_stride, GValuesAccessor g_values,
+    size_type g_stride, UValuesAccessor u_values, size_type u_stride,
+    FValuesAccessor f_values, size_type f_stride, RValuesAccessor r_values,
+    size_type r_stride, XValuesAccessor x_values, size_type x_stride,
     const stopping_status* __restrict__ stop_status)
 {
     const auto global_id = thread::get_thread_id_flat();
@@ -327,14 +334,14 @@ __global__ __launch_bounds__(default_block_size) void update_x_r_and_f_kernel(
 }
 
 
-template <typename ValueType>
+template <typename RealArithmeticType, typename ValueAccessor,
+          typename NormAccessor, typename OutputAccessor>
 __global__ __launch_bounds__(config::warp_size) void compute_omega_kernel(
-    size_type nrhs, const remove_complex<ValueType> kappa,
-    const ValueType* __restrict__ tht,
-    const remove_complex<ValueType>* __restrict__ residual_norm,
-    ValueType* __restrict__ omega,
+    size_type nrhs, const RealArithmeticType kappa, ValueAccessor tht,
+    NormAccessor residual_norm, OutputAccessor omega,
     const stopping_status* __restrict__ stop_status)
 {
+    using arithmetic_type = arithmetic_type_t<OutputAccessor>;
     const auto global_id = thread::get_thread_id_flat();
 
     if (global_id >= nrhs) {
@@ -342,10 +349,10 @@ __global__ __launch_bounds__(config::warp_size) void compute_omega_kernel(
     }
 
     if (!stop_status[global_id].has_stopped()) {
-        auto thr = omega[global_id];
+        auto thr = static_cast<arithmetic_type>(omega[global_id]);
         const auto normt = sqrt(real(tht[global_id]));
-        if (normt == zero<remove_complex<ValueType>>()) {
-            omega[global_id] = zero<ValueType>();
+        if (normt == zero<RealArithmeticType>()) {
+            omega[global_id] = zero<arithmetic_type>();
             return;
         }
         omega[global_id] /= tht[global_id];
@@ -399,10 +406,13 @@ void orthonormalize_subspace_vectors(
     std::shared_ptr<const DefaultExecutor> exec,
     matrix::view::dense<ValueType> subspace_vectors)
 {
+    const auto subspace_vectors_vals =
+        arithmetic<ValueType, 1>(subspace_vectors);
     orthonormalize_subspace_vectors_kernel<default_block_size>
         <<<1, default_block_size, 0, exec->get_stream()>>>(
             subspace_vectors.size[0], subspace_vectors.size[1],
-            as_device_type(subspace_vectors.values), subspace_vectors.stride);
+            acc::as_device_range(subspace_vectors_vals),
+            subspace_vectors.stride);
 }
 
 
@@ -417,11 +427,14 @@ void solve_lower_triangular(std::shared_ptr<const DefaultExecutor> exec,
     const auto subspace_dim = m.size[0];
 
     const auto grid_dim = ceildiv(nrhs, default_block_size);
+    const auto m_vals = arithmetic<ValueType, 1>(m);
+    const auto f_vals = arithmetic<ValueType, 1>(f);
+    const auto c_vals = arithmetic<ValueType, 1>(c);
     solve_lower_triangular_kernel<<<grid_dim, default_block_size, 0,
                                     exec->get_stream()>>>(
-        subspace_dim, nrhs, as_device_type(m.values), m.stride,
-        as_device_type(f.values), f.stride, as_device_type(c.values), c.stride,
-        stop_status.get_const_data());
+        subspace_dim, nrhs, acc::as_device_range(m_vals), m.stride,
+        acc::as_device_range(f_vals), f.stride, acc::as_device_range(c_vals),
+        c.stride, stop_status.get_const_data());
 }
 
 
@@ -467,22 +480,30 @@ void update_g_and_u(std::shared_ptr<const DefaultExecutor> exec,
             } else
 #endif
             {
+                const auto p_i_vals = arithmetic<ValueType>(p_i, size);
+                const auto g_k_vals = arithmetic<ValueType, 1>(g_k);
                 multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-                    size, nrhs, as_device_type(p_i), as_device_type(g_k.values),
-                    g_k.stride, as_device_type(alpha.values),
-                    stop_status.get_const_data());
+                    size, nrhs, acc::as_device_range(p_i_vals),
+                    acc::as_device_range(g_k_vals), g_k.stride,
+                    as_device_type(alpha.values), stop_status.get_const_data());
             }
         } else {
             blas::dot(exec->get_blas_handle(), size, p_i, 1, g_k.values,
                       g_k.stride, alpha.values);
         }
+        const auto alpha_vals = arithmetic<ValueType, 1>(alpha);
+        const auto m_vals = arithmetic<ValueType, 1>(m);
+        const auto g_vals = arithmetic<ValueType, 1>(g);
+        const auto g_k_vals = arithmetic<ValueType, 1>(g_k);
+        const auto u_vals = arithmetic<ValueType, 1>(u);
         update_g_k_and_u_kernel<default_block_size>
             <<<ceildiv(size * g_k.stride, default_block_size),
                default_block_size, 0, exec->get_stream()>>>(
-                k, i, size, nrhs, as_device_type(alpha.values),
-                as_device_type(m.values), m.stride, as_device_type(g.values),
-                g.stride, as_device_type(g_k.values), g_k.stride,
-                as_device_type(u.values), u.stride,
+                k, i, size, nrhs, acc::as_device_range(alpha_vals),
+                acc::as_device_range(m_vals), m.stride,
+                acc::as_device_range(g_vals), g.stride,
+                acc::as_device_range(g_k_vals), g_k.stride,
+                acc::as_device_range(u_vals), u.stride,
                 stop_status.get_const_data());
     }
     update_g_kernel<default_block_size>
@@ -535,10 +556,12 @@ void update_m(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
             } else
 #endif
             {
+                const auto p_i_vals = arithmetic<ValueType>(p_i, size);
+                const auto g_k_vals = arithmetic<ValueType, 1>(g_k);
                 multidot_kernel<<<grid_dim, block_dim, 0, exec->get_stream()>>>(
-                    size, nrhs, as_device_type(p_i), as_device_type(g_k.values),
-                    g_k.stride, as_device_type(m_i),
-                    stop_status.get_const_data());
+                    size, nrhs, acc::as_device_range(p_i_vals),
+                    acc::as_device_range(g_k_vals), g_k.stride,
+                    as_device_type(m_i), stop_status.get_const_data());
             }
         } else {
             blas::dot(exec->get_blas_handle(), size, p_i, 1, g_k.values,
@@ -563,12 +586,19 @@ void update_x_r_and_f(std::shared_ptr<const DefaultExecutor> exec,
     const auto subspace_dim = m.size[0];
 
     const auto grid_dim = ceildiv(size * x.stride, default_block_size);
+    const auto m_vals = arithmetic<ValueType, 1>(m);
+    const auto g_vals = arithmetic<ValueType, 1>(g);
+    const auto u_vals = arithmetic<ValueType, 1>(u);
+    const auto f_vals = arithmetic<ValueType, 1>(f);
+    const auto r_vals = arithmetic<ValueType, 1>(r);
+    const auto x_vals = arithmetic<ValueType, 1>(x);
     update_x_r_and_f_kernel<<<grid_dim, default_block_size, 0,
                               exec->get_stream()>>>(
-        k, size, subspace_dim, nrhs, as_device_type(m.values), m.stride,
-        as_device_type(g.values), g.stride, as_device_type(u.values), u.stride,
-        as_device_type(f.values), f.stride, as_device_type(r.values), r.stride,
-        as_device_type(x.values), x.stride, stop_status.get_const_data());
+        k, size, subspace_dim, nrhs, acc::as_device_range(m_vals), m.stride,
+        acc::as_device_range(g_vals), g.stride, acc::as_device_range(u_vals),
+        u.stride, acc::as_device_range(f_vals), f.stride,
+        acc::as_device_range(r_vals), r.stride, acc::as_device_range(x_vals),
+        x.stride, stop_status.get_const_data());
     components::fill_array(exec, f.values + k * f.stride, nrhs,
                            zero<ValueType>());
 }
@@ -606,11 +636,15 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
     const auto subspace_dim = m.size[0];
 
     const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
+    const auto residual_vals = arithmetic<ValueType, 1>(residual);
+    const auto c_vals = arithmetic<ValueType, 1>(c);
+    const auto g_vals = arithmetic<ValueType, 1>(g);
+    const auto v_vals = arithmetic<ValueType, 1>(v);
     step_1_kernel<<<grid_dim, default_block_size, 0, exec->get_stream()>>>(
-        k, num_rows, subspace_dim, nrhs, as_device_type(residual.values),
-        residual.stride, as_device_type(c.values), c.stride,
-        as_device_type(g.values), g.stride, as_device_type(v.values), v.stride,
-        stop_status.get_const_data());
+        k, num_rows, subspace_dim, nrhs, acc::as_device_range(residual_vals),
+        residual.stride, acc::as_device_range(c_vals), c.stride,
+        acc::as_device_range(g_vals), g.stride, acc::as_device_range(v_vals),
+        v.stride, stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_1_KERNEL);
@@ -631,11 +665,16 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec, const size_type nrhs,
     const auto subspace_dim = u.size[1] / nrhs;
 
     const auto grid_dim = ceildiv(nrhs * num_rows, default_block_size);
+    const auto omega_vals = arithmetic<ValueType, 1>(omega);
+    const auto preconditioned_vector_vals =
+        arithmetic<ValueType, 1>(preconditioned_vector);
+    const auto c_vals = arithmetic<ValueType, 1>(c);
+    const auto u_vals = arithmetic<ValueType, 1>(u);
     step_2_kernel<<<grid_dim, default_block_size, 0, exec->get_stream()>>>(
-        k, num_rows, subspace_dim, nrhs, as_device_type(omega.values),
-        as_device_type(preconditioned_vector.values),
-        preconditioned_vector.stride, as_device_type(c.values), c.stride,
-        as_device_type(u.values), u.stride, stop_status.get_const_data());
+        k, num_rows, subspace_dim, nrhs, acc::as_device_range(omega_vals),
+        acc::as_device_range(preconditioned_vector_vals),
+        preconditioned_vector.stride, acc::as_device_range(c_vals), c.stride,
+        acc::as_device_range(u_vals), u.stride, stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_STEP_2_KERNEL);
@@ -673,11 +712,14 @@ void compute_omega(
     const array<stopping_status>& stop_status)
 {
     const auto grid_dim = ceildiv(nrhs, config::warp_size);
+    const auto tht_vals = arithmetic<ValueType, 1>(tht);
+    const auto residual_norm_vals = arithmetic<ValueType, 1>(residual_norm);
+    const auto omega_vals = arithmetic<ValueType, 1>(omega);
     compute_omega_kernel<<<grid_dim, config::warp_size, 0,
                            exec->get_stream()>>>(
-        nrhs, as_device_type(kappa), as_device_type(tht.values),
-        as_device_type(residual_norm.values), as_device_type(omega.values),
-        stop_status.get_const_data());
+        nrhs, arithmetic<ValueType>(kappa), acc::as_device_range(tht_vals),
+        acc::as_device_range(residual_norm_vals),
+        acc::as_device_range(omega_vals), stop_status.get_const_data());
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_IDR_COMPUTE_OMEGA_KERNEL);

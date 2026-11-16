@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,9 @@
 #define GKO_COMMON_CUDA_HIP_SOLVER_BATCH_BICGSTAB_KERNELS_HPP_
 
 #include "core/solver/batch_bicgstab_kernels.hpp"
+
+#include <type_traits>
+#include <utility>
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
@@ -35,15 +38,15 @@ constexpr int max_bicgstab_threads = 1024;
 namespace batch_single_kernels {
 
 
-template <typename Group, typename BatchMatrixType_entry, typename ValueType>
+template <typename Group, typename BatchMatrixType_entry, typename BValues,
+          typename XValues, typename ValueType>
 __device__ __forceinline__ void initialize(
     Group subgroup, const int num_rows, const BatchMatrixType_entry& mat_entry,
-    const ValueType* const b_global_entry,
-    const ValueType* const x_global_entry, ValueType& rho_old, ValueType& omega,
-    ValueType& alpha, ValueType* const x_shared_entry,
-    ValueType* const r_shared_entry, ValueType* const r_hat_shared_entry,
-    ValueType* const p_shared_entry, ValueType* const p_hat_shared_entry,
-    ValueType* const v_shared_entry,
+    const BValues b_global_entry, const XValues x_global_entry,
+    ValueType& rho_old, ValueType& omega, ValueType& alpha,
+    ValueType* const x_shared_entry, ValueType* const r_shared_entry,
+    ValueType* const r_hat_shared_entry, ValueType* const p_shared_entry,
+    ValueType* const p_hat_shared_entry, ValueType* const v_shared_entry,
     typename gko::remove_complex<ValueType>& rhs_norm,
     typename gko::remove_complex<ValueType>& res_norm)
 {
@@ -54,7 +57,7 @@ __device__ __forceinline__ void initialize(
     // copy x from global to shared memory
     // r = b
     for (int iz = threadIdx.x; iz < num_rows; iz += blockDim.x) {
-        x_shared_entry[iz] = x_global_entry[iz];
+        x_shared_entry[iz] = static_cast<ValueType>(x_global_entry[iz]);
         r_shared_entry[iz] = b_global_entry[iz];
     }
     __syncthreads();
@@ -172,19 +175,31 @@ __device__ __forceinline__ void update_x_middle(
 }
 
 
+/**
+ * The matrix, b and x are arithmetic() ranges, and the solver computes in
+ * their arithmetic type, also in shared memory and in the workspace. The
+ * workspace is allocated for StorageType, which has the same size.
+ */
 template <typename StopType, int n_shared, bool prec_shared_bool,
           typename PrecType, typename LogType, typename BatchMatrixType,
-          typename ValueType>
+          typename BValues, typename XValues, typename RealType,
+          typename StorageType>
 __global__ void __launch_bounds__(max_bicgstab_threads)
     apply_kernel(const gko::kernels::batch_bicgstab::storage_config sconf,
-                 const int max_iter, const gko::remove_complex<ValueType> tol,
-                 LogType logger, PrecType prec_shared,
-                 const BatchMatrixType mat,
-                 const ValueType* const __restrict__ b,
-                 ValueType* const __restrict__ x,
-                 ValueType* const __restrict__ workspace = nullptr)
+                 const int max_iter, const RealType tol, LogType logger,
+                 PrecType prec_shared, const BatchMatrixType mat,
+                 const BValues b, const XValues x,
+                 StorageType* const __restrict__ workspace)
 {
+    using ValueType = arithmetic_type_t<XValues>;
+    static_assert(
+        std::is_same_v<ValueType, typename PrecType::arithmetic_type>,
+        "the preconditioner has to compute in the same type as the solver");
+    static_assert(sizeof(ValueType) == sizeof(StorageType),
+                  "the workspace is allocated for the storage type");
     using real_type = typename gko::remove_complex<ValueType>;
+    static_assert(std::is_same_v<real_type, RealType>);
+    ValueType* const work = reinterpret_cast<ValueType*>(workspace);
     const auto num_batch_items = mat.num_batch_items;
     const auto num_rows = mat.num_rows;
 
@@ -212,50 +227,50 @@ __global__ void __launch_bounds__(max_bicgstab_threads)
         if (n_shared >= 1) {
             p_hat_sh = reinterpret_cast<ValueType*>(local_mem_sh);
         } else {
-            p_hat_sh = workspace + gmem_offset;
+            p_hat_sh = work + gmem_offset;
         }
         if (n_shared == 1) {
-            s_hat_sh = workspace + gmem_offset;
+            s_hat_sh = work + gmem_offset;
         } else {
             s_hat_sh = p_hat_sh + sconf.padded_vec_len;
         }
         if (n_shared == 2) {
-            v_sh = workspace + gmem_offset;
+            v_sh = work + gmem_offset;
         } else {
             v_sh = s_hat_sh + sconf.padded_vec_len;
         }
         if (n_shared == 3) {
-            t_sh = workspace + gmem_offset;
+            t_sh = work + gmem_offset;
         } else {
             t_sh = v_sh + sconf.padded_vec_len;
         }
         if (n_shared == 4) {
-            p_sh = workspace + gmem_offset;
+            p_sh = work + gmem_offset;
         } else {
             p_sh = t_sh + sconf.padded_vec_len;
         }
         if (n_shared == 5) {
-            s_sh = workspace + gmem_offset;
+            s_sh = work + gmem_offset;
         } else {
             s_sh = p_sh + sconf.padded_vec_len;
         }
         if (n_shared == 6) {
-            r_sh = workspace + gmem_offset;
+            r_sh = work + gmem_offset;
         } else {
             r_sh = s_sh + sconf.padded_vec_len;
         }
         if (n_shared == 7) {
-            r_hat_sh = workspace + gmem_offset;
+            r_hat_sh = work + gmem_offset;
         } else {
             r_hat_sh = r_sh + sconf.padded_vec_len;
         }
         if (n_shared == 8) {
-            x_sh = workspace + gmem_offset;
+            x_sh = work + gmem_offset;
         } else {
             x_sh = r_hat_sh + sconf.padded_vec_len;
         }
         if (!prec_shared_bool && n_shared == 9) {
-            prec_work_sh = workspace + gmem_offset;
+            prec_work_sh = work + gmem_offset;
         } else {
             prec_work_sh = x_sh + sconf.padded_vec_len;
         }
@@ -265,14 +280,14 @@ __global__ void __launch_bounds__(max_bicgstab_threads)
         __shared__ uninitialized_array<ValueType, 1> omega_sh;
         __shared__ uninitialized_array<ValueType, 1> alpha_sh;
         __shared__ uninitialized_array<ValueType, 1> temp_sh;
-        __shared__ real_type norms_rhs_sh[1];
-        __shared__ real_type norms_res_sh[1];
+        __shared__ uninitialized_array<real_type, 1> norms_rhs_sh;
+        __shared__ uninitialized_array<real_type, 1> norms_res_sh;
 
         const auto mat_entry =
             gko::batch::matrix::extract_batch_item(mat, batch_id);
-        const ValueType* const b_entry_ptr =
+        const auto b_entry_ptr =
             gko::batch::multi_vector::batch_item_ptr(b, 1, num_rows, batch_id);
-        ValueType* const x_gl_entry_ptr =
+        const auto x_gl_entry_ptr =
             gko::batch::multi_vector::batch_item_ptr(x, 1, num_rows, batch_id);
 
         // generate preconditioner
@@ -385,6 +400,25 @@ __global__ void __launch_bounds__(max_bicgstab_threads)
         single_rhs_copy(num_rows, x_sh, x_gl_entry_ptr);
         __syncthreads();
     }
+}
+
+
+/**
+ * Returns the instantiation of apply_kernel that launch_apply_kernel launches,
+ * e.g. to query the attributes of the kernel.
+ */
+template <typename StopType, int n_shared, bool prec_shared, typename PrecType,
+          typename LogType, typename BatchMatrixType, typename ValueType>
+auto get_apply_kernel()
+{
+    return apply_kernel<
+        StopType, n_shared, prec_shared, PrecType, LogType,
+        decltype(arithmetic<ValueType>(std::declval<BatchMatrixType>())),
+        decltype(arithmetic<ValueType>(std::declval<const ValueType*>(),
+                                       size_type{})),
+        decltype(arithmetic<ValueType>(std::declval<ValueType*>(),
+                                       size_type{})),
+        device_type<device_real_arithmetic_type<ValueType>>, ValueType>;
 }
 
 

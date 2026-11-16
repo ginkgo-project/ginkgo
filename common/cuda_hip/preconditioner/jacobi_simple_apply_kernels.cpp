@@ -25,8 +25,8 @@ void apply(syn::value_list<int, max_block_size>,
            const IndexType* block_pointers, const ValueType* blocks,
            const preconditioner::block_interleaved_storage_scheme<IndexType>&
                storage_scheme,
-           const ValueType* b, size_type b_stride, ValueType* x,
-           size_type x_stride);
+           matrix::view::dense<const ValueType> b,
+           matrix::view::dense<ValueType> x);
 
 GKO_ENABLE_IMPLEMENTATION_SELECTION(select_apply, apply);
 
@@ -51,8 +51,11 @@ void simple_apply(
             syn::value_list<int, config::min_warps_per_block>(),
             syn::type_list<>(), exec, num_blocks,
             block_precisions.get_const_data(), block_pointers.get_const_data(),
-            blocks.get_const_data(), storage_scheme, b.values + col, b.stride,
-            x.values + col, x.stride);
+            blocks.get_const_data(), storage_scheme,
+            matrix::view::dense<const ValueType>{dim<2>{b.size[0], 1}, b.stride,
+                                                 b.values + col},
+            matrix::view::dense<ValueType>{dim<2>{x.size[0], 1}, x.stride,
+                                           x.values + col});
     }
 }
 

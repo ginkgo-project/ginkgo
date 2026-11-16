@@ -2,7 +2,9 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+#include <algorithm>
 #include <random>
+#include <type_traits>
 
 #include <gtest/gtest.h>
 
@@ -345,7 +347,9 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithBlockSize32Sorted)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+    // the inverses of the 32x32 blocks amplify the rounding errors
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()),
+                        std::max(1e-13, 5 * r<value_type>::value));
 }
 
 
@@ -358,7 +362,9 @@ TEST_F(Jacobi, PreconditionerEquivalentToRefWithBlockSize32Unsorted)
     auto bj = bj_factory->generate(mtx);
     auto d_bj = d_bj_factory->generate(mtx);
 
-    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()), 1e-13);
+    // the inverses of the 32x32 blocks amplify the rounding errors
+    GKO_ASSERT_MTX_NEAR(gko::as<Bj>(d_bj.get()), gko::as<Bj>(bj.get()),
+                        std::max(1e-13, 5 * r<value_type>::value));
 }
 
 
@@ -573,7 +579,17 @@ TEST_F(Jacobi, ScalarL1ApplyEquivalentToRef)
     sj->apply(sb, sx);
     d_sj->apply(d_sb, d_sx);
 
-    GKO_ASSERT_MTX_NEAR(sx, d_sx, 1e-12);
+    // make_diag_dominant keeps the sign of the diagonal entries. For a negative
+    // one, d = -1.001 * s with the off-diagonal absolute sum s, so the L1
+    // diagonal d + s = -0.001 * s cancels and amplifies rounding errors by
+    // 1000. In tested_arithmetic, the device rounds differently than the
+    // reference.
+    GKO_ASSERT_MTX_NEAR(
+        sx, d_sx,
+        (std::is_same_v<gko::test::detail::tested_arithmetic<value_type>,
+                        value_type>
+             ? 1e-12
+             : 1000 * r<value_type>::value));
 }
 
 

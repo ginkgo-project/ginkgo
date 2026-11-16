@@ -1,0 +1,2 @@
+ginkgo_create_test(double_word)
+ginkgo_create_test(multi_word)

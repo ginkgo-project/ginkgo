@@ -75,8 +75,9 @@ void step_1(std::shared_ptr<const DefaultExecutor> exec,
                 p(row, col) = z(row, col) + tmp * p(row, col);
             }
         },
-        p.size, p.stride, default_stride(p), default_stride(z), row_vector(rho),
-        row_vector(prev_rho), stop_status);
+        p.size, p.stride, arithmetic<ValueType>(p), arithmetic<ValueType>(z),
+        arithmetic<ValueType, 1>(rho), arithmetic<ValueType, 1>(prev_rho),
+        stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_1_KERNEL);
@@ -101,8 +102,10 @@ void step_2(std::shared_ptr<const DefaultExecutor> exec,
                 r(row, col) -= tmp * q(row, col);
             }
         },
-        x.size, r.stride, x, default_stride(r), default_stride(p),
-        default_stride(q), row_vector(beta), row_vector(rho), stop_status);
+        x.size, r.stride, arithmetic<ValueType>(x), arithmetic<ValueType>(r),
+        arithmetic<ValueType>(p), arithmetic<ValueType>(q),
+        arithmetic<ValueType, 1>(beta), arithmetic<ValueType, 1>(rho),
+        stop_status);
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_CG_STEP_2_KERNEL);

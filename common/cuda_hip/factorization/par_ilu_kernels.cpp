@@ -4,11 +4,13 @@
 
 #include "core/factorization/par_ilu_kernels.hpp"
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/memory.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 
 
 namespace gko {
@@ -28,16 +30,16 @@ constexpr int default_block_size{512};
 namespace kernel {
 
 
-template <typename ValueType, typename IndexType>
+template <typename ValueType, typename IndexType, typename ValueAccessor>
 __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
     size_type num_elements, const IndexType* __restrict__ row_idxs,
-    const IndexType* __restrict__ col_idxs,
-    const ValueType* __restrict__ values,
+    const IndexType* __restrict__ col_idxs, ValueAccessor values,
     const IndexType* __restrict__ l_row_ptrs,
     const IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_values,
     const IndexType* __restrict__ u_row_ptrs,
     const IndexType* __restrict__ u_col_idxs, ValueType* __restrict__ u_values)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     const auto elem_id = thread::get_thread_id_flat<IndexType>();
     if (elem_id < num_elements) {
         const auto row = row_idxs[elem_id];
@@ -45,15 +47,17 @@ __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
         const auto val = values[elem_id];
         auto l_idx = l_row_ptrs[row];
         auto u_idx = u_row_ptrs[col];
-        ValueType sum{val};
-        ValueType last_operation{};
+        arithmetic_type sum{val};
+        arithmetic_type last_operation{};
         while (l_idx < l_row_ptrs[row + 1] && u_idx < u_row_ptrs[col + 1]) {
             const auto l_col = l_col_idxs[l_idx];
             const auto u_col = u_col_idxs[u_idx];
-            last_operation = zero<ValueType>();
+            last_operation = zero<arithmetic_type>();
             if (l_col == u_col) {
-                last_operation = load_relaxed(l_values + l_idx) *
-                                 load_relaxed(u_values + u_idx);
+                last_operation = static_cast<arithmetic_type>(
+                                     load_relaxed(l_values + l_idx)) *
+                                 static_cast<arithmetic_type>(
+                                     load_relaxed(u_values + u_idx));
                 sum -= last_operation;
             }
             l_idx += (l_col <= u_col);
@@ -61,15 +65,17 @@ __global__ __launch_bounds__(default_block_size) void compute_l_u_factors(
         }
         sum += last_operation;  // undo the last operation
         if (row > col) {
-            auto to_write =
-                sum / load_relaxed(u_values + (u_row_ptrs[col + 1] - 1));
+            auto to_write = sum / static_cast<arithmetic_type>(load_relaxed(
+                                      u_values + (u_row_ptrs[col + 1] - 1)));
             if (is_finite(to_write)) {
-                store_relaxed(l_values + (l_idx - 1), to_write);
+                store_relaxed(l_values + (l_idx - 1),
+                              static_cast<ValueType>(to_write));
             }
         } else {
             auto to_write = sum;
             if (is_finite(to_write)) {
-                store_relaxed(u_values + (u_idx - 1), to_write);
+                store_relaxed(u_values + (u_idx - 1),
+                              static_cast<ValueType>(to_write));
             }
         }
     }
@@ -91,6 +97,8 @@ void compute_l_u_factors(
     const auto block_size = default_block_size;
     const auto grid_dim = static_cast<uint32>(
         ceildiv(num_elements, static_cast<size_type>(block_size)));
+    const auto system_vals =
+        arithmetic<ValueType>(system_matrix.values, num_elements);
     if (grid_dim > 0) {
 #ifdef GKO_COMPILING_HIP
         if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
@@ -103,11 +111,10 @@ void compute_l_u_factors(
                 kernel::compute_l_u_factors<<<grid_dim, block_size, 0,
                                               exec->get_stream()>>>(
                     num_elements, system_matrix.row_idxs,
-                    system_matrix.col_idxs,
-                    as_device_type(system_matrix.values), l_factor.row_ptrs,
-                    l_factor.col_idxs, as_device_type(l_factor.values),
-                    u_factor.row_ptrs, u_factor.col_idxs,
-                    as_device_type(u_factor.values));
+                    system_matrix.col_idxs, acc::as_device_range(system_vals),
+                    l_factor.row_ptrs, l_factor.col_idxs,
+                    as_device_type(l_factor.values), u_factor.row_ptrs,
+                    u_factor.col_idxs, as_device_type(u_factor.values));
             }
         }
     }

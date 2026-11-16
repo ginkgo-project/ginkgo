@@ -29,8 +29,10 @@ void reduce_add_array(std::shared_ptr<const DefaultExecutor> exec,
         [] GKO_KERNEL(auto i, auto arr, auto result) {
             return i == 0 ? (arr[i] + result[0]) : arr[i];
         },
-        GKO_KERNEL_REDUCE_SUM(ValueType), result.get_data(), arr.get_size(),
-        arr, result);
+        GKO_KERNEL_REDUCE_SUM(device_arithmetic_type<ValueType>),
+        result.get_data(), arr.get_size(),
+        arithmetic<ValueType>(arr.get_const_data(), arr.get_size()),
+        arithmetic<ValueType>(result.get_const_data(), result.get_size()));
 }
 
 GKO_INSTANTIATE_FOR_EACH_TEMPLATE_TYPE(GKO_DECLARE_REDUCE_ADD_ARRAY_KERNEL);

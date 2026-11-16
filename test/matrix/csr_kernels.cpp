@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <numeric>
 #include <random>
+#include <type_traits>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -91,7 +92,18 @@ TEST_F(Csr, RowWiseSumIsEquivalentToRef)
     gko::kernels::GKO_DEVICE_NAMESPACE::csr::row_wise_absolute_sum(
         exec, dx->get_const_device_view(), dsum);
 
-    GKO_ASSERT_ARRAY_EQ(sum, dsum);
+    if constexpr (std::is_same_v<
+                      gko::test::detail::tested_arithmetic<value_type>,
+                      value_type>) {
+        GKO_ASSERT_ARRAY_EQ(sum, dsum);
+    } else {
+        // the device adds in tested_arithmetic, which rounds differently
+        gko::array<value_type> host_dsum{ref, dsum};
+        const gko::dim<2> size{sum.get_size(), 1};
+        GKO_ASSERT_MTX_NEAR(Vec::create(ref, size, sum.as_view(), 1),
+                            Vec::create(ref, size, host_dsum.as_view(), 1),
+                            r<value_type>::value);
+    }
 }
 
 

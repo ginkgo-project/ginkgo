@@ -5,6 +5,7 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/config.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/types.hpp"
@@ -13,6 +14,7 @@
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/base/extended_float.hpp"
 #include "core/components/fill_array_kernels.hpp"
 #include "core/preconditioner/jacobi_kernels.hpp"
@@ -29,11 +31,14 @@ namespace jacobi {
 namespace kernel {
 
 
-template <int max_block_size, typename ReducedType, typename Group,
-          typename ValueType, typename IndexType>
+// ValueType is the value type of the preconditioner, ArithmeticType the type
+// the block is inverted in, see arithmetic_accessor
+template <int max_block_size, typename ReducedType, typename ValueType,
+          typename Group, typename ArithmeticType, typename IndexType>
 __device__ __forceinline__ bool validate_precision_reduction_feasibility(
     Group& __restrict__ group, IndexType block_size,
-    ValueType* __restrict__ row, ValueType* __restrict__ work, size_type stride)
+    ArithmeticType* __restrict__ row, ArithmeticType* __restrict__ work,
+    size_type stride)
 {
     using gko::detail::float_traits;
     // save original data and reduce precision
@@ -42,8 +47,8 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
         for (int i = 0; i < max_block_size; ++i) {
             if (i < block_size) {
                 work[i * stride + group.thread_rank()] = row[i];
-                row[i] =
-                    static_cast<ValueType>(static_cast<ReducedType>(row[i]));
+                row[i] = static_cast<ArithmeticType>(
+                    static_cast<ReducedType>(row[i]));
             }
         }
     }
@@ -68,28 +73,32 @@ __device__ __forceinline__ bool validate_precision_reduction_feasibility(
         }
     }
 
-    return succeeded && block_cond >= remove_complex<ValueType>{1.0} &&
-           block_cond * static_cast<remove_complex<ValueType>>(
-                            float_traits<remove_complex<ValueType>>::eps) <
-               remove_complex<ValueType>{1e-3};
+    using real_type = decltype(block_cond);
+    return succeeded && block_cond >= one<real_type>() &&
+           block_cond * static_cast<real_type>(
+                            static_cast<remove_complex<ValueType>>(
+                                float_traits<remove_complex<ValueType>>::eps)) <
+               static_cast<real_type>(remove_complex<ValueType>{1e-3});
 }
 
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
-          typename ValueType, typename IndexType>
+          typename IndexType, typename ValueAccessor, typename ValueType>
 __global__ void __launch_bounds__(warps_per_block* config::warp_size) generate(
     size_type num_rows, const IndexType* __restrict__ row_ptrs,
-    const IndexType* __restrict__ col_idxs,
-    const ValueType* __restrict__ values, ValueType* __restrict__ block_data,
+    const IndexType* __restrict__ col_idxs, ValueAccessor values,
+    ValueType* __restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
     const auto block = group::this_thread_block();
-    ValueType row[max_block_size];
-    __shared__ uninitialized_array<ValueType, max_block_size * warps_per_block>
-        workspace;
+    arithmetic_type row[max_block_size];
+    __shared__
+        uninitialized_array<arithmetic_type, max_block_size * warps_per_block>
+            workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
         block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
         block_ptrs, num_blocks, row, 1,
@@ -110,25 +119,29 @@ __global__ void __launch_bounds__(warps_per_block* config::warp_size) generate(
 
 
 template <int max_block_size, int subwarp_size, int warps_per_block,
-          typename ValueType, typename IndexType>
+          typename IndexType, typename ValueAccessor, typename AccuracyType,
+          typename ValueType, typename ConditioningAccessor>
 __global__ void
 __launch_bounds__(warps_per_block* config::warp_size) adaptive_generate(
     size_type num_rows, const IndexType* __restrict__ row_ptrs,
-    const IndexType* __restrict__ col_idxs,
-    const ValueType* __restrict__ values, remove_complex<ValueType> accuracy,
-    ValueType* __restrict__ block_data,
+    const IndexType* __restrict__ col_idxs, ValueAccessor values,
+    AccuracyType accuracy, ValueType* __restrict__ block_data,
     preconditioner::block_interleaved_storage_scheme<IndexType> storage_scheme,
-    remove_complex<ValueType>* __restrict__ conditioning,
+    ConditioningAccessor conditioning,
     precision_reduction* __restrict__ block_precisions,
     const IndexType* __restrict__ block_ptrs, size_type num_blocks)
 {
+    using arithmetic_type = arithmetic_type_t<ValueAccessor>;
+    // the block data is the scratch memory of the feasibility check
+    static_assert(sizeof(arithmetic_type) == sizeof(ValueType));
     // extract blocks
     const auto block_id =
         thread::get_subwarp_id<subwarp_size, warps_per_block>();
     const auto block = group::this_thread_block();
-    ValueType row[max_block_size];
-    __shared__ uninitialized_array<ValueType, max_block_size * warps_per_block>
-        workspace;
+    arithmetic_type row[max_block_size];
+    __shared__
+        uninitialized_array<arithmetic_type, max_block_size * warps_per_block>
+            workspace;
     csr::extract_transposed_diag_blocks<max_block_size, warps_per_block>(
         block, config::warp_size / subwarp_size, row_ptrs, col_idxs, values,
         block_ptrs, num_blocks, row, 1,
@@ -162,10 +175,11 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_generate(
                  &block_id] {
                     using target = device_type<reduce_precision<ValueType>>;
                     return validate_precision_reduction_feasibility<
-                        max_block_size, target>(
+                        max_block_size, target, ValueType>(
                         subwarp, block_size, row,
-                        block_data +
-                            storage_scheme.get_global_block_offset(block_id),
+                        reinterpret_cast<arithmetic_type*>(
+                            block_data +
+                            storage_scheme.get_global_block_offset(block_id)),
                         storage_scheme.get_stride());
                 },
                 [&subwarp, &block_size, &row, &block_data, &storage_scheme,
@@ -173,10 +187,11 @@ __launch_bounds__(warps_per_block* config::warp_size) adaptive_generate(
                     using target = device_type<
                         reduce_precision<reduce_precision<ValueType>>>;
                     return validate_precision_reduction_feasibility<
-                        max_block_size, target>(
+                        max_block_size, target, ValueType>(
                         subwarp, block_size, row,
-                        block_data +
-                            storage_scheme.get_global_block_offset(block_id),
+                        reinterpret_cast<arithmetic_type*>(
+                            block_data +
+                            storage_scheme.get_global_block_offset(block_id)),
                         storage_scheme.get_stride());
                 });
         }
@@ -232,6 +247,9 @@ void generate(syn::value_list<int, max_block_size>,
     const auto grid_size =
         ceildiv(num_blocks, warps_per_block * blocks_per_warp);
     const dim3 block_size(subwarp_size, blocks_per_warp, warps_per_block);
+    const auto mtx_vals = arithmetic<ValueType>(mtx);
+    const auto conditioning_vals =
+        arithmetic<ValueType>(conditioning, num_blocks);
 
     if (grid_size > 0) {
         if (block_precisions) {
@@ -239,15 +257,15 @@ void generate(syn::value_list<int, max_block_size>,
                                       warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     mtx.size[0], mtx.row_ptrs, mtx.col_idxs,
-                    as_device_type(mtx.values), as_device_type(accuracy),
-                    as_device_type(block_data), storage_scheme,
-                    as_device_type(conditioning), block_precisions, block_ptrs,
-                    num_blocks);
+                    acc::as_device_range(mtx_vals),
+                    arithmetic<ValueType>(accuracy), as_device_type(block_data),
+                    storage_scheme, acc::as_device_range(conditioning_vals),
+                    block_precisions, block_ptrs, num_blocks);
         } else {
             kernel::generate<max_block_size, subwarp_size, warps_per_block>
                 <<<grid_size, block_size, 0, exec->get_stream()>>>(
                     mtx.size[0], mtx.row_ptrs, mtx.col_idxs,
-                    as_device_type(mtx.values), as_device_type(block_data),
+                    acc::as_device_range(mtx_vals), as_device_type(block_data),
                     storage_scheme, block_ptrs, num_blocks);
         }
     }

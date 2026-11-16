@@ -5,6 +5,7 @@
 #include "core/preconditioner/isai_kernels.hpp"
 
 #include <random>
+#include <type_traits>
 
 #include <gtest/gtest.h>
 
@@ -495,7 +496,13 @@ TEST_F(Isai, IsaiScaleExcessSolutionIsEquivalentToRef)
     gko::kernels::GKO_DEVICE_NAMESPACE::isai::scale_excess_solution(
         exec, da1.get_const_data(), de_rhs->get_device_view(), 0, num_rows);
 
-    GKO_ASSERT_MTX_NEAR(e_rhs, de_rhs, 0);
+    // the device divides in tested_arithmetic, which rounds differently
+    GKO_ASSERT_MTX_NEAR(
+        e_rhs, de_rhs,
+        (std::is_same_v<gko::test::detail::tested_arithmetic<value_type>,
+                        value_type>
+             ? 0.0
+             : r<value_type>::value));
 }
 
 
@@ -519,7 +526,13 @@ TEST_F(Isai, IsaiScalePartialExcessSolutionIsEquivalentToRef)
     gko::kernels::GKO_DEVICE_NAMESPACE::isai::scale_excess_solution(
         exec, da1.get_const_data(), de_rhs->get_device_view(), 5u, 10u);
 
-    GKO_ASSERT_MTX_NEAR(e_rhs, de_rhs, 0);
+    // the device divides in tested_arithmetic, which rounds differently
+    GKO_ASSERT_MTX_NEAR(
+        e_rhs, de_rhs,
+        (std::is_same_v<gko::test::detail::tested_arithmetic<value_type>,
+                        value_type>
+             ? 0.0
+             : r<value_type>::value));
 }
 
 
@@ -679,9 +692,15 @@ TEST_F(Isai, IsaiGenerateGeneralWithSparsityPower8IsEquivalentToRef)
     auto d_isai =
         Isai::build().with_sparsity_power(8).on(exec)->generate(d_mtx->clone());
 
-    GKO_ASSERT_MTX_NEAR(isai->get_approximate_inverse(),
-                        d_isai->get_approximate_inverse(),
-                        5 * r<value_type>::value);
+    // The local systems have condition numbers up to 1e6, so in
+    // tested_arithmetic the result differs by the forward error of the solves.
+    GKO_ASSERT_MTX_NEAR(
+        isai->get_approximate_inverse(), d_isai->get_approximate_inverse(),
+        (std::is_same_v<gko::test::detail::tested_arithmetic<value_type>,
+                        value_type>
+             ? 5
+             : 1000) *
+            r<value_type>::value);
 }
 
 

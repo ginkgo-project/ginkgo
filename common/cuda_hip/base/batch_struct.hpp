@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -54,6 +54,22 @@ get_batch_struct(batch::MultiVector<ValueType>* const op)
             static_cast<int32>(op->get_common_size()[1]),
             static_cast<int32>(op->get_common_size()[0]),
             static_cast<int32>(op->get_common_size()[1])};
+}
+
+
+/**
+ * Passes a batch of multi-vectors to a kernel on values of type KernelValueType
+ * with its values as an arithmetic() range.
+ */
+template <typename KernelValueType, typename ValueType>
+inline auto arithmetic(
+    const batch::multi_vector::uniform_batch<ValueType>& batch)
+{
+    const auto values = arithmetic<KernelValueType>(
+        batch.values, batch.num_batch_items * batch.num_rows * batch.stride);
+    return batch::multi_vector::uniform_batch<ValueType, decltype(values)>{
+        values, batch.num_batch_items, batch.stride, batch.num_rows,
+        batch.num_rhs};
 }
 
 

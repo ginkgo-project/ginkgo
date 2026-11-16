@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -75,6 +75,31 @@ TEST(Range, ForwardsLength)
     EXPECT_EQ(r->length(0), 5);
     EXPECT_EQ(r->length(1), 5);
     ASSERT_EQ(r->length(2), 5);
+}
+
+
+// one-dimensional accessor returning references to the elements of data
+struct dummy_accessor_1d {
+    static constexpr std::size_t dimensionality = 1;
+
+    dummy_accessor_1d(int* data) : data{data} {}
+
+    int& operator()(int i) const { return data[i]; }
+
+    int* data;
+};
+
+
+TEST(Range, ForwardsSubscriptToAccessor)
+{
+    std::array<int, 3> data{{1, 2, 3}};
+    gko::acc::range<dummy_accessor_1d> r{data.data()};
+
+    r[1] = 5;
+
+    EXPECT_EQ(r[0], 1);
+    EXPECT_EQ(&r[2], &r(2));
+    ASSERT_EQ(data[1], 5);
 }
 
 

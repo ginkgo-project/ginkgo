@@ -616,6 +616,36 @@ GKO_INLINE constexpr int64 ceildiv(int64 num, int64 den)
 }
 
 
+namespace detail {
+
+
+/**
+ * @internal
+ * Tests if a member function `Ref::to_arithmetic_type` exists
+ * This is used for the accessor references to convert to the arithmetic type in
+ * the math-functions
+ *
+ * @note
+ * This basically mirrors the accessor functionality
+ */
+template <typename Ref, typename Dummy = std::void_t<>>
+struct has_to_arithmetic_type : std::false_type {
+    static_assert(std::is_same<Dummy, void>::value,
+                  "Do not modify the Dummy value!");
+    using type = Ref;
+};
+
+template <typename Ref>
+struct has_to_arithmetic_type<
+    Ref, std::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
+    : std::true_type {
+    using type = decltype(std::declval<Ref>().to_arithmetic_type());
+};
+
+
+}  // namespace detail
+
+
 /**
  * Returns the additive identity for T.
  *
@@ -638,9 +668,24 @@ GKO_INLINE constexpr T zero()
  *       `zero(x)`.
  */
 template <typename T>
-GKO_INLINE constexpr T zero(const T&)
+GKO_INLINE constexpr std::enable_if_t<!detail::has_to_arithmetic_type<T>::value,
+                                      T>
+zero(const T&)
 {
     return zero<T>();
+}
+
+
+/**
+ * Returns the additive identity for the arithmetic type of an accessor
+ * reference.
+ */
+template <typename T>
+GKO_INLINE constexpr auto zero(const T&)
+    -> std::enable_if_t<detail::has_to_arithmetic_type<T>::value,
+                        typename detail::has_to_arithmetic_type<T>::type>
+{
+    return zero<typename detail::has_to_arithmetic_type<T>::type>();
 }
 
 
@@ -680,9 +725,24 @@ GKO_INLINE constexpr bfloat16 one<bfloat16>()
  *       `one(x)`.
  */
 template <typename T>
-GKO_INLINE constexpr T one(const T&)
+GKO_INLINE constexpr std::enable_if_t<!detail::has_to_arithmetic_type<T>::value,
+                                      T>
+one(const T&)
 {
     return one<T>();
+}
+
+
+/**
+ * Returns the multiplicative identity for the arithmetic type of an accessor
+ * reference.
+ */
+template <typename T>
+GKO_INLINE constexpr auto one(const T&)
+    -> std::enable_if_t<detail::has_to_arithmetic_type<T>::value,
+                        typename detail::has_to_arithmetic_type<T>::type>
+{
+    return one<typename detail::has_to_arithmetic_type<T>::type>();
 }
 
 
@@ -695,9 +755,23 @@ GKO_INLINE constexpr T one(const T&)
  * @return true iff the given value is zero, i.e. `value == zero<T>()`
  */
 template <typename T>
-GKO_INLINE constexpr bool is_zero(T value)
+GKO_INLINE constexpr std::enable_if_t<!detail::has_to_arithmetic_type<T>::value,
+                                      bool>
+is_zero(T value)
 {
     return value == zero<T>();
+}
+
+
+/**
+ * Returns true if and only if the value of the accessor reference is zero.
+ */
+template <typename T>
+GKO_INLINE constexpr std::enable_if_t<detail::has_to_arithmetic_type<T>::value,
+                                      bool>
+is_zero(const T& ref)
+{
+    return is_zero(ref.to_arithmetic_type());
 }
 
 
@@ -710,9 +784,23 @@ GKO_INLINE constexpr bool is_zero(T value)
  * @return true iff the given value is not zero, i.e. `value != zero<T>()`
  */
 template <typename T>
-GKO_INLINE constexpr bool is_nonzero(T value)
+GKO_INLINE constexpr std::enable_if_t<!detail::has_to_arithmetic_type<T>::value,
+                                      bool>
+is_nonzero(T value)
 {
     return value != zero<T>();
+}
+
+
+/**
+ * Returns true if and only if the value of the accessor reference is not zero.
+ */
+template <typename T>
+GKO_INLINE constexpr std::enable_if_t<detail::has_to_arithmetic_type<T>::value,
+                                      bool>
+is_nonzero(const T& ref)
+{
+    return is_nonzero(ref.to_arithmetic_type());
 }
 
 
@@ -753,30 +841,6 @@ GKO_INLINE constexpr T min(const T& x, const T& y)
 
 
 namespace detail {
-
-
-/**
- * @internal
- * Tests if a member function `Ref::to_arithmetic_type` exists
- * This is used for the accessor references to convert to the arithmetic type in
- * the math-functions
- *
- * @note
- * This basically mirrors the accessor functionality
- */
-template <typename Ref, typename Dummy = std::void_t<>>
-struct has_to_arithmetic_type : std::false_type {
-    static_assert(std::is_same<Dummy, void>::value,
-                  "Do not modify the Dummy value!");
-    using type = Ref;
-};
-
-template <typename Ref>
-struct has_to_arithmetic_type<
-    Ref, std::void_t<decltype(std::declval<Ref>().to_arithmetic_type())>>
-    : std::true_type {
-    using type = decltype(std::declval<Ref>().to_arithmetic_type());
-};
 
 
 /**
@@ -958,10 +1022,23 @@ using std::abs;
  * @return x >= zero<T>() ? x : -x;
  */
 template <typename T>
-GKO_INLINE constexpr std::enable_if_t<!is_complex_s<T>::value, T> abs(
-    const T& x)
+GKO_INLINE constexpr std::enable_if_t<
+    !is_complex_s<T>::value && !detail::has_to_arithmetic_type<T>::value, T>
+abs(const T& x)
 {
     return x >= zero<T>() ? x : -x;
+}
+
+
+/**
+ * Returns the absolute value of an accessor reference in its arithmetic type.
+ */
+template <typename T>
+GKO_INLINE constexpr auto abs(const T& ref)
+    -> std::enable_if_t<detail::has_to_arithmetic_type<T>::value,
+                        decltype(abs(ref.to_arithmetic_type()))>
+{
+    return abs(ref.to_arithmetic_type());
 }
 
 
@@ -1129,9 +1206,28 @@ is_finite(const T& value)
  * @return the value of `a / b` if b is non-zero, zero otherwise.
  */
 template <typename T>
-GKO_INLINE GKO_ATTRIBUTES T safe_divide(T a, T b)
+GKO_INLINE GKO_ATTRIBUTES
+    std::enable_if_t<!detail::has_to_arithmetic_type<T>::value, T>
+    safe_divide(T a, T b)
 {
     return b == zero<T>() ? zero<T>() : a / b;
+}
+
+
+/**
+ * @copydoc safe_divide(T, T)
+ *
+ * This version takes accessor references and computes in their arithmetic
+ * type.
+ */
+template <typename T, typename U>
+GKO_INLINE GKO_ATTRIBUTES auto safe_divide(const T& a, const U& b)
+    -> std::enable_if_t<detail::has_to_arithmetic_type<T>::value ||
+                            detail::has_to_arithmetic_type<U>::value,
+                        std::decay_t<decltype(detail::to_arithmetic_type(a))>>
+{
+    return safe_divide(detail::to_arithmetic_type(a),
+                       detail::to_arithmetic_type(b));
 }
 
 
