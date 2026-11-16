@@ -4,6 +4,7 @@
 
 #include "core/solver/multigrid_kernels.hpp"
 
+#include <algorithm>
 #include <random>
 
 #include <gtest/gtest.h>
@@ -175,7 +176,9 @@ TEST_F(Multigrid, MultigridKCycleStep2IsEquivalentToRef)
         d_zeta->get_const_device_view(), d_d->get_const_device_view(),
         d_e->get_device_view());
 
-    GKO_ASSERT_MTX_NEAR(d_e, e, 1e-14);
+    // 1e-14 allows for the cancellation in beta - gamma^2 / rho, r<value_type>
+    // for the precision of tested_arithmetic
+    GKO_ASSERT_MTX_NEAR(d_e, e, std::max(1e-14, r<Mtx::value_type>::value));
 }
 
 

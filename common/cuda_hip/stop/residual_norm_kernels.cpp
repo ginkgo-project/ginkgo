@@ -8,10 +8,12 @@
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/stop/residual_norm.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/base/array_access.hpp"
 
 
@@ -28,11 +30,10 @@ namespace residual_norm {
 constexpr int default_block_size = 512;
 
 
-template <typename ValueType>
+template <typename ArithmeticType, typename TauAccessor>
 __global__ __launch_bounds__(default_block_size) void residual_norm_kernel(
-    size_type num_cols, ValueType rel_residual_goal,
-    const ValueType* __restrict__ tau, const ValueType* __restrict__ orig_tau,
-    uint8 stoppingId, bool setFinalized,
+    size_type num_cols, ArithmeticType rel_residual_goal, TauAccessor tau,
+    TauAccessor orig_tau, uint8 stoppingId, bool setFinalized,
     stopping_status* __restrict__ stop_status,
     bool* __restrict__ device_storage)
 {
@@ -75,11 +76,13 @@ void residual_norm(std::shared_ptr<const DefaultExecutor> exec,
 
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(tau.size[1], block_size);
+    const auto tau_vals = arithmetic<ValueType, 1>(tau);
+    const auto orig_tau_vals = arithmetic<ValueType, 1>(orig_tau);
 
     if (grid_size > 0) {
         residual_norm_kernel<<<grid_size, block_size, 0, exec->get_stream()>>>(
-            tau.size[1], as_device_type(rel_residual_goal),
-            as_device_type(tau.values), as_device_type(orig_tau.values),
+            tau.size[1], arithmetic<ValueType>(rel_residual_goal),
+            acc::as_device_range(tau_vals), acc::as_device_range(orig_tau_vals),
             stoppingId, setFinalized, as_device_type(stop_status.get_data()),
             as_device_type(device_storage.get_data()));
     }
@@ -106,13 +109,13 @@ namespace implicit_residual_norm {
 constexpr int default_block_size = 512;
 
 
-template <typename ValueType>
+template <typename ArithmeticType, typename TauAccessor,
+          typename OrigTauAccessor>
 __global__
 __launch_bounds__(default_block_size) void implicit_residual_norm_kernel(
-    size_type num_cols, remove_complex<ValueType> rel_residual_goal,
-    const ValueType* __restrict__ tau,
-    const remove_complex<ValueType>* __restrict__ orig_tau, uint8 stoppingId,
-    bool setFinalized, stopping_status* __restrict__ stop_status,
+    size_type num_cols, ArithmeticType rel_residual_goal, TauAccessor tau,
+    OrigTauAccessor orig_tau, uint8 stoppingId, bool setFinalized,
+    stopping_status* __restrict__ stop_status,
     bool* __restrict__ device_storage)
 {
     const auto tidx = thread::get_thread_id_flat();
@@ -152,12 +155,14 @@ void implicit_residual_norm(
 
     const auto block_size = default_block_size;
     const auto grid_size = ceildiv(tau.size[1], block_size);
+    const auto tau_vals = arithmetic<ValueType, 1>(tau);
+    const auto orig_tau_vals = arithmetic<ValueType, 1>(orig_tau);
 
     if (grid_size > 0) {
         implicit_residual_norm_kernel<<<grid_size, block_size, 0,
                                         exec->get_stream()>>>(
-            tau.size[1], as_device_type(rel_residual_goal),
-            as_device_type(tau.values), as_device_type(orig_tau.values),
+            tau.size[1], arithmetic<ValueType>(rel_residual_goal),
+            acc::as_device_range(tau_vals), acc::as_device_range(orig_tau_vals),
             stoppingId, setFinalized, as_device_type(stop_status.get_data()),
             as_device_type(device_storage.get_data()));
     }
