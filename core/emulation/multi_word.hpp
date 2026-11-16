@@ -244,17 +244,33 @@ GKO_ATTRIBUTES GKO_INLINE T sqrt_rn(T a)
 
 
 /**
+ * FloatType for gko::truncated<FloatType, ...>, U otherwise.
+ */
+template <typename U>
+struct untruncated {
+    using type = U;
+};
+
+template <typename FloatType, size_type NumComponents, size_type ComponentId>
+struct untruncated<truncated<FloatType, NumComponents, ComponentId>> {
+    using type = FloatType;
+};
+
+
+/**
  * Whether U is a type like half or bfloat16 for words of type T: smaller than
  * T, not a C++ arithmetic type, and convertible to and from T. gko::truncated
- * has its own overloads in multi_word.
+ * counts as its FloatType, so it is none; it has its own overloads in
+ * multi_word.
  *
  * @note It is at namespace scope, since nvcc ignores conversion functions
  *       whose enable_if uses a private member.
  */
 template <typename U, typename T>
 constexpr bool is_small_word_type_v =
-    !std::is_arithmetic_v<U> && sizeof(U) < sizeof(T) &&
-    std::is_constructible_v<T, U> && std::is_constructible_v<U, T>;
+    !std::is_arithmetic_v<typename untruncated<U>::type> &&
+    sizeof(U) < sizeof(T) && std::is_constructible_v<T, U> &&
+    std::is_constructible_v<U, T>;
 
 
 /*

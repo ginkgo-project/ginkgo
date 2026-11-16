@@ -12,8 +12,10 @@
 
 #include <gtest/gtest.h>
 
+#include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/half.hpp>
 
+#include "core/base/extended_float.hpp"
 #include "core/emulation/double_word.hpp"
 #include "core/test/emulation/float_float_helper.hpp"
 #include "core/test/utils.hpp"
@@ -94,6 +96,15 @@ static_assert(std::is_constructible_v<accurate_fma, gko::half>);
 static_assert(!std::is_convertible_v<gko::half, accurate_fma>);
 static_assert(std::is_constructible_v<gko::half, accurate_fma>);
 static_assert(!std::is_convertible_v<accurate_fma, gko::half>);
+// gko::truncated converts through its FloatType, not through the word type
+static_assert(mw::detail::is_small_word_type_v<gko::half, float>);
+static_assert(mw::detail::is_small_word_type_v<gko::bfloat16, float>);
+static_assert(
+    !mw::detail::is_small_word_type_v<gko::truncated<float, 2, 0>, float>);
+static_assert(
+    !mw::detail::is_small_word_type_v<gko::truncated<double, 4, 0>, float>);
+static_assert(
+    !mw::detail::is_small_word_type_v<gko::truncated<double, 2, 0>, float>);
 
 
 template <typename MW>
@@ -168,6 +179,18 @@ TYPED_TEST(MultiWord, ConvertsHalfExactly)
 
     ASSERT_TRUE(has_words(x, 0.333251953125f, 0.0f));
     ASSERT_EQ(static_cast<float>(static_cast<gko::half>(x)), 0.333251953125f);
+}
+
+
+TYPED_TEST(MultiWord, ConvertsTruncatedThroughItsFloatType)
+{
+    using MW = TypeParam;
+    using truncated_double = gko::truncated<double, 4, 0>;
+    // truncates to 1 as a double, but rounds to 1 + 2^-4 as a float
+    const MW x{1 + 0x1p-4 - 0x1p-25};
+
+    ASSERT_EQ(static_cast<double>(static_cast<truncated_double>(x)), 1.0);
+    ASSERT_TRUE(has_words(MW{truncated_double{1 + 0x1p-4}}, 1 + 0x1p-4f, 0.0f));
 }
 
 
