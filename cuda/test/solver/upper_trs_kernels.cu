@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <random>
+#include <type_traits>
 
 #include <cuda.h>
 
@@ -27,6 +28,17 @@ class UpperTrs : public CudaTestFixture {
 protected:
     using CsrMtx = gko::matrix::Csr<double, gko::int32>;
     using Mtx = gko::matrix::Dense<>;
+
+    // The sync-free solve adds in the same order as the reference, but in
+    // tested_arithmetic it rounds differently, which the ill-conditioned random
+    // triangular matrices amplify.
+    static double syncfree_tolerance()
+    {
+        return std::is_same_v<gko::test::detail::tested_arithmetic<double>,
+                              double>
+                   ? 1e-14
+                   : 10 * r<double>::value;
+    }
 
     UpperTrs() : rand_engine(30) {}
 
@@ -98,7 +110,7 @@ TEST_F(UpperTrs, CudaSingleRhsApplySyncfreelibIsEquivalentToRef)
     solver->apply(b2, x);
     d_solver->apply(d_b2, d_x);
 
-    GKO_ASSERT_MTX_NEAR(d_x, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(d_x, x, syncfree_tolerance());
 }
 
 
@@ -136,7 +148,7 @@ TEST_F(UpperTrs, CudaMultipleRhsApplySyncfreeIsEquivalentToRef)
     solver->apply(b2, x);
     d_solver->apply(db2_strided, dx_strided);
 
-    GKO_ASSERT_MTX_NEAR(dx_strided, x, 1e-14);
+    GKO_ASSERT_MTX_NEAR(dx_strided, x, syncfree_tolerance());
 }
 
 

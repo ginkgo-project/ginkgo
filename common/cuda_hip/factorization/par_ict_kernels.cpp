@@ -10,6 +10,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
 
+#include "accessor/cuda_hip_helper.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
@@ -20,6 +21,7 @@
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/searching.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
+#include "common/unified/base/arithmetic_accessor.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/coo_builder.hpp"
 #include "core/matrix/csr_builder.hpp"
@@ -86,7 +88,8 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_nnz(
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType,
+          typename LAccessor>
 __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
     const IndexType* __restrict__ llh_row_ptrs,
     const IndexType* __restrict__ llh_col_idxs,
@@ -96,11 +99,13 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
     const ValueType* __restrict__ a_vals,
     const IndexType* __restrict__ l_row_ptrs,
     const IndexType* __restrict__ l_col_idxs,
-    const ValueType* __restrict__ l_vals,
+    const ValueType* __restrict__ l_vals, LAccessor l_values,
     const IndexType* __restrict__ l_new_row_ptrs,
     IndexType* __restrict__ l_new_col_idxs, ValueType* __restrict__ l_new_vals,
     IndexType num_rows)
 {
+    using arithmetic_type = arithmetic_type_t<LAccessor>;
+    // the entries of L are copied in the storage type, so that they stay exact
     auto subwarp =
         group::tiled_partition<subwarp_size>(group::this_thread_block());
     auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
@@ -171,7 +176,8 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
         if (r_col != llh_cur_col) {
             llh_cur_val = zero<ValueType>();
         }
-        auto r_val = a_cur_val - llh_cur_val;
+        const auto r_val = static_cast<arithmetic_type>(a_cur_val) -
+                           static_cast<arithmetic_type>(llh_cur_val);
 
         // early return when reaching the upper diagonal
         if (subwarp.all(r_col > row)) {
@@ -184,8 +190,9 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
         auto l_new_advance_mask = group::ballot(subwarp, do_write);
         // store values
         if (do_write) {
-            auto diag = l_vals[l_row_ptrs[r_col + 1] - 1];
-            auto out_val = use_l ? l_cur_val : r_val / diag;
+            const auto diag = l_values[l_row_ptrs[r_col + 1] - 1];
+            auto out_val =
+                use_l ? l_cur_val : static_cast<ValueType>(r_val / diag);
             auto ofs = popcnt(l_new_advance_mask & lanemask_lt);
             l_new_col_idxs[l_new_begin + ofs] = r_col;
             l_new_vals[l_new_begin + ofs] = out_val;
@@ -251,16 +258,17 @@ __global__ __launch_bounds__(default_block_size) void ict_tri_spgeam_init(
 }
 
 
-template <int subwarp_size, typename ValueType, typename IndexType>
+template <int subwarp_size, typename ValueType, typename IndexType,
+          typename AAccessor>
 __global__ __launch_bounds__(default_block_size) void ict_sweep(
     const IndexType* __restrict__ a_row_ptrs,
-    const IndexType* __restrict__ a_col_idxs,
-    const ValueType* __restrict__ a_vals,
+    const IndexType* __restrict__ a_col_idxs, AAccessor a_vals,
     const IndexType* __restrict__ l_row_ptrs,
     const IndexType* __restrict__ l_row_idxs,
     const IndexType* __restrict__ l_col_idxs, ValueType* __restrict__ l_vals,
     IndexType l_nnz)
 {
+    using arithmetic_type = arithmetic_type_t<AAccessor>;
     auto l_nz = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
     if (l_nz >= l_nnz) {
         return;
@@ -277,12 +285,12 @@ __global__ __launch_bounds__(default_block_size) void ict_sweep(
         group_wide_search(a_row_begin, a_row_size, subwarp,
                           [&](IndexType i) { return a_col_idxs[i] >= col; });
     bool has_a = a_idx < a_row_end && a_col_idxs[a_idx] == col;
-    auto a_val = has_a ? a_vals[a_idx] : zero<ValueType>();
+    auto a_val = has_a ? a_vals[a_idx] : zero<arithmetic_type>();
     auto l_row_begin = l_row_ptrs[row];
     auto l_row_size = l_row_ptrs[row + 1] - l_row_begin;
     auto lh_col_begin = l_row_ptrs[col];
     auto lh_col_size = l_row_ptrs[col + 1] - lh_col_begin;
-    ValueType sum{};
+    arithmetic_type sum{};
     IndexType lh_nz{};
     auto last_entry = col;
     group_merge<subwarp_size>(
@@ -293,8 +301,10 @@ __global__ __launch_bounds__(default_block_size) void ict_sweep(
             // we don't need to use the `bool valid` because last_entry is
             // already a smaller sentinel value than the one used in group_merge
             if (l_col == lh_row && l_col < last_entry) {
-                sum += load_relaxed(l_vals + (l_idx + l_row_begin)) *
-                       conj(load_relaxed(l_vals + (lh_idx + lh_col_begin)));
+                sum += static_cast<arithmetic_type>(
+                           load_relaxed(l_vals + (l_idx + l_row_begin))) *
+                       conj(static_cast<arithmetic_type>(
+                           load_relaxed(l_vals + (lh_idx + lh_col_begin))));
             }
             // remember the transposed element
             auto found_transp = group::ballot(subwarp, lh_row == row);
@@ -305,15 +315,17 @@ __global__ __launch_bounds__(default_block_size) void ict_sweep(
             return true;
         });
     // accumulate result from all threads
-    sum = reduce(subwarp, sum, [](ValueType a, ValueType b) { return a + b; });
+    sum = reduce(subwarp, sum,
+                 [](arithmetic_type a, arithmetic_type b) { return a + b; });
 
     if (subwarp.thread_rank() == 0) {
         auto to_write =
-            row == col ? sqrt(a_val - sum)
-                       : (a_val - sum) /
-                             load_relaxed(l_vals + (l_row_ptrs[col + 1] - 1));
+            row == col
+                ? sqrt(a_val - sum)
+                : (a_val - sum) / static_cast<arithmetic_type>(load_relaxed(
+                                      l_vals + (l_row_ptrs[col + 1] - 1)));
         if (is_finite(to_write)) {
-            store_relaxed(l_vals + l_nz, to_write);
+            store_relaxed(l_vals + l_nz, static_cast<ValueType>(to_write));
         }
     }
 }
@@ -346,6 +358,7 @@ void add_candidates(syn::value_list<int, subwarp_size>,
     auto l_row_ptrs = l.row_ptrs;
     auto l_col_idxs = l.col_idxs;
     auto l_vals = l.values;
+    const auto l_values = arithmetic<ValueType>(l);
     auto l_new_row_ptrs = l_new->get_row_ptrs();
     // count non-zeros per row
     if (num_blocks > 0) {
@@ -372,8 +385,9 @@ void add_candidates(syn::value_list<int, subwarp_size>,
             <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
                 llh_row_ptrs, llh_col_idxs, as_device_type(llh_vals),
                 a_row_ptrs, a_col_idxs, as_device_type(a_vals), l_row_ptrs,
-                l_col_idxs, as_device_type(l_vals), l_new_row_ptrs,
-                l_new_col_idxs, as_device_type(l_new_vals), num_rows);
+                l_col_idxs, as_device_type(l_vals),
+                acc::as_device_range(l_values), l_new_row_ptrs, l_new_col_idxs,
+                as_device_type(l_new_vals), num_rows);
     }
 }
 
@@ -391,6 +405,7 @@ void compute_factor(syn::value_list<int, subwarp_size>,
     auto total_nnz = static_cast<IndexType>(l.num_stored_elements);
     auto block_size = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(total_nnz, block_size);
+    const auto a_vals = arithmetic<ValueType>(a);
     if (num_blocks > 0) {
 #ifdef GKO_COMPILING_HIP
         if constexpr (sizeof(remove_complex<ValueType>) == sizeof(int16)) {
@@ -401,7 +416,7 @@ void compute_factor(syn::value_list<int, subwarp_size>,
         {
             kernel::ict_sweep<subwarp_size>
                 <<<num_blocks, default_block_size, 0, exec->get_stream()>>>(
-                    a.row_ptrs, a.col_idxs, as_device_type(a.values),
+                    a.row_ptrs, a.col_idxs, acc::as_device_range(a_vals),
                     l.row_ptrs, l_coo.row_idxs, l.col_idxs,
                     as_device_type(l.values),
                     static_cast<IndexType>(l.num_stored_elements));
