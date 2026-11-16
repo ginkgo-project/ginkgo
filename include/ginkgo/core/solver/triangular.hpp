@@ -180,7 +180,8 @@ protected:
           EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
               factory->get_executor(),
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             components.system_matrix)},
+                                             components.system_matrix),
+              components},
           parameters_{factory->get_parameters()}
     {
         this->generate();
@@ -350,7 +351,8 @@ protected:
           EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
               factory->get_executor(),
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             components.system_matrix)},
+                                             components.system_matrix),
+              components},
           parameters_{factory->get_parameters()}
     {
         this->generate();
