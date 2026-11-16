@@ -146,43 +146,51 @@ void LowerTrs<ValueType, IndexType>::apply_impl(const LinOp* b, LinOp* x) const
     if (!this->get_system_matrix()) {
         return;
     }
-    mixed_precision_dispatch_real_complex<ValueType>(
-        [this](auto dense_b, auto dense_x) {
-            using InputVector = std::decay_t<decltype(*dense_b)>;
-            using OutputVector = std::decay_t<decltype(*dense_x)>;
-            using ws = workspace_traits<LowerTrs>;
-            const auto exec = this->get_executor();
-            this->setup_workspace();
+    auto dispatch = [this, b, x](auto fn) {
+        if (parameters_.algorithm == trisolve_algorithm::sparselib) {
+            precision_dispatch_real_complex<ValueType>(std::move(fn), b, x);
+        } else if (parameters_.algorithm == trisolve_algorithm::syncfree) {
+            mixed_precision_dispatch_real_complex<ValueType>(std::move(fn), b,
+                                                             x);
+        } else {
+            GKO_NOT_IMPLEMENTED;
+        }
+    };
+    dispatch([this](auto dense_b, auto dense_x) {
+        using InputVector = std::decay_t<decltype(*dense_b)>;
+        using OutputVector = std::decay_t<decltype(*dense_x)>;
+        using ws = workspace_traits<LowerTrs>;
+        const auto exec = this->get_executor();
+        this->setup_workspace();
 
-            // This kernel checks if a transpose is needed for the multiple rhs
-            // case. Currently only the algorithm for HIP needs this
-            // transposition due to the limitation in the hipsparse algorithm.
-            // The other executors (omp and reference, CUDA, dpcpp) do not use
-            // the transpose (trans_x and trans_b) and hence are passed in empty
-            // pointers.
-            InputVector* trans_b{};
-            OutputVector* trans_x{};
-            using optional_input_view =
-                std::optional<typename InputVector::device_view>;
-            using optional_output_view =
-                std::optional<typename OutputVector::device_view>;
-            if (needs_transpose(exec)) {
-                trans_b = this->template create_workspace_op<InputVector>(
-                    ws::transposed_b, gko::transpose(dense_b->get_size()));
-                trans_x = this->template create_workspace_op<OutputVector>(
-                    ws::transposed_x, gko::transpose(dense_x->get_size()));
-            }
-            exec->run(lower_trs::make_solve(
-                this->get_system_matrix()->get_const_device_view(),
-                this->solve_struct_.get(), this->get_parameters().unit_diagonal,
-                parameters_.algorithm,
-                trans_b ? optional_input_view{trans_b->get_device_view()}
-                        : optional_input_view{},
-                trans_x ? optional_output_view{trans_x->get_device_view()}
-                        : optional_output_view{},
-                dense_b->get_const_device_view(), dense_x->get_device_view()));
-        },
-        b, x);
+        // This kernel checks if a transpose is needed for the multiple rhs
+        // case. Currently only the algorithm for HIP needs this
+        // transposition due to the limitation in the hipsparse algorithm.
+        // The other executors (omp and reference, CUDA, dpcpp) do not use
+        // the transpose (trans_x and trans_b) and hence are passed in empty
+        // pointers.
+        InputVector* trans_b{};
+        OutputVector* trans_x{};
+        using optional_input_view =
+            std::optional<typename InputVector::device_view>;
+        using optional_output_view =
+            std::optional<typename OutputVector::device_view>;
+        if (needs_transpose(exec)) {
+            trans_b = this->template create_workspace_op<InputVector>(
+                ws::transposed_b, gko::transpose(dense_b->get_size()));
+            trans_x = this->template create_workspace_op<OutputVector>(
+                ws::transposed_x, gko::transpose(dense_x->get_size()));
+        }
+        exec->run(lower_trs::make_solve(
+            this->get_system_matrix()->get_const_device_view(),
+            this->solve_struct_.get(), this->get_parameters().unit_diagonal,
+            parameters_.algorithm,
+            trans_b ? optional_input_view{trans_b->get_device_view()}
+                    : optional_input_view{},
+            trans_x ? optional_output_view{trans_x->get_device_view()}
+                    : optional_output_view{},
+            dense_b->get_const_device_view(), dense_x->get_device_view()));
+    });
 }
 
 
