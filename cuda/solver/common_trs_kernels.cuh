@@ -421,24 +421,27 @@ is_nan_exact(const T& value)
 }
 
 
-template <bool is_upper, typename ValueType, typename IndexType>
+template <bool is_upper, typename ArithmeticType, typename InputValueType,
+          typename MatrixValueType, typename OutputValueType,
+          typename IndexType>
 __global__ void sptrsv_naive_caching_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
-    const ValueType* const vals, const ValueType* const b, size_type b_stride,
-    ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool unit_diag, bool* nan_produced,
+    const MatrixValueType* const vals, const InputValueType* const b,
+    size_type b_stride, OutputValueType* const x, size_type x_stride,
+    const size_type n, const size_type nrhs, bool unit_diag, bool* nan_produced,
     IndexType* atomic_counter)
 {
     // TODO: need to investigate
     // memory operation on the half-precision shared_memory seem to give
     // wrong result. we use float in shared_memory.
-    using SharedValueType = std::conditional_t<
-        std::is_same<remove_complex<ValueType>, device_type<float16>>::value ||
-            std::is_same<remove_complex<ValueType>,
-                         device_type<bfloat16>>::value,
-        std::conditional_t<is_complex<ValueType>(), thrust::complex<float>,
-                           float>,
-        ValueType>;
+    using SharedValueType =
+        std::conditional_t<std::is_same<remove_complex<OutputValueType>,
+                                        device_type<float16>>::value ||
+                               std::is_same<remove_complex<OutputValueType>,
+                                            device_type<bfloat16>>::value,
+                           std::conditional_t<is_complex<OutputValueType>(),
+                                              thrust::complex<float>, float>,
+                           OutputValueType>;
     __shared__ uninitialized_array<SharedValueType, default_block_size>
         x_s_array;
     __shared__ IndexType block_base_idx;
@@ -473,7 +476,7 @@ __global__ void sptrsv_naive_caching_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    auto sum = zero<SharedValueType>();
+    auto sum = zero<ArithmeticType>();
     auto i = row_begin;
     for (; i != row_end; i += row_step) {
         const auto dependency = colidxs[i];
@@ -496,40 +499,43 @@ __global__ void sptrsv_naive_caching_kernel(
             // kind of quiet_NaN from gko::nan. Different precision may use the
             // different kind of quiet_NaN and the casting result is not clear
             // because the quiet_NaN is not specified by IEEE.
-            auto output_val = zero<ValueType>();
+            auto output_val = zero<OutputValueType>();
             while (is_nan_exact(
                 output_val = load_relaxed(x + dependency * x_stride + rhs))) {
             }
             val = static_cast<SharedValueType>(output_val);
         }
 
-        sum += val * static_cast<SharedValueType>(vals[i]);
+        sum += static_cast<ArithmeticType>(val) *
+               static_cast<ArithmeticType>(vals[i]);
     }
 
     // The first entry past the triangular part will be the diagonal
-    const auto diag = unit_diag ? one<SharedValueType>()
-                                : static_cast<SharedValueType>(vals[i]);
+    const auto diag = unit_diag ? one<ArithmeticType>()
+                                : static_cast<ArithmeticType>(vals[i]);
     const auto r =
-        (static_cast<SharedValueType>(b[row * b_stride + rhs]) - sum) / diag;
+        (static_cast<ArithmeticType>(b[row * b_stride + rhs]) - sum) / diag;
 
     store_relaxed_shared(x_s + self_shid, r);
-    store_relaxed(x + row * x_stride + rhs, static_cast<ValueType>(r));
+    store_relaxed(x + row * x_stride + rhs, static_cast<OutputValueType>(r));
 
     // This check to ensure no infinite loops happen.
     if (is_nan_exact(r)) {
-        store_relaxed_shared(x_s + self_shid, zero<ValueType>());
-        store_relaxed(x + row * x_stride + rhs, zero<ValueType>());
+        store_relaxed_shared(x_s + self_shid, zero<OutputValueType>());
+        store_relaxed(x + row * x_stride + rhs, zero<OutputValueType>());
         *nan_produced = true;
     }
 }
 
 
-template <bool is_upper, typename ValueType, typename IndexType>
+template <bool is_upper, typename ArithmeticType, typename InputValueType,
+          typename MatrixValueType, typename OutputValueType,
+          typename IndexType>
 __global__ void sptrsv_naive_legacy_kernel(
     const IndexType* const rowptrs, const IndexType* const colidxs,
-    const ValueType* const vals, const ValueType* const b, size_type b_stride,
-    ValueType* const x, size_type x_stride, const size_type n,
-    const size_type nrhs, bool unit_diag, bool* nan_produced,
+    const MatrixValueType* const vals, const InputValueType* const b,
+    size_type b_stride, OutputValueType* const x, size_type x_stride,
+    const size_type n, const size_type nrhs, bool unit_diag, bool* nan_produced,
     IndexType* atomic_counter)
 {
     __shared__ IndexType block_base_idx;
@@ -553,13 +559,14 @@ __global__ void sptrsv_naive_legacy_kernel(
     const auto row_end = is_upper ? rowptrs[row] - 1 : rowptrs[row + 1];
     const int row_step = is_upper ? -1 : 1;
 
-    ValueType sum = zero<ValueType>();
+    auto sum = zero<ArithmeticType>();
     auto j = row_begin;
     auto col = colidxs[j];
     while (j != row_end) {
         auto x_val = load_relaxed(x + col * x_stride + rhs);
         while (!is_nan_exact(x_val)) {
-            sum += vals[j] * x_val;
+            sum += static_cast<ArithmeticType>(vals[j]) *
+                   static_cast<ArithmeticType>(x_val);
             j += row_step;
             col = colidxs[j];
             x_val = load_relaxed(x + col * x_stride + rhs);
@@ -570,14 +577,19 @@ __global__ void sptrsv_naive_legacy_kernel(
         // but prevents an infinite loop.
         if (is_upper ? row >= col : row <= col) {
             // assert(row == col);
-            auto diag = unit_diag ? one<ValueType>() : vals[j];
-            const auto r = (b[row * b_stride + rhs] - sum) / diag;
-            store_relaxed(x + row * x_stride + rhs, r);
+            auto diag = unit_diag ? one<ArithmeticType>()
+                                  : static_cast<ArithmeticType>(vals[j]);
+            const auto r =
+                (static_cast<ArithmeticType>(b[row * b_stride + rhs]) - sum) /
+                diag;
+            store_relaxed(x + row * x_stride + rhs,
+                          static_cast<OutputValueType>(r));
             // after we encountered the diagonal, we are done
             // this also skips entries outside the triangle
             j = row_end;
             if (is_nan_exact(r)) {
-                store_relaxed(x + row * x_stride + rhs, zero<ValueType>());
+                store_relaxed(x + row * x_stride + rhs,
+                              zero<OutputValueType>());
                 *nan_produced = true;
             }
         }
@@ -593,13 +605,17 @@ __global__ void sptrsv_init_kernel(bool* const nan_produced,
     *atomic_counter = IndexType{};
 }
 
-
-template <bool is_upper, typename ValueType, typename IndexType>
+template <bool is_upper, typename InputValueType, typename MatrixValueType,
+          typename OutputValueType, typename IndexType>
 void sptrsv_naive_caching(
     std::shared_ptr<const CudaExecutor> exec,
-    matrix::view::csr<const ValueType, const IndexType> matrix, bool unit_diag,
-    matrix::view::dense<const ValueType> b, matrix::view::dense<ValueType> x)
+    matrix::view::csr<const MatrixValueType, const IndexType> matrix,
+    bool unit_diag, matrix::view::dense<const InputValueType> b,
+    matrix::view::dense<OutputValueType> x)
 {
+    using ArithmeticType =
+        highest_precision<InputValueType, MatrixValueType, OutputValueType>;
+
     // Pre-Volta GPUs may deadlock due to missing independent thread scheduling.
     const auto is_fallback_required = exec->get_major_version() < 7;
 
@@ -607,7 +623,7 @@ void sptrsv_naive_caching(
     const auto nrhs = b.size[1];
 
     // Initialize x to all NaNs.
-    dense::fill(exec, x, nan<ValueType>());
+    dense::fill(exec, x, nan<OutputValueType>());
 
     array<bool> nan_produced(exec, 1);
     array<IndexType> atomic_counter(exec, 1);
@@ -619,14 +635,14 @@ void sptrsv_naive_caching(
     const dim3 grid_size(ceildiv(n * nrhs, block_size.x), 1, 1);
 
     if (is_fallback_required) {
-        sptrsv_naive_legacy_kernel<is_upper>
+        sptrsv_naive_legacy_kernel<is_upper, cuda_type<ArithmeticType>>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix.row_ptrs, matrix.col_idxs, as_device_type(matrix.values),
                 as_device_type(b.values), b.stride, as_device_type(x.values),
                 x.stride, n, nrhs, unit_diag, nan_produced.get_data(),
                 atomic_counter.get_data());
     } else {
-        sptrsv_naive_caching_kernel<is_upper>
+        sptrsv_naive_caching_kernel<is_upper, cuda_type<ArithmeticType>>
             <<<grid_size, block_size, 0, exec->get_stream()>>>(
                 matrix.row_ptrs, matrix.col_idxs, as_device_type(matrix.values),
                 as_device_type(b.values), b.stride, as_device_type(x.values),
