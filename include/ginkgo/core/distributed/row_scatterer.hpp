@@ -64,9 +64,9 @@ class RowScatterer final : public PolymorphicObject,
     friend class EnableCloneable<RowScatterer>;
 
 public:
-    void convert_to(RowScatterer* result) const override { *result = *this; }
+    void convert_to(RowScatterer* result) const override;
 
-    void move_to(RowScatterer* result) override { *result = std::move(*this); }
+    void move_to(RowScatterer* result) override;
 
     /**
      * Start scattering local values to their owning ranks.
@@ -167,14 +167,6 @@ public:
      */
     static std::unique_ptr<RowScatterer> create(
         std::shared_ptr<const Executor> exec, mpi::communicator comm);
-
-    RowScatterer(const RowScatterer& o);
-
-    RowScatterer(RowScatterer&& o);
-
-    RowScatterer& operator=(const RowScatterer& o);
-
-    RowScatterer& operator=(RowScatterer&& o);
 
 private:
     template <typename GlobalIndexType>

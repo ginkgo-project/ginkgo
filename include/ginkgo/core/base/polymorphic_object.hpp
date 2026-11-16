@@ -72,9 +72,9 @@ public:
 
     PolymorphicObject(PolymorphicObject&&) = delete;
 
-    PolymorphicObject& operator=(PolymorphicObject&&) = delete;
+    PolymorphicObject& operator=(const PolymorphicObject&) = delete;
 
-    PolymorphicObject& operator=(const PolymorphicObject&&) = delete;
+    PolymorphicObject& operator=(PolymorphicObject&&) = delete;
 
 protected:
     // This method is defined as protected since a polymorphic object should not

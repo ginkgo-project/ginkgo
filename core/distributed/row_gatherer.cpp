@@ -29,6 +29,30 @@ GKO_REGISTER_OPERATION(record_event, event::record_event);
 
 
 template <typename LocalIndexType>
+void RowGatherer<LocalIndexType>::convert_to(RowGatherer* result) const
+{
+    if (this != result) {
+        result->size_ = size_;
+        result->coll_comm_ = coll_comm_;
+        result->send_idxs_ = send_idxs_;
+    }
+}
+
+
+template <typename LocalIndexType>
+void RowGatherer<LocalIndexType>::move_to(RowGatherer* result)
+{
+    if (this != result) {
+        result->size_ = std::exchange(result->size_, {});
+        result->coll_comm_ = std::exchange(
+            coll_comm_, mpi::detail::create_default_collective_communicator(
+                            result->get_communicator()));
+        result->send_idxs_ = std::move(send_idxs_);
+    }
+}
+
+
+template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
                                                       ptr_param<LinOp> x) const
 {

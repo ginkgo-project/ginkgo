@@ -51,14 +51,6 @@ struct DummyObject : gko::PolymorphicObject,
 };
 
 
-// copies and moves through the constructors of PolymorphicObject
-struct PlainObject : gko::PolymorphicObject {
-    explicit PlainObject(std::shared_ptr<const gko::Executor> exec)
-        : gko::PolymorphicObject(std::move(exec))
-    {}
-};
-
-
 struct DummyLogger : gko::log::Logger {
     DummyLogger()
         : gko::log::Logger(gko::log::Logger::polymorphic_object_events_mask)

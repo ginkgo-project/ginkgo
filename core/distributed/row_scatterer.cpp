@@ -19,6 +19,30 @@ namespace distributed {
 
 
 template <typename LocalIndexType>
+void RowScatterer<LocalIndexType>::convert_to(RowScatterer* result) const
+{
+    if (this != result) {
+        result->size_ = size_;
+        result->coll_comm_ = coll_comm_;
+        result->recv_idxs_ = recv_idxs_;
+    }
+}
+
+
+template <typename LocalIndexType>
+void RowScatterer<LocalIndexType>::move_to(RowScatterer* result)
+{
+    if (this != result) {
+        result->size_ = std::exchange(size_, dim<2>{});
+        result->coll_comm_ = std::exchange(
+            coll_comm_, mpi::detail::create_default_collective_communicator(
+                            result->get_communicator()));
+        result->recv_idxs_ = std::move(recv_idxs_);
+    }
+}
+
+
+template <typename LocalIndexType>
 void RowScatterer<LocalIndexType>::apply_async(
     ptr_param<const LinOp> local_values) const
 {
@@ -275,13 +299,6 @@ template <typename LocalIndexType>
 RowScatterer<LocalIndexType>& RowScatterer<LocalIndexType>::operator=(
     RowScatterer&& o)
 {
-    if (this != &o) {
-        size_ = std::exchange(o.size_, dim<2>{});
-        coll_comm_ = std::exchange(
-            o.coll_comm_, mpi::detail::create_default_collective_communicator(
-                              o.get_communicator()));
-        recv_idxs_ = std::move(o.recv_idxs_);
-    }
     return *this;
 }
 
