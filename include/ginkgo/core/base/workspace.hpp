@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
-#ifndef GKO_PUBLIC_CORE_SOLVER_WORKSPACE_HPP_
-#define GKO_PUBLIC_CORE_SOLVER_WORKSPACE_HPP_
+#ifndef GKO_PUBLIC_CORE_BASE_WORKSPACE_HPP_
+#define GKO_PUBLIC_CORE_BASE_WORKSPACE_HPP_
 
 
 #include <typeinfo>
@@ -180,4 +180,4 @@ private:
 }  // namespace solver
 }  // namespace gko
 
-#endif  // GKO_PUBLIC_CORE_SOLVER_WORKSPACE_HPP_
+#endif  // GKO_PUBLIC_CORE_BASE_WORKSPACE_HPP_

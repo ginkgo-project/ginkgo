@@ -218,7 +218,10 @@ public:
          */
         bool GKO_FACTORY_PARAMETER_SCALAR(complex_subspace, false);
     };
-    GKO_ENABLE_LIN_OP_FACTORY(Idr, parameters, Factory);
+    using reuse_data_type = typename EnablePreconditionedIterativeSolver<
+        ValueType, Idr<ValueType>>::reuse_data_type;
+    GKO_ENABLE_LIN_OP_FACTORY_WITH_REUSE(Idr, parameters, Factory,
+                                         reuse_data_type);
     GKO_ENABLE_BUILD_METHOD(Factory);
 
     /**
@@ -248,16 +251,25 @@ protected:
     template <typename VectorType>
     void iterate(const VectorType* dense_b, VectorType* dense_x) const;
 
-    explicit Idr(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
+    explicit Idr(std::shared_ptr<const Executor> exec)
+        : LinOp(exec),
+          EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
+              std::move(exec)}
     {}
 
-    explicit Idr(const Factory* factory,
-                 std::shared_ptr<const LinOp> system_matrix)
+    explicit Idr(const Factory* factory, LinOpGenerateComponents components,
+                 reuse_data_type* reuse_data = nullptr)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           EnablePreconditionedIterativeSolver<ValueType, Idr<ValueType>>{
-              std::move(system_matrix), factory->get_parameters()},
+              factory->get_executor(), std::move(components.system_matrix),
+              factory->get_parameters(), reuse_data},
           parameters_{factory->get_parameters()}
+    {}
+
+    Idr(const Factory* factory, LinOpGenerateComponents components,
+        reuse_data_type& reuse_data)
+        : Idr(factory, std::move(components), &reuse_data)
     {}
 };
 

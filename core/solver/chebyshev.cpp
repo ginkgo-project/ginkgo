@@ -72,16 +72,29 @@ typename Chebyshev<ValueType>::parameters_type Chebyshev<ValueType>::parse(
 
 template <typename ValueType>
 Chebyshev<ValueType>::Chebyshev(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
+    : LinOp(exec),
+      EnablePreconditionedIterativeSolver<ValueType, Chebyshev<ValueType>>{
+          std::move(exec)}
 {}
 
 
 template <typename ValueType>
 Chebyshev<ValueType>::Chebyshev(const Factory* factory,
-                                std::shared_ptr<const LinOp> system_matrix)
-    : LinOp(factory->get_executor(), gko::transpose(system_matrix->get_size())),
+                                LinOpGenerateComponents components,
+                                reuse_data_type& reuse_data)
+    : Chebyshev(factory, std::move(components), &reuse_data)
+{}
+
+
+template <typename ValueType>
+Chebyshev<ValueType>::Chebyshev(const Factory* factory,
+                                LinOpGenerateComponents components,
+                                reuse_data_type* reuse_data)
+    : LinOp(factory->get_executor(),
+            gko::transpose(components.system_matrix->get_size())),
       EnablePreconditionedIterativeSolver<ValueType, Chebyshev<ValueType>>{
-          std::move(system_matrix), factory->get_parameters()},
+          factory->get_executor(), std::move(components.system_matrix),
+          factory->get_parameters(), reuse_data},
       parameters_{factory->get_parameters()}
 {
     this->set_default_initial_guess(parameters_.default_initial_guess);

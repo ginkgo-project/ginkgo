@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/solver/workspace.hpp>
+#include <ginkgo/core/base/workspace.hpp>
 
 #include "core/test/utils.hpp"
 

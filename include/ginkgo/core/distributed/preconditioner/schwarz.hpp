@@ -177,14 +177,13 @@ protected:
      * @param system_matrix  the matrix this preconditioner should be created
      *                       from
      */
-    explicit Schwarz(const Factory* factory,
-                     std::shared_ptr<const LinOp> system_matrix)
+    explicit Schwarz(const Factory* factory, LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
+          system_matrix_{components.system_matrix}
     {
-        this->generate(system_matrix);
+        this->generate(std::move(components.system_matrix));
     }
 
     /**

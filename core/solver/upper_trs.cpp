@@ -53,7 +53,7 @@ UpperTrs<ValueType, IndexType>::parse(
 
 template <typename ValueType, typename IndexType>
 UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
-    : LinOp(other.get_executor())
+    : UpperTrs(other.get_executor())
 {
     *this = other;
 }
@@ -61,7 +61,7 @@ UpperTrs<ValueType, IndexType>::UpperTrs(const UpperTrs& other)
 
 template <typename ValueType, typename IndexType>
 UpperTrs<ValueType, IndexType>::UpperTrs(UpperTrs&& other)
-    : LinOp(other.get_executor())
+    : UpperTrs(other.get_executor())
 {
     *this = std::move(other);
 }

@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -55,8 +55,9 @@ GaussSeidel<ValueType, IndexType>::generate(
 
 template <typename ValueType, typename IndexType>
 std::unique_ptr<LinOp> GaussSeidel<ValueType, IndexType>::generate_impl(
-    std::shared_ptr<const LinOp> system_matrix) const
+    LinOpGenerateComponents components) const
 {
+    auto system_matrix = std::move(components.system_matrix);
     return Sor<ValueType, IndexType>::build()
         .with_skip_sorting(parameters_.skip_sorting)
         .with_symmetric(parameters_.symmetric)

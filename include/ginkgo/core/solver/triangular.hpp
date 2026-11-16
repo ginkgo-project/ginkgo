@@ -168,16 +168,19 @@ protected:
     void generate();
 
     explicit LowerTrs(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
+        : LinOp(exec),
+          EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
+              std::move(exec)}
     {}
 
     explicit LowerTrs(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
+                      LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           EnableSolverBase<LowerTrs<ValueType, IndexType>, CsrMatrix>{
+              factory->get_executor(),
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             system_matrix)},
+                                             components.system_matrix)},
           parameters_{factory->get_parameters()}
     {
         this->generate();
@@ -335,16 +338,19 @@ protected:
     void generate();
 
     explicit UpperTrs(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
+        : LinOp(exec),
+          EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
+              std::move(exec)}
     {}
 
     explicit UpperTrs(const Factory* factory,
-                      std::shared_ptr<const LinOp> system_matrix)
+                      LinOpGenerateComponents components)
         : LinOp(factory->get_executor(),
-                gko::transpose(system_matrix->get_size())),
+                gko::transpose(components.system_matrix->get_size())),
           EnableSolverBase<UpperTrs<ValueType, IndexType>, CsrMatrix>{
+              factory->get_executor(),
               copy_and_convert_to<CsrMatrix>(factory->get_executor(),
-                                             system_matrix)},
+                                             components.system_matrix)},
           parameters_{factory->get_parameters()}
     {
         this->generate();
