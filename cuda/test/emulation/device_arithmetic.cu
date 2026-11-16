@@ -228,6 +228,49 @@ TEST(Arithmetic, CreatesOneDimensionalRangeFromCsrValues)
 }
 
 
+TEST(Arithmetic, CreatesOneDimensionalRangeFromDenseValues)
+{
+    std::array<float, 8> data{};
+    gko::matrix::view::dense<float> mtx{gko::dim<2>{2, 3}, 4, data.data()};
+
+    auto range = gko::kernels::cuda::arithmetic<float, 1>(mtx);
+
+    static_assert(
+        std::is_same_v<decltype(range),
+                       gko::acc::range<gko::acc::row_major<float, 1>>>);
+    EXPECT_EQ(range.length(0), 7);
+    ASSERT_EQ(&range[6], data.data() + 6);
+}
+
+
+TEST(Arithmetic, CreatesRowMajorRangeOverDeviceTypesWithoutConversion)
+{
+    using gko::kernels::cuda::arithmetic;
+    using complex_type = gko::kernels::cuda::device_type<std::complex<double>>;
+    using half_type = gko::kernels::cuda::device_type<gko::half>;
+
+    static_assert(std::is_same_v<
+                  decltype(arithmetic<std::complex<double>>(
+                      std::declval<const complex_type*>(), 1)),
+                  gko::acc::range<gko::acc::row_major<const complex_type, 1>>>);
+    static_assert(
+        std::is_same_v<decltype(arithmetic<gko::half>(
+                           std::declval<half_type*>(), 1)),
+                       gko::acc::range<gko::acc::row_major<half_type, 1>>>);
+}
+
+
+TEST(ArithmeticType, OfPointerIsItsValueType)
+{
+    static_assert(
+        std::is_same_v<gko::kernels::cuda::arithmetic_type_t<const double*>,
+                       double>);
+    static_assert(
+        std::is_same_v<gko::kernels::cuda::arithmetic_type_t<float* const>,
+                       float>);
+}
+
+
 TEST(Tolerance, UsesPrecisionOfDeviceArithmetic)
 {
 #if GINKGO_EMULATE_DOUBLE

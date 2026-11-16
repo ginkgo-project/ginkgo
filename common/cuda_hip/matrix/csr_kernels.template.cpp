@@ -1375,8 +1375,8 @@ void spgeam(syn::value_list<int, subwarp_size>,
     c_builder->get_col_idx_array().resize_and_reset(c_nnz);
     c_builder->get_value_array().resize_and_reset(c_nnz);
     auto c_col_idxs = c->get_col_idxs();
-    const auto alpha_val = arithmetic<ValueType>(alpha.values, 1);
-    const auto beta_val = arithmetic<ValueType>(beta.values, 1);
+    const auto alpha_val = arithmetic<ValueType, 1>(alpha);
+    const auto beta_val = arithmetic<ValueType, 1>(beta);
     const auto a_vals = arithmetic<ValueType>(a);
     const auto b_vals = arithmetic<ValueType>(b);
     const auto c_vals = arithmetic<ValueType>(c->get_values(), c_nnz);
@@ -1432,8 +1432,8 @@ void spgeam_numeric(syn::value_list<int, subwarp_size>,
     auto m = static_cast<IndexType>(a.size[0]);
     auto subwarps_per_block = default_block_size / subwarp_size;
     auto num_blocks = ceildiv(m, subwarps_per_block);
-    const auto alpha_val = arithmetic<ValueType>(alpha.values, 1);
-    const auto beta_val = arithmetic<ValueType>(beta.values, 1);
+    const auto alpha_val = arithmetic<ValueType, 1>(alpha);
+    const auto beta_val = arithmetic<ValueType, 1>(beta);
     const auto a_vals = arithmetic<ValueType>(a);
     const auto b_vals = arithmetic<ValueType>(b);
     const auto c_vals = arithmetic<ValueType>(c);
@@ -1924,8 +1924,8 @@ void add_scaled_identity(std::shared_ptr<const DefaultExecutor> exec,
     }
     const auto nthreads = nrows * config::warp_size;
     const auto nblocks = ceildiv(nthreads, default_block_size);
-    const auto alpha_val = arithmetic<ValueType>(alpha.values, 1);
-    const auto beta_val = arithmetic<ValueType>(beta.values, 1);
+    const auto alpha_val = arithmetic<ValueType, 1>(alpha);
+    const auto beta_val = arithmetic<ValueType, 1>(beta);
     const auto mtx_vals = arithmetic<ValueType>(mtx);
     kernel::add_scaled_identity<<<nblocks, default_block_size, 0,
                                   exec->get_stream()>>>(
@@ -2971,8 +2971,8 @@ void advanced_spgemm_reuse(
     const auto b_vals = arithmetic<ValueType>(b);
     const auto c_vals = arithmetic<ValueType>(c);
     const auto d_vals = arithmetic<ValueType>(d);
-    const auto palpha = arithmetic<ValueType>(alpha.values, 1);
-    const auto pbeta = arithmetic<ValueType>(beta.values, 1);
+    const auto palpha = arithmetic<ValueType, 1>(alpha);
+    const auto pbeta = arithmetic<ValueType, 1>(beta);
     const auto lookup_storage_offsets =
         c_lookup.storage_offsets.get_const_data();
     const auto lookup_storage = c_lookup.storage.get_const_data();

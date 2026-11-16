@@ -87,14 +87,16 @@ using device_arithmetic_type_in =
  * The range a kernel on values of type KernelValueType accesses
  * Dimensionality-dimensional data of type ValueType through: a row_major range
  * if it computes in the storage type, otherwise a reduced_row_major range that
- * converts to the arithmetic type on every read and write. It uses host types;
- * acc::as_device_range maps it to the range the kernel gets.
+ * converts to the arithmetic type on every read and write. With host types,
+ * acc::as_device_range maps it to the range the kernel gets; with device types,
+ * like the values of the batch structs, it is that range already.
  */
 template <typename KernelValueType, typename ValueType,
           std::size_t Dimensionality>
 using arithmetic_range = acc::range<std::conditional_t<
-    std::is_same_v<device_arithmetic_type_in<KernelValueType, ValueType>,
-                   std::remove_cv_t<ValueType>>,
+    std::is_same_v<
+        device_type<device_arithmetic_type_in<KernelValueType, ValueType>>,
+        device_type<std::remove_cv_t<ValueType>>>,
     acc::row_major<ValueType, Dimensionality>,
     acc::reduced_row_major<
         Dimensionality, device_arithmetic_type_in<KernelValueType, ValueType>,
@@ -116,13 +118,25 @@ struct accessor_arithmetic_type<acc::row_major<ValueType, Dimensionality>> {
 };
 
 
+template <typename Range>
+struct range_arithmetic_type {
+    using type =
+        typename accessor_arithmetic_type<typename Range::accessor>::type;
+};
+
+template <typename ValueType>
+struct range_arithmetic_type<ValueType*> {
+    using type = std::remove_cv_t<ValueType>;
+};
+
+
 /**
  * @internal
- * The type the elements of a range are read and written in.
+ * The type the elements of a range or a pointer are read and written in.
  */
 template <typename Range>
 using arithmetic_type_t =
-    typename accessor_arithmetic_type<typename Range::accessor>::type;
+    typename range_arithmetic_type<std::decay_t<Range>>::type;
 
 
 /**
@@ -145,21 +159,36 @@ arithmetic_range<KernelValueType, ValueType, 1> arithmetic(ValueType* values,
 
 /**
  * @internal
- * Returns a dense matrix as a two-dimensional arithmetic_range for a kernel on
- * values of type KernelValueType.
+ * Returns a dense matrix as an arithmetic_range for a kernel on values of type
+ * KernelValueType: two-dimensional with the stride of the matrix, or
+ * one-dimensional over its stored values for kernels that index them like a
+ * pointer, e.g. row vectors.
  *
  * @tparam KernelValueType  the value type of the kernel, which decides the
  *                          arithmetic type
+ * @tparam Dimensionality  2, or 1 for the stored values
  */
-template <typename KernelValueType, typename ValueType>
-arithmetic_range<KernelValueType, ValueType, 2> arithmetic(
+template <typename KernelValueType, std::size_t Dimensionality = 2,
+          typename ValueType>
+arithmetic_range<KernelValueType, ValueType, Dimensionality> arithmetic(
     matrix::view::dense<ValueType> mtx)
 {
-    return arithmetic_range<KernelValueType, ValueType, 2>{
-        std::array<acc::size_type, 2>{static_cast<acc::size_type>(mtx.size[0]),
-                                      static_cast<acc::size_type>(mtx.size[1])},
-        mtx.values,
-        std::array<acc::size_type, 1>{static_cast<acc::size_type>(mtx.stride)}};
+    static_assert(Dimensionality == 1 || Dimensionality == 2,
+                  "a dense matrix is one- or two-dimensional");
+    if constexpr (Dimensionality == 1) {
+        return arithmetic<KernelValueType>(
+            mtx.values, mtx.size[0] == 0
+                            ? size_type{}
+                            : (mtx.size[0] - 1) * mtx.stride + mtx.size[1]);
+    } else {
+        return arithmetic_range<KernelValueType, ValueType, 2>{
+            std::array<acc::size_type, 2>{
+                static_cast<acc::size_type>(mtx.size[0]),
+                static_cast<acc::size_type>(mtx.size[1])},
+            mtx.values,
+            std::array<acc::size_type, 1>{
+                static_cast<acc::size_type>(mtx.stride)}};
+    }
 }
 
 

@@ -777,9 +777,7 @@ void finish_arnoldi_CGS(
     const auto stride_hessenberg = hessenberg_iter.stride;
     const auto stride_buffer = buffer_iter.stride;
     const auto stride_arnoldi = arnoldi_norm.stride;
-    const auto next_krylov_vals = arithmetic<ValueType>(
-        next_krylov_basis.values,
-        next_krylov_basis.size[0] * next_krylov_basis.stride);
+    const auto next_krylov_vals = arithmetic<ValueType, 1>(next_krylov_basis);
     const auto krylov_bases_vals = arithmetic<ValueType>(krylov_bases);
     const dim3 grid_size(ceildiv(dim_size[1], default_dot_dim),
                          exec->get_num_multiprocessor() * 2);
@@ -955,18 +953,12 @@ void givens_rotation(
     const auto block_dim = block_size;
     const auto grid_dim =
         static_cast<unsigned int>(ceildiv(num_cols, block_size));
-    const auto hessenberg_iter_vals =
-        arithmetic<ValueType>(hessenberg_iter.values,
-                              hessenberg_iter.size[0] * hessenberg_iter.stride);
-    const auto givens_sin_vals = arithmetic<ValueType>(
-        givens_sin.values, givens_sin.size[0] * givens_sin.stride);
-    const auto givens_cos_vals = arithmetic<ValueType>(
-        givens_cos.values, givens_cos.size[0] * givens_cos.stride);
-    const auto residual_norm_vals = arithmetic<ValueType>(
-        residual_norm.values, residual_norm.size[0] * residual_norm.stride);
-    const auto residual_norm_collection_vals = arithmetic<ValueType>(
-        residual_norm_collection.values,
-        residual_norm_collection.size[0] * residual_norm_collection.stride);
+    const auto hessenberg_iter_vals = arithmetic<ValueType, 1>(hessenberg_iter);
+    const auto givens_sin_vals = arithmetic<ValueType, 1>(givens_sin);
+    const auto givens_cos_vals = arithmetic<ValueType, 1>(givens_cos);
+    const auto residual_norm_vals = arithmetic<ValueType, 1>(residual_norm);
+    const auto residual_norm_collection_vals =
+        arithmetic<ValueType, 1>(residual_norm_collection);
     if (grid_dim != 0) {
         givens_rotation_kernel<block_size>
             <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
@@ -1030,12 +1022,10 @@ void solve_upper_triangular(
     const auto grid_dim =
         static_cast<unsigned int>(ceildiv(num_rhs, block_size));
 
-    const auto residual_norm_collection_vals = arithmetic<ValueType>(
-        residual_norm_collection.values,
-        residual_norm_collection.size[0] * residual_norm_collection.stride);
-    const auto hessenberg_vals = arithmetic<ValueType>(
-        hessenberg.values, hessenberg.size[0] * hessenberg.stride);
-    const auto y_vals = arithmetic<ValueType>(y.values, y.size[0] * y.stride);
+    const auto residual_norm_collection_vals =
+        arithmetic<ValueType, 1>(residual_norm_collection);
+    const auto hessenberg_vals = arithmetic<ValueType, 1>(hessenberg);
+    const auto y_vals = arithmetic<ValueType, 1>(y);
     solve_upper_triangular_kernel<block_size>
         <<<grid_dim, block_dim, 0, exec->get_stream()>>>(
             hessenberg.size[1], num_rhs,
