@@ -204,11 +204,9 @@ std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_subview_impl(
 {
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
-    auto global_rows = this->get_size()[0];
-    auto global_cols = this->get_size()[1];
+    auto global_rows = rows.length();
     comm.all_reduce(exec, &global_rows, 1, MPI_SUM);
-    comm.all_reduce(exec, &global_cols, 1, MPI_SUM);
-    return create_subview_impl(rows, columns, {global_rows, global_cols});
+    return create_subview_impl(rows, columns, {global_rows, columns.length()});
 }
 
 
@@ -218,11 +216,9 @@ std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_subview_impl(
 {
     auto exec = this->get_executor();
     auto comm = this->get_communicator();
-    auto global_rows = this->get_size()[0];
-    auto global_cols = this->get_size()[1];
+    auto global_rows = rows.length();
     comm.all_reduce(exec, &global_rows, 1, MPI_SUM);
-    comm.all_reduce(exec, &global_cols, 1, MPI_SUM);
-    return create_subview_impl(rows, columns, {global_rows, global_cols});
+    return create_subview_impl(rows, columns, {global_rows, columns.length()});
 }
 
 
