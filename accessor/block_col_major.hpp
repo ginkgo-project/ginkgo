@@ -31,8 +31,14 @@ namespace acc {
  *
  * @tparam ValueType  type of values this accessor returns
  * @tparam Dimensionality  number of dimensions of this accessor
+ * @tparam IndexType  Type used for computing the flat storage index
+ * @tparam SizeType  Type used for storing the lengths and strides
+ *
+ * @note Sizes and strides must fit in SizeType. All values used in index
+ *       computation, including intermediate offsets, must fit in IndexType.
  */
-template <typename ValueType, std::size_t Dimensionality>
+template <typename ValueType, std::size_t Dimensionality,
+          typename IndexType = std::int64_t, typename SizeType = IndexType>
 class block_col_major {
 public:
     friend class range<block_col_major>;
@@ -57,12 +63,12 @@ public:
      */
     using data_type = value_type*;
 
-    using const_accessor = block_col_major<const ValueType, Dimensionality>;
+    using const_accessor =
+        block_col_major<const ValueType, Dimensionality, IndexType, SizeType>;
+    using index_type = IndexType;
+    using size_type = SizeType;
     using stride_type = std::array<size_type, dimensionality - 1>;
     using length_type = std::array<size_type, dimensionality>;
-
-private:
-    using index_type = std::int64_t;
 
 protected:
     /**
@@ -141,8 +147,8 @@ public:
     {
         return helper::validate_index_spans(lengths, spans...),
                range<block_col_major>{
-                   length_type{
-                       (index_span{spans}.end - index_span{spans}.begin)...},
+                   length_type{static_cast<size_type>(
+                       index_span{spans}.end - index_span{spans}.begin)...},
                    data + helper::blk_col_major::compute_index<index_type>(
                               lengths, stride, (index_span{spans}.begin)...),
                    stride};
@@ -155,7 +161,8 @@ public:
      *
      * @return length in dimension `dimension`
      */
-    constexpr GKO_ACC_ATTRIBUTES size_type length(size_type dimension) const
+    constexpr GKO_ACC_ATTRIBUTES size_type
+    length(acc::size_type dimension) const
     {
         return lengths[dimension];
     }
