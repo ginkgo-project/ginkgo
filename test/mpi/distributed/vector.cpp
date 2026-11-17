@@ -1035,8 +1035,7 @@ TYPED_TEST(VectorLocalOps, CreateSubmatrixSameAsLocal)
     auto global_rows = rows.length();
     auto global_cols = cols.length();
     this->comm.all_reduce(this->exec, &global_rows, 1, MPI_SUM);
-    this->comm.all_reduce(this->exec, &global_cols, 1, MPI_SUM);
-    gko::dim<2> global_size{global_rows, global_cols};
+    gko::dim<2> global_size{global_rows, cols.length()};
 
     auto rv = this->x->create_submatrix(rows, cols, global_size);
     auto local_rv = this->local_x->create_submatrix(rows, cols);
