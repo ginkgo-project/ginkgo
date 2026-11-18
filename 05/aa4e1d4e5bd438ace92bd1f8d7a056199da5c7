@@ -1,0 +1,30 @@
+core/CMakeLists.txt
+  h_0aeb61ed714320 57
+core/config/config_helper.hpp
+  h_0aeb61ed714320 79-80
+core/config/matrix.cpp
+  h_0aeb61ed714320 1-22
+core/config/registry.cpp
+  h_0aeb61ed714320 62,64
+core/matrix/identity.cpp
+  h_0aeb61ed714320 37-46
+core/test/config/CMakeLists.txt
+  h_0aeb61ed714320 3
+core/test/config/matrix.cpp
+  h_0aeb61ed714320 1-47
+include/ginkgo/core/config/config.hpp
+  h_0aeb61ed714320 1,190
+include/ginkgo/core/matrix/identity.hpp
+  h_0aeb61ed714320 11-12,99-119,135-136,140-142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "05aa4e1d4e5bd438ace92bd1f8d7a056199da5c7",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
