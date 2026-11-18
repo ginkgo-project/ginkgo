@@ -10,6 +10,8 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/solver/batch_bicgstab.hpp>
+#include <ginkgo/core/solver/batch_cg.hpp>
 #include <ginkgo/core/solver/bicg.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
 #include <ginkgo/core/solver/cb_gmres.hpp>
@@ -43,7 +45,8 @@ using SolverTypes = ::testing::Types<
     gko::solver::Idr<double>, gko::solver::Ir<double>,
     gko::solver::LowerTrs<double, int>, gko::solver::Minres<double>,
     gko::solver::Multigrid, gko::solver::PipeCg<double>,
-    gko::solver::UpperTrs<double, int>>;
+    gko::solver::UpperTrs<double, int>, gko::batch::solver::Bicgstab<double>,
+    gko::batch::solver::Cg<double>>;
 
 TYPED_TEST_SUITE(SolverBase, SolverTypes, TypenameNameGenerator);
 
@@ -76,6 +79,17 @@ TEST(EnablePreconditionable, CannotBeCopiedOrMoved)
 TEST(EnableIterativeBase, CannotBeCopiedOrMoved)
 {
     using Mixin = gko::solver::EnableIterativeBase<gko::solver::Ir<double>>;
+
+    ASSERT_FALSE(std::is_copy_constructible<Mixin>::value);
+    ASSERT_FALSE(std::is_copy_assignable<Mixin>::value);
+    ASSERT_FALSE(std::is_move_constructible<Mixin>::value);
+    ASSERT_FALSE(std::is_move_assignable<Mixin>::value);
+}
+
+
+TEST(BatchSolver, CannotBeCopiedOrMoved)
+{
+    using Mixin = gko::batch::solver::BatchSolver;
 
     ASSERT_FALSE(std::is_copy_constructible<Mixin>::value);
     ASSERT_FALSE(std::is_copy_assignable<Mixin>::value);

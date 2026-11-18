@@ -52,7 +52,7 @@ Additionally, these operators can no longer be created with an empty state.
 
 ## Solvers and preconditioners can no longer be copied or moved [#2159](https://github.com/ginkgo-project/ginkgo/pull/2159)
 Like `clone`, the copy and move constructors and assignment operators of the solvers are removed, for example of `Cg`, `Ir`, `LowerTrs`, `Multigrid` and `experimental::solver::Direct`.
-This also applies to custom solvers derived from `EnableSolverBase`, and to the preconditioners `Ic`, `Ilu`, `Isai` and `experimental::distributed::preconditioner::Schwarz`.
+This also applies to custom solvers derived from `EnableSolverBase`, to the batch solvers `batch::solver::Bicgstab` and `batch::solver::Cg`, and to the preconditioners `Ic`, `Ilu`, `Isai` and `experimental::distributed::preconditioner::Schwarz`.
 Solvers and preconditioners are created by their factories, so move or share the pointer to them instead.
 To get a second solver for the same system, generate it again from the factory. `experimental::solver::Direct` reuses a factorization passed as its system matrix, so `factory->generate(solver->get_system_matrix())` creates a second solver that shares the factors.
 `Isai` applies its approximate inverse, so to use a general, lower or upper `Isai` on another executor, clone the `Csr` matrix returned by `get_approximate_inverse()`.
