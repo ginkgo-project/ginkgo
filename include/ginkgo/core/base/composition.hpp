@@ -115,7 +115,9 @@ protected:
         add_operators(std::forward<Rest>(rest)...);
     }
 
-    explicit Composition(const std::shared_ptr<const Executor>& exec);
+    explicit Composition(std::shared_ptr<const Executor> exec)
+        : LinOp(exec), storage_{exec}
+    {}
 
     template <typename Iterator,
               typename = std::void_t<
