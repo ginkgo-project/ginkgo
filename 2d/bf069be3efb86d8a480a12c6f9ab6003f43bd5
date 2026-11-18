@@ -1,0 +1,14 @@
+cmake/build_helpers.cmake
+  h_0aeb61ed714320 86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "2dbf069be3efb86d8a480a12c6f9ab6003f43bd5",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
