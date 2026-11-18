@@ -399,54 +399,6 @@ RowGatherer<LocalIndexType>::RowGatherer(
 {}
 
 
-template <typename LocalIndexType>
-RowGatherer<LocalIndexType>::RowGatherer(RowGatherer&& o)
-    : PolymorphicObject(o.get_executor()),
-      DistributedBase(o.get_communicator()),
-      send_idxs_(o.get_executor())
-{
-    *this = std::move(o);
-}
-
-
-template <typename LocalIndexType>
-RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
-    const RowGatherer& o)
-{
-    if (this != &o) {
-        size_ = o.get_size();
-        coll_comm_ = o.coll_comm_;
-        send_idxs_ = o.send_idxs_;
-    }
-    return *this;
-}
-
-
-template <typename LocalIndexType>
-RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
-    RowGatherer&& o)
-{
-    if (this != &o) {
-        size_ = std::exchange(o.size_, dim<2>{});
-        coll_comm_ = std::exchange(
-            o.coll_comm_, mpi::detail::create_default_collective_communicator(
-                              o.get_communicator()));
-        send_idxs_ = std::move(o.send_idxs_);
-    }
-    return *this;
-}
-
-
-template <typename LocalIndexType>
-RowGatherer<LocalIndexType>::RowGatherer(const RowGatherer& o)
-    : PolymorphicObject(o.get_executor()),
-      DistributedBase(o.get_communicator()),
-      send_idxs_(o.get_executor())
-{
-    *this = o;
-}
-
-
 #define GKO_DECLARE_ROW_GATHERER(IndexType) class RowGatherer<IndexType>
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ROW_GATHERER);

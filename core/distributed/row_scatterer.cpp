@@ -272,47 +272,6 @@ RowScatterer<LocalIndexType>::RowScatterer(
 {}
 
 
-template <typename LocalIndexType>
-RowScatterer<LocalIndexType>::RowScatterer(RowScatterer&& o)
-    : PolymorphicObject(o.get_executor()),
-      DistributedBase(o.get_communicator()),
-      recv_idxs_(o.get_executor())
-{
-    *this = std::move(o);
-}
-
-
-template <typename LocalIndexType>
-RowScatterer<LocalIndexType>& RowScatterer<LocalIndexType>::operator=(
-    const RowScatterer& o)
-{
-    if (this != &o) {
-        size_ = o.get_size();
-        coll_comm_ = o.coll_comm_;
-        recv_idxs_ = o.recv_idxs_;
-    }
-    return *this;
-}
-
-
-template <typename LocalIndexType>
-RowScatterer<LocalIndexType>& RowScatterer<LocalIndexType>::operator=(
-    RowScatterer&& o)
-{
-    return *this;
-}
-
-
-template <typename LocalIndexType>
-RowScatterer<LocalIndexType>::RowScatterer(const RowScatterer& o)
-    : PolymorphicObject(o.get_executor()),
-      DistributedBase(o.get_communicator()),
-      recv_idxs_(o.get_executor())
-{
-    *this = o;
-}
-
-
 #define GKO_DECLARE_ROW_SCATTERER(IndexType) class RowScatterer<IndexType>
 
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ROW_SCATTERER);
