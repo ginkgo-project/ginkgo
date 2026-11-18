@@ -43,7 +43,7 @@ template <typename LocalIndexType>
 void RowGatherer<LocalIndexType>::move_to(RowGatherer* result)
 {
     if (this != result) {
-        result->size_ = std::exchange(result->size_, {});
+        result->size_ = std::exchange(size_, dim<2>{});
         result->coll_comm_ = std::exchange(
             coll_comm_, mpi::detail::create_default_collective_communicator(
                             result->get_communicator()));
