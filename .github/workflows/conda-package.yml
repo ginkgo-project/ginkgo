@@ -1,0 +1,151 @@
+name: Conda-package
+
+# Builds the conda package for every supported platform/variant combination and
+# uploads it to anaconda.org. Runs automatically for published releases, can be
+# run manually against any ref, and smoke-builds the recipe on pull requests
+# that touch it.
+on:
+  release:
+    types: [published]
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'conda/**'
+      - '.github/workflows/conda-package.yml'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version (defaults to the tag name without the leading v)'
+        required: false
+        default: ''
+      build_number:
+        description: 'Conda build number, bump when rebuilding an already published version'
+        required: false
+        default: '0'
+      label:
+        description: 'anaconda.org label to upload to'
+        required: false
+        default: 'dev'
+      upload:
+        description: 'Upload the built packages to anaconda.org'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.head_ref && github.ref) || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  RATTLER_BUILD_VERSION: v0.76.1
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {name: "linux-64/cpu", os: "ubuntu-latest", platform: "linux-64", variant: "cpu"}
+          - {name: "linux-64/cuda", os: "ubuntu-latest", platform: "linux-64", variant: "cuda"}
+          - {name: "linux-64/mpi", os: "ubuntu-latest", platform: "linux-64", variant: "mpi"}
+          - {name: "osx-arm64/cpu", os: "macos-latest", platform: "osx-arm64", variant: "cpu"}
+          - {name: "osx-arm64/mpi", os: "macos-latest", platform: "osx-arm64", variant: "mpi"}
+          - {name: "osx-64/cpu", os: "macos-26-intel", platform: "osx-64", variant: "cpu"}
+          # vs2022_win-64 needs Visual Studio 2022, which windows-latest no
+          # longer ships.
+          - {name: "win-64/cpu", os: "windows-2022", platform: "win-64", variant: "cpu"}
+
+    steps:
+      # rattler-build packages the working tree, so it needs the full sources
+      # but no history.
+      - name: Checkout the code
+        uses: actions/checkout@v4
+
+      # The CUDA toolchain plus the object files of a full fat-binary build do
+      # not fit next to the preinstalled toolchains on a hosted runner.
+      - name: Free disk space
+        if: matrix.config.variant == 'cuda'
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Determine the package version
+        id: version
+        shell: bash
+        run: |
+          version="${{ github.event.inputs.version }}"
+          if [ -z "${version}" ]; then
+            if [ "${{ github.event_name }}" = "release" ]; then
+              version="${{ github.event.release.tag_name }}"
+            else
+              # Fall back to the version declared in the top-level CMakeLists.txt.
+              version=$(sed -n 's/^ *VERSION \([0-9][0-9.]*\)$/\1/p' CMakeLists.txt | head -1)
+            fi
+          fi
+          version="${version#v}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "Building ginkgo ${version}"
+
+      - name: Build the package
+        uses: prefix-dev/rattler-build-action@v0.2.39
+        env:
+          GINKGO_VERSION: ${{ steps.version.outputs.version }}
+          GINKGO_BUILD_NUMBER: ${{ github.event.inputs.build_number || '0' }}
+        with:
+          rattler-build-version: ${{ env.RATTLER_BUILD_VERSION }}
+          recipe-path: conda/recipe/recipe.yaml
+          artifact-name: conda-${{ matrix.config.platform }}-${{ matrix.config.variant }}
+          build-args: >-
+            --variant-config conda/variants/base.yaml
+            --variant-config conda/variants/${{ matrix.config.variant }}.yaml
+            --target-platform ${{ matrix.config.platform }}
+            --channel conda-forge
+
+  publish:
+    name: publish to anaconda.org
+    needs: build
+    runs-on: ubuntu-latest
+    # Never publish from a pull request, and on manual runs only when asked for.
+    if: github.event_name == 'release' || github.event.inputs.upload == 'true'
+    # Holds the ANACONDA_API_KEY secret, see conda/README.md.
+    environment: anaconda
+    steps:
+      - name: Collect the built packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: conda-*
+          merge-multiple: true
+          path: packages
+
+      - name: Install rattler-build
+        uses: prefix-dev/rattler-build-action@v0.2.39
+        with:
+          rattler-build-version: ${{ env.RATTLER_BUILD_VERSION }}
+          setup-only: true
+
+      - name: Upload to anaconda.org
+        env:
+          ANACONDA_OWNER: ${{ vars.ANACONDA_OWNER || 'ginkgo-project' }}
+          ANACONDA_API_KEY: ${{ secrets.ANACONDA_API_KEY }}
+          # Pre-releases go to a separate label so that a plain
+          # `conda install ginkgo` never picks them up.
+          ANACONDA_CHANNEL: ${{ github.event.inputs.label || (github.event.release.prerelease && 'dev') || 'main' }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ANACONDA_API_KEY}" ]; then
+            echo "::error::The ANACONDA_API_KEY secret is not set"
+            exit 1
+          fi
+          mapfile -t files < <(find packages -type f \( -name '*.conda' -o -name '*.tar.bz2' \) | sort)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::No packages were built"
+            exit 1
+          fi
+          printf 'uploading %s\n' "${files[@]}"
+          rattler-build upload anaconda "${files[@]}"
