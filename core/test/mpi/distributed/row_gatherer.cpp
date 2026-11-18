@@ -159,6 +159,21 @@ TYPED_TEST(RowGatherer, CanMove)
 }
 
 
+TYPED_TEST(RowGatherer, MovedFromKeepsItsCommunicator)
+{
+    using RowGatherer = typename TestFixture::row_gatherer_type;
+    auto rg = RowGatherer::create(this->ref, this->coll_comm, this->imap);
+    gko::experimental::mpi::communicator other_comm{this->comm, 0,
+                                                    this->comm.rank()};
+    auto move = RowGatherer::create(this->ref, other_comm);
+
+    move->move_from(rg);
+
+    ASSERT_EQ(rg->get_collective_communicator()->get_base_communicator(),
+              rg->get_communicator());
+}
+
+
 TYPED_TEST(RowGatherer, CanCreateFromScatterer)
 {
     using RowGatherer = typename TestFixture::row_gatherer_type;

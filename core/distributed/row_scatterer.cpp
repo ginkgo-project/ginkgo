@@ -36,7 +36,7 @@ void RowScatterer<LocalIndexType>::move_to(RowScatterer* result)
         result->size_ = std::exchange(size_, dim<2>{});
         result->coll_comm_ = std::exchange(
             coll_comm_, mpi::detail::create_default_collective_communicator(
-                            result->get_communicator()));
+                            this->get_communicator()));
         result->recv_idxs_ = std::move(recv_idxs_);
     }
 }

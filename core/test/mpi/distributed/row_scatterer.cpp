@@ -135,3 +135,18 @@ TYPED_TEST(RowScatterer, CanMove)
     GKO_ASSERT_EQUAL_DIMENSIONS(rs, gko::dim<2>());
     ASSERT_NE(rs->get_collective_communicator(), nullptr);
 }
+
+
+TYPED_TEST(RowScatterer, MovedFromKeepsItsCommunicator)
+{
+    using RowScatterer = typename TestFixture::row_scatterer_type;
+    auto rs = RowScatterer::create(this->ref, this->coll_comm, this->imap);
+    gko::experimental::mpi::communicator other_comm{this->comm, 0,
+                                                    this->comm.rank()};
+    auto move = RowScatterer::create(this->ref, other_comm);
+
+    move->move_from(rs);
+
+    ASSERT_EQ(rs->get_collective_communicator()->get_base_communicator(),
+              rs->get_communicator());
+}
