@@ -1,0 +1,14 @@
+.github/workflows/clang-tidy.yml
+  h_0aeb61ed714320 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "6755698888b0abe8815dc16049796b63f2ce40f6",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
