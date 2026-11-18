@@ -594,59 +594,44 @@ void Dense<ValueType>::compute_mean_impl(LinOp* result) const
 
 
 template <typename ValueType>
-Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
+void Dense<ValueType>::convert_to(Dense* result) const
 {
-    if (&other != this) {
-        auto old_size = this->get_size();
-        LinOp::operator=(other);
+    if (this != result) {
+        auto old_size = result->get_size();
+        result->set_size(this->get_size());
         // NOTE: keep this consistent with resize(...)
-        if (old_size != other.get_size()) {
-            this->stride_ = this->get_size()[1];
-            this->values_.resize_and_reset(this->get_size()[0] * this->stride_);
+        if (old_size != this->get_size()) {
+            result->stride_ = result->get_size()[1];
+            result->values_.resize_and_reset(result->get_size()[0] *
+                                             result->stride_);
         }
         // we need to create a executor-local clone of the target data, that
         // will be copied back later. Need temporary_clone, not
         // temporary_output_clone to avoid overwriting padding
-        auto exec = other.get_executor();
-        auto exec_values_array = make_temporary_clone(exec, &this->values_);
+        auto exec = this->get_executor();
+        auto exec_values_array = make_temporary_clone(exec, &result->values_);
         // create a (value, not pointer to avoid allocation overhead) view
         // matrix on the array to avoid special-casing cross-executor copies
-        auto exec_this_view =
-            Dense{exec, this->get_size(),
+        auto exec_result_view =
+            Dense{exec, result->get_size(),
                   make_array_view(exec, exec_values_array->get_size(),
                                   exec_values_array->get_data()),
-                  this->get_stride()};
-        exec->run(dense::make_copy(other.get_const_device_view(),
-                                   exec_this_view.get_device_view()));
+                  result->get_stride()};
+        exec->run(dense::make_copy(this->get_const_device_view(),
+                                   exec_result_view.get_device_view()));
     }
-    return *this;
 }
 
 
 template <typename ValueType>
-Dense<ValueType>& Dense<ValueType>::operator=(Dense<ValueType>&& other)
+void Dense<ValueType>::move_to(Dense* result)
 {
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        values_ = std::move(other.values_);
-        stride_ = std::exchange(other.stride_, 0);
+    if (this != result) {
+        result->set_size(this->get_size());
+        this->set_size({});
+        result->values_ = std::move(this->values_);
+        result->stride_ = std::exchange(this->stride_, 0);
     }
-    return *this;
-}
-
-
-template <typename ValueType>
-Dense<ValueType>::Dense(const Dense<ValueType>& other)
-    : Dense(other.get_executor())
-{
-    *this = other;
-}
-
-
-template <typename ValueType>
-Dense<ValueType>::Dense(Dense<ValueType>&& other) : Dense(other.get_executor())
-{
-    *this = std::move(other);
 }
 
 

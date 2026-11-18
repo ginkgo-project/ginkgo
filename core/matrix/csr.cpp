@@ -329,68 +329,49 @@ Csr<ValueType, IndexType>::Csr(std::shared_ptr<const Executor> exec,
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
-    const Csr<ValueType, IndexType>& other)
+void Csr<ValueType, IndexType>::convert_to(Csr* result) const
 {
-    if (&other != this) {
-        LinOp::operator=(other);
-        values_ = other.values_;
-        col_idxs_ = other.col_idxs_;
-        row_ptrs_ = other.row_ptrs_;
-        strategy_ = other.strategy_;
-        if (this->get_executor() != other.get_executor()) {
+    if (this != result) {
+        result->set_size(this->get_size());
+        result->values_ = this->values_;
+        result->col_idxs_ = this->col_idxs_;
+        result->row_ptrs_ = this->row_ptrs_;
+        result->strategy_ = this->strategy_;
+        if (result->get_executor() != this->get_executor()) {
             // strategy can give different srow on different executor, and
             // max_nnz_per_row is stale if the row_ptrs were filled directly
-            this->make_srow();
+            result->make_srow();
         } else {
-            srow_ = other.srow_;
-            max_nnz_per_row_ = other.max_nnz_per_row_;
+            result->srow_ = this->srow_;
+            result->max_nnz_per_row_ = this->max_nnz_per_row_;
         }
     }
-    return *this;
 }
 
 
 template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>& Csr<ValueType, IndexType>::operator=(
-    Csr<ValueType, IndexType>&& other)
+void Csr<ValueType, IndexType>::move_to(Csr* result)
 {
-    if (&other != this) {
-        LinOp::operator=(std::move(other));
-        values_ = std::move(other.values_);
-        col_idxs_ = std::move(other.col_idxs_);
-        row_ptrs_ = std::move(other.row_ptrs_);
-        strategy_ = other.strategy_;
-        max_nnz_per_row_ = std::exchange(other.max_nnz_per_row_, 0);
-        if (this->get_executor() != other.get_executor()) {
+    if (this != result) {
+        result->set_size(this->get_size());
+        this->set_size({});
+        result->values_ = std::move(this->values_);
+        result->col_idxs_ = std::move(this->col_idxs_);
+        result->row_ptrs_ = std::move(this->row_ptrs_);
+        result->strategy_ = this->strategy_;
+        result->max_nnz_per_row_ = std::exchange(this->max_nnz_per_row_, 0);
+        if (result->get_executor() != this->get_executor()) {
             // strategy can give different srow on different executor, and
             // max_nnz_per_row is stale if the row_ptrs were filled directly
-            this->make_srow();
-            other.srow_.clear();
+            result->make_srow();
+            this->srow_.clear();
         } else {
-            srow_ = std::move(other.srow_);
+            result->srow_ = std::move(this->srow_);
         }
-        // restore other invariant
-        other.row_ptrs_.resize_and_reset(1);
-        other.row_ptrs_.fill(0);
+        // restore this invariant
+        this->row_ptrs_.resize_and_reset(1);
+        this->row_ptrs_.fill(0);
     }
-    return *this;
-}
-
-
-template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::Csr(const Csr<ValueType, IndexType>& other)
-    : Csr{other.get_executor()}
-{
-    *this = other;
-}
-
-
-template <typename ValueType, typename IndexType>
-Csr<ValueType, IndexType>::Csr(Csr<ValueType, IndexType>&& other)
-    : Csr{other.get_executor()}
-{
-    *this = std::move(other);
 }
 
 

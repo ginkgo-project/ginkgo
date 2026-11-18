@@ -104,6 +104,24 @@ void Identity<ValueType>::apply_impl(const MultiVector<ValueType>* alpha,
 }
 
 
+template <typename ValueType>
+void Identity<ValueType>::convert_to(Identity* result) const
+{
+    if (this != result) {
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType>
+void Identity<ValueType>::move_to(Identity* result)
+{
+    if (this != result) {
+        result->set_size(this->get_size());
+    }
+}
+
+
 #define GKO_DECLARE_BATCH_IDENTITY_MATRIX(ValueType) class Identity<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_BATCH_IDENTITY_MATRIX);
 

@@ -62,8 +62,8 @@ class Hybrid
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<Hybrid>::convert_to;
-    using EnableCloneable<Hybrid>::move_to;
+    using ConvertibleTo<Hybrid>::convert_to;
+    using ConvertibleTo<Hybrid>::move_to;
     using ConvertibleTo<
         Hybrid<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Hybrid<next_precision<ValueType>, IndexType>>::move_to;
@@ -83,6 +83,9 @@ public:
     using ell_type = Ell<ValueType, IndexType>;
     using absolute_type = remove_complex<Hybrid>;
 
+    void convert_to(Hybrid* result) const override;
+
+    void move_to(Hybrid* result) override;
 
     /**
      * strategy_type is to decide how to set the hybrid config. It
@@ -747,32 +750,6 @@ public:
         size_type num_nonzeros = {},
         std::shared_ptr<strategy_type> strategy =
             std::make_shared<automatic>());
-
-    /**
-     * Copy-assigns a Hybrid matrix. Preserves the executor, copy-assigns the
-     * Ell and Coo matrices.
-     */
-    Hybrid& operator=(const Hybrid&);
-
-    /**
-     * Move-assigns a Hybrid matrix. Preserves the executor, move-assigns the
-     * Ell and Coo matrices. The moved-from matrix is empty (0x0 with empty
-     * Ell/Coo matrices).
-     */
-    Hybrid& operator=(Hybrid&&);
-
-    /**
-     * Copy-assigns a Hybrid matrix. Inherits the executor, copies the Ell and
-     * Coo matrices.
-     */
-    Hybrid(const Hybrid&);
-
-    /**
-     * Move-assigns a Hybrid matrix. Inherits the executor, moves the Ell and
-     * Coo matrices. The moved-from matrix is empty (0x0 with empty Ell/Coo
-     * matrices).
-     */
-    Hybrid(Hybrid&&);
 
 protected:
     Hybrid(std::shared_ptr<const Executor> exec, const dim<2>& size = {},

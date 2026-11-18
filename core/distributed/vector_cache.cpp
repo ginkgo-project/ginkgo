@@ -26,8 +26,8 @@ void VectorCache<ValueType>::init(std::shared_ptr<const Executor> exec,
         vec = Vector<ValueType>::create(exec, comm, global_size, local_size);
     } else if (vec->get_local_vector()->get_size() != local_size) {
         // handle locally to eliminate the mpi call
-        vec->local_ =
-            std::move(gko::matrix::Dense<ValueType>(exec, local_size));
+        matrix::Dense<ValueType>::create(exec, local_size)
+            ->move_to(&vec->local_);
     }
 }
 
@@ -42,10 +42,11 @@ void VectorCache<ValueType>::init_from(
     } else if (vec->get_local_vector()->get_size() !=
                template_vec->get_local_vector()->get_size()) {
         // handle locally to eliminate the mpi call
-        vec->local_ = std::move(gko::matrix::Dense<ValueType>(
+        matrix::Dense<ValueType>::create(
             template_vec->get_executor(),
             template_vec->get_local_vector()->get_size(),
-            template_vec->get_local_vector()->get_stride()));
+            template_vec->get_local_vector()->get_stride())
+            ->move_to(&vec->local_);
     }
 }
 

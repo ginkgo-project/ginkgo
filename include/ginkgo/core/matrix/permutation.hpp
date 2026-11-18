@@ -117,6 +117,10 @@ public:
     using value_type = default_precision;
     using index_type = IndexType;
 
+    void convert_to(Permutation* result) const override;
+
+    void move_to(Permutation* result) override;
+
     /**
      * Returns a pointer to the array of permutation.
      *

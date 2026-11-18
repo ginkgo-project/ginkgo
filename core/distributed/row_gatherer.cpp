@@ -29,6 +29,30 @@ GKO_REGISTER_OPERATION(record_event, event::record_event);
 
 
 template <typename LocalIndexType>
+void RowGatherer<LocalIndexType>::convert_to(RowGatherer* result) const
+{
+    if (this != result) {
+        result->size_ = size_;
+        result->coll_comm_ = coll_comm_;
+        result->send_idxs_ = send_idxs_;
+    }
+}
+
+
+template <typename LocalIndexType>
+void RowGatherer<LocalIndexType>::move_to(RowGatherer* result)
+{
+    if (this != result) {
+        result->size_ = std::exchange(size_, dim<2>{});
+        result->coll_comm_ = std::exchange(
+            coll_comm_, mpi::detail::create_default_collective_communicator(
+                            this->get_communicator()));
+        result->send_idxs_ = std::move(send_idxs_);
+    }
+}
+
+
+template <typename LocalIndexType>
 mpi::request RowGatherer<LocalIndexType>::apply_async(ptr_param<const LinOp> b,
                                                       ptr_param<LinOp> x) const
 {
@@ -373,54 +397,6 @@ RowGatherer<LocalIndexType>::RowGatherer(
       coll_comm_(std::move(coll_comm)),
       send_idxs_(std::move(send_idxs))
 {}
-
-
-template <typename LocalIndexType>
-RowGatherer<LocalIndexType>::RowGatherer(RowGatherer&& o)
-    : PolymorphicObject(o.get_executor()),
-      DistributedBase(o.get_communicator()),
-      send_idxs_(o.get_executor())
-{
-    *this = std::move(o);
-}
-
-
-template <typename LocalIndexType>
-RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
-    const RowGatherer& o)
-{
-    if (this != &o) {
-        size_ = o.get_size();
-        coll_comm_ = o.coll_comm_;
-        send_idxs_ = o.send_idxs_;
-    }
-    return *this;
-}
-
-
-template <typename LocalIndexType>
-RowGatherer<LocalIndexType>& RowGatherer<LocalIndexType>::operator=(
-    RowGatherer&& o)
-{
-    if (this != &o) {
-        size_ = std::exchange(o.size_, dim<2>{});
-        coll_comm_ = std::exchange(
-            o.coll_comm_, mpi::detail::create_default_collective_communicator(
-                              o.get_communicator()));
-        send_idxs_ = std::move(o.send_idxs_);
-    }
-    return *this;
-}
-
-
-template <typename LocalIndexType>
-RowGatherer<LocalIndexType>::RowGatherer(const RowGatherer& o)
-    : PolymorphicObject(o.get_executor()),
-      DistributedBase(o.get_communicator()),
-      send_idxs_(o.get_executor())
-{
-    *this = o;
-}
 
 
 #define GKO_DECLARE_ROW_GATHERER(IndexType) class RowGatherer<IndexType>

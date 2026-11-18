@@ -93,6 +93,27 @@ void RowGatherer<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
 }
 
 
+template <typename IndexType>
+void RowGatherer<IndexType>::convert_to(RowGatherer* result) const
+{
+    if (this != result) {
+        result->row_idxs_ = this->row_idxs_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename IndexType>
+void RowGatherer<IndexType>::move_to(RowGatherer* result)
+{
+    if (this != result) {
+        result->row_idxs_ = std::move(this->row_idxs_);
+        result->set_size(this->get_size());
+        this->set_size({});
+    }
+}
+
+
 #define GKO_DECLARE_ROWGATHERER_MATRIX(ValueType) class RowGatherer<ValueType>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_ROWGATHERER_MATRIX);
 

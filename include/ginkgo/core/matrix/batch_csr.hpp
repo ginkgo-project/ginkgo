@@ -61,14 +61,18 @@ class Csr final
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Csr>::convert_to;
-    using EnableCloneable<Csr>::move_to;
+    using ConvertibleTo<Csr>::convert_to;
+    using ConvertibleTo<Csr>::move_to;
 
     using value_type = ValueType;
     using index_type = IndexType;
     using unbatch_type = gko::matrix::Csr<value_type, index_type>;
     using absolute_type = remove_complex<Csr>;
     using complex_type = to_complex<Csr>;
+
+    void convert_to(Csr* result) const override;
+
+    void move_to(Csr* result) override;
 
     void convert_to(
         Csr<next_precision<ValueType>, IndexType>* result) const override;

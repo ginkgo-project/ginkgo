@@ -120,19 +120,6 @@ TYPED_TEST(RowScatterer, CanCopy)
 }
 
 
-TYPED_TEST(RowScatterer, CanCopyConstruct)
-{
-    using RowScatterer = typename TestFixture::row_scatterer_type;
-    auto rs = RowScatterer::create(this->ref, this->coll_comm, this->imap);
-
-    RowScatterer copy{*rs};
-
-    GKO_ASSERT_EQUAL_DIMENSIONS(copy.get_size(), rs);
-    ASSERT_EQ(*gko::as<CollCommType>(copy.get_collective_communicator()),
-              *gko::as<CollCommType>(rs->get_collective_communicator()));
-}
-
-
 TYPED_TEST(RowScatterer, CanMove)
 {
     using RowScatterer = typename TestFixture::row_scatterer_type;
@@ -150,17 +137,16 @@ TYPED_TEST(RowScatterer, CanMove)
 }
 
 
-TYPED_TEST(RowScatterer, CanMoveConstruct)
+TYPED_TEST(RowScatterer, MovedFromKeepsItsCommunicator)
 {
     using RowScatterer = typename TestFixture::row_scatterer_type;
     auto rs = RowScatterer::create(this->ref, this->coll_comm, this->imap);
-    auto orig_size = rs->get_size();
-    auto orig_coll_comm = rs->get_collective_communicator();
+    gko::experimental::mpi::communicator other_comm{this->comm, 0,
+                                                    this->comm.rank()};
+    auto move = RowScatterer::create(this->ref, other_comm);
 
-    RowScatterer move{std::move(*rs)};
+    move->move_from(rs);
 
-    GKO_ASSERT_EQUAL_DIMENSIONS(move.get_size(), orig_size);
-    ASSERT_EQ(move.get_collective_communicator(), orig_coll_comm);
-    GKO_ASSERT_EQUAL_DIMENSIONS(rs, gko::dim<2>());
-    ASSERT_NE(rs->get_collective_communicator(), nullptr);
+    ASSERT_EQ(rs->get_collective_communicator()->get_base_communicator(),
+              rs->get_communicator());
 }

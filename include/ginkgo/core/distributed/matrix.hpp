@@ -299,12 +299,16 @@ public:
         gko::experimental::distributed::Vector<ValueType>;
     using local_vector_type = typename global_vector_type::local_vector_type;
 
-    using EnableCloneable<Matrix>::convert_to;
-    using EnableCloneable<Matrix>::move_to;
+    using ConvertibleTo<Matrix>::convert_to;
+    using ConvertibleTo<Matrix>::move_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::convert_to;
     using ConvertibleTo<Matrix<next_precision<ValueType>, LocalIndexType,
                                GlobalIndexType>>::move_to;
+
+    void convert_to(Matrix* result) const override;
+
+    void move_to(Matrix* result) override;
 
     void convert_to(Matrix<next_precision<value_type>, local_index_type,
                            global_index_type>* result) const override;
@@ -533,40 +537,6 @@ public:
      * @param result  a pre-created distributed Matrix (may be empty) to fill.
      */
     void transpose(ptr_param<Matrix> result) const;
-
-    /**
-     * Copy constructs a Matrix.
-     *
-     * @param other  Matrix to copy from.
-     */
-    Matrix(const Matrix& other);
-
-    /**
-     * Move constructs a Matrix.
-     *
-     * @param other  Matrix to move from.
-     */
-    Matrix(Matrix&& other) noexcept;
-
-    /**
-     * Copy assigns a Matrix.
-     *
-     * @param other  Matrix to copy from, has to have a communicator of the same
-     *               size as this.
-     *
-     * @return  this.
-     */
-    Matrix& operator=(const Matrix& other);
-
-    /**
-     * Move assigns a Matrix.
-     *
-     * @param other  Matrix to move from, has to have a communicator of the same
-     *               size as this.
-     *
-     * @return  this.
-     */
-    Matrix& operator=(Matrix&& other);
 
     /**
      * Creates an empty distributed matrix.

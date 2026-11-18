@@ -34,11 +34,18 @@ class Identity final : public BatchLinOp,
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
+    using ConvertibleTo<Identity>::convert_to;
+    using ConvertibleTo<Identity>::move_to;
+
     using value_type = ValueType;
     using index_type = int32;
     using unbatch_type = gko::matrix::Identity<ValueType>;
     using absolute_type = remove_complex<Identity>;
     using complex_type = to_complex<Identity>;
+
+    void convert_to(Identity* result) const override;
+
+    void move_to(Identity* result) override;
 
     /**
      * Apply the matrix to a multi-vector. Represents the matrix vector

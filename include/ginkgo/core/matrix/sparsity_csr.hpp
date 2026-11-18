@@ -61,8 +61,8 @@ class SparsityCsr : public LinOp,
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<SparsityCsr>::convert_to;
-    using EnableCloneable<SparsityCsr>::move_to;
+    using ConvertibleTo<SparsityCsr>::convert_to;
+    using ConvertibleTo<SparsityCsr>::move_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::convert_to;
     using ConvertibleTo<Csr<ValueType, IndexType>>::move_to;
     using ConvertibleTo<Dense<ValueType>>::convert_to;
@@ -74,6 +74,10 @@ public:
     using transposed_type = SparsityCsr<IndexType, ValueType>;
     using mat_data = matrix_data<ValueType, IndexType>;
     using device_mat_data = device_matrix_data<ValueType, IndexType>;
+
+    void convert_to(SparsityCsr* result) const override;
+
+    void move_to(SparsityCsr* result) override;
 
     void convert_to(Csr<ValueType, IndexType>* result) const override;
 
@@ -274,32 +278,6 @@ public:
             exec, size, gko::detail::array_const_cast(std::move(col_idxs)),
             gko::detail::array_const_cast(std::move(row_ptrs)), value});
     }
-
-    /**
-     * Copy-assigns a SparsityCsr matrix. Preserves executor, copies everything
-     * else.
-     */
-    SparsityCsr& operator=(const SparsityCsr&);
-
-    /**
-     * Move-assigns a SparsityCsr matrix. Preserves executor, moves the data and
-     * leaves the moved-from object in an empty state (0x0 LinOp with unchanged
-     * executor, no nonzeros and valid row pointers).
-     */
-    SparsityCsr& operator=(SparsityCsr&&);
-
-    /**
-     * Copy-constructs a SparsityCsr matrix. Inherits executor, strategy and
-     * data.
-     */
-    SparsityCsr(const SparsityCsr&);
-
-    /**
-     * Move-constructs a SparsityCsr matrix. Inherits executor, moves the data
-     * and leaves the moved-from object in an empty state (0x0 LinOp with
-     * unchanged executor, no nonzeros and valid row pointers).
-     */
-    SparsityCsr(SparsityCsr&&);
 
 protected:
     SparsityCsr(std::shared_ptr<const Executor> exec,

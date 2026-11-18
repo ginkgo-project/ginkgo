@@ -117,6 +117,10 @@ class RowGatherer final : public PolymorphicObject,
         gko::detail::GenericDenseCache& workspace);
 
 public:
+    void convert_to(RowGatherer* result) const override;
+
+    void move_to(RowGatherer* result) override;
+
     /**
      * Asynchronous version of LinOp::apply.
      *
@@ -253,14 +257,6 @@ public:
     static std::unique_ptr<RowGatherer> create(
         std::shared_ptr<const Executor> exec,
         std::shared_ptr<const mpi::CollectiveCommunicator> coll_comm_template);
-
-    RowGatherer(const RowGatherer& o);
-
-    RowGatherer(RowGatherer&& o);
-
-    RowGatherer& operator=(const RowGatherer& o);
-
-    RowGatherer& operator=(RowGatherer&& o);
 
 protected:
     std::shared_ptr<const gko::detail::Event> apply_prepare(

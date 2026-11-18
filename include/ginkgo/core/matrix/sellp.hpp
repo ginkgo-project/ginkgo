@@ -64,8 +64,8 @@ class Sellp
     GKO_ASSERT_SUPPORTED_VALUE_AND_INDEX_TYPE;
 
 public:
-    using EnableCloneable<Sellp>::convert_to;
-    using EnableCloneable<Sellp>::move_to;
+    using ConvertibleTo<Sellp>::convert_to;
+    using ConvertibleTo<Sellp>::move_to;
     using ConvertibleTo<
         Sellp<next_precision<ValueType>, IndexType>>::convert_to;
     using ConvertibleTo<Sellp<next_precision<ValueType>, IndexType>>::move_to;
@@ -83,6 +83,10 @@ public:
     using device_view = matrix::view::sellp<value_type, index_type>;
     using const_device_view =
         matrix::view::sellp<const value_type, const index_type>;
+
+    void convert_to(Sellp* result) const override;
+
+    void move_to(Sellp* result) override;
 
     friend class Sellp<previous_precision<ValueType>, IndexType>;
 
@@ -349,32 +353,6 @@ public:
                                          size_type slice_size,
                                          size_type stride_factor,
                                          size_type total_cols);
-
-    /**
-     * Copy-assigns a Sellp matrix. Preserves the executor, copies the data and
-     * parameters.
-     */
-    Sellp& operator=(const Sellp&);
-
-    /**
-     * Move-assigns a Sellp matrix. Preserves the executor, moves the data and
-     * parameters. The moved-from object is empty (0x0 with valid slice_sets and
-     * unchanged parameters).
-     */
-    Sellp& operator=(Sellp&&);
-
-    /**
-     * Copy-assigns a Sellp matrix. Inherits the executor, copies the data and
-     * parameters.
-     */
-    Sellp(const Sellp&);
-
-    /**
-     * Move-assigns a Sellp matrix. Inherits the executor, moves the data and
-     * parameters. The moved-from object is empty (0x0 with valid slice_sets and
-     * unchanged parameters).
-     */
-    Sellp(Sellp&&);
 
 protected:
     Sellp(std::shared_ptr<const Executor> exec, const dim<2>& size = {},

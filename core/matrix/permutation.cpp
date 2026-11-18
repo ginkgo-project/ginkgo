@@ -331,6 +331,27 @@ void Permutation<IndexType>::apply_impl(const LinOp* alpha, const LinOp* in,
 }
 
 
+template <typename IndexType>
+void Permutation<IndexType>::convert_to(Permutation* result) const
+{
+    if (this != result) {
+        result->permutation_ = this->permutation_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename IndexType>
+void Permutation<IndexType>::move_to(Permutation* result)
+{
+    if (this != result) {
+        result->permutation_ = std::move(this->permutation_);
+        result->set_size(this->get_size());
+        this->set_size({});
+    }
+}
+
+
 #define GKO_DECLARE_PERMUTATION_MATRIX(ValueType) class Permutation<ValueType>
 GKO_INSTANTIATE_FOR_EACH_INDEX_TYPE(GKO_DECLARE_PERMUTATION_MATRIX);
 

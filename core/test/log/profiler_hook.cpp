@@ -124,6 +124,18 @@ public:
         : LinOp(exec, size)
     {}
 
+    void convert_to(DummyLinOp* result) const override
+    {
+        result->parameters_ = parameters_;
+        result->set_size(this->get_size());
+    }
+
+    void move_to(DummyLinOp* result) override
+    {
+        result->parameters_ = parameters_;
+        result->set_size(this->get_size());
+    }
+
 protected:
     void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
     {

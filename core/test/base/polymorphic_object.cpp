@@ -43,16 +43,11 @@ struct DummyObject : gko::PolymorphicObject,
         return *this;
     }
 
+    void convert_to(DummyObject* result) const override { *result = *this; }
+
+    void move_to(DummyObject* result) override { *result = std::move(*this); }
 
     int x;
-};
-
-
-// copies and moves through the constructors of PolymorphicObject
-struct PlainObject : gko::PolymorphicObject {
-    explicit PlainObject(std::shared_ptr<const gko::Executor> exec)
-        : gko::PolymorphicObject(std::move(exec))
-    {}
 };
 
 
@@ -125,29 +120,6 @@ TEST(PolymorphicObject, HoldsExecutor)
 
     ASSERT_EQ(obj.get_executor(), ref);
     ASSERT_EQ(obj.x, 5);
-}
-
-
-TEST(PolymorphicObject, CopyKeepsExecutor)
-{
-    auto ref = gko::ReferenceExecutor::create();
-    PlainObject obj{ref};
-
-    PlainObject copy{obj};
-
-    ASSERT_EQ(copy.get_executor(), ref);
-}
-
-
-TEST(PolymorphicObject, MoveKeepsExecutor)
-{
-    auto ref = gko::ReferenceExecutor::create();
-    PlainObject obj{ref};
-
-    PlainObject moved{std::move(obj)};
-
-    ASSERT_EQ(moved.get_executor(), ref);
-    ASSERT_EQ(obj.get_executor(), ref);
 }
 
 
@@ -299,6 +271,13 @@ struct ConvertibleToDummyObject
                                       int v = {})
         : gko::PolymorphicObject(std::move(exec)), x{v}
     {}
+
+    void convert_to(ConvertibleToDummyObject* result) const override
+    {
+        result->x = x;
+    }
+
+    void move_to(ConvertibleToDummyObject* result) override { result->x = x; }
 
     void convert_to(DummyObject* obj) const override { obj->x = x; }
 

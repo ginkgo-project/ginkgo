@@ -237,6 +237,31 @@ void Coo<ValueType, IndexType>::apply2_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::convert_to(Coo* result) const
+{
+    if (this != result) {
+        result->values_ = this->values_;
+        result->row_idxs_ = this->row_idxs_;
+        result->col_idxs_ = this->col_idxs_;
+        result->set_size(this->get_size());
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
+void Coo<ValueType, IndexType>::move_to(Coo* result)
+{
+    if (this != result) {
+        result->values_ = std::move(this->values_);
+        result->row_idxs_ = std::move(this->row_idxs_);
+        result->col_idxs_ = std::move(this->col_idxs_);
+        result->set_size(this->get_size());
+        this->set_size({});
+    }
+}
+
+
+template <typename ValueType, typename IndexType>
 void Coo<ValueType, IndexType>::convert_to(
     Coo<next_precision<ValueType>, IndexType>* result) const
 {

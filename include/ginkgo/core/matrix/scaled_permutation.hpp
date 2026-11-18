@@ -43,6 +43,10 @@ public:
     using value_type = ValueType;
     using index_type = IndexType;
 
+    void convert_to(ScaledPermutation* result) const override;
+
+    void move_to(ScaledPermutation* result) override;
+
     /**
      * Returns a pointer to the scaling factors.
      *
