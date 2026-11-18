@@ -76,7 +76,8 @@ enum class LinOpFactoryType : int {
     Pmis,
     Rs,
     UniformCoarsening,
-    Schwarz
+    Schwarz,
+    Identity
 };
 
 

@@ -35,6 +35,16 @@ void Identity<ValueType>::apply_impl(const LinOp* alpha, const LinOp* b,
 
 
 template <typename ValueType>
+typename IdentityFactory<ValueType>::parameters_type
+IdentityFactory<ValueType>::parse(const config::pnode& config,
+                                  const config::registry& context,
+                                  const config::type_descriptor& td_for_child)
+{
+    return {};
+}
+
+
+template <typename ValueType>
 std::unique_ptr<LinOp> IdentityFactory<ValueType>::generate_impl(
     std::shared_ptr<const LinOp> base) const
 {
