@@ -64,16 +64,6 @@ void for_all_blocks(gko::ptr_param<const gko::BlockOperator> bop, Fn&& fn)
 }
 
 
-TEST_F(BlockOperator, CanBeEmpty)
-{
-    auto bop = gko::BlockOperator::create(exec);
-
-    ASSERT_EQ(bop->get_executor(), exec);
-    ASSERT_FALSE(bop->get_size());
-    ASSERT_FALSE(bop->get_block_size());
-}
-
-
 TEST_F(BlockOperator, CanBeConstructedFromVectors)
 {
     auto bop = gko::BlockOperator::create(exec, operators);
@@ -180,60 +170,6 @@ TEST_F(BlockOperator, ThrowsOnOutOfBoundsBlockAccess)
                 std::make_shared<DummyOperator>(exec, gko::dim<2>{8, 8})}});
 
     ASSERT_THROW(bop->block_at(5, 5), gko::OutOfBoundsError);
-}
-
-
-TEST_F(BlockOperator, CanBeCopied)
-{
-    using Mtx = gko::matrix::Dense<>;
-    auto bop = gko::BlockOperator::create(
-        exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec), nullptr},
-               {nullptr, gko::initialize<Mtx>({{3, 4}, {4, 3}}, exec)}});
-    auto bop_copy = gko::BlockOperator::create(exec);
-
-    bop_copy->copy_from(bop);
-
-    GKO_ASSERT_EQUAL_DIMENSIONS(bop, bop_copy);
-    GKO_ASSERT_EQUAL_DIMENSIONS(bop->get_block_size(),
-                                bop_copy->get_block_size());
-    enumerate_for_all_blocks(bop, [&](auto row, auto col) {
-        if (bop->block_at(row, col) == nullptr) {
-            ASSERT_TRUE(bop_copy->block_at(row, col) == nullptr);
-        } else {
-            ASSERT_NE(bop->block_at(row, col), bop_copy->block_at(row, col));
-            GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(bop->block_at(row, col)),
-                                gko::as<Mtx>(bop_copy->block_at(row, col)),
-                                0.0);
-        }
-    });
-}
-
-
-TEST_F(BlockOperator, CanBeMoved)
-{
-    using Mtx = gko::matrix::Dense<>;
-    auto bop = gko::BlockOperator::create(
-        exec, {{gko::initialize<Mtx>({{1, 2}, {2, 1}}, exec), nullptr},
-               {nullptr, gko::initialize<Mtx>({{3, 4}, {4, 3}}, exec)}});
-    auto bop_copy = gko::clone(bop);
-    auto bop_move = gko::BlockOperator::create(exec);
-
-    bop_move->move_from(bop);
-
-    GKO_ASSERT_EQUAL_DIMENSIONS(bop_copy, bop_move);
-    GKO_ASSERT_EQUAL_DIMENSIONS(bop_copy->get_block_size(),
-                                bop_move->get_block_size());
-    GKO_ASSERT_EQUAL_DIMENSIONS(bop, gko::dim<2>{});
-    GKO_ASSERT_EQUAL_DIMENSIONS(bop->get_block_size(), gko::dim<2>{});
-    enumerate_for_all_blocks(bop_copy, [&](auto row, auto col) {
-        if (bop_copy->block_at(row, col) == nullptr) {
-            ASSERT_TRUE(bop_move->block_at(row, col) == nullptr);
-        } else {
-            GKO_ASSERT_MTX_NEAR(gko::as<Mtx>(bop_copy->block_at(row, col)),
-                                gko::as<Mtx>(bop_move->block_at(row, col)),
-                                0.0);
-        }
-    });
 }
 
 

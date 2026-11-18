@@ -46,16 +46,6 @@ protected:
 TYPED_TEST_SUITE(Combination, gko::test::ValueTypes, TypenameNameGenerator);
 
 
-TYPED_TEST(Combination, CanBeEmpty)
-{
-    auto cmb = gko::Combination<TypeParam>::create(this->exec);
-
-    ASSERT_EQ(cmb->get_size(), gko::dim<2>(0, 0));
-    ASSERT_EQ(cmb->get_coefficients().size(), 0);
-    ASSERT_EQ(cmb->get_operators().size(), 0);
-}
-
-
 TYPED_TEST(Combination, CanCreateFromIterators)
 {
     auto cmb = gko::Combination<TypeParam>::create(

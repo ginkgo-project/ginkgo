@@ -137,24 +137,12 @@ dim<2> compute_global_size(
 
 
 std::unique_ptr<BlockOperator> BlockOperator::create(
-    std::shared_ptr<const Executor> exec)
-{
-    return std::unique_ptr<BlockOperator>(new BlockOperator(std::move(exec)));
-}
-
-
-std::unique_ptr<BlockOperator> BlockOperator::create(
     std::shared_ptr<const Executor> exec,
     std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks)
 {
     return std::unique_ptr<BlockOperator>(
         new BlockOperator(std::move(exec), std::move(blocks)));
 }
-
-
-BlockOperator::BlockOperator(std::shared_ptr<const Executor> exec)
-    : LinOp(std::move(exec))
-{}
 
 
 BlockOperator::BlockOperator(
@@ -242,63 +230,6 @@ void BlockOperator::apply_impl(const LinOp* alpha, const LinOp* b,
             }
         }
     }
-}
-
-
-BlockOperator::BlockOperator(const BlockOperator& other)
-    : LinOp(other.get_executor())
-{
-    *this = other;
-}
-
-
-BlockOperator::BlockOperator(BlockOperator&& other) noexcept
-    : LinOp(other.get_executor())
-{
-    *this = std::move(other);
-}
-
-
-BlockOperator& BlockOperator::operator=(const BlockOperator& other)
-{
-    if (this != &other) {
-        auto exec = this->get_executor();
-
-        set_size(other.get_size());
-        block_size_ = other.get_block_size();
-        col_spans_ = other.col_spans_;
-        row_spans_ = other.row_spans_;
-        blocks_.clear();
-        for (const auto& block : other.blocks_) {
-            blocks_.emplace_back(block == nullptr ? nullptr
-                                                  : gko::clone(exec, block));
-        }
-    }
-    return *this;
-}
-
-
-BlockOperator& BlockOperator::operator=(BlockOperator&& other)
-{
-    if (this != &other) {
-        auto exec = this->get_executor();
-
-        set_size(other.get_size());
-        other.set_size({});
-
-        block_size_ = std::exchange(other.block_size_, dim<2>{});
-        col_spans_ = std::move(other.col_spans_);
-        row_spans_ = std::move(other.row_spans_);
-        blocks_ = std::move(other.blocks_);
-        if (exec != other.get_executor()) {
-            for (auto& block : blocks_) {
-                if (block != nullptr) {
-                    block = gko::clone(exec, block);
-                }
-            }
-        }
-    }
-    return *this;
 }
 
 

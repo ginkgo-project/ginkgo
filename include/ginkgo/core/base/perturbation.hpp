@@ -35,11 +35,7 @@ namespace gko {
  * @ingroup LinOp
  */
 template <typename ValueType = default_precision>
-class Perturbation : public LinOp,
-                     public EnableCloneable<Perturbation<ValueType>>,
-                     public EnableCreateMethod<Perturbation<ValueType>> {
-    friend class EnableCloneable<Perturbation>;
-    friend class EnableCreateMethod<Perturbation>;
+class Perturbation : public LinOp {
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
@@ -75,24 +71,6 @@ public:
         return scalar_;
     }
 
-    Perturbation& operator=(const Perturbation& other);
-
-    Perturbation& operator=(Perturbation&& other);
-
-    Perturbation(const Perturbation& other);
-
-    Perturbation(Perturbation&& other);
-
-    /**
-     * Creates an empty perturbation operator (0x0 operator).
-     *
-     * @param exec  Executor associated to the perturbation
-     *
-     * @return A smart pointer to the newly created perturbation.
-     */
-    static std::unique_ptr<Perturbation> create(
-        std::shared_ptr<const Executor> exec);
-
     /**
      * Creates a perturbation with scalar and basis by setting projector to the
      * conjugate transpose of basis. Basis must be transposable. Perturbation
@@ -121,8 +99,6 @@ public:
         std::shared_ptr<const LinOp> projector);
 
 protected:
-    explicit Perturbation(std::shared_ptr<const Executor> exec);
-
     explicit Perturbation(std::shared_ptr<const LinOp> scalar,
                           std::shared_ptr<const LinOp> basis);
 

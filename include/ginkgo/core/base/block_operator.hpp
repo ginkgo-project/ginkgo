@@ -73,10 +73,7 @@ struct value_span {
  * BlockOperator, which will requires copying any block that is associated with
  * a different executor.
  */
-class BlockOperator final : public LinOp,
-                            public EnableCloneable<BlockOperator> {
-    friend class EnableCloneable<BlockOperator>;
-
+class BlockOperator final : public LinOp {
 public:
     /**
      * Get the block dimension of this, i.e. the number of blocks per row and
@@ -101,16 +98,6 @@ public:
     }
 
     /**
-     * Create empty BlockOperator.
-     *
-     * @param exec  the executor of this.
-     *
-     * @return  empty BlockOperator.
-     */
-    static std::unique_ptr<BlockOperator> create(
-        std::shared_ptr<const Executor> exec);
-
-    /**
      * Create BlockOperator from the given blocks.
      *
      * @param exec  the executor of this.
@@ -123,36 +110,7 @@ public:
         std::shared_ptr<const Executor> exec,
         std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks);
 
-    /**
-     * Copy constructs a BlockOperator. The executor of other is used for this.
-     * The blocks of other are deep-copied into this, using clone.
-     */
-    BlockOperator(const BlockOperator& other);
-
-    /**
-     * Move constructs a BlockOperator. The executor of other is used for this.
-     * All remaining data of other is moved into this. After this operation,
-     * other will be empty.
-     */
-    BlockOperator(BlockOperator&& other) noexcept;
-
-    /**
-     * Copy assigns a BlockOperator. The executor of this is not modified.
-     * The blocks of other are deep-copied into this, using clone.
-     */
-    BlockOperator& operator=(const BlockOperator& other);
-
-    /**
-     * Move assigns a BlockOperator. The executor of this is not modified.
-     * All data of other (except its executor) is moved into this. If the
-     * executor of this and other differ, the blocks will be copied to the
-     * executor of this. After this operation, other will be empty.
-     */
-    BlockOperator& operator=(BlockOperator&& other);
-
 private:
-    explicit BlockOperator(std::shared_ptr<const Executor> exec);
-
     BlockOperator(
         std::shared_ptr<const Executor> exec,
         std::vector<std::vector<std::shared_ptr<const LinOp>>> blocks);

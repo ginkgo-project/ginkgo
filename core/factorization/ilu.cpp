@@ -74,11 +74,12 @@ Ilu<ValueType, IndexType>::parse(const config::pnode& config,
     }
     return params;
 }
-
-
 template <typename ValueType, typename IndexType>
-std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
-    const std::shared_ptr<const LinOp>& system_matrix, bool skip_sorting) const
+Ilu<ValueType, IndexType>::Ilu(const Factory* factory,
+                               std::shared_ptr<const gko::LinOp> system_matrix)
+
+    : Composition<ValueType>{factory->get_executor()},
+      parameters_{factory->get_parameters()}
 {
     GKO_ASSERT_IS_SQUARE_MATRIX(system_matrix);
 
@@ -90,7 +91,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
     as<ConvertibleTo<matrix_type>>(system_matrix.get())
         ->convert_to(local_system_matrix);
 
-    if (!skip_sorting) {
+    if (!parameters_.skip_sorting) {
         local_system_matrix->sort_by_column_index();
     }
 
@@ -166,8 +167,7 @@ std::unique_ptr<Composition<ValueType>> Ilu<ValueType, IndexType>::generate_l_u(
         ilu->get_const_device_view(), l_factor->get_device_view(),
         u_factor->get_device_view()));
 
-    return Composition<ValueType>::create(std::move(l_factor),
-                                          std::move(u_factor));
+    this->add_operators(std::move(l_factor), std::move(u_factor));
 }
 
 
