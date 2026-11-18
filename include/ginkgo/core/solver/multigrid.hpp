@@ -537,8 +537,6 @@ protected:
         std::unique_ptr<LinOpFactory::ReuseData>* reuse_data,
         const size_type* recorded_index, size_type* selected_index);
 
-    explicit Multigrid(std::shared_ptr<const Executor> exec);
-
     explicit Multigrid(const Factory* factory,
                        std::shared_ptr<const LinOp> system_matrix);
 
@@ -585,31 +583,12 @@ private:
 
     /**
      * Manages MultigridState as a cache, so there is no need to allocate them
-     * every time an intermediate vector is required. Copying an instance
-     * will only yield an empty object since copying the cached vector would
-     * not make sense.
+     * every time an intermediate vector is required.
      *
-     * @internal  The struct is present so the whole class can be copyable
-     *            (could also be done with writing `operator=` and copy
-     *            constructor of the enclosing class by hand)
+     * @internal  unique_ptr with default destructor does not work with the
+     *            incomplete type.
      */
-    mutable struct cache_struct {
-        cache_struct() = default;
-
-        ~cache_struct() = default;
-
-        cache_struct(const cache_struct&) {}
-
-        cache_struct(cache_struct&&) noexcept {}
-
-        cache_struct& operator=(const cache_struct&) { return *this; }
-
-        cache_struct& operator=(cache_struct&&) noexcept { return *this; }
-
-        // unique_ptr with default destructor does not work with the incomplete
-        // type.
-        std::shared_ptr<multigrid::detail::MultigridState> state{};
-    } cache_;
+    mutable std::shared_ptr<multigrid::detail::MultigridState> state_;
 };
 
 template <>

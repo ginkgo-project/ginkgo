@@ -1024,62 +1024,6 @@ TYPED_TEST(Solver, CrossExecutorGenerateCopiesToFactoryExecutor)
 }
 
 
-TYPED_TEST(Solver, CopyAssignSameExecutor)
-{
-    using Config = typename TestFixture::Config;
-    using Mtx = typename TestFixture::Mtx;
-    this->forall_matrix_scenarios([this](auto mtx) {
-        this->forall_solver_scenarios(mtx, [this](auto solver) {
-            auto solver2 = Config::build(this->exec, 0)
-                               .on(this->exec)
-                               ->generate(Mtx::create(this->exec));
-
-            auto& result = (*solver2 = *solver.dev);
-
-            ASSERT_EQ(&result, solver2.get());
-            ASSERT_EQ(solver2->get_size(), solver.dev->get_size());
-            ASSERT_EQ(solver2->get_executor(), solver.dev->get_executor());
-            ASSERT_EQ(solver2->get_system_matrix(),
-                      solver.dev->get_system_matrix());
-            ASSERT_EQ(Config::get_stop_criterion_factory(solver2),
-                      Config::get_stop_criterion_factory(solver.dev));
-            ASSERT_EQ(Config::get_preconditioner(solver2),
-                      Config::get_preconditioner(solver.dev));
-        });
-    });
-}
-
-
-TYPED_TEST(Solver, MoveAssignSameExecutor)
-{
-    using Config = typename TestFixture::Config;
-    using Mtx = typename TestFixture::Mtx;
-    this->forall_matrix_scenarios([this](auto in_mtx) {
-        this->forall_solver_scenarios(in_mtx, [this](auto solver) {
-            auto solver2 = Config::build(this->exec, 0)
-                               .on(this->exec)
-                               ->generate(Mtx::create(this->exec));
-            auto size = solver.dev->get_size();
-            auto mtx = solver.dev->get_system_matrix();
-            auto precond = Config::get_preconditioner(solver.dev);
-            auto stop = Config::get_stop_criterion_factory(solver.dev);
-
-            auto& result = (*solver2 = std::move(*solver.dev));
-
-            ASSERT_EQ(&result, solver2.get());
-            // moved-to object
-            ASSERT_EQ(solver2->get_size(), size);
-            ASSERT_EQ(solver2->get_executor(), this->exec);
-            ASSERT_EQ(solver2->get_system_matrix(), mtx);
-            ASSERT_EQ(Config::get_stop_criterion_factory(solver2), stop);
-            ASSERT_EQ(Config::get_preconditioner(solver2), precond);
-            // moved-from object
-            this->assert_empty_state(solver.dev, this->exec);
-        });
-    });
-}
-
-
 TYPED_TEST(Solver, LogsIterationComplete)
 {
     using Config = typename TestFixture::Config;

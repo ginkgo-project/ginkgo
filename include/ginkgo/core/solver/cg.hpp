@@ -123,9 +123,6 @@ protected:
     void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
                     LinOp* x) const override;
 
-    explicit Cg(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
-    {}
-
     explicit Cg(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)
         : LinOp(factory->get_executor(),

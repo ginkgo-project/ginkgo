@@ -98,61 +98,6 @@ std::unique_ptr<LinOp> Ilu<ValueType, ReverseApply, IndexType>::conj_transpose()
 
 
 template <typename ValueType, bool ReverseApply, typename IndexType>
-Ilu<ValueType, ReverseApply, IndexType>&
-Ilu<ValueType, ReverseApply, IndexType>::operator=(const Ilu& other)
-{
-    if (&other != this) {
-        LinOp::operator=(other);
-        auto exec = this->get_executor();
-        l_solver_ = other.l_solver_;
-        u_solver_ = other.u_solver_;
-        parameters_ = other.parameters_;
-        if (other.get_executor() != exec) {
-            l_solver_ = gko::clone(exec, l_solver_);
-            u_solver_ = gko::clone(exec, u_solver_);
-        }
-    }
-    return *this;
-}
-
-
-template <typename ValueType, bool ReverseApply, typename IndexType>
-Ilu<ValueType, ReverseApply, IndexType>&
-Ilu<ValueType, ReverseApply, IndexType>::operator=(Ilu&& other)
-
-{
-    if (&other != this) {
-        LinOp::operator=(other);
-        auto exec = this->get_executor();
-        l_solver_ = std::move(other.l_solver_);
-        u_solver_ = std::move(other.u_solver_);
-        parameters_ = std::exchange(other.parameters_, parameters_type{});
-        if (other.get_executor() != exec) {
-            l_solver_ = gko::clone(exec, l_solver_);
-            u_solver_ = gko::clone(exec, u_solver_);
-        }
-    }
-    return *this;
-}
-
-
-template <typename ValueType, bool ReverseApply, typename IndexType>
-Ilu<ValueType, ReverseApply, IndexType>::Ilu(const Ilu& other)
-    : Ilu{other.get_executor()}
-{
-    *this = other;
-}
-
-
-template <typename ValueType, bool ReverseApply, typename IndexType>
-Ilu<ValueType, ReverseApply, IndexType>::Ilu(Ilu&& other)
-    : Ilu{other.get_executor()}
-{
-    *this = std::move(other);
-}
-
-
-template <typename ValueType, bool ReverseApply, typename IndexType>
 void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* b,
                                                          LinOp* x) const
 
@@ -162,19 +107,17 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* b,
         [&](auto dense_b, auto dense_x) {
             this->set_cache_to(dense_b);
             if (!ReverseApply) {
-                l_solver_->apply(dense_b, cache_.intermediate);
+                l_solver_->apply(dense_b, intermediate_);
                 if (u_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(
-                        as<Cloneable>(cache_.intermediate.get()));
+                    dense_x->copy_from(as<Cloneable>(intermediate_.get()));
                 }
-                u_solver_->apply(cache_.intermediate, dense_x);
+                u_solver_->apply(intermediate_, dense_x);
             } else {
-                u_solver_->apply(dense_b, cache_.intermediate);
+                u_solver_->apply(dense_b, intermediate_);
                 if (l_solver_->apply_uses_initial_guess()) {
-                    dense_x->copy_from(
-                        as<Cloneable>(cache_.intermediate.get()));
+                    dense_x->copy_from(as<Cloneable>(intermediate_.get()));
                 }
-                l_solver_->apply(cache_.intermediate, dense_x);
+                l_solver_->apply(intermediate_, dense_x);
             }
         },
         b, x);
@@ -191,12 +134,12 @@ void Ilu<ValueType, ReverseApply, IndexType>::apply_impl(const LinOp* alpha,
         [&](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
             this->set_cache_to(dense_b);
             if (!ReverseApply) {
-                l_solver_->apply(dense_b, cache_.intermediate);
-                u_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
+                l_solver_->apply(dense_b, intermediate_);
+                u_solver_->apply(dense_alpha, intermediate_, dense_beta,
                                  dense_x);
             } else {
-                u_solver_->apply(dense_b, cache_.intermediate);
-                l_solver_->apply(dense_alpha, cache_.intermediate, dense_beta,
+                u_solver_->apply(dense_b, intermediate_);
+                l_solver_->apply(dense_alpha, intermediate_, dense_beta,
                                  dense_x);
             }
         },
@@ -268,12 +211,11 @@ template <typename ValueType, bool ReverseApply, typename IndexType>
 void Ilu<ValueType, ReverseApply, IndexType>::set_cache_to(const LinOp* b) const
 
 {
-    if (cache_.intermediate == nullptr) {
-        cache_.intermediate =
-            matrix::Dense<value_type>::create(this->get_executor());
+    if (intermediate_ == nullptr) {
+        intermediate_ = matrix::Dense<value_type>::create(this->get_executor());
     }
     // Use b as the initial guess for the first triangular solve
-    as<Cloneable>(cache_.intermediate.get())->copy_from(as<Cloneable>(b));
+    as<Cloneable>(intermediate_.get())->copy_from(as<Cloneable>(b));
 }
 
 

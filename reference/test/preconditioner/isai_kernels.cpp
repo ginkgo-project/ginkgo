@@ -1625,6 +1625,38 @@ TYPED_TEST(Isai, ReturnsConjTransposedCorrectInverseSpd)
 }
 
 
+TYPED_TEST(Isai, TransposesComplexSpdInverse)
+{
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    if constexpr (gko::is_complex<value_type>()) {
+        using real = gko::remove_complex<value_type>;
+        const auto o = gko::one<value_type>();
+        const auto z = gko::zero<value_type>();
+        const auto two = value_type{real{2}, real{0}};
+        const auto i = value_type{real{0}, real{1}};
+        auto spd =
+            gko::share(gko::initialize<Csr>({{two, i}, {-i, two}}, this->exec));
+        auto identity = gko::initialize<Dense>({{o, z}, {z, o}}, this->exec);
+        auto inverse = Dense::create(this->exec, gko::dim<2>{2});
+        auto transposed = Dense::create(this->exec, gko::dim<2>{2});
+        auto conj_transposed = Dense::create(this->exec, gko::dim<2>{2});
+        auto isai = this->spd_isai_factory->generate(spd);
+        isai->apply(identity, inverse);
+
+        isai->transpose()->apply(identity, transposed);
+        isai->conj_transpose()->apply(identity, conj_transposed);
+
+        GKO_ASSERT_MTX_NEAR(transposed, gko::as<Dense>(inverse->transpose()),
+                            r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(conj_transposed,
+                            gko::as<Dense>(inverse->conj_transpose()),
+                            r<value_type>::value);
+    }
+}
+
+
 TYPED_TEST(Isai, IsExactInverseOnFullSparsitySet)
 {
     using Isai = typename TestFixture::GeneralIsai;

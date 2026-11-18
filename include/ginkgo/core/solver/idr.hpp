@@ -248,9 +248,6 @@ protected:
     template <typename VectorType>
     void iterate(const VectorType* dense_b, VectorType* dense_x) const;
 
-    explicit Idr(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
-    {}
-
     explicit Idr(const Factory* factory,
                  std::shared_ptr<const LinOp> system_matrix)
         : LinOp(factory->get_executor(),

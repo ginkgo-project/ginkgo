@@ -130,36 +130,6 @@ public:
      */
     void set_solver(std::shared_ptr<const LinOp> new_solver);
 
-    /**
-     * Copy-assigns an IR solver. Preserves the executor, shallow-copies inner
-     * solver, stopping criterion and system matrix. If the executors mismatch,
-     * clones inner solver, stopping criterion and system matrix onto this
-     * executor.
-     */
-    Ir& operator=(const Ir&);
-
-    /**
-     * Move-assigns an IR solver. Preserves the executor, moves inner solver,
-     * stopping criterion and system matrix. If the executors mismatch, clones
-     * inner solver, stopping criterion and system matrix onto this executor.
-     * The moved-from object is empty (0x0 and nullptr inner solver, stopping
-     * criterion and system matrix)
-     */
-    Ir& operator=(Ir&&);
-
-    /**
-     * Copy-constructs an IR solver. Inherits the executor, shallow-copies inner
-     * solver, stopping criterion and system matrix.
-     */
-    Ir(const Ir&);
-
-    /**
-     * Move-constructs an IR solver. Preserves the executor, moves inner solver,
-     * stopping criterion and system matrix. The moved-from object is empty (0x0
-     * and nullptr inner solver, stopping criterion and system matrix)
-     */
-    Ir(Ir&&);
-
     class Factory;
 
     struct parameters_type
@@ -242,9 +212,6 @@ protected:
 
     void set_relaxation_factor(
         std::shared_ptr<const matrix::Dense<ValueType>> new_factor);
-
-    explicit Ir(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
-    {}
 
     explicit Ir(const Factory* factory,
                 std::shared_ptr<const LinOp> system_matrix)

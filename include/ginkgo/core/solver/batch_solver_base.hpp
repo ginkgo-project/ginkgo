@@ -130,6 +130,14 @@ protected:
           workspace_{}
     {}
 
+    BatchSolver(const BatchSolver&) = delete;
+
+    BatchSolver(BatchSolver&&) = delete;
+
+    BatchSolver& operator=(const BatchSolver&) = delete;
+
+    BatchSolver& operator=(BatchSolver&&) = delete;
+
     void set_system_matrix_base(std::shared_ptr<const BatchLinOp> system_matrix)
     {
         this->system_matrix_ = std::move(system_matrix);
@@ -293,46 +301,13 @@ protected:
         this->set_preconditioner_base(new_precond);
     }
 
-    EnableBatchSolver& operator=(const EnableBatchSolver& other)
-    {
-        if (&other != this) {
-            this->set_size(other.get_size());
-            this->set_system_matrix(other.get_system_matrix());
-            this->set_preconditioner(other.get_preconditioner());
-            this->reset_tolerance(other.get_tolerance());
-            this->reset_max_iterations(other.get_max_iterations());
-            this->reset_tolerance_type(other.get_tolerance_type());
-        }
+    EnableBatchSolver(const EnableBatchSolver&) = delete;
 
-        return *this;
-    }
+    EnableBatchSolver(EnableBatchSolver&&) = delete;
 
-    EnableBatchSolver& operator=(EnableBatchSolver&& other)
-    {
-        if (&other != this) {
-            this->set_size(other.get_size());
-            this->set_system_matrix(other.get_system_matrix());
-            this->set_preconditioner(other.get_preconditioner());
-            this->reset_tolerance(other.get_tolerance());
-            this->reset_max_iterations(other.get_max_iterations());
-            this->reset_tolerance_type(other.get_tolerance_type());
-            other.set_system_matrix(nullptr);
-            other.set_preconditioner(nullptr);
-        }
-        return *this;
-    }
+    EnableBatchSolver& operator=(const EnableBatchSolver&) = delete;
 
-    EnableBatchSolver(const EnableBatchSolver& other)
-        : BatchLinOp(other.self()->get_executor(), other.self()->get_size())
-    {
-        *this = other;
-    }
-
-    EnableBatchSolver(EnableBatchSolver&& other)
-        : BatchLinOp(other.self()->get_executor(), other.self()->get_size())
-    {
-        *this = std::move(other);
-    }
+    EnableBatchSolver& operator=(EnableBatchSolver&&) = delete;
 
     void apply_impl(const MultiVector<ValueType>* b,
                     MultiVector<ValueType>* x) const

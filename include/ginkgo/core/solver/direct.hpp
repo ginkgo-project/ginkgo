@@ -85,19 +85,7 @@ public:
         const config::type_descriptor& td_for_child =
             config::make_type_descriptor<ValueType, IndexType>());
 
-    /** Creates a copy of the solver. */
-    Direct(const Direct&);
-
-    /** Moves from the given solver, leaving it empty. */
-    Direct(Direct&&);
-
-    Direct& operator=(const Direct&);
-
-    Direct& operator=(Direct&&);
-
 protected:
-    explicit Direct(std::shared_ptr<const Executor> exec);
-
     Direct(const Factory* factory, std::shared_ptr<const LinOp> system_matrix);
 
     void apply_impl(const LinOp* b, LinOp* x) const override;
