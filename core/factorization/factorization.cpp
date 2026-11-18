@@ -9,6 +9,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/base/array_access.hpp"
+#include "core/base/validation.hpp"
 #include "core/factorization/factorization_kernels.hpp"
 
 
@@ -26,7 +27,39 @@ GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
 
 
+template <typename ValueType, typename IndexType>
+validation::validation_result has_valid_output(
+    const Composition<ValueType>& factors)
+{
+    for (const auto& op : factors.get_operators()) {
+        if (auto csr_mtx =
+                dynamic_cast<const matrix::Csr<ValueType, IndexType>*>(
+                    op.get())) {
+            try {
+                csr_mtx->validate_data();
+            } catch (const gko::InvalidData& e) {
+                return {false, "Invalid CSR matrix: " + std::string(e.what())};
+            }
+            auto result = validation::has_all_non_zero_diagonal(csr_mtx);
+            if (!result.is_valid) {
+                return result;
+            }
+        }
+    }
+    return {true, ""};
+}
+
+
 }  // namespace
+
+
+template <typename ValueType, typename IndexType>
+void Factorization<ValueType, IndexType>::validate_data() const
+{
+    const auto unpacked = this->unpack();
+    GKO_VALIDATE((has_valid_output<ValueType, IndexType>(*unpacked->factors_)),
+                 "Invalid output.");
+}
 
 
 template <typename ValueType, typename IndexType>

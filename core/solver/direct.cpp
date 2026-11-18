@@ -11,12 +11,28 @@
 #include <ginkgo/core/factorization/factorization.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 
 
 namespace gko {
 namespace experimental {
 namespace solver {
+
+
+template <typename ValueType, typename IndexType>
+void Direct<ValueType, IndexType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Direct must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(lower_solver_),
+                 "Direct must have lower solver");
+    lower_solver_->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(upper_solver_),
+                 "Direct must have upper solver");
+    upper_solver_->validate_data();
+}
 
 
 template <typename ValueType, typename IndexType>

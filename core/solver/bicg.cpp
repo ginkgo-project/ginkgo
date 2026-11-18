@@ -13,6 +13,7 @@
 #include <ginkgo/core/base/name_demangling.hpp>
 #include <ginkgo/core/base/precision_dispatch.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/solver/bicg_kernels.hpp"
@@ -31,6 +32,15 @@ GKO_REGISTER_OPERATION(step_2, bicg::step_2);
 
 }  // anonymous namespace
 }  // namespace bicg
+
+
+template <typename ValueType>
+void Bicg<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Bicg must have system matrix");
+    this->get_system_matrix()->validate_data();
+}
 
 
 template <typename ValueType>

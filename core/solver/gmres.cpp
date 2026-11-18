@@ -17,6 +17,7 @@
 #include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
+#include "core/base/validation.hpp"
 #include "core/config/config_helper.hpp"
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
@@ -58,6 +59,18 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho)
 
 
 }  // namespace gmres
+
+
+template <typename ValueType>
+void Gmres<ValueType>::validate_data() const
+{
+    GKO_VALIDATE(validation::not_nullptr(this->get_system_matrix()),
+                 "Gmres must have system matrix");
+    this->get_system_matrix()->validate_data();
+    GKO_VALIDATE(validation::not_nullptr(this->get_preconditioner()),
+                 "Gmres must have preconditioner");
+    this->get_preconditioner()->validate_data();
+}
 
 
 template <typename ValueType>
