@@ -1,0 +1,14 @@
+test/matrix/matrix.cpp
+  h_0aeb61ed714320 57-58,529-530,636
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "2848c77a7af56848331d78cd1b6a875b4b16d2c2",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}

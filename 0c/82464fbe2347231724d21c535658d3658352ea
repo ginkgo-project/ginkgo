@@ -1,0 +1,28 @@
+core/base/precision.cpp
+  s_7b33eb46703857::t_2d137ffe374b56 11,14,16,20
+include/ginkgo/core/base/precision.hpp
+  s_7b33eb46703857::t_2d137ffe374b56 63,66-67,70,75,77,79,92,97,106,111,117-132,144-165,179-197,200
+  s_7b33eb46703857::t_9f5f98416647b7 60-62
+  s_7b33eb46703857::t_8f39b89c5291a6 64-65
+  s_7b33eb46703857::t_35565c77b2a4c9 68-69
+  s_7b33eb46703857::t_9271156365262e 71-74
+  s_7b33eb46703857::t_afd3f11cbcdb21 76
+  s_7b33eb46703857::t_f5cc892ffe3c2c 78
+  s_7b33eb46703857::t_af0c6cce617ba7 198-199
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "0c82464fbe2347231724d21c535658d3658352ea",
+  "prompts": {},
+  "sessions": {
+    "s_7b33eb46703857": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6984c362-6def-4e39-8504-a6845208b717",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
