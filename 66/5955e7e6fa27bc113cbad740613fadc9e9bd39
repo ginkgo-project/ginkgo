@@ -1,0 +1,16 @@
+core/test/base/CMakeLists.txt
+  h_0aeb61ed714320 35
+include/ginkgo/core/base/precision.hpp
+  h_0aeb61ed714320 17,19,86,100-101,124,157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "665955e7e6fa27bc113cbad740613fadc9e9bd39",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
