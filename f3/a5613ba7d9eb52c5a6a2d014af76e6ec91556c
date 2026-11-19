@@ -1,0 +1,37 @@
+.claude/skills/ginkgo-pr-review/references/checklist.md
+  s_09e221f5214360::t_482e9f63f61d56 1-243
+  s_09e221f5214360::t_163d87301b2160 244-246
+  s_a141e29582e39a::t_f55eb1591f6ce7 247-250
+.claude/skills/ginkgo-pr-review/SKILL.md
+  s_09e221f5214360::t_93b1a2c8b81eb5 3
+  s_09e221f5214360::t_25f3c890e0c784 9-10
+  s_09e221f5214360::t_18c55d78de88f4 1-2,4-8,11-202
+  s_09e221f5214360::t_9d5b0f7cc9f120 203-205
+  s_a141e29582e39a::t_29f7eef0a2aaf8 206-241
+.claude/skills/ginkgo-pr-review/references/change-types.md
+  s_09e221f5214360::t_9ac62442a2f8e2 1-134
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "f3a5613ba7d9eb52c5a6a2d014af76e6ec91556c",
+  "prompts": {},
+  "sessions": {
+    "s_09e221f5214360": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c8774ee-b353-4f59-8b58-b3b8fafd60da",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    },
+    "s_a141e29582e39a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "98fcdb5a-0136-49eb-810c-20ecd0809ffc",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
