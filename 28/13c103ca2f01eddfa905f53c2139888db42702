@@ -1,0 +1,19 @@
+CONTRIBUTING.md
+  s_6a503d865c0fd8::t_a360c9c5d038e9 163
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "2813c103ca2f01eddfa905f53c2139888db42702",
+  "prompts": {},
+  "sessions": {
+    "s_6a503d865c0fd8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "84ac8c7d-ef56-4348-ac86-f7f782d9b4ce",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
