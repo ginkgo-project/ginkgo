@@ -1,0 +1,27 @@
+.claude/skills/ginkgo-pr-review/SKILL.md
+  s_09e221f5214360::t_18c55d78de88f4 1-2,4-8,11-202
+  s_09e221f5214360::t_93b1a2c8b81eb5 3
+  s_09e221f5214360::t_25f3c890e0c784 9-10
+.claude/skills/ginkgo-pr-review/references/change-types.md
+  s_09e221f5214360::t_9ac62442a2f8e2 1-134
+.claude/skills/ginkgo-pr-review/references/checklist.md
+  s_09e221f5214360::t_482e9f63f61d56 1-243
+REVIEWS.md
+  s_09e221f5214360::t_bf828dc387e36b 1-175
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "8a9cb0696997029f9e40f2f2cc49ab04dbfcc272",
+  "prompts": {},
+  "sessions": {
+    "s_09e221f5214360": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "9c8774ee-b353-4f59-8b58-b3b8fafd60da",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
