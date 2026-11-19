@@ -1,0 +1,21 @@
+CONTRIBUTING.md
+  s_a141e29582e39a::t_fe201b380c327f 426-433
+  s_a141e29582e39a::t_f2fc59d4873fc2 581-586
+  s_a141e29582e39a::t_e25e064135bead 42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "df7b0fe284f408bcd9fbaf7d09d8fa8fce7a163b",
+  "prompts": {},
+  "sessions": {
+    "s_a141e29582e39a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "98fcdb5a-0136-49eb-810c-20ecd0809ffc",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
