@@ -1,0 +1,18 @@
+.github/workflows/clang-tidy.yml
+  h_0aeb61ed714320 45
+core/base/lin_op.cpp
+  h_0aeb61ed714320 53,62
+cmake/build_helpers.cmake
+  h_0aeb61ed714320 86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "1370bede6227bd53934dfafc2e811d9a75f8d907",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}

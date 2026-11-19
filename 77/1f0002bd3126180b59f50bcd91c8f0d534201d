@@ -1,0 +1,14 @@
+core/test/base/temporary_conversion.cpp
+  h_0aeb61ed714320 100-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "771f0002bd3126180b59f50bcd91c8f0d534201d",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
