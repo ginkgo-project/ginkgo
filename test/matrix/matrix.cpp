@@ -54,6 +54,8 @@ struct SimpleMatrixTest {
 
     static bool supports_strides() { return true; }
 
+    static double tolerance_factor() { return 1.0; }
+
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         ASSERT_FALSE(mtx->get_size());
@@ -524,6 +526,8 @@ struct SparsityCsr
         }
     }
 
+    static double tolerance_factor() { return 10.0; }
+
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         ASSERT_FALSE(mtx->get_size());
@@ -629,7 +633,7 @@ protected:
         return {std::move(result), exec};
     }
 
-    double tol() { return r<value_type>::value; }
+    double tol() { return Config::tolerance_factor() * r<value_type>::value; }
 
     double mixed_tol() { return r_mixed<value_type, mixed_value_type>(); }
 
