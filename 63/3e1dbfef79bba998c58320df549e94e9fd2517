@@ -1,0 +1,30 @@
+core/distributed/helpers.hpp
+  h_0aeb61ed714320 29-30,36,43,62,103,114,132,285-286
+core/distributed/matrix.cpp
+  h_0aeb61ed714320 18,20,551,553-558,614-615,617-626,650-651,657-658,670,674,714-718,725,731,745,772-778
+core/distributed/preconditioner/schwarz.cpp
+  h_0aeb61ed714320 89,91-140,148-149,152-158,206-207,229-230
+core/distributed/row_gatherer.cpp
+  h_0aeb61ed714320 31-33,41,50-51,59-60,67-71,73-74,81-82,89,98,116-122,128,136-138,148-149,157-158,167-168,177-178,188,190-192,195-198,203-204,245-247
+core/distributed/row_scatterer.cpp
+  h_0aeb61ed714320 23,36-40,74-75,81,90-95,104-105,147-149
+include/ginkgo/core/distributed/matrix.hpp
+  h_0aeb61ed714320 788-789,799-800,825-826,828-831
+include/ginkgo/core/distributed/preconditioner/schwarz.hpp
+  h_0aeb61ed714320 195-196,198-201
+include/ginkgo/core/distributed/row_gatherer.hpp
+  h_0aeb61ed714320 42-43,48-49,55-56,62-63,110-115,117-118,121-122,143-145,167-168,276,279,283-284,288-289
+include/ginkgo/core/distributed/row_scatterer.hpp
+  h_0aeb61ed714320 81,94-95,195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "633e1dbfef79bba998c58320df549e94e9fd2517",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
