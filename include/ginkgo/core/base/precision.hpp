@@ -14,9 +14,9 @@ namespace gko {
 
 
 /**
- * A enum to specify the precision of stored data.
+ * An enum to specify the precision of stored data.
  */
-enum struct precision : std::uint16_t {
+enum class precision : std::uint16_t {
     fp32 = 1u << 0u,
     complex_fp32 = 1u << 1u,
     fp64 = 1u << 2u,
@@ -36,8 +36,6 @@ enum struct precision : std::uint16_t {
 std::string to_string(precision p);
 
 
-// Equality comparison operator.
-// The precision::any is equal to any other precision, including none.
 constexpr bool operator==(precision a, precision b)
 {
     return static_cast<std::uint16_t>(a) == static_cast<std::uint16_t>(b);
@@ -86,7 +84,7 @@ template <typename T>
 inline constexpr precision precision_v = detail::precision_value<T>::value;
 
 
-// True if the precision is complex or any
+// True if the precision is complex
 constexpr bool is_complex(precision p)
 {
     return
@@ -100,18 +98,8 @@ constexpr bool is_complex(precision p)
 }
 
 
-// True if the precision is real or any
-constexpr bool is_real(precision p)
-{
-    return
-#if GINKGO_ENABLE_HALF
-        p == precision::fp16 ||
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-        p == precision::bf16 ||
-#endif
-        p == precision::fp32 || p == precision::fp64;
-}
+// True if the precision is real
+constexpr bool is_real(precision p) { return !is_complex(p); }
 
 
 namespace detail {
@@ -134,9 +122,7 @@ namespace detail {
  * Maps a precision to its corresponding real precision.
  *
  * For example as_real(complex_fp32) == fp32.
- * For a real precision or any this is the identity.
- *
- * @throws InvalidStateError if the precision is none
+ * For a real precision this is the identity.
  *
  * @param p  precision to map to a real precision
  * @return The real precision corresponding to p
@@ -169,9 +155,7 @@ constexpr precision as_real(precision p)
  * Maps a precision to its corresponding complex precision.
  *
  * For example as_complex(fp32) == complex_fp32.
- * For a complex precision or any this is the identity.
- *
- * @throws InvalidStateError if the precision is none
+ * For a complex precision this is the identity.
  *
  * @param p  precision to map to a complex precision
  * @return The complex precision corresponding to p
