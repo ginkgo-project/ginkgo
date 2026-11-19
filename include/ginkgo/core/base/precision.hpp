@@ -16,21 +16,18 @@ namespace gko {
 /**
  * A enum to specify the precision of stored data.
  */
-enum struct precision {
-    none,  //!< no precision information is available, incompatible with all
-           //!< other precisions
-    any,   //!< compatible with all other precisions, including none
-    fp32,
-    complex_fp32,
-    fp64,
-    complex_fp64,
+enum struct precision : std::uint16_t {
+    fp32 = 1u << 0u,
+    complex_fp32 = 1u << 1u,
+    fp64 = 1u << 2u,
+    complex_fp64 = 1u << 3u,
 #if GINKGO_ENABLE_HALF
-    fp16,
-    complex_fp16,
+    fp16 = 1u << 4u,
+    complex_fp16 = 1u << 5u,
 #endif
 #if GINKGO_ENABLE_BFLOAT16
-    bf16,
-    complex_bf16,
+    bf16 = 1u << 6u,
+    complex_bf16 = 1u << 7u,
 #endif
 };
 
@@ -43,18 +40,42 @@ std::string to_string(precision p);
 // The precision::any is equal to any other precision, including none.
 constexpr bool operator==(precision a, precision b)
 {
-    auto int_a = static_cast<int>(a);
-    auto int_b = static_cast<int>(b);
-    if (int_a == static_cast<int>(precision::any) ||
-        int_b == static_cast<int>(precision::any)) {
-        return true;
-    }
-    return int_a == int_b;
+    return static_cast<std::uint16_t>(a) == static_cast<std::uint16_t>(b);
 }
 
 
 constexpr bool operator!=(precision a, precision b) { return !(a == b); }
 
+
+namespace detail {
+
+template <typename T>
+struct precision_value;
+
+
+#define GKO_INSTANTIATE_PRECISION_VALUE(_type, _value)        \
+    template <>                                               \
+    struct precision_value<_type> {                           \
+        static constexpr precision value = precision::_value; \
+    }
+
+GKO_INSTANTIATE_PRECISION_VALUE(float, fp32);
+GKO_INSTANTIATE_PRECISION_VALUE(std::complex<float>, complex_fp32);
+GKO_INSTANTIATE_PRECISION_VALUE(double, fp64);
+GKO_INSTANTIATE_PRECISION_VALUE(std::complex<double>, complex_fp64);
+#if GINKGO_ENABLE_HALF
+GKO_INSTANTIATE_PRECISION_VALUE(half, fp16);
+GKO_INSTANTIATE_PRECISION_VALUE(std::complex<half>, complex_fp16);
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+GKO_INSTANTIATE_PRECISION_VALUE(bfloat16, bf16);
+GKO_INSTANTIATE_PRECISION_VALUE(std::complex<bfloat16>, complex_bf16);
+#endif
+
+#undef GKO_INSTANTIATE_PRECISION_VALUE
+
+
+}  // namespace detail
 
 /**
  * Map from compile time type to runtime precision.
@@ -62,60 +83,51 @@ constexpr bool operator!=(precision a, precision b) { return !(a == b); }
  * @tparam T  Value type to map to a precision
  */
 template <typename T>
-inline precision precision_v;
-
-template <>
-inline constexpr precision precision_v<float> = precision::fp32;
-template <>
-inline constexpr precision precision_v<std::complex<float>> =
-    precision::complex_fp32;
-template <>
-inline constexpr precision precision_v<double> = precision::fp64;
-template <>
-inline constexpr precision precision_v<std::complex<double>> =
-    precision::complex_fp64;
-#if GINKGO_ENABLE_HALF
-template <>
-inline constexpr precision precision_v<half> = precision::fp16;
-template <>
-inline constexpr precision precision_v<std::complex<half>> =
-    precision::complex_fp16;
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-template <>
-inline constexpr precision precision_v<bfloat16> = precision::bf16;
-template <>
-inline constexpr precision precision_v<std::complex<bfloat16>> =
-    precision::complex_bf16;
-#endif
+inline constexpr precision precision_v = detail::precision_value<T>::value;
 
 
 // True if the precision is complex or any
 constexpr bool is_complex(precision p)
 {
-    return static_cast<int>(p) == static_cast<int>(precision::any) ||
+    return
 #if GINKGO_ENABLE_HALF
-           p == precision::complex_fp16 ||
+        p == precision::complex_fp16 ||
 #endif
 #if GINKGO_ENABLE_BFLOAT16
-           p == precision::complex_bf16 ||
+        p == precision::complex_bf16 ||
 #endif
-           p == precision::complex_fp32 || p == precision::complex_fp64;
+        p == precision::complex_fp32 || p == precision::complex_fp64;
 }
 
 
 // True if the precision is real or any
 constexpr bool is_real(precision p)
 {
-    return static_cast<int>(p) == static_cast<int>(precision::any) ||
+    return
 #if GINKGO_ENABLE_HALF
-           p == precision::fp16 ||
+        p == precision::fp16 ||
 #endif
 #if GINKGO_ENABLE_BFLOAT16
-           p == precision::bf16 ||
+        p == precision::bf16 ||
 #endif
-           p == precision::fp32 || p == precision::fp64;
+        p == precision::fp32 || p == precision::fp64;
 }
+
+
+namespace detail {
+
+
+/**
+ * Throws an InvalidStateError for an unsupported precision.
+ *
+ * This is not part of the constexpr functions themselves, because the
+ * exception header depends on this header.
+ */
+[[noreturn]] void throw_unsupported_precision(const char* file, int line,
+                                              const char* func);
+
+
+}  // namespace detail
 
 
 /**
@@ -129,7 +141,28 @@ constexpr bool is_real(precision p)
  * @param p  precision to map to a real precision
  * @return The real precision corresponding to p
  */
-precision as_real(precision p);
+constexpr precision as_real(precision p)
+{
+    if (is_real(p)) {
+        return p;
+    }
+    switch (p) {
+    case precision::complex_fp32:
+        return precision::fp32;
+    case precision::complex_fp64:
+        return precision::fp64;
+#if GINKGO_ENABLE_HALF
+    case precision::complex_fp16:
+        return precision::fp16;
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    case precision::complex_bf16:
+        return precision::bf16;
+#endif
+    default:
+        detail::throw_unsupported_precision(__FILE__, __LINE__, __func__);
+    }
+}
 
 
 /**
@@ -143,7 +176,28 @@ precision as_real(precision p);
  * @param p  precision to map to a complex precision
  * @return The complex precision corresponding to p
  */
-precision as_complex(precision p);
+constexpr precision as_complex(precision p)
+{
+    if (is_complex(p)) {
+        return p;
+    }
+    switch (p) {
+    case precision::fp32:
+        return precision::complex_fp32;
+    case precision::fp64:
+        return precision::complex_fp64;
+#if GINKGO_ENABLE_HALF
+    case precision::fp16:
+        return precision::complex_fp16;
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+    case precision::bf16:
+        return precision::complex_bf16;
+#endif
+    default:
+        detail::throw_unsupported_precision(__FILE__, __LINE__, __func__);
+    }
+}
 
 
 /**
