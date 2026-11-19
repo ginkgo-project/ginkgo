@@ -1,0 +1,19 @@
+.claude/skills/ginkgo-pr-review/references/checklist.md
+  s_a141e29582e39a::t_cc26f41fd24f7f 222-228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "90286c53f0d82baf58e04554d123597431329b1b",
+  "prompts": {},
+  "sessions": {
+    "s_a141e29582e39a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "98fcdb5a-0136-49eb-810c-20ecd0809ffc",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
