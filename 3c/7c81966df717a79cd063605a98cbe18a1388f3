@@ -1,0 +1,30 @@
+core/matrix/permutation.cpp
+  s_fdf770946754b3::t_7cfec05aa42fe5 296,303,313,322
+core/distributed/row_gatherer.cpp
+  s_fdf770946754b3::t_7cfec05aa42fe5 69,82,117,137
+core/matrix/row_gatherer.cpp
+  s_fdf770946754b3::t_7cfec05aa42fe5 69,74,83,89
+core/base/multivector.cpp
+  s_fdf770946754b3::t_3fcb48a3d4c998 195-197,199-201,203
+include/ginkgo/core/base/multivector_mixin.hpp
+  s_fdf770946754b3::t_7cfec05aa42fe5 1176,1184,1201,1208,1228,1236,1256,1338,1362
+  s_fdf770946754b3::t_3fcb48a3d4c998 7,1159,1323-1325,1329-1333,1339,1347-1349,1353-1357,1363
+core/distributed/row_scatterer.cpp
+  s_fdf770946754b3::t_7cfec05aa42fe5 36,75,90,105
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "3c7c81966df717a79cd063605a98cbe18a1388f3",
+  "prompts": {},
+  "sessions": {
+    "s_fdf770946754b3": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e78026d4-1605-45a7-8544-db52cdd1d7af",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
