@@ -8,54 +8,16 @@
 
 
 namespace gko {
+namespace detail {
 
 
-precision as_real(precision p)
+void throw_unsupported_precision(const char* file, int line, const char* func)
 {
-    if (is_real(p)) {
-        return p;
-    }
-    switch (p) {
-    case precision::complex_fp32:
-        return precision::fp32;
-    case precision::complex_fp64:
-        return precision::fp64;
-#if GINKGO_ENABLE_HALF
-    case precision::complex_fp16:
-        return precision::fp16;
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-    case precision::complex_bf16:
-        return precision::bf16;
-#endif
-    default:
-        GKO_INVALID_STATE("Unsupported precision");
-    }
+    throw InvalidStateError(file, line, func, "Unsupported precision");
 }
 
 
-precision as_complex(precision p)
-{
-    if (is_complex(p)) {
-        return p;
-    }
-    switch (p) {
-    case precision::fp32:
-        return precision::complex_fp32;
-    case precision::fp64:
-        return precision::complex_fp64;
-#if GINKGO_ENABLE_HALF
-    case precision::fp16:
-        return precision::complex_fp16;
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-    case precision::bf16:
-        return precision::complex_bf16;
-#endif
-    default:
-        GKO_INVALID_STATE("Unsupported precision");
-    }
-}
+}  // namespace detail
 
 
 std::string to_string(precision p)
@@ -81,10 +43,6 @@ std::string to_string(precision p)
     case precision::complex_bf16:
         return "complex_bf16";
 #endif
-    case precision::any:
-        return "any";
-    case precision::none:
-        return "none";
     default:
         GKO_INVALID_STATE("Unsupported precision");
     }
