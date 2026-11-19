@@ -14,9 +14,9 @@ namespace gko {
 
 
 /**
- * A enum to specify the precision of stored data.
+ * An enum to specify the precision of stored data.
  */
-enum struct precision : std::uint16_t {
+enum class precision : std::uint16_t {
     fp32 = 1u << 0u,
     complex_fp32 = 1u << 1u,
     fp64 = 1u << 2u,
@@ -36,8 +36,6 @@ enum struct precision : std::uint16_t {
 std::string to_string(precision p);
 
 
-// Equality comparison operator.
-// The precision::any is equal to any other precision, including none.
 constexpr bool operator==(precision a, precision b)
 {
     return static_cast<std::uint16_t>(a) == static_cast<std::uint16_t>(b);
@@ -53,11 +51,10 @@ template <typename T>
 struct precision_value;
 
 
-#define GKO_INSTANTIATE_PRECISION_VALUE(_type, _value)        \
-    template <>                                               \
-    struct precision_value<_type> {                           \
-        static constexpr precision value = precision::_value; \
-    }
+#define GKO_INSTANTIATE_PRECISION_VALUE(_type, _value) \
+    template <>                                        \
+    struct precision_value<_type>                      \
+        : std::integral_constant<precision, precision::_value> {}
 
 GKO_INSTANTIATE_PRECISION_VALUE(float, fp32);
 GKO_INSTANTIATE_PRECISION_VALUE(std::complex<float>, complex_fp32);
@@ -86,7 +83,7 @@ template <typename T>
 inline constexpr precision precision_v = detail::precision_value<T>::value;
 
 
-// True if the precision is complex or any
+// True if the precision is complex
 constexpr bool is_complex(precision p)
 {
     return
@@ -100,18 +97,8 @@ constexpr bool is_complex(precision p)
 }
 
 
-// True if the precision is real or any
-constexpr bool is_real(precision p)
-{
-    return
-#if GINKGO_ENABLE_HALF
-        p == precision::fp16 ||
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-        p == precision::bf16 ||
-#endif
-        p == precision::fp32 || p == precision::fp64;
-}
+// True if the precision is real
+constexpr bool is_real(precision p) { return !is_complex(p); }
 
 
 namespace detail {
@@ -134,9 +121,7 @@ namespace detail {
  * Maps a precision to its corresponding real precision.
  *
  * For example as_real(complex_fp32) == fp32.
- * For a real precision or any this is the identity.
- *
- * @throws InvalidStateError if the precision is none
+ * For a real precision this is the identity.
  *
  * @param p  precision to map to a real precision
  * @return The real precision corresponding to p
@@ -169,9 +154,7 @@ constexpr precision as_real(precision p)
  * Maps a precision to its corresponding complex precision.
  *
  * For example as_complex(fp32) == complex_fp32.
- * For a complex precision or any this is the identity.
- *
- * @throws InvalidStateError if the precision is none
+ * For a complex precision this is the identity.
  *
  * @param p  precision to map to a complex precision
  * @return The complex precision corresponding to p
@@ -209,17 +192,56 @@ constexpr precision as_complex(precision p)
  * its alternatives.
  *
  * @param p The precision to map to the variant
+ * @throws InvalidStateError if the precision does not match any of the
+ *                           supported value types
  * @return A variant which value corresponds to the type matching the precision.
  */
-std::variant<
-#if GINKGO_ENABLE_HALF
-    half, std::complex<half>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-    bfloat16, std::complex<bfloat16>,
-#endif
-    float, std::complex<float>, double, std::complex<double>>
-precision_to_variant(precision p);
+syn::variant_from_list<supported_value_types> precision_to_variant(precision p);
+
+
+namespace detail {
+
+
+template <typename ResultVariant, typename T>
+ResultVariant precision_to_variant_impl(precision p)
+{
+    if (precision_v<T> != p) {
+        throw_unsupported_precision(__FILE__, __LINE__, __func__);
+    }
+    return T{};
+}
+
+template <typename ResultVariant, typename T, typename U, typename... Ts>
+ResultVariant precision_to_variant_impl(precision p)
+{
+    if (precision_v<T> == p) {
+        return T{};
+    }
+    return precision_to_variant_impl<ResultVariant, U, Ts...>(p);
+}
+
+
+}  // namespace detail
+
+
+/**
+ * Create a variant of a subset of value types from a precision.
+ *
+ * Similar to precision_to_variant, but only allows a subset of value types.
+ *
+ * @tparam T The first value type to consider
+ * @tparam Ts The other value types to consider, may be empty
+ * @param p The precision to map to the variant
+ * @throws InvalidStateError if the precision does not match any of the
+ *                           requested value types
+ * @return A variant which value corresponds to the type matching the precision.
+ */
+template <typename T, typename... Ts>
+std::variant<T, Ts...> precision_to_variant(precision p)
+{
+    return detail::precision_to_variant_impl<std::variant<T, Ts...>, T, Ts...>(
+        p);
+}
 
 
 }  // namespace gko
