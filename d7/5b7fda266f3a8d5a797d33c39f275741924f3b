@@ -1,0 +1,16 @@
+.claude/skills/ginkgo-pr-review/SKILL.md
+  h_0aeb61ed714320 81,169-175,201
+.claude/skills/ginkgo-pr-review/references/checklist.md
+  h_0aeb61ed714320 193
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "d75b7fda266f3a8d5a797d33c39f275741924f3b",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
