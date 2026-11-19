@@ -1,0 +1,34 @@
+core/base/dispatch_helper.hpp
+  h_0aeb61ed714320 339-341,357
+core/base/multivector.cpp
+  h_0aeb61ed714320 195-196,198-199,201
+core/base/precision.cpp
+  h_0aeb61ed714320 52-80
+core/distributed/row_gatherer.cpp
+  h_0aeb61ed714320 69,82,117,137
+core/distributed/row_scatterer.cpp
+  h_0aeb61ed714320 36,75,90,105
+core/matrix/fft.cpp
+  h_0aeb61ed714320 168-170,172-173,175-176,258-267,365-374
+core/matrix/permutation.cpp
+  h_0aeb61ed714320 296,303,313,322
+core/matrix/row_gatherer.cpp
+  h_0aeb61ed714320 69,74,83,89
+core/test/base/precision.cpp
+  h_0aeb61ed714320 159,161-180,184,186-197
+include/ginkgo/core/base/multivector_mixin.hpp
+  h_0aeb61ed714320 1158,1175,1183,1200,1207,1227,1235,1255,1322-1323,1327-1329,1334,1342-1343,1347-1349,1354
+include/ginkgo/core/base/precision.hpp
+  h_0aeb61ed714320 202-215,218,221-222,224-225,227,230-231,233-234,236,240-256,258-259
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "8a2aca8aae27cceab648ff7b30f125e086128439",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
