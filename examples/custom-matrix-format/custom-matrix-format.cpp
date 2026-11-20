@@ -54,7 +54,8 @@ protected:
     // For simplicity, we assume that there is always only one right hand side
     // and the stride of consecutive elements in the vectors is 1 (both of these
     // are always true in this example).
-    void apply_impl(const gko::LinOp* b, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* b,
+                    gko::AbstractMultiVector* x) const override
     {
         // we only implement the operator for dense RHS.
         // gko::as will throw an exception if its argument is not MultiVector.
@@ -111,8 +112,10 @@ protected:
     // x = alpha * A * b + beta * x. This function is commonly used and can
     // often be better optimized than implementing it using x = A * b. However,
     // for simplicity, we will implement it exactly like that in this example.
-    void apply_impl(const gko::LinOp* alpha, const gko::LinOp* b,
-                    const gko::LinOp* beta, gko::LinOp* x) const override
+    void apply_impl(const gko::AbstractMultiVector* alpha,
+                    const gko::AbstractMultiVector* b,
+                    const gko::AbstractMultiVector* beta,
+                    gko::AbstractMultiVector* x) const override
     {
         auto dense_b = gko::as<vec>(b);
         auto dense_x = gko::as<vec>(x);

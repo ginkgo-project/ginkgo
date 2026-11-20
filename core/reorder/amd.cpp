@@ -113,9 +113,9 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
         if (!parameters_.skip_symmetrize) {
             auto scalar =
                 initialize<complex_scalar>({one<std::complex<float>>()}, exec);
-            auto id = complex_identity::create(exec, conv_csr->get_size()[0]);
             // compute A^T + A
-            conv_csr->transpose()->apply(scalar, id, scalar, conv_csr);
+            conv_csr = conv_csr->scale_add(
+                scalar, scalar, as<complex_mtx>(conv_csr->transpose()));
         }
         d_nnz = conv_csr->get_num_stored_elements();
         d_row_ptrs = conv_csr->get_row_ptrs();
@@ -129,9 +129,9 @@ std::unique_ptr<LinOp> Amd<IndexType>::generate_impl(
         }
         if (!parameters_.skip_symmetrize) {
             auto scalar = initialize<real_scalar>({one<float>()}, exec);
-            auto id = real_identity::create(exec, conv_csr->get_size()[0]);
             // compute A^T + A
-            conv_csr->transpose()->apply(scalar, id, scalar, conv_csr);
+            conv_csr = conv_csr->scale_add(scalar, scalar,
+                                           as<real_mtx>(conv_csr->transpose()));
         }
         d_nnz = conv_csr->get_num_stored_elements();
         d_row_ptrs = conv_csr->get_row_ptrs();

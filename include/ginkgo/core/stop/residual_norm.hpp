@@ -52,16 +52,13 @@ class ResidualNormBase : public Criterion {
 
 protected:
     using absolute_type = remove_complex<ValueType>;
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<absolute_type>;
     using Vector = matrix::MultiVector<ValueType>;
     bool check_impl(uint8 stoppingId, bool setFinalized,
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
-    explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
-        : Criterion(exec), device_storage_{exec, 2}
-    {}
+    explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec);
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec,
                               const CriterionArgs& args,
@@ -76,7 +73,7 @@ protected:
 private:
     mode baseline_{mode::rhs_norm};
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const LinOp> b_{};
+    std::shared_ptr<const AbstractMultiVector> b_{};
     /* one/neg_one for residual computation */
     std::shared_ptr<const Vector> one_{};
     std::shared_ptr<const Vector> neg_one_{};
@@ -125,7 +122,6 @@ private:
 template <typename ValueType = default_precision>
 class ResidualNorm : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
 
@@ -153,17 +149,9 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    explicit ResidualNorm(std::shared_ptr<const gko::Executor> exec)
-        : ResidualNormBase<ValueType>(exec)
-    {}
+    explicit ResidualNorm(std::shared_ptr<const gko::Executor> exec);
 
-    explicit ResidualNorm(const Factory* factory, const CriterionArgs& args)
-        : ResidualNormBase<ValueType>(
-              factory->get_executor(), args,
-              factory->get_parameters().reduction_factor,
-              factory->get_parameters().baseline),
-          parameters_{factory->get_parameters()}
-    {}
+    explicit ResidualNorm(const Factory* factory, const CriterionArgs& args);
 };
 
 
@@ -207,7 +195,6 @@ protected:
 template <typename ValueType = default_precision>
 class ImplicitResidualNorm : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
 
@@ -242,18 +229,10 @@ protected:
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
-    explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)
-        : ResidualNormBase<ValueType>(exec)
-    {}
+    explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec);
 
     explicit ImplicitResidualNorm(const Factory* factory,
-                                  const CriterionArgs& args)
-        : ResidualNormBase<ValueType>(
-              factory->get_executor(), args,
-              factory->get_parameters().reduction_factor,
-              factory->get_parameters().baseline),
-          parameters_{factory->get_parameters()}
-    {}
+                                  const CriterionArgs& args);
 };
 
 
@@ -344,7 +323,6 @@ class GKO_DEPRECATED(
     "mode::initial_resnorm") ResidualNormReduction
     : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
 
@@ -406,7 +384,6 @@ class GKO_DEPRECATED(
     "mode::rhs_norm") RelativeResidualNorm
     : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
     using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
 

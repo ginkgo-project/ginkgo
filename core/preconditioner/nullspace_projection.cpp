@@ -8,7 +8,6 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
-#include <ginkgo/core/base/precision_dispatch.hpp>
 #include <ginkgo/core/matrix/identity.hpp>
 
 #include "core/config/config_helper.hpp"
@@ -23,14 +22,14 @@ namespace {
 // returns the cached vector if it is configured like `like`, otherwise
 // replaces it by a new one
 template <typename VectorType>
-VectorType* get_like(std::unique_ptr<LinOp>& cache, const VectorType* like)
+VectorType* get_like(std::unique_ptr<AbstractMultiVector>& cache,
+                     const VectorType* like)
 {
     auto vec = dynamic_cast<VectorType*>(cache.get());
     if (!vec || vec->get_executor() != like->get_executor() ||
         vec->get_size() != like->get_size() ||
-        gko::detail::get_local(vec)->get_size() !=
-            gko::detail::get_local(like)->get_size()) {
-        auto new_vec = gko::detail::create_with_config_of(like);
+        vec->get_local_size() != like->get_local_size()) {
+        auto new_vec = AbstractMultiVector::create_with_config_of(like);
         vec = new_vec.get();
         cache = std::move(new_vec);
     }
@@ -173,19 +172,20 @@ std::unique_ptr<LinOp> NullspaceProjection<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
-void NullspaceProjection<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
+void NullspaceProjection<ValueType>::apply_impl(const AbstractMultiVector* b,
+                                                AbstractMultiVector* x) const
 {
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_b, auto dense_x) {
+    precision_dispatch<ValueType>(
+        [this](auto converted_b, auto converted_x) {
             if (left_nullspace_) {
-                auto projected = get_like(projected_input_.vec, dense_b);
-                left_nullspace_->apply(dense_b, projected);
-                preconditioner_->apply(projected, dense_x);
+                auto projected = get_like(projected_input_.vec, converted_b);
+                left_nullspace_->apply(converted_b, projected);
+                preconditioner_->apply(projected, converted_x);
             } else {
-                preconditioner_->apply(dense_b, dense_x);
+                preconditioner_->apply(converted_b, converted_x);
             }
             if (nullspace_) {
-                nullspace_->project(dense_x);
+                nullspace_->project(converted_x);
             }
         },
         b, x);
@@ -193,19 +193,14 @@ void NullspaceProjection<ValueType>::apply_impl(const LinOp* b, LinOp* x) const
 
 
 template <typename ValueType>
-void NullspaceProjection<ValueType>::apply_impl(const LinOp* alpha,
-                                                const LinOp* b,
-                                                const LinOp* beta,
-                                                LinOp* x) const
+void NullspaceProjection<ValueType>::apply_impl(
+    const AbstractMultiVector* alpha, const AbstractMultiVector* b,
+    const AbstractMultiVector* beta, AbstractMultiVector* x) const
 {
-    experimental::precision_dispatch_real_complex_distributed<ValueType>(
-        [this](auto dense_alpha, auto dense_b, auto dense_beta, auto dense_x) {
-            auto result = get_like(result_.vec, dense_x);
-            this->apply_impl(dense_b, result);
-            dense_x->scale(dense_beta);
-            dense_x->add_scaled(dense_alpha, result);
-        },
-        alpha, b, beta, x);
+    auto result = get_like(result_.vec, x);
+    this->apply_impl(b, result);
+    x->scale(beta);
+    x->add_scaled(alpha, result);
 }
 
 

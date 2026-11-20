@@ -152,10 +152,13 @@ protected:
         std::shared_ptr<const solver::Nullspace<ValueType>> nullspace,
         std::shared_ptr<const solver::Nullspace<ValueType>> left_nullspace);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
 private:
     // a vector of the same kind as the input, which is not copied along with
@@ -167,7 +170,7 @@ private:
         vector_cache& operator=(const vector_cache&) { return *this; }
         vector_cache& operator=(vector_cache&&) noexcept { return *this; }
 
-        mutable std::unique_ptr<LinOp> vec;
+        mutable std::unique_ptr<AbstractMultiVector> vec;
     };
 
     std::shared_ptr<const LinOp> preconditioner_;

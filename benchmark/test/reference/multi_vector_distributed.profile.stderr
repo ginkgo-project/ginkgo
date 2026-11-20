@@ -2,8 +2,8 @@ Running on ReferenceExecutor
 Running with 0 warm iterations and 1 running iterations
 The random seed for right hand sides is 42
 The operations are copy,axpy,scal
-Running test case n = 100
-DEBUG: begin n = 100
+Running test case n = 100 
+DEBUG: begin n = 100 
 	Running blas: copy
 DEBUG: begin copy
 DEBUG: begin multivector::fill
@@ -37,4 +37,4 @@ DEBUG: begin multivector::scale
 DEBUG: end   multivector::scale
 DEBUG: end   repetition
 DEBUG: end   scal
-DEBUG: end   n = 100
+DEBUG: end   n = 100 

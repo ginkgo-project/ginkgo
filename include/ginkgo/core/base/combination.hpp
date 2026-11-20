@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <ginkgo/core/base/lin_op.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 
 
 namespace gko {
@@ -43,8 +44,8 @@ public:
      *
      * @return a list of coefficients
      */
-    const std::vector<std::shared_ptr<const LinOp>>& get_coefficients()
-        const noexcept
+    const std::vector<std::shared_ptr<const matrix::MultiVector<ValueType>>>&
+    get_coefficients() const noexcept
     {
         return coefficients_;
     }
@@ -95,8 +96,9 @@ protected:
     void add_operators() {}
 
     template <typename... Rest>
-    void add_operators(std::shared_ptr<const LinOp> coef,
-                       std::shared_ptr<const LinOp> oper, Rest&&... rest)
+    void add_operators(
+        std::shared_ptr<const matrix::MultiVector<ValueType>> coef,
+        std::shared_ptr<const LinOp> oper, Rest&&... rest)
     {
         GKO_ASSERT_EQUAL_DIMENSIONS(coef, dim<2>(1, 1));
         GKO_ASSERT_EQUAL_DIMENSIONS(oper, this->get_size());
@@ -172,8 +174,9 @@ protected:
      * @param rest  other coefficient and operators (interleaved)
      */
     template <typename... Rest>
-    explicit Combination(std::shared_ptr<const LinOp> coef,
-                         std::shared_ptr<const LinOp> oper, Rest&&... rest)
+    explicit Combination(
+        std::shared_ptr<const matrix::MultiVector<ValueType>> coef,
+        std::shared_ptr<const LinOp> oper, Rest&&... rest)
         : Combination(oper->get_executor())
     {
         this->set_size(oper->get_size());
@@ -181,13 +184,17 @@ protected:
                       std::forward<Rest>(rest)...);
     }
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
 private:
-    std::vector<std::shared_ptr<const LinOp>> coefficients_;
+    std::vector<std::shared_ptr<const matrix::MultiVector<ValueType>>>
+        coefficients_;
     std::vector<std::shared_ptr<const LinOp>> operators_;
 
     // TODO: solve race conditions when multithreading
@@ -197,9 +204,9 @@ private:
         cache_struct(const cache_struct& other) {}
         cache_struct& operator=(const cache_struct& other) { return *this; }
 
-        std::unique_ptr<LinOp> zero;
-        std::unique_ptr<LinOp> one;
-        std::unique_ptr<LinOp> intermediate_x;
+        std::unique_ptr<matrix::MultiVector<ValueType>> zero;
+        std::unique_ptr<matrix::MultiVector<ValueType>> one;
+        std::unique_ptr<AbstractMultiVector> intermediate_x;
     } cache_;
 };
 
