@@ -1,0 +1,16 @@
+core/test/base/precision.cpp
+  h_0aeb61ed714320 172,191-193
+include/ginkgo/core/base/precision.hpp
+  h_0aeb61ed714320 54-57,186-188,191,193-194,201,205,206-208,217-218,221,230
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "5a9bd644821ef4b3f3d24eadeaa3db4d14835fcb",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+core/matrix/fft.cpp
+  h_0aeb61ed714320 168-176,258-267,365-374
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "2bf1c6c3c2433e3f5b6d62080e29c37a6936e7d8",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
