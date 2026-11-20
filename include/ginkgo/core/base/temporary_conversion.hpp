@@ -243,6 +243,9 @@ public:
     template <typename OrigT>
     static temporary_conversion create(OrigT* orig)
     {
+        if (!orig) {
+            GKO_NOT_SUPPORTED(orig);
+        }
         if constexpr (std::is_same_v<T, OrigT>) {
             return handle_type{orig, null_deleter<T>{}};
         }
@@ -283,6 +286,9 @@ public:
         if (!orig) {
             GKO_NOT_SUPPORTED(orig);
         }
+        if (!orig) {
+            GKO_NOT_SUPPORTED(orig);
+        }
         std::function<void(OrigT*)> deleter = orig.get_deleter();
         auto orig_ptr = orig.release();
         if constexpr (std::is_same_v<T, OrigT>) {
@@ -296,10 +302,11 @@ public:
         auto converted =
             detail::conversion_target_helper<DecayT>::create_empty(orig_ptr);
         as<ConvertibleTo<DecayT>>(orig_ptr)->convert_to(converted);
-        return {handle_type(converted.release(), [orig_ptr, orig_deleter = deleter](T* ptr) {
-            auto deleter = detail::convert_back_deleter<T, OrigT>{orig_ptr};
-            deleter(ptr);
-        orig_deleter(orig_ptr);
+        return {handle_type(
+            converted.release(), [orig_ptr, orig_deleter = deleter](T* ptr) {
+                auto deleter = detail::convert_back_deleter<T, OrigT>{orig_ptr};
+                deleter(ptr);
+                orig_deleter(orig_ptr);
             })};
     }
 
@@ -362,11 +369,6 @@ public:
      * @return the underlying object
      */
     T* operator->() const { return handle_.get(); }
-
-    /**
-     * Returns if the conversion was successful.
-     */
-    explicit operator bool() const { return static_cast<bool>(handle_); }
 
 private:
     temporary_conversion(handle_type handle) : handle_{std::move(handle)} {}
