@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2017 - 2024 The Ginkgo authors
+// SPDX-FileCopyrightText: 2017 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -38,6 +38,9 @@ namespace detail {
  */
 template <typename CopyType, typename OrigType>
 class convert_back_deleter {
+    static_assert(std::is_base_of_v<ConvertibleTo<OrigType>, CopyType>,
+                  "The CopyType must be convertible to OrigType");
+
 public:
     using pointer = CopyType*;
     using original_pointer = OrigType*;
@@ -68,10 +71,10 @@ private:
 // specialization for constant objects, no need to convert back something that
 // cannot change
 template <typename CopyType, typename OrigType>
-class convert_back_deleter<const CopyType, const OrigType> {
+class convert_back_deleter<const CopyType, OrigType> {
 public:
     using pointer = const CopyType*;
-    using original_pointer = const OrigType*;
+    using original_pointer = OrigType*;
     convert_back_deleter(original_pointer) {}
 
     void operator()(pointer ptr) const { delete ptr; }
@@ -85,6 +88,9 @@ public:
  * as the target object of a convert_to call. This can be specialized to
  * gain more control on how a TargetType object has to be created.
  *
+ * The default implementation assumes that the TargetType object can be created
+ * just by calling the create method on the executor.
+ *
  * @tparam TargetType  The type an object shall be converted to
  */
 template <typename TargetType>
@@ -96,9 +102,7 @@ struct conversion_target_helper {
      * @param source  The source object for the conversion
      * @return  An unique_ptr of TargetType on the same executor as source.
      */
-    template <typename SourceType,
-              typename = std::enable_if_t<std::is_base_of<
-                  ConvertibleTo<TargetType>, SourceType>::value>>
+    template <typename SourceType>
     static std::unique_ptr<TargetType> create_empty(const SourceType* source)
     {
         return TargetType::create(source->get_executor());
@@ -178,6 +182,9 @@ struct conversion_helper<> {
 };
 
 
+}  // namespace detail
+
+
 /**
  * A temporary_conversion is a special smart pointer-like object that is
  * designed to hold an object temporarily converted to another format.
@@ -192,6 +199,13 @@ struct conversion_helper<> {
  */
 template <typename T>
 class temporary_conversion {
+    // std::function deleter allows to decide the (type of) deleter at
+    // runtime
+    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
+
+    template <typename OtherT>
+    friend class temporary_conversion;
+
 public:
     using value_type = T;
     using pointer = T*;
@@ -211,9 +225,208 @@ public:
         if ((cast_ptr = dynamic_cast<T*>(ptr.get()))) {
             return handle_type{cast_ptr, null_deleter<T>{}};
         } else {
-            return conversion_helper<ConversionCandidates...>::template convert<
-                T>(ptr.get());
+            return detail::conversion_helper<
+                ConversionCandidates...>::template convert<T>(ptr.get());
         }
+    }
+
+    /**
+     * Static assertion to check if a conversion from Other to T is possible.
+     *
+     * @note Succeeding this check can still lead to runtime exceptions, if
+     *       the to convert from object is a nullptr, if its dynamic type is not
+     *       T and T is not const and T is not convertible to Other.
+     *
+     * @tparam Other The type to convert from
+     */
+    template <typename Other>
+    void static static_assert_compatibility()
+    {
+        using DecayT = std::decay_t<T>;
+        using DecayOther = std::decay_t<Other>;
+        static_assert(std::is_same_v<T, Other> ||
+                      std::is_base_of_v<DecayOther, DecayT> ||
+                      std::is_base_of_v<DecayT, DecayOther> ||
+                      (std::is_base_of_v<ConvertibleTo<DecayT>, DecayOther> &&
+                       (std::is_const_v<T> ||
+                        std::is_base_of_v<ConvertibleTo<DecayOther>, DecayT>)));
+    }
+
+    /**
+     * Dynamic assertion to check if a conversion from Other to T is possible.
+     *
+     * @tparam Other Type to convert from
+     *
+     * @param other the object to convert from
+     *
+     * @throws NotSupported if:
+     *                      - other is nullptr, or
+     *                      - other is not of static or dynamic type T and:
+     *                        - other is not of dynamic type ConvertibleTo<T>,
+     *                          or
+     *                        - T is not const qualified and T is not derived
+     *                          from ConvertibleTo<Other>
+     */
+    template <typename Other>
+    void static dynamic_assert_compatibility(Other* other)
+    {
+        if (!other) {
+            GKO_NOT_SUPPORTED(other);
+        }
+        if constexpr (std::is_same_v<T, Other>) {
+            return;
+        }
+        if (dynamic_cast<T*>(other)) {
+            return;
+        }
+        using DecayT = std::decay_t<T>;
+        using DecayOther = std::decay_t<Other>;
+        if (!dynamic_cast<const ConvertibleTo<DecayT>*>(other)) {
+            GKO_NOT_SUPPORTED(other);
+        }
+        if constexpr (!std::is_const_v<T> &&
+                      !std::is_base_of_v<ConvertibleTo<DecayOther>, DecayT>) {
+            GKO_NOT_SUPPORTED(other);
+        }
+    }
+
+    /**
+     * Create a temporary conversion from a bare pointer.
+     *
+     * @tparam OrigT Type of the pointer to convert from, see
+     *               static_assert_compatibility for requirements.
+     *
+     * @param orig Object to convert from
+     *
+     * @throws NotSupported see dynamic_assert_compatibility
+     *
+     * @return Temporary conversion of orig_ptr to type T
+     */
+    template <typename OrigT>
+    static temporary_conversion create(OrigT* orig)
+    {
+        static_assert_compatibility<OrigT>();
+        dynamic_assert_compatibility(orig);
+        if constexpr (std::is_same_v<T, OrigT>) {
+            return handle_type{orig, null_deleter<T>{}};
+        }
+        if (auto p = dynamic_cast<T*>(orig)) {
+            return {handle_type{p, null_deleter<T>{}}};
+        }
+        using DecayT = std::decay_t<T>;
+        using DecayOrig = std::decay_t<OrigT>;
+        if constexpr (std::is_const_v<T> ||
+                      std::is_base_of_v<ConvertibleTo<DecayOrig>, DecayT>) {
+            auto converted =
+                detail::conversion_target_helper<DecayT>::create_empty(orig);
+            as<ConvertibleTo<DecayT>>(orig)->convert_to(converted);
+            return {handle_type(converted.release(),
+                                detail::convert_back_deleter<T, OrigT>{orig})};
+        }
+        GKO_NOT_SUPPORTED(orig);  // unreachable
+    }
+
+    /**
+     * Create a temporary conversion that also owns orig.
+     *
+     * This create method takes ownership of the input pointer. It can be
+     * useful, when chaining conversion. For example if the conversion A -> C
+     * isn't implemented, but A -> B and B -> C are, then this can simplify the
+     * conversion by just chaining the two.
+     *
+     * When the temporary conversion is deleted, orig will be deleted as well.
+     *
+     * @tparam OrigT Type of the pointer to convert from, see
+     *               static_assert_compatibility for requirements.
+     *
+     * @param orig Object to convert from and take ownership of
+     *
+     * @throws NotSupported see dynamic_assert_compatibility
+     *
+     * @return Temporary conversion of orig_ptr to type T
+     */
+    template <typename OrigT>
+    static temporary_conversion create(std::unique_ptr<OrigT> orig)
+    {
+        static_assert_compatibility<OrigT>();
+        dynamic_assert_compatibility(orig.get());
+        std::function<void(OrigT*)> deleter = orig.get_deleter();
+        auto orig_ptr = orig.release();
+        if constexpr (std::is_same_v<T, OrigT>) {
+            return handle_type{orig_ptr, deleter};
+        }
+        if (auto p = dynamic_cast<T*>(orig_ptr)) {
+            return {
+                handle_type{p, [orig_ptr, deleter](T*) { deleter(orig_ptr); }}};
+        }
+        using DecayT = std::decay_t<T>;
+        using DecayOrig = std::decay_t<OrigT>;
+        if constexpr (std::is_const_v<T> ||
+                      std::is_base_of_v<ConvertibleTo<DecayOrig>, DecayT>) {
+            auto converted =
+                detail::conversion_target_helper<DecayT>::create_empty(
+                    orig_ptr);
+            as<ConvertibleTo<DecayT>>(orig_ptr)->convert_to(converted);
+            return {handle_type(converted.release(),
+                                [orig_ptr, orig_deleter = deleter](T* ptr) {
+                                    auto deleter =
+                                        detail::convert_back_deleter<T, OrigT>{
+                                            orig_ptr};
+                                    deleter(ptr);
+                                    orig_deleter(orig_ptr);
+                                })};
+        }
+        GKO_NOT_SUPPORTED(orig_ptr);  // unreachable
+    }
+
+    /**
+     * Create a temporary conversion for a base type T from an object of a
+     * derived type.
+     *
+     * @tparam Derived A derived type of T
+     *
+     * @param derived Object to convert from
+     *
+     * @return Temporary conversion of derived to type T
+     */
+    template <typename Derived, typename = std::enable_if_t<std::is_base_of_v<
+                                    std::decay_t<T>, std::decay_t<Derived>>>>
+    static temporary_conversion create_from_derived(
+        temporary_conversion<Derived>&& derived)
+    {
+        auto handle = std::move(derived).empty_out();
+        return {handle_type{handle.release(),
+                            [deleter = handle.get_deleter()](T* ptr) {
+                                deleter(dynamic_cast<Derived*>(ptr));
+                            }}};
+    }
+
+    /**
+     * Create a temporary conversion for a derived type T from an object of a
+     * base type.
+     *
+     * @tparam Base A base type of T
+     *
+     * @param base Object to convert from
+     * @throws NotSupported if the dynamic type of base is not T
+     *
+     * @throws NotSupported if the dynamic type of base is not T
+     *
+     * @return Temporary conversion of base to type T
+     */
+    template <typename Base, typename = std::enable_if_t<std::is_base_of_v<
+                                 std::decay_t<Base>, std::decay_t<T>>>>
+    static temporary_conversion create_from_base(
+        temporary_conversion<Base>&& base)
+    {
+        if (!dynamic_cast<T*>(base.get())) {
+            GKO_NOT_SUPPORTED(base);
+        }
+        auto handle = std::move(base).empty_out();
+        return {handle_type{dynamic_cast<T*>(handle.release()),
+                            [deleter = handle.get_deleter()](T* ptr) {
+                                deleter(static_cast<Base*>(ptr));
+                            }}};
     }
 
     /**
@@ -230,20 +443,55 @@ public:
      */
     T* operator->() const { return handle_.get(); }
 
-    /**
-     * Returns if the conversion was successful.
-     */
-    explicit operator bool() { return static_cast<bool>(handle_); }
-
 private:
-    // std::function deleter allows to decide the (type of) deleter at
-    // runtime
-    using handle_type = std::unique_ptr<T, std::function<void(T*)>>;
-
     temporary_conversion(handle_type handle) : handle_{std::move(handle)} {}
+
+    handle_type empty_out() && { return std::move(handle_); }
 
     handle_type handle_;
 };
+
+
+/**
+ * Performs polymorphic type conversion of a temporary_conversion.
+ *
+ * @tparam T  requested result type
+ * @tparam U  static type of the passed object
+ *
+ * @param obj  the temporary_conversion to the object which should be converted.
+ *
+ * @throw NotSupported if the conversion is not supported
+ *
+ * @return If successful, returns a temporary_conversion to the subtype. The
+ *         ownership is transferred to the result.
+ */
+template <typename T, typename U>
+temporary_conversion<T> as(temporary_conversion<U>&& obj)
+{
+    if (!dynamic_cast<T*>(obj.get())) {
+        GKO_NOT_SUPPORTED(obj.get());
+    }
+    return temporary_conversion<T>::create_from_base(std::move(obj));
+}
+
+/**
+ * Const correct overload of as(temporary_conversion<U>&&)
+ */
+template <typename T, typename U>
+temporary_conversion<const T> as(temporary_conversion<const U>&& obj)
+{
+    if (!dynamic_cast<const T*>(obj.get())) {
+        GKO_NOT_SUPPORTED(obj.get());
+    }
+    return temporary_conversion<const T>::create_from_base(std::move(obj));
+}
+
+
+namespace detail {
+
+
+// For backwards compatibility
+using gko::temporary_conversion;
 
 
 }  // namespace detail
