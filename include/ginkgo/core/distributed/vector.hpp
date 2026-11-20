@@ -64,19 +64,16 @@ class Partition;
  * @ingroup LinOp
  */
 template <typename ValueType = double>
-class Vector
-    : public LinOp,
-      public EnableCloneable<Vector<ValueType>>,
-      public ConvertibleTo<Vector<next_precision<ValueType>>>,
+class Vector : public EnableMultiVector<Vector<ValueType>>,
+               public ConvertibleTo<Vector<next_precision<ValueType>>>,
 #if GINKGO_ENABLE_HALF || GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
+               public ConvertibleTo<Vector<next_precision<ValueType, 2>>>,
 #endif
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
-      public ConvertibleTo<Vector<next_precision<ValueType, 3>>>,
+               public ConvertibleTo<Vector<next_precision<ValueType, 3>>>,
 #endif
-      public EnableAbsoluteComputation<remove_complex<Vector<ValueType>>>,
-      public DistributedBase {
-    friend class EnableCloneable<Vector>;
+               public DistributedBase {
+    friend class EnableMultiVector<Vector>;
     friend class Vector<to_complex<ValueType>>;
     friend class Vector<remove_complex<ValueType>>;
     friend class Vector<previous_precision<ValueType>>;
@@ -84,56 +81,20 @@ class Vector
     GKO_ASSERT_SUPPORTED_VALUE_TYPE;
 
 public:
-    using EnableCloneable<Vector>::convert_to;
-    using EnableCloneable<Vector>::move_to;
+    using EnableMultiVector<Vector>::convert_to;
+    using EnableMultiVector<Vector>::move_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<Vector<next_precision<ValueType>>>::move_to;
 
-    using value_type = ValueType;
-    using absolute_type = remove_complex<Vector>;
-    using real_type = absolute_type;
-    using complex_type = Vector<to_complex<value_type>>;
+    using value_type = typename EnableMultiVector<Vector>::value_type;
+    using absolute_type = typename EnableMultiVector<Vector>::absolute_type;
+    using real_type = typename EnableMultiVector<Vector>::real_type;
+    using complex_type = typename EnableMultiVector<Vector>::complex_type;
+    using norm_type = typename EnableMultiVector<Vector>::norm_type;
+    using device_view = typename EnableMultiVector<Vector>::device_view;
+    using const_device_view =
+        typename EnableMultiVector<Vector>::const_device_view;
     using local_vector_type = gko::matrix::MultiVector<value_type>;
-
-    /**
-     * Creates a distributed Vector with the same size and stride as another
-     * Vector.
-     *
-     * @param other  The other vector whose configuration needs to copied.
-     */
-    static std::unique_ptr<Vector> create_with_config_of(
-        ptr_param<const Vector> other);
-
-
-    /**
-     * Creates an empty Vector with the same type as another Vector, but on a
-     * different executor.
-     *
-     * @param other  The other multi-vector whose type we target.
-     * @param exec  The executor of the new multi-vector.
-     *
-     * @note  The new multi-vector uses the same communicator as other.
-     *
-     * @returns an empty Vector with the type of other.
-     */
-    static std::unique_ptr<Vector> create_with_type_of(
-        ptr_param<const Vector> other, std::shared_ptr<const Executor> exec);
-
-    /**
-     * Creates an Vector with the same type as another Vector, but on a
-     * different executor and with a different size.
-     *
-     * @param other  The other multi-vector whose type we target.
-     * @param exec  The executor of the new multi-vector.
-     * @param global_size  The global size of the multi-vector.
-     * @param local_size  The local size of the multi-vector.
-     * @param stride  The stride of the new multi-vector.
-     *
-     * @returns a Vector of specified size with the type of other.
-     */
-    static std::unique_ptr<Vector> create_with_type_of(
-        ptr_param<const Vector> other, std::shared_ptr<const Executor> exec,
-        const dim<2>& global_size, const dim<2>& local_size, size_type stride);
 
     /**
      * Reads a vector from the device_matrix_data structure and a global row
@@ -202,217 +163,6 @@ public:
     void move_to(Vector<next_precision<ValueType, 3>>* result) override;
 #endif
 
-    std::unique_ptr<absolute_type> compute_absolute() const override;
-
-    void compute_absolute_inplace() override;
-
-    /**
-     * Creates a complex copy of the original vectors. If the original vectors
-     * were real, the imaginary part of the result will be zero.
-     */
-    std::unique_ptr<complex_type> make_complex() const;
-
-    /**
-     * Writes a complex copy of the original vectors to given complex vectors.
-     * If the original vectors were real, the imaginary part of the result will
-     * be zero.
-     */
-    void make_complex(ptr_param<complex_type> result) const;
-
-    /**
-     * Creates new real vectors and extracts the real part of the original
-     * vectors into that.
-     */
-    std::unique_ptr<real_type> get_real() const;
-
-    /**
-     * Extracts the real part of the original vectors into given real vectors.
-     */
-    void get_real(ptr_param<real_type> result) const;
-
-    /**
-     * Creates new real vectors and extracts the imaginary part of the
-     * original vectors into that.
-     */
-    std::unique_ptr<real_type> get_imag() const;
-
-    /**
-     * Extracts the imaginary part of the original vectors into given real
-     * vectors.
-     */
-    void get_imag(ptr_param<real_type> result) const;
-
-    /**
-     * Fill the distributed vectors with a given value.
-     *
-     * @param value  the value to be filled
-     */
-    void fill(ValueType value);
-
-    /**
-     * Scales the vectors with a scalar (aka: BLAS scal).
-     *
-     * @param alpha  If alpha is 1x1 MultiVector matrx, the all vectors are
-     * scaled by alpha. If it is a MultiVector row vector of values, then i-th
-     * column vector is scaled with the i-th element of alpha (the number of
-     * columns of alpha has to match the number of vectors).
-     */
-    void scale(ptr_param<const LinOp> alpha);
-
-    /**
-     * Scales the vectors with the inverse of a scalar.
-     *
-     * @param alpha  If alpha is 1x1 MultiVector, the all vectors are scaled
-     *               by 1 / alpha. If it is a MultiVector row vector of values,
-     *               then i-th column vector is scaled with the inverse
-     *               of the i-th element of alpha (the number of columns of
-     *               alpha has to match the number of vectors).
-     */
-    void inv_scale(ptr_param<const LinOp> alpha);
-
-    /**
-     * Adds `b` scaled by `alpha` to the vectors (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 MultiVector, the all vectors of b are
-     * scaled by alpha. If it is a MultiVector row vector of values, then i-th
-     * column vector of b is scaled with the i-th element of alpha (the number
-     * of columns of alpha has to match the number of vectors).
-     * @param b  a (multi-)vector of the same dimension as this
-     */
-    void add_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Subtracts `b` scaled by `alpha` from the vectors (aka: BLAS axpy).
-     *
-     * @param alpha  If alpha is 1x1 MultiVector, the all vectors of b are
-     * scaled by alpha. If it is a MultiVector row vector of values, then i-th
-     * column vector of b is scaled with the i-th element of alpha (the number
-     * of c
-     * @param b  a (multi-)vector of the same dimension as this
-     */
-    void sub_scaled(ptr_param<const LinOp> alpha, ptr_param<const LinOp> b);
-
-    /**
-     * Computes the column-wise dot product of this (multi-)vector and `b` using
-     * a global reduction.
-     *
-     * @param b  a (multi-)vector of same dimension as this
-     * @param result  a row MultiVector, used to store the dot product
-     *                (the number of column in result must match the number
-     *                of columns of this)
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of this (multi-)vector and `b` using
-     * a global reduction.
-     *
-     * @param b  a (multi-)vector of same dimension as this
-     * @param result  a row MultiVector, used to store the dot product
-     *                (the number of column in result must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                     array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
-     * using a global reduction.
-     *
-     * @param b  a (multi-)vector of same dimension as this
-     * @param result  a row MultiVector, used to store the dot product
-     *                (the number of column in result must match the number
-     *                of columns of this)
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b,
-                          ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise dot product of this (multi-)vector and `conj(b)`
-     * using a global reduction.
-     *
-     * @param b  a (multi-)vector of same dimension as this
-     * @param result  a row MultiVector, used to store the dot product
-     *                (the number of column in result must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_conj_dot(ptr_param<const LinOp> b, ptr_param<LinOp> result,
-                          array<char>& tmp) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean (\f$L^2\f$) norm of this
-     * (multi-)vector using a global reduction.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the number
-     *                of columns of this)
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the square of the column-wise Euclidean (\f$L^2\f$) norm of this
-     * (multi-)vector using a global reduction.
-     *
-     * @param result  a MultiVector row vector, used to store the norm
-     *                (the number of columns in the vector must match the
-     *                number of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
-     * reduction.
-     *
-     * @param result  a row MultiVector, used to store the norm
-     *                (the number of columns in result must match the number
-     *                of columns of this)
-     */
-    void compute_norm2(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the Euclidean (L^2) norm of this (multi-)vector using a global
-     * reduction.
-     *
-     * @param result  a row MultiVector, used to store the norm
-     *                (the number of columns in result must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this (multi-)vector.
-     *
-     * @param result  a row MultiVector, used to store the norm
-     *                (the number of columns in result must match the number
-     *                of columns of this)
-     */
-    void compute_norm1(ptr_param<LinOp> result) const;
-
-    /**
-     * Computes the column-wise (L^1) norm of this (multi-)vector using a global
-     * reduction.
-     *
-     * @param result  a row MultiVector, used to store the norm
-     *                (the number of columns in result must match the number
-     *                of columns of this)
-     * @param tmp  the temporary storage to use for partial sums during the
-     *             reduction computation. It may be resized and/or reset to the
-     *             correct executor.
-     */
-    void compute_norm1(ptr_param<LinOp> result, array<char>& tmp) const;
-
     /**
      * Computes the column-wise mean of this (multi-)vector using a global
      * reduction.
@@ -421,7 +171,7 @@ public:
      *                (the number of columns in result must match the number
      *                of columns of this)
      */
-    void compute_mean(ptr_param<LinOp> result) const;
+    void compute_mean(ptr_param<AbstractMultiVector> result) const;
 
     /**
      * Computes the column-wise arithmetic mean of this (multi-)vector using a
@@ -434,7 +184,8 @@ public:
      *             reduction computation. It may be resized and/or reset to the
      *             correct executor.
      */
-    void compute_mean(ptr_param<LinOp> result, array<char>& tmp) const;
+    void compute_mean(ptr_param<AbstractMultiVector> result,
+                      array<char>& tmp) const;
 
     /**
      * Returns a single element of the multi-vector.
@@ -467,12 +218,12 @@ public:
      *        stored at (e.g. trying to call this method on a GPU matrix from
      *        the OMP results in a runtime error)
      */
-    ValueType& at_local(size_type idx) noexcept;
+    value_type& at_local(size_type idx) noexcept;
 
     /**
      * @copydoc Vector::at(size_type)
      */
-    ValueType at_local(size_type idx) const noexcept;
+    value_type at_local(size_type idx) const noexcept;
 
     /**
      * Returns a pointer to the array of local values of the multi-vector.
@@ -497,34 +248,42 @@ public:
      */
     const local_vector_type* get_local_vector() const;
 
-    /**
-     * Create a real view of the (potentially) complex original multi-vector.
-     * If the original vector is real, nothing changes. If the original vector
-     * is complex, the result is created by viewing the complex vector with as
-     * real with a reinterpret_cast with twice the number of columns and
-     * double the stride.
-     */
-    std::unique_ptr<const real_type> create_real_view() const;
-
-    /**
-     * @copydoc create_real_view
-     */
-    std::unique_ptr<real_type> create_real_view();
-
-    /**
-     * Creates a view of a submatrix of this vector.
-     *
-     * @param rows  The local rows of the submatrix
-     * @param columns  The local columns of the submatrix
-     * @param global_size  The global size of the submatrix
-     *
-     * @return A view of a submatrix.
-     */
-    std::unique_ptr<Vector> create_submatrix(local_span rows,
-                                             local_span columns,
-                                             dim<2> global_size);
-
     size_type get_stride() const noexcept { return local_.get_stride(); }
+
+    /**
+     * Converts the vector to the target precision type.
+     *
+     * @note This overload will include a copy-back operation when the temporary
+     *       conversion is destroyed, if OtherValueType != ValueType.
+     *
+     * @tparam OtherValueType The target precision type. If ValueType is real,
+     *                         OtherValueType must be real. If ValueType is
+     *                         complex, OtherValueType must be complex.
+     *
+     * @return Temporary conversion to the target precision type.
+     */
+    template <typename OtherValueType,
+              typename = std::enable_if_t<is_complex<ValueType>() ==
+                                          is_complex<OtherValueType>()>>
+    [[nodiscard]] temporary_conversion<Vector<OtherValueType>> as_precision();
+
+    /**
+     * Converts the vector to the target precision type.
+     *
+     * @note This overload will include a copy-back operation when the temporary
+     *       conversion is destroyed, if OtherValueType != ValueType.
+     *
+     * @tparam OtherValueType The target precision type. If ValueType is real,
+     *                         OtherValueType must be real. If ValueType is
+     *                         complex, OtherValueType must be complex.
+     *
+     * @return Temporary conversion to the target precision type.
+     */
+    template <typename OtherValueType,
+              typename = std::enable_if_t<is_complex<ValueType>() ==
+                                          is_complex<OtherValueType>()>>
+    [[nodiscard]] temporary_conversion<const Vector<OtherValueType>>
+    as_precision() const;
 
     /**
      * Creates an empty distributed vector with a specified size
@@ -655,41 +414,80 @@ protected:
         const device_matrix_data<ValueType, GlobalIndexType>& data,
         const Partition<LocalIndexType, GlobalIndexType>* partition);
 
-    void apply_impl(const LinOp*, LinOp*) const override;
+    void compute_absolute_inplace_impl() override;
 
-    void apply_impl(const LinOp*, const LinOp*, const LinOp*,
-                    LinOp*) const override;
+    [[nodiscard]] std::unique_ptr<Vector> create_with_same_config_impl()
+        const override;
 
-    /**
-     * Creates a distributed vector with the same size and stride as the callers
-     * vector.
-     *
-     * @returns a Vector with the same size and stride as the caller.
-     */
-    virtual std::unique_ptr<Vector> create_with_same_config() const;
-
-    /**
-     * Creates a Vector with the same type as the callers multi-vector.
-     *
-     * @note The new vector will use the same communicator as the caller.
-     *
-     * @param exec  the executor of the new vector.
-     * @param global_size  global_size of the vector.
-     * @param local_size  the size of the local MultiVector vector.
-     * @param stride  the stride of the local MultiVector vector.
-     *
-     * @returns a Vector with the same type as the caller.
-     */
-    virtual std::unique_ptr<Vector> create_with_type_of_impl(
+    [[nodiscard]] std::unique_ptr<Vector> create_with_type_of_impl(
         std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size, size_type stride) const;
+        const dim<2>& local_size, size_type stride) const override;
 
-    /**
-     * @copydoc create_submatrix
-     */
-    virtual std::unique_ptr<Vector> create_submatrix_impl(local_span rows,
-                                                          local_span columns,
-                                                          dim<2> global_size);
+    [[nodiscard]] std::unique_ptr<Vector> create_subview_impl(
+        local_span rows, local_span columns) override;
+
+    [[nodiscard]] std::unique_ptr<const Vector> create_subview_impl(
+        local_span rows, local_span columns) const override;
+
+    [[nodiscard]] std::unique_ptr<Vector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) override;
+
+    [[nodiscard]] std::unique_ptr<const Vector> create_subview_impl(
+        local_span rows, local_span columns, dim<2> global_size) const override;
+
+    [[nodiscard]] std::unique_ptr<const real_type> create_real_view_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> create_real_view_impl() override;
+
+    [[nodiscard]] std::unique_ptr<absolute_type> compute_absolute_impl()
+        const override;
+
+    void compute_absolute_impl(absolute_type* result) const override;
+
+    [[nodiscard]] std::unique_ptr<complex_type> make_complex_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_real_impl() const override;
+
+    [[nodiscard]] std::unique_ptr<real_type> get_imag_impl() const override;
+
+    void make_complex_impl(complex_type* result) const override;
+
+    void get_real_impl(real_type* result) const override;
+
+    void get_imag_impl(real_type* result) const override;
+
+    void fill_impl(value_type value) override;
+
+    void scale_impl(scaling_param<value_type> alpha) override;
+
+    void inv_scale_impl(scaling_param<value_type> alpha) override;
+
+    void add_scaled_impl(scaling_param<value_type> alpha,
+                         const Vector* b) override;
+
+    void sub_scaled_impl(scaling_param<value_type> alpha,
+                         const Vector* b) override;
+
+    void compute_dot_impl(const Vector* b,
+                          matrix::MultiVector<value_type>* result,
+                          array<char>& tmp) const override;
+
+    void compute_conj_dot_impl(const Vector* b,
+                               matrix::MultiVector<value_type>* result,
+                               array<char>& tmp) const override;
+
+    void compute_norm2_impl(norm_type* result, array<char>& tmp) const override;
+
+    void compute_squared_norm2_impl(norm_type* result,
+                                    array<char>& tmp) const override;
+
+    void compute_norm1_impl(norm_type* result, array<char>& tmp) const override;
+
+    device_view get_local_device_view_impl() override;
+
+    const_device_view get_const_local_device_view_impl() const override;
 
 private:
     local_vector_type local_;
