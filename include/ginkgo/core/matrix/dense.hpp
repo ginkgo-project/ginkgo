@@ -50,6 +50,10 @@ class SparsityCsr;
  * appear consecutive in the memory). Optionally, rows can be padded for better
  * memory access.
  *
+ * @note A dense matrix can be viewed as a multi-vector with no overhead. This
+ *       allows to use multi-vector exclusive operations on dense matrices, e.g.
+ *       permutations, row gather/scatter, etc.
+ *
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup dense
