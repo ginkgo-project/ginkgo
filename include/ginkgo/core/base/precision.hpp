@@ -51,11 +51,10 @@ template <typename T>
 struct precision_value;
 
 
-#define GKO_INSTANTIATE_PRECISION_VALUE(_type, _value)        \
-    template <>                                               \
-    struct precision_value<_type> {                           \
-        static constexpr precision value = precision::_value; \
-    }
+#define GKO_INSTANTIATE_PRECISION_VALUE(_type, _value) \
+    template <>                                        \
+    struct precision_value<_type>                      \
+        : std::integral_constant<precision, precision::_value> {}
 
 GKO_INSTANTIATE_PRECISION_VALUE(float, fp32);
 GKO_INSTANTIATE_PRECISION_VALUE(std::complex<float>, complex_fp32);
@@ -193,17 +192,56 @@ constexpr precision as_complex(precision p)
  * its alternatives.
  *
  * @param p The precision to map to the variant
+ * @throws InvalidStateError if the precision does not match any of the
+ *                           supported value types
  * @return A variant which value corresponds to the type matching the precision.
  */
-std::variant<
-#if GINKGO_ENABLE_HALF
-    half, std::complex<half>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-    bfloat16, std::complex<bfloat16>,
-#endif
-    float, std::complex<float>, double, std::complex<double>>
-precision_to_variant(precision p);
+syn::variant_from_list<supported_value_types> precision_to_variant(precision p);
+
+
+namespace detail {
+
+
+template <typename ResultVariant, typename T>
+ResultVariant precision_to_variant_impl(precision p)
+{
+    if (precision_v<T> != p) {
+        throw_unsupported_precision(__FILE__, __LINE__, __func__);
+    }
+    return T{};
+}
+
+template <typename ResultVariant, typename T, typename U, typename... Ts>
+ResultVariant precision_to_variant_impl(precision p)
+{
+    if (precision_v<T> == p) {
+        return T{};
+    }
+    return precision_to_variant_impl<ResultVariant, U, Ts...>(p);
+}
+
+
+}  // namespace detail
+
+
+/**
+ * Create a variant of a subset of value types from a precision.
+ *
+ * Similar to precision_to_variant, but only allows a subset of value types.
+ *
+ * @tparam T The first value type to consider
+ * @tparam Ts The other value types to consider, may be empty
+ * @param p The precision to map to the variant
+ * @throws InvalidStateError if the precision does not match any of the
+ *                           requested value types
+ * @return A variant which value corresponds to the type matching the precision.
+ */
+template <typename T, typename... Ts>
+std::variant<T, Ts...> precision_to_variant(precision p)
+{
+    return detail::precision_to_variant_impl<std::variant<T, Ts...>, T, Ts...>(
+        p);
+}
 
 
 }  // namespace gko

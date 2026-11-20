@@ -181,5 +181,22 @@ TEST(Precision, PrecisionToVariant)
 }
 
 
+TEST(Precision, PrecisionToVariantWithList)
+{
+    EXPECT_TRUE(std::holds_alternative<float>(
+        gko::precision_to_variant<float, double>(gko::precision::fp32)));
+    EXPECT_TRUE(std::holds_alternative<float>(
+        gko::precision_to_variant<float>(gko::precision::fp32)));
+    EXPECT_TRUE(std::holds_alternative<float>(
+        gko::precision_to_variant<double, std::complex<double>, float>(
+            gko::precision::fp32)));
+    auto call = []() {
+        gko::precision_to_variant<double, std::complex<double>,
+                                  std::complex<float>>(gko::precision::fp32);
+    };
+    EXPECT_THROW(call(), gko::InvalidStateError);
+}
+
+
 }  // namespace gko_test
 }  // namespace

@@ -49,15 +49,7 @@ std::string to_string(precision p)
 }
 
 
-std::variant<
-#if GINKGO_ENABLE_HALF
-    half, std::complex<half>,
-#endif
-#if GINKGO_ENABLE_BFLOAT16
-    bfloat16, std::complex<bfloat16>,
-#endif
-    float, std::complex<float>, double, std::complex<double>>
-precision_to_variant(precision p)
+syn::variant_from_list<supported_value_types> precision_to_variant(precision p)
 {
     switch (p) {
 #if GINKGO_ENABLE_HALF
