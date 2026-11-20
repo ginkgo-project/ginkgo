@@ -50,6 +50,10 @@ class SparsityCsr;
  * appear consecutive in the memory). Optionally, rows can be padded for better
  * memory access.
  *
+ * @note A dense matrix can be viewed as a multi-vector with no overhead. This
+ *       allows to use multi-vector exclusive operations on dense matrices, e.g.
+ *       permutations, row gather/scatter, etc.
+ *
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup dense
@@ -147,8 +151,11 @@ public:
     using transposed_type = Dense;
     using mat_data64 = matrix_data<value_type, int64>;
     using mat_data32 = matrix_data<value_type, int32>;
+    using mat_data [[deprecated("Use mat_data64 instead.")]] = mat_data64;
     using device_mat_data64 = device_matrix_data<value_type, int64>;
     using device_mat_data32 = device_matrix_data<value_type, int32>;
+    using device_mat_data [[deprecated("Use device_mat_data64 instead.")]] =
+        device_mat_data64;
     using device_view = view::dense<value_type>;
     using const_device_view = view::dense<const value_type>;
 

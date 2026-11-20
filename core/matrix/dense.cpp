@@ -888,14 +888,14 @@ size_type Dense<ValueType>::get_num_stored_elements() const noexcept
 
 
 template <typename ValueType>
-Dense<ValueType>::Dense(const Dense& other) : LinOp(other.get_executor())
+Dense<ValueType>::Dense(const Dense& other) : Dense(other.get_executor())
 {
     *this = other;
 }
 
 
 template <typename ValueType>
-Dense<ValueType>::Dense(Dense&& other) : LinOp(other.get_executor())
+Dense<ValueType>::Dense(Dense&& other) : Dense(other.get_executor())
 {
     *this = std::move(other);
 }
@@ -912,9 +912,8 @@ Dense<ValueType>& Dense<ValueType>::operator=(const Dense& other)
             this->stride_ = this->get_size()[1];
             this->values_.resize_and_reset(this->get_size()[0] * this->stride_);
         }
-        // we need to create a executor-local clone of the target data, that
-        // will be copied back later. Need temporary_clone, not
-        // temporary_output_clone to avoid overwriting padding
+        // Need temporary_clone, not temporary_output_clone to avoid overwriting
+        // padding
         auto exec = other.get_executor();
         auto exec_values_array = make_temporary_clone(exec, &this->values_);
         exec->run(
