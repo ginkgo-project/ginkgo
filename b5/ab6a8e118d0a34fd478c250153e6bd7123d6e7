@@ -1,0 +1,14 @@
+include/ginkgo/core/base/temporary_conversion.hpp
+  h_0aeb61ed714320 191-192,196-198,204-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "b5ab6a8e118d0a34fd478c250153e6bd7123d6e7",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}

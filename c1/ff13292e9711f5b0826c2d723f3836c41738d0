@@ -1,0 +1,23 @@
+core/test/base/temporary_conversion.cpp
+  s_dae9702e5a3f36::t_4f30ac81066c1f 71-92,123,181,190,349-411,479-514
+  s_dae9702e5a3f36::t_f03372c2c74fcb 182,187-189,193-239,285-348
+  s_dae9702e5a3f36::t_5708010c2cbf4c 180
+  s_dae9702e5a3f36::t_5ba3f937117485 183-186
+  s_dae9702e5a3f36::t_75a944659b0261 191-192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "c1ff13292e9711f5b0826c2d723f3836c41738d0",
+  "prompts": {},
+  "sessions": {
+    "s_dae9702e5a3f36": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0f7bfd3a-d8e3-4377-8cfa-6f76f8cfdb11",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
