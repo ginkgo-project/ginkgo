@@ -15,6 +15,7 @@
 #include <ginkgo/core/config/config.hpp>
 #include <ginkgo/core/config/registry.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/base/extended_float.hpp"
@@ -198,10 +199,10 @@ void Jacobi<ValueType, IndexType>::apply_impl(const LinOp* alpha,
 
 template <typename ValueType, typename IndexType>
 void Jacobi<ValueType, IndexType>::convert_to(
-    matrix::MultiVector<ValueType>* result) const
+    matrix::Dense<ValueType>* result) const
 {
     auto exec = this->get_executor();
-    auto tmp = matrix::MultiVector<ValueType>::create(exec, this->get_size());
+    auto tmp = matrix::Dense<ValueType>::create(exec, this->get_size());
     if (parameters_.max_block_size == 1) {
         exec->run(jacobi::make_scalar_convert_to_dense(blocks_,
                                                        tmp->get_device_view()));
@@ -216,8 +217,7 @@ void Jacobi<ValueType, IndexType>::convert_to(
 
 
 template <typename ValueType, typename IndexType>
-void Jacobi<ValueType, IndexType>::move_to(
-    matrix::MultiVector<ValueType>* result)
+void Jacobi<ValueType, IndexType>::move_to(matrix::Dense<ValueType>* result)
 {
     this->convert_to(result);  // no special optimization possible here
 }

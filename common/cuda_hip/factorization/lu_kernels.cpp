@@ -13,6 +13,7 @@
 #include <thrust/tuple.h>
 
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 #include "common/cuda_hip/base/thrust.hpp"
 #include "common/cuda_hip/base/types.hpp"

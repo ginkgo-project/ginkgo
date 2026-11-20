@@ -300,8 +300,17 @@ function(ginkgo_create_cuda_test_internal test_name filename test_target_name)
             ${test_target_name}
             PRIVATE
                 $<$<COMPILE_LANGUAGE:CUDA>:--expt-extended-lambda
-                --expt-relaxed-constexpr>
+                --expt-relaxed-constexpr
+                >
         )
+        # Suppress warnings on CUDA >= 11.2 using --diag-suppress
+        # 997: remove false positive warning about overloading virtual functions
+        if(CUDAToolkit_VERSION VERSION_GREATER 11.1)
+            target_compile_options(
+                ${test_target_name}
+                PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress 997 >
+            )
+        endif()
     endif()
     ginkgo_set_test_target_properties(${test_target_name} "_cuda" ${ARGN})
     ginkgo_add_test(

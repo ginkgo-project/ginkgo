@@ -17,6 +17,7 @@
 #include <ginkgo/core/distributed/row_gatherer.hpp>
 #include <ginkgo/core/distributed/row_scatterer.hpp>
 #include <ginkgo/core/distributed/vector.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 
 #include "core/test/utils.hpp"
 #include "test/utils/mpi/common_fixture.hpp"

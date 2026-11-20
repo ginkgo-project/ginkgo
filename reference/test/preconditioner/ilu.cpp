@@ -10,6 +10,7 @@
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/factorization/par_ilu.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/solver/bicgstab.hpp>
@@ -29,6 +30,7 @@ class Ilu : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using l_solver_type = gko::solver::Bicgstab<value_type>;
     using u_solver_type = gko::solver::Bicgstab<value_type>;
     using ilu_prec_type = gko::preconditioner::Ilu<value_type, false>;
@@ -37,11 +39,11 @@ protected:
 
     Ilu()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>({{2., 1., 1.}, {2., 5., 2.}, {2., 5., 5.}},
-                                   exec)),
-          l_factor(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>({{2., 1., 1.}, {2., 5., 2.}, {2., 5., 5.}},
+                                     exec)),
+          l_factor(gko::initialize<Dense>(
               {{1., 0., 0.}, {1., 1., 0.}, {1., 1., 1.}}, exec)),
-          u_factor(gko::initialize<Mtx>(
+          u_factor(gko::initialize<Dense>(
               {{2., 1., 1.}, {0., 4., 1.}, {0., 0., 3.}}, exec)),
           l_u_composition(Composition::create(l_factor, u_factor)),
           l_factory(l_solver_type::build()
@@ -71,9 +73,9 @@ protected:
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<Mtx> mtx;
-    std::shared_ptr<Mtx> l_factor;
-    std::shared_ptr<Mtx> u_factor;
+    std::shared_ptr<Dense> mtx;
+    std::shared_ptr<Dense> l_factor;
+    std::shared_ptr<Dense> u_factor;
     std::shared_ptr<Composition> l_u_composition;
     std::shared_ptr<typename l_solver_type::Factory> l_factory;
     std::shared_ptr<typename u_solver_type::Factory> u_factory;
@@ -129,7 +131,7 @@ TYPED_TEST(Ilu, ThrowOnWrongCompositionInput2)
 
 TYPED_TEST(Ilu, SetsCorrectMatrices)
 {
-    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using lower_trs = typename TestFixture::l_solver_type;
     using upper_trs = typename TestFixture::u_solver_type;
     auto ilu = this->ilu_pre_factory->generate(this->l_u_composition);
@@ -140,11 +142,11 @@ TYPED_TEST(Ilu, SetsCorrectMatrices)
 
     // These convert steps are required since `get_system_matrix` usually
     // just returns `LinOp`, which `GKO_ASSERT_MTX_NEAR` can not use properly
-    std::unique_ptr<Mtx> converted_l_factor{Mtx::create(this->exec)};
-    std::unique_ptr<Mtx> converted_u_factor{Mtx::create(this->exec)};
-    gko::as<gko::ConvertibleTo<Mtx>>(internal_l_factor.get())
+    std::unique_ptr<Dense> converted_l_factor{Dense::create(this->exec)};
+    std::unique_ptr<Dense> converted_u_factor{Dense::create(this->exec)};
+    gko::as<gko::ConvertibleTo<Dense>>(internal_l_factor.get())
         ->convert_to(converted_l_factor);
-    gko::as<gko::ConvertibleTo<Mtx>>(internal_u_factor.get())
+    gko::as<gko::ConvertibleTo<Dense>>(internal_u_factor.get())
         ->convert_to(converted_u_factor);
     GKO_ASSERT_MTX_NEAR(converted_l_factor, this->l_factor, 0);
     GKO_ASSERT_MTX_NEAR(converted_u_factor, this->u_factor, 0);
@@ -154,23 +156,23 @@ TYPED_TEST(Ilu, SetsCorrectMatrices)
 TYPED_TEST(Ilu, CanBeTransposed)
 {
     using Ilu = typename TestFixture::ilu_prec_type;
-    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using lower_trs = typename TestFixture::l_solver_type;
     using upper_trs = typename TestFixture::u_solver_type;
     auto ilu = this->ilu_pre_factory->generate(this->l_u_composition);
-    auto l_ref = gko::as<Mtx>(
+    auto l_ref = gko::as<Dense>(
         gko::as<lower_trs>(ilu->get_l_solver())->get_system_matrix());
-    auto u_ref = gko::as<Mtx>(
+    auto u_ref = gko::as<Dense>(
         gko::as<upper_trs>(ilu->get_u_solver())->get_system_matrix());
 
     auto transp = gko::as<Ilu>(ilu->transpose());
 
-    auto l_transp = gko::as<Mtx>(
-        gko::as<Mtx>(
+    auto l_transp = gko::as<Dense>(
+        gko::as<Dense>(
             gko::as<upper_trs>(transp->get_u_solver())->get_system_matrix())
             ->transpose());
-    auto u_transp = gko::as<Mtx>(
-        gko::as<Mtx>(
+    auto u_transp = gko::as<Dense>(
+        gko::as<Dense>(
             gko::as<lower_trs>(transp->get_l_solver())->get_system_matrix())
             ->transpose());
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_transp);
@@ -183,23 +185,23 @@ TYPED_TEST(Ilu, CanBeTransposed)
 TYPED_TEST(Ilu, CanBeConjTransposed)
 {
     using Ilu = typename TestFixture::ilu_prec_type;
-    using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using lower_trs = typename TestFixture::l_solver_type;
     using upper_trs = typename TestFixture::u_solver_type;
     auto ilu = this->ilu_pre_factory->generate(this->l_u_composition);
-    auto l_ref = gko::as<Mtx>(
+    auto l_ref = gko::as<Dense>(
         gko::as<lower_trs>(ilu->get_l_solver())->get_system_matrix());
-    auto u_ref = gko::as<Mtx>(
+    auto u_ref = gko::as<Dense>(
         gko::as<upper_trs>(ilu->get_u_solver())->get_system_matrix());
 
     auto transp = gko::as<Ilu>(ilu->conj_transpose());
 
-    auto l_transp = gko::as<Mtx>(
-        gko::as<Mtx>(
+    auto l_transp = gko::as<Dense>(
+        gko::as<Dense>(
             gko::as<upper_trs>(transp->get_u_solver())->get_system_matrix())
             ->conj_transpose());
-    auto u_transp = gko::as<Mtx>(
-        gko::as<Mtx>(
+    auto u_transp = gko::as<Dense>(
+        gko::as<Dense>(
             gko::as<lower_trs>(transp->get_l_solver())->get_system_matrix())
             ->conj_transpose());
     GKO_ASSERT_MTX_EQ_SPARSITY(l_ref, l_transp);
@@ -513,16 +515,17 @@ TYPED_TEST(Ilu, SolvesDifferentNumberOfRhs)
 class DefaultIlu : public ::testing::Test {
 protected:
     using Mtx = gko::matrix::MultiVector<>;
+    using Dense = gko::matrix::Dense<>;
     using default_ilu_prec_type = gko::preconditioner::Ilu<>;
 
     DefaultIlu()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>({{2., 1., 1.}, {2., 5., 2.}, {2., 5., 5.}},
-                                   exec))
+          mtx(gko::initialize<Dense>({{2., 1., 1.}, {2., 5., 2.}, {2., 5., 5.}},
+                                     exec))
     {}
 
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Dense> mtx;
 };
 
 
