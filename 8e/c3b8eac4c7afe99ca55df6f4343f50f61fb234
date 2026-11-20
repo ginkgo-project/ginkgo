@@ -1,0 +1,21 @@
+include/ginkgo/core/matrix/multivector.hpp
+  s_8b98f88c1d6b13::t_42682dc50208c9 525,530,667-669,685,687,694-696,712,721,738-739,742,745,755-757,760,764,766,791-797
+  s_8b98f88c1d6b13::t_b918e8487af229 190-191,193,199-202,206,223,237-239,248,270,286,292,311,327,336,360,387-388,392,412-413,417,437,441,456,459,462,475,478,484,496-497,501,507,524,529,576-577,581,602-603,843-844
+  s_8b98f88c1d6b13::t_2a6e8890d55014 531-532
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "8ec3b8eac4c7afe99ca55df6f4343f50f61fb234",
+  "prompts": {},
+  "sessions": {
+    "s_8b98f88c1d6b13": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3a36a391-6523-4218-84d4-1d118852abac",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
