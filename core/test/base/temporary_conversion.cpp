@@ -361,13 +361,108 @@ TEST_F(TemporaryConversion, CreateFromBaseTypeNonConvertibleUniquePtrThrows)
 TEST_F(TemporaryConversion, CreateNonConstFromSameTypeCopiesBack)
 {
     {
-        auto tmp = gko::temporary_conversion<Vec>::create(vec.get());
+        auto tmp = gko::temporary_conversion<MixedVec>::create(vec.get());
         tmp->at(0, 0) = -1.0;
         tmp->at(0, 1) = -2.0;
+
+        EXPECT_EQ(vec->at(0, 0), 2.0);
+        EXPECT_EQ(vec->at(1, 0), 3.0);
     }
 
     EXPECT_EQ(vec->at(0, 0), -1.0);
     EXPECT_EQ(vec->at(0, 1), -2.0);
+}
+
+
+TEST_F(TemporaryConversion, CreateNonConstFromConvertibleTypeCopiesBackOnDelete)
+{
+    {
+        auto tmp = gko::temporary_conversion<MixedVec>::create(vec.get());
+        tmp->at(0, 0) = -1.0;
+        tmp->at(1, 0) = -2.0;
+
+        EXPECT_EQ(vec->at(0, 0), 2.0);
+        EXPECT_EQ(vec->at(1, 0), 3.0);
+    }
+
+    EXPECT_EQ(vec->at(0, 0), -1.0);
+    EXPECT_EQ(vec->at(1, 0), -2.0);
+}
+
+
+TEST_F(TemporaryConversion, CreateNonConstFromSameTypeModifiesOriginal)
+{
+    {
+        auto tmp = gko::temporary_conversion<Vec>::create(vec.get());
+        tmp->at(0, 0) = -1.0;
+        tmp->at(1, 0) = -2.0;
+    }
+
+    EXPECT_EQ(vec->at(0, 0), -1.0);
+    EXPECT_EQ(vec->at(1, 0), -2.0);
+}
+
+
+TEST_F(TemporaryConversion, CreateNonConstFromBaseTypeModifiesOriginal)
+{
+    {
+        auto tmp = gko::temporary_conversion<Vec>::create(
+            static_cast<gko::PolymorphicObject*>(vec.get()));
+        tmp->at(0, 0) = -1.0;
+        tmp->at(1, 0) = -2.0;
+    }
+
+    EXPECT_EQ(vec->at(0, 0), -1.0);
+    EXPECT_EQ(vec->at(1, 0), -2.0);
+}
+
+
+TEST_F(TemporaryConversion, ConstCreateFromConvertibleTypeDoesNotCopyBack)
+{
+    {
+        auto tmp = gko::temporary_conversion<const MixedVec>::create(vec.get());
+        // the converted object is a non-const temporary, so this is valid
+        const_cast<MixedVec*>(tmp.get())->at(0, 0) = -1.0;
+        const_cast<MixedVec*>(tmp.get())->at(1, 0) = -2.0;
+    }
+
+    EXPECT_EQ(vec->at(0, 0), 2.0);
+    EXPECT_EQ(vec->at(1, 0), 3.0);
+}
+
+
+TEST_F(TemporaryConversion, CreateNonConstChainFromDerivedTypeCopiesBack)
+{
+    {
+        auto tmp = gko::temporary_conversion<MixedVec>::create(vec.get());
+        auto tmp_base = gko::temporary_conversion<
+            gko::AbstractMultiVector>::create_from_derived(std::move(tmp));
+        auto mixed = dynamic_cast<MixedVec*>(tmp_base.get());
+        ASSERT_NE(mixed, nullptr);
+        mixed->at(0, 0) = -1.0;
+        mixed->at(1, 0) = -2.0;
+    }
+
+    EXPECT_EQ(vec->at(0, 0), -1.0);
+    EXPECT_EQ(vec->at(1, 0), -2.0);
+}
+
+
+TEST_F(TemporaryConversion, CreateNonConstChainFromBaseTypeCopiesBack)
+{
+    {
+        auto tmp = gko::temporary_conversion<MixedVec>::create(vec.get());
+        auto tmp_base = gko::temporary_conversion<
+            gko::AbstractMultiVector>::create_from_derived(std::move(tmp));
+        auto tmp_derived =
+            gko::temporary_conversion<MixedVec>::create_from_base(
+                std::move(tmp_base));
+        tmp_derived->at(0, 0) = -1.0;
+        tmp_derived->at(1, 0) = -2.0;
+    }
+
+    EXPECT_EQ(vec->at(0, 0), -1.0);
+    EXPECT_EQ(vec->at(1, 0), -2.0);
 }
 
 
@@ -395,7 +490,7 @@ TEST_F(TemporaryConversion, ConstCreateChainFromBaseType)
         std::move(tmp));
 
     EXPECT_EQ(typeid(tmp_linop.get()), typeid(const LinOpB*));
-    EXPECT_EQ(lB->get_value(), lB->get_value());
+    EXPECT_EQ(tmp_linop->get_value(), lB->get_value());
     EXPECT_EQ(log->count, 0);
 }
 
