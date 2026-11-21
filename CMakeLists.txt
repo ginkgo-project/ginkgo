@@ -160,6 +160,7 @@ option(
     OFF
 )
 option(BUILD_SHARED_LIBS "Build shared (.so, .dylib, .dll) libraries" ON)
+option(GINKGO_BUILD_LAPACK "Build Ginkgo with LAPACK. Default is OFF." OFF)
 option(
     GINKGO_BUILD_PAPI_SDE
     "Build Ginkgo with PAPI SDE. Enabled if a system installation is found."
@@ -404,6 +405,14 @@ ginkgo_find_umpire()
 set(GINKGO_HAVE_ROCTX 0)
 if(GINKGO_BUILD_HIP AND ROCTX_FOUND)
     set(GINKGO_HAVE_ROCTX 1)
+endif()
+
+set(GINKGO_HAVE_LAPACK 0)
+if(GINKGO_BUILD_LAPACK)
+    # Need CMake 3.18+ to use LAPACK::LAPACK target
+    cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
+    find_package(LAPACK REQUIRED)
+    set(GINKGO_HAVE_LAPACK 1)
 endif()
 
 set(GINKGO_HAVE_GPU_AWARE_MPI OFF)

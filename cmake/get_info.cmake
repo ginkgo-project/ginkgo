@@ -151,7 +151,7 @@ foreach(log_type ${log_types})
     ginkgo_print_module_footer(${${log_type}} "  Enabled features:")
     ginkgo_print_foreach_variable(
         ${${log_type}}
-        "GINKGO_MIXED_PRECISION;GINKGO_HAVE_GPU_AWARE_MPI;GINKGO_ENABLE_HALF;GINKGO_ENABLE_BFLOAT16"
+        "GINKGO_MIXED_PRECISION;GINKGO_HAVE_GPU_AWARE_MPI;GINKGO_ENABLE_HALF;GINKGO_ENABLE_BFLOAT16;GINKGO_HAVE_LAPACK"
     )
     ginkgo_print_module_footer(
         ${${log_type}}

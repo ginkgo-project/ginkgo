@@ -11,6 +11,10 @@
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
+#if GKO_HAVE_LAPACK  // Must be after Ginkgo include for GKO_HAVE_LAPACK def
+#include <hipsolver/hipsolver.h>
+#endif
+
 
 namespace {
 
@@ -61,6 +65,20 @@ TEST(AssertNoHipsparseErrors, DoesNotThrowOnSuccess)
 {
     ASSERT_NO_THROW(GKO_ASSERT_NO_HIPSPARSE_ERRORS(HIPSPARSE_STATUS_SUCCESS));
 }
+
+
+#if GKO_HAVE_LAPACK
+TEST(AssertNoHipsolverErrors, ThrowsOnError)
+{
+    ASSERT_THROW(GKO_ASSERT_NO_HIPSOLVER_ERRORS(1), gko::HipsolverError);
+}
+
+
+TEST(AssertNoHipsolverErrors, DoesNotThrowOnSuccess)
+{
+    ASSERT_NO_THROW(GKO_ASSERT_NO_HIPSOLVER_ERRORS(HIPSOLVER_STATUS_SUCCESS));
+}
+#endif
 
 
 }  // namespace

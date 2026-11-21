@@ -175,6 +175,12 @@ std::string HipsparseError::get_error(int64)
 }
 
 
+std::string HipsolverError::get_error(int64)
+{
+    return "ginkgo HIP module is not compiled";
+}
+
+
 std::string HipfftError::get_error(int64)
 {
     return "ginkgo HIP module is not compiled";
