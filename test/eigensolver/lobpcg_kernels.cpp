@@ -279,7 +279,6 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigThrowsLapackErrorOnIndefiniteB)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
 
-    auto refwork = gko::array<char>(this->ref, 1);
     auto d_work = gko::array<char>(this->exec, 1);
 
     if constexpr (gko::is_complex_s<value_type>::value) {
@@ -294,10 +293,6 @@ TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigThrowsLapackErrorOnIndefiniteB)
     this->d_small_a = gko::clone(this->exec, this->small_a);
     this->d_small_b = gko::clone(this->exec, this->small_b);
 
-    ASSERT_THROW(gko::kernels::reference::lobpcg::symm_generalized_eig(
-                     this->ref, this->small_a.get(), this->small_b.get(),
-                     &(this->small_e_vals), &refwork),
-                 gko::LapackError);
     ASSERT_THROW(
         gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::symm_generalized_eig(
             this->exec, this->d_small_a.get(), this->d_small_b.get(),
@@ -311,7 +306,6 @@ TYPED_TEST(Lobpcg, KernelBOrthonormalizeThrowsLapackErrorOnIndefiniteB)
     using Mtx = typename TestFixture::Mtx;
     using value_type = typename TestFixture::value_type;
 
-    auto refwork = gko::array<char>(this->ref, 1);
     auto d_work = gko::array<char>(this->exec, 1);
 
     std::shared_ptr<Mtx> small_a;
@@ -331,9 +325,6 @@ TYPED_TEST(Lobpcg, KernelBOrthonormalizeThrowsLapackErrorOnIndefiniteB)
     auto d_small_a = gko::clone(this->exec, small_a);
     auto d_small_b = gko::clone(this->exec, small_b);
 
-    ASSERT_THROW(gko::kernels::reference::lobpcg::b_orthonormalize(
-                     this->ref, small_a.get(), small_b.get(), &refwork),
-                 gko::LapackError);
     ASSERT_THROW(gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::b_orthonormalize(
                      this->exec, d_small_a.get(), d_small_b.get(), &d_work),
                  gko::LapackError);

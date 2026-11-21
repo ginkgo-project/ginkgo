@@ -261,3 +261,95 @@ TYPED_TEST(Lobpcg, KernelBOrthonormalize)
     aH_b_a->apply(after_b_ortho_H, result);
     GKO_ASSERT_MTX_NEAR(result, after_b_ortho_H, r<value_type>::value);
 }
+
+
+TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigWithStridedB)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using Ary = typename TestFixture::Ary;
+    using value_type = typename TestFixture::value_type;
+
+    auto work = gko::array<char>(this->exec, 1);
+    std::shared_ptr<Mtx> small_a;
+    std::shared_ptr<Mtx> small_b_orig;
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        small_a = gko::clone(this->small_a_cmplx);
+        small_b_orig = this->small_b_cmplx;
+    } else {
+        small_a = gko::clone(this->small_a_r);
+        small_b_orig = this->small_b_r;
+    }
+    const auto n = small_a->get_size()[0];
+    auto small_a_copy = gko::clone(small_a);
+    auto small_b = Mtx::create(this->exec, small_b_orig->get_size(), 2 * n);
+    small_b->copy_from(small_b_orig);
+    ASSERT_EQ(small_b->get_stride(), 2 * n);
+
+    gko::kernels::reference::lobpcg::symm_generalized_eig(
+        this->exec, small_a.get(), small_b.get(), &(this->small_e_vals), &work);
+
+    for (gko::size_type i = 0; i < n; i++) {
+        auto evec = Mtx::create(
+            this->exec, gko::dim<2>{n, 1},
+            Ary::view(this->exec, n, small_a->get_values() + i * n), 1);
+        auto a_x = Mtx::create(this->exec, gko::dim<2>{n, 1});
+        auto lambda_b_x = Mtx::create(this->exec, gko::dim<2>{n, 1});
+        small_a_copy->apply(evec, a_x);
+        small_b_orig->apply(evec, lambda_b_x);
+        lambda_b_x->scale(gko::initialize<Mtx>(
+            {value_type{this->small_e_vals.get_const_data()[i]}}, this->exec));
+
+        GKO_ASSERT_MTX_NEAR(a_x, lambda_b_x, r<value_type>::value);
+    }
+}
+
+
+TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigThrowsLapackErrorOnIndefiniteB)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto work = gko::array<char>(this->exec, 1);
+    std::shared_ptr<Mtx> small_a;
+    std::shared_ptr<Mtx> small_b;
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        small_a = this->small_a_cmplx;
+        small_b = this->small_b_cmplx;
+    } else {
+        small_a = this->small_a_r;
+        small_b = this->small_b_r;
+    }
+    small_b->scale(gko::initialize<Mtx>({-gko::one<value_type>()}, this->exec));
+
+    ASSERT_THROW(gko::kernels::reference::lobpcg::symm_generalized_eig(
+                     this->exec, small_a.get(), small_b.get(),
+                     &(this->small_e_vals), &work),
+                 gko::LapackError);
+}
+
+
+TYPED_TEST(Lobpcg, KernelBOrthonormalizeThrowsLapackErrorOnIndefiniteB)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto work = gko::array<char>(this->exec, 1);
+    std::shared_ptr<Mtx> small_a;
+    std::shared_ptr<Mtx> small_b;
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        small_a = this->small_a_cmplx->create_submatrix(
+            gko::span{0, this->small_a_cmplx->get_size()[0]},
+            gko::span{0, this->small_a_cmplx->get_size()[0] - 1});
+        small_b = gko::clone(this->small_b_cmplx);
+    } else {
+        small_a = this->small_a_r->create_submatrix(
+            gko::span{0, this->small_a_r->get_size()[0]},
+            gko::span{0, this->small_a_r->get_size()[0] - 1});
+        small_b = gko::clone(this->small_b_r);
+    }
+    small_b->scale(gko::initialize<Mtx>({-gko::one<value_type>()}, this->exec));
+
+    ASSERT_THROW(gko::kernels::reference::lobpcg::b_orthonormalize(
+                     this->exec, small_a.get(), small_b.get(), &work),
+                 gko::LapackError);
+}
