@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2025 The Ginkgo authors
+// SPDX-FileCopyrightText: 2025 - 2026 The Ginkgo authors
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
@@ -7,7 +7,6 @@
 
 
 #include <hipsolver/hipsolver.h>
-
 
 #include <ginkgo/core/base/exception_helpers.hpp>
 
