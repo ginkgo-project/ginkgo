@@ -4,6 +4,7 @@
 
 #include "core/components/format_conversion_kernels.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <random>
 #include <vector>
@@ -104,6 +105,31 @@ TYPED_TEST(FormatConversion, ConvertIdxsToPtrsIsEquivalentToRef)
         this->size, this->ptrs.get_data());
 
     GKO_ASSERT_ARRAY_EQ(this->ptrs, ref_ptrs);
+}
+
+
+TYPED_TEST(FormatConversion, ConvertSparseIdxsWithLargeGapsToPtrs)
+{
+    // few entries spread over many blocks, with empty blocks before the first
+    // and after the last entry (e.g. the halo rows of a distributed matrix)
+    const gko::size_type num_blocks = 1000003;
+    const std::vector<TypeParam> rows{17, 17, 4711, 99999, 99999, 99999, 512345};
+    gko::array<TypeParam> idxs{this->ref, rows.begin(), rows.end()};
+    gko::array<TypeParam> ref_ptrs{this->ref, num_blocks + 1};
+    for (gko::size_type b = 0; b <= num_blocks; b++) {
+        ref_ptrs.get_data()[b] = static_cast<TypeParam>(
+            std::lower_bound(rows.begin(), rows.end(), static_cast<TypeParam>(b)) -
+            rows.begin());
+    }
+    idxs.set_executor(this->exec);
+    gko::array<TypeParam> ptrs{this->exec, num_blocks + 1};
+    ptrs.fill(-1);
+
+    gko::kernels::GKO_DEVICE_NAMESPACE::components::convert_idxs_to_ptrs(
+        this->exec, idxs.get_const_data(), idxs.get_size(), num_blocks,
+        ptrs.get_data());
+
+    GKO_ASSERT_ARRAY_EQ(ptrs, ref_ptrs);
 }
 
 

@@ -47,20 +47,25 @@ void convert_idxs_to_ptrs(std::shared_ptr<const DefaultExecutor> exec,
     if (num_idxs == 0) {
         fill_array(exec, ptrs, num_blocks + 1, RowPtrType{});
     } else {
+        // one work item per block: ptrs[block] = number of idxs < block,
+        // found by binary search in the sorted idxs. The work per item does
+        // not depend on the gaps between consecutive idxs (empty blocks).
         run_kernel(
             exec,
-            [] GKO_KERNEL(auto i, auto num_idxs, auto num_blocks, auto idxs,
-                          auto ptrs) {
-                auto begin = i == 0 ? IndexType{} : idxs[i - 1];
-                auto end = i == num_idxs ? num_blocks : idxs[i];
-                for (auto block = begin; block < end; block++) {
-                    ptrs[block + 1] = i;
+            [] GKO_KERNEL(auto block, auto num_idxs, auto idxs, auto ptrs) {
+                int64 lo = 0;
+                int64 hi = num_idxs;
+                while (lo < hi) {
+                    const auto mid = lo + (hi - lo) / 2;
+                    if (idxs[mid] < block) {
+                        lo = mid + 1;
+                    } else {
+                        hi = mid;
+                    }
                 }
-                if (i == 0) {
-                    ptrs[0] = 0;
-                }
+                ptrs[block] = static_cast<RowPtrType>(lo);
             },
-            num_idxs + 1, num_idxs, num_blocks, idxs, ptrs);
+            num_blocks + 1, static_cast<int64>(num_idxs), idxs, ptrs);
     }
 }
 
