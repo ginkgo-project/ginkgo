@@ -15,27 +15,27 @@ extern "C" {
 
 
 // Triangular matrix-matrix multiplication
-void strmm(const char* side, const char* uplo, const char* transa,
-           const char* diag, const std::int32_t* m, const std::int32_t* n,
-           const float* alpha, const float* A, const std::int32_t* lda,
-           float* B, const std::int32_t* ldb);
+void strmm_(const char* side, const char* uplo, const char* transa,
+            const char* diag, const std::int32_t* m, const std::int32_t* n,
+            const float* alpha, const float* A, const std::int32_t* lda,
+            float* B, const std::int32_t* ldb);
 
-void dtrmm(const char* side, const char* uplo, const char* transa,
-           const char* diag, const std::int32_t* m, const std::int32_t* n,
-           const double* alpha, const double* A, const std::int32_t* lda,
-           double* B, const std::int32_t* ldb);
+void dtrmm_(const char* side, const char* uplo, const char* transa,
+            const char* diag, const std::int32_t* m, const std::int32_t* n,
+            const double* alpha, const double* A, const std::int32_t* lda,
+            double* B, const std::int32_t* ldb);
 
-void ctrmm(const char* side, const char* uplo, const char* transa,
-           const char* diag, const std::int32_t* m, const std::int32_t* n,
-           const std::complex<float>* alpha, const std::complex<float>* A,
-           const std::int32_t* lda, std::complex<float>* B,
-           const std::int32_t* ldb);
+void ctrmm_(const char* side, const char* uplo, const char* transa,
+            const char* diag, const std::int32_t* m, const std::int32_t* n,
+            const std::complex<float>* alpha, const std::complex<float>* A,
+            const std::int32_t* lda, std::complex<float>* B,
+            const std::int32_t* ldb);
 
-void ztrmm(const char* side, const char* uplo, const char* transa,
-           const char* diag, const std::int32_t* m, const std::int32_t* n,
-           const std::complex<double>* alpha, const std::complex<double>* A,
-           const std::int32_t* lda, std::complex<double>* B,
-           const std::int32_t* ldb);
+void ztrmm_(const char* side, const char* uplo, const char* transa,
+            const char* diag, const std::int32_t* m, const std::int32_t* n,
+            const std::complex<double>* alpha, const std::complex<double>* A,
+            const std::int32_t* lda, std::complex<double>* B,
+            const std::int32_t* ldb);
 }
 
 
@@ -78,10 +78,10 @@ struct is_supported<std::complex<double>> : std::true_type {};
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-GKO_BIND_TRMM(float, strmm);
-GKO_BIND_TRMM(double, dtrmm);
-GKO_BIND_TRMM(std::complex<float>, ctrmm);
-GKO_BIND_TRMM(std::complex<double>, ztrmm);
+GKO_BIND_TRMM(float, strmm_);
+GKO_BIND_TRMM(double, dtrmm_);
+GKO_BIND_TRMM(std::complex<float>, ctrmm_);
+GKO_BIND_TRMM(std::complex<double>, ztrmm_);
 template <typename ValueType>
 inline void trmm(const char* side, const char* uplo, const char* transa,
                  const char* diag, const int32* m, const int32* n,

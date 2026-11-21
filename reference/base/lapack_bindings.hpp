@@ -17,83 +17,85 @@ extern "C" {
 
 
 // Symmetric eigenvalue problem
-void ssyevd(const char* jobz, const char* uplo, const std::int32_t* n, float* A,
-            const std::int32_t* lda, float* w, float* work, std::int32_t* lwork,
-            std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
+void ssyevd_(const char* jobz, const char* uplo, const std::int32_t* n,
+             float* A, const std::int32_t* lda, float* w, float* work,
+             std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
+             std::int32_t* info);
 
-void dsyevd(const char* jobz, const char* uplo, const std::int32_t* n,
-            double* A, const std::int32_t* lda, double* w, double* work,
-            std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
-            std::int32_t* info);
+void dsyevd_(const char* jobz, const char* uplo, const std::int32_t* n,
+             double* A, const std::int32_t* lda, double* w, double* work,
+             std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
+             std::int32_t* info);
 
-void cheevd(const char* jobz, const char* uplo, const std::int32_t* n,
-            std::complex<float>* A, const std::int32_t* lda, float* w,
-            std::complex<float>* work, std::int32_t* lwork, float* rwork,
-            std::int32_t* lrwork, std::int32_t* iwork, std::int32_t* liwork,
-            std::int32_t* info);
+void cheevd_(const char* jobz, const char* uplo, const std::int32_t* n,
+             std::complex<float>* A, const std::int32_t* lda, float* w,
+             std::complex<float>* work, std::int32_t* lwork, float* rwork,
+             std::int32_t* lrwork, std::int32_t* iwork, std::int32_t* liwork,
+             std::int32_t* info);
 
-void zheevd(const char* jobz, const char* uplo, const std::int32_t* n,
-            std::complex<double>* A, const std::int32_t* lda, double* w,
-            std::complex<double>* work, std::int32_t* lwork, double* rwork,
-            std::int32_t* lrwork, std::int32_t* iwork, std::int32_t* liwork,
-            std::int32_t* info);
+void zheevd_(const char* jobz, const char* uplo, const std::int32_t* n,
+             std::complex<double>* A, const std::int32_t* lda, double* w,
+             std::complex<double>* work, std::int32_t* lwork, double* rwork,
+             std::int32_t* lrwork, std::int32_t* iwork, std::int32_t* liwork,
+             std::int32_t* info);
 
 
 // Symmetric generalized eigenvalue problem
-void ssygvd(const std::int32_t* itype, const char* jobz, const char* uplo,
-            const std::int32_t* n, float* A, const std::int32_t* lda, float* B,
-            const std::int32_t* ldb, float* w, float* work, std::int32_t* lwork,
-            std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
+void ssygvd_(const std::int32_t* itype, const char* jobz, const char* uplo,
+             const std::int32_t* n, float* A, const std::int32_t* lda, float* B,
+             const std::int32_t* ldb, float* w, float* work,
+             std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
+             std::int32_t* info);
 
-void dsygvd(const std::int32_t* itype, const char* jobz, const char* uplo,
-            const std::int32_t* n, double* A, const std::int32_t* lda,
-            double* B, const std::int32_t* ldb, double* w, double* work,
-            std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
-            std::int32_t* info);
+void dsygvd_(const std::int32_t* itype, const char* jobz, const char* uplo,
+             const std::int32_t* n, double* A, const std::int32_t* lda,
+             double* B, const std::int32_t* ldb, double* w, double* work,
+             std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
+             std::int32_t* info);
 
-void chegvd(const std::int32_t* itype, const char* jobz, const char* uplo,
-            const std::int32_t* n, std::complex<float>* A,
-            const std::int32_t* lda, std::complex<float>* B,
-            const std::int32_t* ldb, float* w, std::complex<float>* work,
-            std::int32_t* lwork, float* rwork, std::int32_t* lrwork,
-            std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
+void chegvd_(const std::int32_t* itype, const char* jobz, const char* uplo,
+             const std::int32_t* n, std::complex<float>* A,
+             const std::int32_t* lda, std::complex<float>* B,
+             const std::int32_t* ldb, float* w, std::complex<float>* work,
+             std::int32_t* lwork, float* rwork, std::int32_t* lrwork,
+             std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
 
-void zhegvd(const std::int32_t* itype, const char* jobz, const char* uplo,
-            const std::int32_t* n, std::complex<double>* A,
-            const std::int32_t* lda, std::complex<double>* B,
-            const std::int32_t* ldb, double* w, std::complex<double>* work,
-            std::int32_t* lwork, double* rwork, std::int32_t* lrwork,
-            std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
+void zhegvd_(const std::int32_t* itype, const char* jobz, const char* uplo,
+             const std::int32_t* n, std::complex<double>* A,
+             const std::int32_t* lda, std::complex<double>* B,
+             const std::int32_t* ldb, double* w, std::complex<double>* work,
+             std::int32_t* lwork, double* rwork, std::int32_t* lrwork,
+             std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
 
 
 // Cholesky factorization
-void spotrf(const char* uplo, const std::int32_t* n, float* A,
-            const std::int32_t* lda, std::int32_t* info);
+void spotrf_(const char* uplo, const std::int32_t* n, float* A,
+             const std::int32_t* lda, std::int32_t* info);
 
-void dpotrf(const char* uplo, const std::int32_t* n, double* A,
-            const std::int32_t* lda, std::int32_t* info);
+void dpotrf_(const char* uplo, const std::int32_t* n, double* A,
+             const std::int32_t* lda, std::int32_t* info);
 
-void cpotrf(const char* uplo, const std::int32_t* n, std::complex<float>* A,
-            const std::int32_t* lda, std::int32_t* info);
+void cpotrf_(const char* uplo, const std::int32_t* n, std::complex<float>* A,
+             const std::int32_t* lda, std::int32_t* info);
 
-void zpotrf(const char* uplo, const std::int32_t* n, std::complex<double>* A,
-            const std::int32_t* lda, std::int32_t* info);
+void zpotrf_(const char* uplo, const std::int32_t* n, std::complex<double>* A,
+             const std::int32_t* lda, std::int32_t* info);
 
 
 // Triangular matrix inverse
-void strtri(const char* uplo, const char* diag, const std::int32_t* n, float* A,
-            const std::int32_t* lda, std::int32_t* info);
+void strtri_(const char* uplo, const char* diag, const std::int32_t* n,
+             float* A, const std::int32_t* lda, std::int32_t* info);
 
-void dtrtri(const char* uplo, const char* diag, const std::int32_t* n,
-            double* A, const std::int32_t* lda, std::int32_t* info);
+void dtrtri_(const char* uplo, const char* diag, const std::int32_t* n,
+             double* A, const std::int32_t* lda, std::int32_t* info);
 
-void ctrtri(const char* uplo, const char* diag, const std::int32_t* n,
-            std::complex<float>* A, const std::int32_t* lda,
-            std::int32_t* info);
+void ctrtri_(const char* uplo, const char* diag, const std::int32_t* n,
+             std::complex<float>* A, const std::int32_t* lda,
+             std::int32_t* info);
 
-void ztrtri(const char* uplo, const char* diag, const std::int32_t* n,
-            std::complex<double>* A, const std::int32_t* lda,
-            std::int32_t* info);
+void ztrtri_(const char* uplo, const char* diag, const std::int32_t* n,
+             std::complex<double>* A, const std::int32_t* lda,
+             std::int32_t* info);
 }
 
 
@@ -144,8 +146,8 @@ struct is_supported<std::complex<double>> : std::true_type {};
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
-GKO_BIND_SYEVD_BUFFERSIZES(float, ssyevd);
-GKO_BIND_SYEVD_BUFFERSIZES(double, dsyevd);
+GKO_BIND_SYEVD_BUFFERSIZES(float, ssyevd_);
+GKO_BIND_SYEVD_BUFFERSIZES(double, dsyevd_);
 template <typename ValueType>
 inline void syevd_buffersizes(const char* jobz, const char* uplo,
                               const int32* n, ValueType* a, const int32* lda,
@@ -172,8 +174,8 @@ inline void syevd_buffersizes(const char* jobz, const char* uplo,
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-GKO_BIND_SYEVD(float, ssyevd);
-GKO_BIND_SYEVD(double, dsyevd);
+GKO_BIND_SYEVD(float, ssyevd_);
+GKO_BIND_SYEVD(double, dsyevd_);
 template <typename ValueType>
 inline void syevd(const char* jobz, const char* uplo, const int32* n,
                   ValueType* a, const int32* lda, ValueType* w, ValueType* work,
@@ -208,8 +210,8 @@ inline void syevd(const char* jobz, const char* uplo, const int32* n,
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
-GKO_BIND_HEEVD_BUFFERSIZES(std::complex<float>, cheevd);
-GKO_BIND_HEEVD_BUFFERSIZES(std::complex<double>, zheevd);
+GKO_BIND_HEEVD_BUFFERSIZES(std::complex<float>, cheevd_);
+GKO_BIND_HEEVD_BUFFERSIZES(std::complex<double>, zheevd_);
 template <typename ValueType>
 inline void heevd_buffersizes(const char* jobz, const char* uplo,
                               const int32* n, ValueType* a, const int32* lda,
@@ -241,8 +243,8 @@ inline void heevd_buffersizes(const char* jobz, const char* uplo,
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
-GKO_BIND_HEEVD(std::complex<float>, cheevd);
-GKO_BIND_HEEVD(std::complex<double>, zheevd);
+GKO_BIND_HEEVD(std::complex<float>, cheevd_);
+GKO_BIND_HEEVD(std::complex<double>, zheevd_);
 template <typename ValueType>
 inline void heevd(const char* jobz, const char* uplo, const int32* n,
                   ValueType* a, const int32* lda, remove_complex<ValueType>* w,
@@ -276,8 +278,8 @@ inline void heevd(const char* jobz, const char* uplo, const int32* n,
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
-GKO_BIND_SYGVD_BUFFERSIZES(float, ssygvd);
-GKO_BIND_SYGVD_BUFFERSIZES(double, dsygvd);
+GKO_BIND_SYGVD_BUFFERSIZES(float, ssygvd_);
+GKO_BIND_SYGVD_BUFFERSIZES(double, dsygvd_);
 template <typename ValueType>
 inline void sygvd_buffersizes(const int32* itype, const char* jobz,
                               const char* uplo, const int32* n, ValueType* a,
@@ -307,8 +309,8 @@ inline void sygvd_buffersizes(const int32* itype, const char* jobz,
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
-GKO_BIND_SYGVD(float, ssygvd);
-GKO_BIND_SYGVD(double, dsygvd);
+GKO_BIND_SYGVD(float, ssygvd_);
+GKO_BIND_SYGVD(double, dsygvd_);
 template <typename ValueType>
 inline void sygvd(const int32* itype, const char* jobz, const char* uplo,
                   const int32* n, ValueType* a, const int32* lda, ValueType* b,
@@ -345,8 +347,8 @@ inline void sygvd(const int32* itype, const char* jobz, const char* uplo,
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
-GKO_BIND_HEGVD_BUFFERSIZES(std::complex<float>, chegvd);
-GKO_BIND_HEGVD_BUFFERSIZES(std::complex<double>, zhegvd);
+GKO_BIND_HEGVD_BUFFERSIZES(std::complex<float>, chegvd_);
+GKO_BIND_HEGVD_BUFFERSIZES(std::complex<double>, zhegvd_);
 template <typename ValueType>
 inline void hegvd_buffersizes(const int32* itype, const char* jobz,
                               const char* uplo, const int32* n, ValueType* a,
@@ -380,8 +382,8 @@ inline void hegvd_buffersizes(const int32* itype, const char* jobz,
                   "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
-GKO_BIND_HEGVD(std::complex<float>, chegvd);
-GKO_BIND_HEGVD(std::complex<double>, zhegvd);
+GKO_BIND_HEGVD(std::complex<float>, chegvd_);
+GKO_BIND_HEGVD(std::complex<double>, zhegvd_);
 template <typename ValueType>
 inline void hegvd(const int32* itype, const char* jobz, const char* uplo,
                   const int32* n, ValueType* a, const int32* lda, ValueType* b,
@@ -405,10 +407,10 @@ inline void hegvd(const int32* itype, const char* jobz, const char* uplo,
                   "This assert is used to counter the false positive extra "   \
                   "semi-colon warnings")
 
-GKO_BIND_POTRF(float, spotrf);
-GKO_BIND_POTRF(double, dpotrf);
-GKO_BIND_POTRF(std::complex<float>, cpotrf);
-GKO_BIND_POTRF(std::complex<double>, zpotrf);
+GKO_BIND_POTRF(float, spotrf_);
+GKO_BIND_POTRF(double, dpotrf_);
+GKO_BIND_POTRF(std::complex<float>, cpotrf_);
+GKO_BIND_POTRF(std::complex<double>, zpotrf_);
 template <typename ValueType>
 inline void potrf(const char* uplo, const int32* n, ValueType* a,
                   const int32* lda) GKO_NOT_IMPLEMENTED;
@@ -428,10 +430,10 @@ inline void potrf(const char* uplo, const int32* n, ValueType* a,
                   "This assert is used to counter the false positive extra "  \
                   "semi-colon warnings")
 
-GKO_BIND_TRTRI(float, strtri);
-GKO_BIND_TRTRI(double, dtrtri);
-GKO_BIND_TRTRI(std::complex<float>, ctrtri);
-GKO_BIND_TRTRI(std::complex<double>, ztrtri);
+GKO_BIND_TRTRI(float, strtri_);
+GKO_BIND_TRTRI(double, dtrtri_);
+GKO_BIND_TRTRI(std::complex<float>, ctrtri_);
+GKO_BIND_TRTRI(std::complex<double>, ztrtri_);
 template <typename ValueType>
 inline void trtri(const char* uplo, const char* diag, const int32* n,
                   ValueType* a, const int32* lda) GKO_NOT_IMPLEMENTED;
