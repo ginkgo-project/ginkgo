@@ -46,7 +46,6 @@ __global__ __launch_bounds__(default_block_size) void matrix_conj(
     const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx / n;
     const auto col = tidx % n;
-    const ValueType zero = gko::zero<ValueType>();
     if (row < n && col < n) {
         a[row * a_stride + col] = conj(a[row * a_stride + col]);
     }
@@ -61,7 +60,6 @@ __global__ __launch_bounds__(default_block_size) void two_matrix_conj(
     const auto tidx = thread::get_thread_id_flat();
     const auto row = tidx / n;
     const auto col = tidx % n;
-    const ValueType zero = gko::zero<ValueType>();
     if (row < n && col < n) {
         a[row * a_stride + col] = conj(a[row * a_stride + col]);
         b[row * b_stride + col] = conj(b[row * b_stride + col]);
@@ -93,7 +91,6 @@ void symm_eig(std::shared_ptr<const DefaultExecutor> exec,
               matrix::Dense<ValueType>* a,
               array<remove_complex<ValueType>>* e_vals, array<char>* workspace)
 {
-    const auto id = exec->get_device_id();
     auto handle = exec->get_dev_lapack_handle();
 
     constexpr auto max = std::numeric_limits<int32>::max();
@@ -110,7 +107,8 @@ void symm_eig(std::shared_ptr<const DefaultExecutor> exec,
     // The dev_lapack routine expects column-major data, so we take the
     // conjugate to perform A = A^T.
     if constexpr (gko::is_complex_s<ValueType>::value) {
-        const auto grid_dim = ceildiv(n * n, default_block_size);
+        const auto grid_dim =
+            ceildiv(static_cast<int64>(n) * n, default_block_size);
         if (grid_dim > 0) {
             kernel::matrix_conj<<<grid_dim, default_block_size, 0,
                                   exec->get_stream()>>>(
@@ -144,7 +142,6 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
                           array<remove_complex<ValueType>>* e_vals,
                           array<char>* workspace)
 {
-    const auto id = exec->get_device_id();
     auto handle = exec->get_dev_lapack_handle();
 
     constexpr auto max = std::numeric_limits<int32>::max();
@@ -167,7 +164,8 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
     // The dev_lapack routine expects column-major data, so we take the
     // conjugate to perform A = A^T.
     if constexpr (gko::is_complex_s<ValueType>::value) {
-        const auto grid_dim = ceildiv(n * n, default_block_size);
+        const auto grid_dim =
+            ceildiv(static_cast<int64>(n) * n, default_block_size);
         if (grid_dim > 0) {
             kernel::two_matrix_conj<<<grid_dim, default_block_size, 0,
                                       exec->get_stream()>>>(
@@ -203,11 +201,10 @@ void b_orthonormalize(std::shared_ptr<const DefaultExecutor> exec,
                       matrix::Dense<ValueType>* a, LinOp* b,
                       array<char>* workspace)
 {
-    const auto id = exec->get_device_id();
     auto handle = exec->get_dev_lapack_handle();
 
     constexpr auto max = std::numeric_limits<int32>::max();
-    if (a->get_size()[0] > max) {
+    if (a->get_size()[0] > max || a->get_size()[1] > max) {
         throw OverflowError(__FILE__, __LINE__,
                             name_demangling::get_type_name(typeid(int32)));
     }
@@ -250,7 +247,8 @@ void b_orthonormalize(std::shared_ptr<const DefaultExecutor> exec,
     // Recall L is the complex conjugate of the "true" L, so really
     // we will have (L_true)^{-T}, stored in column-major format, after potrs.
     auto factor = matrix::Dense<ValueType>::create(exec, aH_b_a->get_size());
-    const auto grid_dim = ceildiv(n * n, default_block_size);
+    const auto grid_dim =
+        ceildiv(static_cast<int64>(n) * n, default_block_size);
     if (grid_dim > 0) {
         kernel::fill_lower_col_major<<<grid_dim, default_block_size, 0,
                                        exec->get_stream()>>>(

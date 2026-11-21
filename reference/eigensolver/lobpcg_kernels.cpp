@@ -70,8 +70,8 @@ void symm_eig(std::shared_ptr<const ReferenceExecutor> exec,
         // LAPACK expects column-major data, so we need to take the conjugate
         // of the input matrix (same as performing A = A^T)
         ValueType* data = a->get_values();
-        for (int32 row = 0; row < n; ++row) {
-            for (int32 col = 0; col < n; ++col) {
+        for (int64 row = 0; row < n; ++row) {
+            for (int64 col = 0; col < n; ++col) {
                 data[row * lda + col] = conj(data[row * lda + col]);
             }
         }
@@ -167,10 +167,10 @@ void symm_generalized_eig(std::shared_ptr<const ReferenceExecutor> exec,
         // of the input matrices (same as performing A = A^T)
         ValueType* a_data = a->get_values();
         ValueType* b_data = b->get_values();
-        for (int32 row = 0; row < n; ++row) {
-            for (int32 col = 0; col < n; ++col) {
+        for (int64 row = 0; row < n; ++row) {
+            for (int64 col = 0; col < n; ++col) {
                 a_data[row * lda + col] = conj(a_data[row * lda + col]);
-                b_data[row * lda + col] = conj(b_data[row * lda + col]);
+                b_data[row * ldb + col] = conj(b_data[row * ldb + col]);
             }
         }
 
@@ -218,7 +218,7 @@ void b_orthonormalize(std::shared_ptr<const ReferenceExecutor> exec,
                       array<char>* workspace)  // (unused; for [cu/hip]SOLVER)
 {
     constexpr auto max = std::numeric_limits<int32>::max();
-    if (a->get_size()[0] > max) {
+    if (a->get_size()[0] > max || a->get_size()[1] > max) {
         throw OverflowError(__FILE__, __LINE__,
                             name_demangling::get_type_name(typeid(int32)));
     }
