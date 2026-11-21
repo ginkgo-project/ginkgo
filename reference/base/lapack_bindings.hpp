@@ -20,24 +20,24 @@ extern "C" {
 void ssyevd_(const char* jobz, const char* uplo, const std::int32_t* n,
              float* A, const std::int32_t* lda, float* w, float* work,
              std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
-             std::int32_t* info);
+             std::int32_t* info, std::size_t jobz_len, std::size_t uplo_len);
 
 void dsyevd_(const char* jobz, const char* uplo, const std::int32_t* n,
              double* A, const std::int32_t* lda, double* w, double* work,
              std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
-             std::int32_t* info);
+             std::int32_t* info, std::size_t jobz_len, std::size_t uplo_len);
 
 void cheevd_(const char* jobz, const char* uplo, const std::int32_t* n,
              std::complex<float>* A, const std::int32_t* lda, float* w,
              std::complex<float>* work, std::int32_t* lwork, float* rwork,
              std::int32_t* lrwork, std::int32_t* iwork, std::int32_t* liwork,
-             std::int32_t* info);
+             std::int32_t* info, std::size_t jobz_len, std::size_t uplo_len);
 
 void zheevd_(const char* jobz, const char* uplo, const std::int32_t* n,
              std::complex<double>* A, const std::int32_t* lda, double* w,
              std::complex<double>* work, std::int32_t* lwork, double* rwork,
              std::int32_t* lrwork, std::int32_t* iwork, std::int32_t* liwork,
-             std::int32_t* info);
+             std::int32_t* info, std::size_t jobz_len, std::size_t uplo_len);
 
 
 // Symmetric generalized eigenvalue problem
@@ -45,57 +45,61 @@ void ssygvd_(const std::int32_t* itype, const char* jobz, const char* uplo,
              const std::int32_t* n, float* A, const std::int32_t* lda, float* B,
              const std::int32_t* ldb, float* w, float* work,
              std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
-             std::int32_t* info);
+             std::int32_t* info, std::size_t jobz_len, std::size_t uplo_len);
 
 void dsygvd_(const std::int32_t* itype, const char* jobz, const char* uplo,
              const std::int32_t* n, double* A, const std::int32_t* lda,
              double* B, const std::int32_t* ldb, double* w, double* work,
              std::int32_t* lwork, std::int32_t* iwork, std::int32_t* liwork,
-             std::int32_t* info);
+             std::int32_t* info, std::size_t jobz_len, std::size_t uplo_len);
 
 void chegvd_(const std::int32_t* itype, const char* jobz, const char* uplo,
              const std::int32_t* n, std::complex<float>* A,
              const std::int32_t* lda, std::complex<float>* B,
              const std::int32_t* ldb, float* w, std::complex<float>* work,
              std::int32_t* lwork, float* rwork, std::int32_t* lrwork,
-             std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
+             std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info,
+             std::size_t jobz_len, std::size_t uplo_len);
 
 void zhegvd_(const std::int32_t* itype, const char* jobz, const char* uplo,
              const std::int32_t* n, std::complex<double>* A,
              const std::int32_t* lda, std::complex<double>* B,
              const std::int32_t* ldb, double* w, std::complex<double>* work,
              std::int32_t* lwork, double* rwork, std::int32_t* lrwork,
-             std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info);
+             std::int32_t* iwork, std::int32_t* liwork, std::int32_t* info,
+             std::size_t jobz_len, std::size_t uplo_len);
 
 
 // Cholesky factorization
 void spotrf_(const char* uplo, const std::int32_t* n, float* A,
-             const std::int32_t* lda, std::int32_t* info);
+             const std::int32_t* lda, std::int32_t* info, std::size_t uplo_len);
 
 void dpotrf_(const char* uplo, const std::int32_t* n, double* A,
-             const std::int32_t* lda, std::int32_t* info);
+             const std::int32_t* lda, std::int32_t* info, std::size_t uplo_len);
 
 void cpotrf_(const char* uplo, const std::int32_t* n, std::complex<float>* A,
-             const std::int32_t* lda, std::int32_t* info);
+             const std::int32_t* lda, std::int32_t* info, std::size_t uplo_len);
 
 void zpotrf_(const char* uplo, const std::int32_t* n, std::complex<double>* A,
-             const std::int32_t* lda, std::int32_t* info);
+             const std::int32_t* lda, std::int32_t* info, std::size_t uplo_len);
 
 
 // Triangular matrix inverse
 void strtri_(const char* uplo, const char* diag, const std::int32_t* n,
-             float* A, const std::int32_t* lda, std::int32_t* info);
+             float* A, const std::int32_t* lda, std::int32_t* info,
+             std::size_t uplo_len, std::size_t diag_len);
 
 void dtrtri_(const char* uplo, const char* diag, const std::int32_t* n,
-             double* A, const std::int32_t* lda, std::int32_t* info);
+             double* A, const std::int32_t* lda, std::int32_t* info,
+             std::size_t uplo_len, std::size_t diag_len);
 
 void ctrtri_(const char* uplo, const char* diag, const std::int32_t* n,
              std::complex<float>* A, const std::int32_t* lda,
-             std::int32_t* info);
+             std::int32_t* info, std::size_t uplo_len, std::size_t diag_len);
 
 void ztrtri_(const char* uplo, const char* diag, const std::int32_t* n,
              std::complex<double>* A, const std::int32_t* lda,
-             std::int32_t* info);
+             std::int32_t* info, std::size_t uplo_len, std::size_t diag_len);
 }
 
 
@@ -137,7 +141,7 @@ struct is_supported<std::complex<double>> : std::true_type {};
         *int_buffer_num_elems = -1;                                            \
         GKO_ASSERT_NO_LAPACK_ERRORS(                                           \
             LapackName(jobz, uplo, n, a, lda, w, work, fp_buffer_num_elems,    \
-                       iwork, int_buffer_num_elems, &info),                    \
+                       iwork, int_buffer_num_elems, &info, 1, 1),              \
             info);                                                             \
         *fp_buffer_num_elems = static_cast<int32>(work[0]);                    \
         *int_buffer_num_elems = iwork[0];                                      \
@@ -167,7 +171,7 @@ inline void syevd_buffersizes(const char* jobz, const char* uplo,
         int32 info;                                                          \
         GKO_ASSERT_NO_LAPACK_ERRORS(                                         \
             LapackName(jobz, uplo, n, a, lda, w, work, fp_buffer_num_elems,  \
-                       iwork, int_buffer_num_elems, &info),                  \
+                       iwork, int_buffer_num_elems, &info, 1, 1),            \
             info);                                                           \
     }                                                                        \
     static_assert(true,                                                      \
@@ -200,7 +204,7 @@ inline void syevd(const char* jobz, const char* uplo, const int32* n,
         GKO_ASSERT_NO_LAPACK_ERRORS(                                          \
             LapackName(jobz, uplo, n, a, lda, w, work, fp_buffer_num_elems,   \
                        rwork, rfp_buffer_num_elems, iwork,                    \
-                       int_buffer_num_elems, &info),                          \
+                       int_buffer_num_elems, &info, 1, 1),                    \
             info);                                                            \
         *fp_buffer_num_elems = static_cast<int32>(work[0].real());            \
         *rfp_buffer_num_elems = static_cast<int32>(rwork[0]);                 \
@@ -236,7 +240,7 @@ inline void heevd_buffersizes(const char* jobz, const char* uplo,
         GKO_ASSERT_NO_LAPACK_ERRORS(                                          \
             LapackName(jobz, uplo, n, a, lda, w, work, fp_buffer_num_elems,   \
                        rwork, rfp_buffer_num_elems, iwork,                    \
-                       int_buffer_num_elems, &info),                          \
+                       int_buffer_num_elems, &info, 1, 1),                    \
             info);                                                            \
     }                                                                         \
     static_assert(true,                                                       \
@@ -269,7 +273,7 @@ inline void heevd(const char* jobz, const char* uplo, const int32* n,
         GKO_ASSERT_NO_LAPACK_ERRORS(                                           \
             LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,          \
                        fp_buffer_num_elems, iwork, int_buffer_num_elems,       \
-                       &info),                                                 \
+                       &info, 1, 1),                                           \
             info);                                                             \
         *fp_buffer_num_elems = static_cast<int32>(work[0]);                    \
         *int_buffer_num_elems = iwork[0];                                      \
@@ -302,7 +306,7 @@ inline void sygvd_buffersizes(const int32* itype, const char* jobz,
         GKO_ASSERT_NO_LAPACK_ERRORS(                                          \
             LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,         \
                        fp_buffer_num_elems, iwork, int_buffer_num_elems,      \
-                       &info),                                                \
+                       &info, 1, 1),                                          \
             info);                                                            \
     }                                                                         \
     static_assert(true,                                                       \
@@ -337,7 +341,7 @@ inline void sygvd(const int32* itype, const char* jobz, const char* uplo,
         GKO_ASSERT_NO_LAPACK_ERRORS(                                          \
             LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,         \
                        fp_buffer_num_elems, rwork, rfp_buffer_num_elems,      \
-                       iwork, int_buffer_num_elems, &info),                   \
+                       iwork, int_buffer_num_elems, &info, 1, 1),             \
             info);                                                            \
         *fp_buffer_num_elems = static_cast<int32>(work[0].real());            \
         *rfp_buffer_num_elems = static_cast<int32>(rwork[0]);                 \
@@ -375,7 +379,7 @@ inline void hegvd_buffersizes(const int32* itype, const char* jobz,
         GKO_ASSERT_NO_LAPACK_ERRORS(                                         \
             LapackName(itype, jobz, uplo, n, a, lda, b, ldb, w, work,        \
                        fp_buffer_num_elems, rwork, rfp_buffer_num_elems,     \
-                       iwork, int_buffer_num_elems, &info),                  \
+                       iwork, int_buffer_num_elems, &info, 1, 1),            \
             info);                                                           \
     }                                                                        \
     static_assert(true,                                                      \
@@ -396,15 +400,16 @@ inline void hegvd(const int32* itype, const char* jobz, const char* uplo,
 #undef GKO_BIND_HEGVD
 
 
-#define GKO_BIND_POTRF(ValueType, LapackName)                                  \
-    inline void potrf(const char* uplo, const int32* n, ValueType* a,          \
-                      const int32* lda)                                        \
-    {                                                                          \
-        int32 info;                                                            \
-        GKO_ASSERT_NO_LAPACK_ERRORS(LapackName(uplo, n, a, lda, &info), info); \
-    }                                                                          \
-    static_assert(true,                                                        \
-                  "This assert is used to counter the false positive extra "   \
+#define GKO_BIND_POTRF(ValueType, LapackName)                                \
+    inline void potrf(const char* uplo, const int32* n, ValueType* a,        \
+                      const int32* lda)                                      \
+    {                                                                        \
+        int32 info;                                                          \
+        GKO_ASSERT_NO_LAPACK_ERRORS(LapackName(uplo, n, a, lda, &info, 1),   \
+                                    info);                                   \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 GKO_BIND_POTRF(float, spotrf_);
@@ -418,16 +423,16 @@ inline void potrf(const char* uplo, const int32* n, ValueType* a,
 #undef GKO_BIND_POTRF
 
 
-#define GKO_BIND_TRTRI(ValueType, LapackName)                                 \
-    inline void trtri(const char* uplo, const char* diag, const int32* n,     \
-                      ValueType* a, const int32* lda)                         \
-    {                                                                         \
-        int32 info;                                                           \
-        GKO_ASSERT_NO_LAPACK_ERRORS(LapackName(uplo, diag, n, a, lda, &info), \
-                                    info);                                    \
-    }                                                                         \
-    static_assert(true,                                                       \
-                  "This assert is used to counter the false positive extra "  \
+#define GKO_BIND_TRTRI(ValueType, LapackName)                                \
+    inline void trtri(const char* uplo, const char* diag, const int32* n,    \
+                      ValueType* a, const int32* lda)                        \
+    {                                                                        \
+        int32 info;                                                          \
+        GKO_ASSERT_NO_LAPACK_ERRORS(                                         \
+            LapackName(uplo, diag, n, a, lda, &info, 1, 1), info);           \
+    }                                                                        \
+    static_assert(true,                                                      \
+                  "This assert is used to counter the false positive extra " \
                   "semi-colon warnings")
 
 GKO_BIND_TRTRI(float, strtri_);
