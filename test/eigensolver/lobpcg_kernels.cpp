@@ -272,3 +272,69 @@ TYPED_TEST(Lobpcg, KernelBOrthonormalizeIsEquivalentToRef)
         this->exec, d_small_a_copy.get(), d_small_b_csr.get(), &d_work);
     GKO_ASSERT_MTX_NEAR(small_a_copy, d_small_a_copy, r<value_type>::value);
 }
+
+
+TYPED_TEST(Lobpcg, KernelSymmGeneralizedEigThrowsLapackErrorOnIndefiniteB)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto refwork = gko::array<char>(this->ref, 1);
+    auto d_work = gko::array<char>(this->exec, 1);
+
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        this->small_a = this->small_a_cmplx;
+        this->small_b = this->small_b_cmplx;
+    } else {
+        this->small_a = this->small_a_r;
+        this->small_b = this->small_b_r;
+    }
+    this->small_b->scale(
+        gko::initialize<Mtx>({-gko::one<value_type>()}, this->ref));
+    this->d_small_a = gko::clone(this->exec, this->small_a);
+    this->d_small_b = gko::clone(this->exec, this->small_b);
+
+    ASSERT_THROW(gko::kernels::reference::lobpcg::symm_generalized_eig(
+                     this->ref, this->small_a.get(), this->small_b.get(),
+                     &(this->small_e_vals), &refwork),
+                 gko::LapackError);
+    ASSERT_THROW(
+        gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::symm_generalized_eig(
+            this->exec, this->d_small_a.get(), this->d_small_b.get(),
+            &(this->d_small_e_vals), &d_work),
+        gko::LapackError);
+}
+
+
+TYPED_TEST(Lobpcg, KernelBOrthonormalizeThrowsLapackErrorOnIndefiniteB)
+{
+    using Mtx = typename TestFixture::Mtx;
+    using value_type = typename TestFixture::value_type;
+
+    auto refwork = gko::array<char>(this->ref, 1);
+    auto d_work = gko::array<char>(this->exec, 1);
+
+    std::shared_ptr<Mtx> small_a;
+    std::shared_ptr<Mtx> small_b;
+    if constexpr (gko::is_complex_s<value_type>::value) {
+        small_a = this->small_a_cmplx->create_submatrix(
+            gko::span{0, this->small_a_cmplx->get_size()[0]},
+            gko::span{0, this->small_a_cmplx->get_size()[0] - 1});
+        small_b = gko::clone(this->small_b_cmplx);
+    } else {
+        small_a = this->small_a_r->create_submatrix(
+            gko::span{0, this->small_a_r->get_size()[0]},
+            gko::span{0, this->small_a_r->get_size()[0] - 1});
+        small_b = gko::clone(this->small_b_r);
+    }
+    small_b->scale(gko::initialize<Mtx>({-gko::one<value_type>()}, this->ref));
+    auto d_small_a = gko::clone(this->exec, small_a);
+    auto d_small_b = gko::clone(this->exec, small_b);
+
+    ASSERT_THROW(gko::kernels::reference::lobpcg::b_orthonormalize(
+                     this->ref, small_a.get(), small_b.get(), &refwork),
+                 gko::LapackError);
+    ASSERT_THROW(gko::kernels::GKO_DEVICE_NAMESPACE::lobpcg::b_orthonormalize(
+                     this->exec, d_small_a.get(), d_small_b.get(), &d_work),
+                 gko::LapackError);
+}

@@ -26,6 +26,16 @@ namespace lobpcg {
 constexpr int default_block_size = 512;
 
 
+#define GKO_ASSERT_NO_DEV_LAPACK_INFO_ERRORS(_exec, _dev_info, _routine)   \
+    do {                                                                   \
+        const auto _info =                                                 \
+            (_exec)->copy_val_to_host((_dev_info).get_const_data());       \
+        if (_info != 0) {                                                  \
+            throw ::gko::LapackError(__FILE__, __LINE__, _routine, _info); \
+        }                                                                  \
+    } while (false)
+
+
 namespace kernel {
 
 
@@ -117,22 +127,11 @@ void symm_eig(std::shared_ptr<const DefaultExecutor> exec,
         workspace->resize_and_reset(total_bytes);
     }
     array<int32> dev_info(exec, 1);
-    try {
-        dev_lapack::syevd(handle, LAPACK_EIG_VECTOR, LAPACK_FILL_LOWER, n,
-                          a->get_values(), lda, e_vals->get_data(),
-                          reinterpret_cast<ValueType*>(workspace->get_data()),
-                          fp_buffer_num_elems, dev_info.get_data());
-
-        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
-        if (host_info != 0) {
-            throw GKO_DEV_LAPACK_ERROR(DEV_LAPACK_INTERNAL_ERROR);
-        }
-    } catch (std::exception& e) {
-        std::cout << e.what() << std::endl;
-        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
-        std::cout << "devInfo was " << host_info << std::endl;
-        throw;
-    }
+    dev_lapack::syevd(handle, LAPACK_EIG_VECTOR, LAPACK_FILL_LOWER, n,
+                      a->get_values(), lda, e_vals->get_data(),
+                      reinterpret_cast<ValueType*>(workspace->get_data()),
+                      fp_buffer_num_elems, dev_info.get_data());
+    GKO_ASSERT_NO_DEV_LAPACK_INFO_ERRORS(exec, dev_info, "syevd");
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_LOBPCG_SYMM_EIG_KERNEL);
@@ -187,23 +186,12 @@ void symm_generalized_eig(std::shared_ptr<const DefaultExecutor> exec,
         workspace->resize_and_reset(total_bytes);
     }
     array<int32> dev_info(exec, 1);
-    try {
-        dev_lapack::sygvd(handle, LAPACK_EIG_TYPE_1, LAPACK_EIG_VECTOR,
-                          LAPACK_FILL_LOWER, n, a->get_values(), lda,
-                          b->get_values(), ldb, e_vals->get_data(),
-                          reinterpret_cast<ValueType*>(workspace->get_data()),
-                          fp_buffer_num_elems, dev_info.get_data());
-
-        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
-        if (host_info != 0) {
-            throw GKO_DEV_LAPACK_ERROR(DEV_LAPACK_INTERNAL_ERROR);
-        }
-    } catch (std::exception& e) {
-        std::cout << e.what() << std::endl;
-        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
-        std::cout << "devInfo was " << host_info << std::endl;
-        throw;
-    }
+    dev_lapack::sygvd(handle, LAPACK_EIG_TYPE_1, LAPACK_EIG_VECTOR,
+                      LAPACK_FILL_LOWER, n, a->get_values(), lda,
+                      b->get_values(), ldb, e_vals->get_data(),
+                      reinterpret_cast<ValueType*>(workspace->get_data()),
+                      fp_buffer_num_elems, dev_info.get_data());
+    GKO_ASSERT_NO_DEV_LAPACK_INFO_ERRORS(exec, dev_info, "sygvd");
 }
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(
@@ -252,22 +240,11 @@ void b_orthonormalize(std::shared_ptr<const DefaultExecutor> exec,
     // LAPACK uses column-major, so using LOWER produces LL^H = A^T:
     // L (col-major) is the complex conjugate of the lower factor for A.
     array<int32> dev_info(exec, 1);
-    try {
-        dev_lapack::potrf(handle, LAPACK_FILL_LOWER, n, aH_b_a->get_values(),
-                          ldaH_b_a,
-                          reinterpret_cast<ValueType*>(workspace->get_data()),
-                          fp_buffer_num_elems, dev_info.get_data());
-
-        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
-        if (host_info != 0) {
-            throw GKO_DEV_LAPACK_ERROR(DEV_LAPACK_INTERNAL_ERROR);
-        }
-    } catch (std::exception& e) {
-        std::cout << e.what() << std::endl;
-        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
-        std::cout << "error in potrf: devInfo was " << host_info << std::endl;
-        throw;
-    }
+    dev_lapack::potrf(handle, LAPACK_FILL_LOWER, n, aH_b_a->get_values(),
+                      ldaH_b_a,
+                      reinterpret_cast<ValueType*>(workspace->get_data()),
+                      fp_buffer_num_elems, dev_info.get_data());
+    GKO_ASSERT_NO_DEV_LAPACK_INFO_ERRORS(exec, dev_info, "potrf");
 
     // Solve with L as the right hand side: LL^H X = L --> X = L^{-H}.
     // Recall L is the complex conjugate of the "true" L, so really
@@ -280,21 +257,10 @@ void b_orthonormalize(std::shared_ptr<const DefaultExecutor> exec,
             n, as_device_type(aH_b_a->get_const_values()), ldaH_b_a,
             as_device_type(factor->get_values()), ldaH_b_a);
     }
-    try {
-        dev_lapack::potrs(handle, LAPACK_FILL_LOWER, n, factor->get_size()[1],
-                          aH_b_a->get_values(), ldaH_b_a, factor->get_values(),
-                          ldaH_b_a, dev_info.get_data());
-
-        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
-        if (host_info != 0) {
-            throw GKO_DEV_LAPACK_ERROR(DEV_LAPACK_INTERNAL_ERROR);
-        }
-    } catch (std::exception& e) {
-        std::cout << e.what() << std::endl;
-        int32 host_info = exec->copy_val_to_host(dev_info.get_data());
-        std::cout << "error in potrs: devInfo was " << host_info << std::endl;
-        throw;
-    }
+    dev_lapack::potrs(handle, LAPACK_FILL_LOWER, n, factor->get_size()[1],
+                      aH_b_a->get_values(), ldaH_b_a, factor->get_values(),
+                      ldaH_b_a, dev_info.get_data());
+    GKO_ASSERT_NO_DEV_LAPACK_INFO_ERRORS(exec, dev_info, "potrs");
 
     // A = A * (L^{-1})^H
     // A will be seen by BLAS as column-major, or A^T. The BLAS operation
@@ -324,5 +290,8 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_LOBPCG_B_ORTHONORMALIZE_KERNEL);
 }  // namespace GKO_DEVICE_NAMESPACE
 }  // namespace kernels
 }  // namespace gko
+
+
+#undef GKO_ASSERT_NO_DEV_LAPACK_INFO_ERRORS
 
 #endif  // GKO_HAVE_LAPACK
