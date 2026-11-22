@@ -88,6 +88,27 @@ public:
          *   7 = automatic choice
          */
         int GKO_FACTORY_PARAMETER_SCALAR(ordering, 0);
+
+        /**
+         * Enables MUMPS null pivot row detection (ICNTL(24) = 1) for
+         * singular matrices, e.g. the BDDC coarse matrix of a pure Neumann
+         * problem. A null pivot's row and column are zeroed and the pivot set
+         * to one (CNTL(5) = 0), which pins that unknown to zero: for a
+         * consistent right-hand side the result is one solution of the
+         * singular system. Without it, a pivot that round-off left at
+         * ~1e-15 * ||A|| instead of zero amplifies the null space component
+         * by ~1e15. ScaLAPACK is not used on the root node then (ICNTL(13)
+         * = 1), since MUMPS does not detect null pivots there.
+         */
+        bool GKO_FACTORY_PARAMETER_SCALAR(null_pivot_detection, false);
+
+        /**
+         * CNTL(3) for null_pivot_detection: a pivot is null if its row's
+         * infinity norm is below null_pivot_threshold * ||A|| (> 0), or below
+         * |null_pivot_threshold| (< 0). 0 is MUMPS's default,
+         * eps * sqrt(N_h) * ||A||, which round-off can exceed.
+         */
+        double GKO_FACTORY_PARAMETER_SCALAR(null_pivot_threshold, 1e-10);
     };
     GKO_ENABLE_LIN_OP_FACTORY(Mumps, parameters, Factory);
     GKO_ENABLE_BUILD_METHOD(Factory);

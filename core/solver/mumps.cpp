@@ -183,6 +183,20 @@ struct Mumps<ValueType, IndexType>::mumps_state {
 
     void set_ordering(int ordering) { data.icntl[6] = ordering; }
 
+    // Before the analysis: ICNTL(13) is read there, ICNTL(24) and CNTL(3)
+    // by the factorization.
+    void set_null_pivot_detection(bool enabled, double threshold)
+    {
+        if (enabled) {
+            data.icntl[23] = 1;  // ICNTL(24): null pivot row detection
+            data.icntl[12] = 1;  // ICNTL(13): no ScaLAPACK on the root
+            data.cntl[2] =
+                static_cast<std::remove_reference_t<decltype(data.cntl[2])>>(
+                    threshold);
+            data.cntl[4] = 0;  // CNTL(5): zero row/column, pivot one
+        }
+    }
+
     void set_matrix(int n, int nnz, int* irn_ptr, int* jcn_ptr,
                     ValueType* a_ptr)
     {
@@ -442,6 +456,8 @@ void Mumps<ValueType, IndexType>::generate()
         if (state_->comm != MPI_COMM_NULL) {
             state_->initialize(parameters_.symmetric);
             state_->set_ordering(parameters_.ordering);
+            state_->set_null_pivot_detection(parameters_.null_pivot_detection,
+                                             parameters_.null_pivot_threshold);
             state_->set_matrix(static_cast<int>(system_matrix_->get_size()[0]),
                                static_cast<int>(state_->irn.size()),
                                state_->irn.data(), state_->jcn.data(),
@@ -477,6 +493,8 @@ void Mumps<ValueType, IndexType>::generate()
     // Use MPI_COMM_SELF so each rank solves independently.
     state_->initialize(parameters_.symmetric);
     state_->set_ordering(parameters_.ordering);
+    state_->set_null_pivot_detection(parameters_.null_pivot_detection,
+                                     parameters_.null_pivot_threshold);
     state_->set_matrix(num_rows, nnz, state_->irn.data(), state_->jcn.data(),
                        state_->a.data());
     state_->analyze();
