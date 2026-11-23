@@ -138,7 +138,8 @@ struct scaling_param<std::complex<ValueType>> {
  * NotImplemented instead of forwarding to the concretized function.
  *
  * Besides the concretized virtual functions, ConcreteType has to provide:
- * - a specialization of vector_traits,
+ * - a specialization of vector_traits unless it's a templated class with the
+ *   first template parameter as value type,
  * - a member function template `as_precision<ValueType>()` returning a
  *   temporary_conversion of a vector with the requested value type, which is
  *   used to implement AbstractMultiVector::as_precision, and
@@ -180,7 +181,7 @@ public:
 
     /**
      * @copydoc AbstractMultiVector::create_with_config_of(ptr_param<const
-     *          ConcreteType>)
+     *          AbstractMultiVector>)
      *
      * @note Returns an object with ConcreteType
      */
@@ -189,7 +190,7 @@ public:
 
     /**
      * @copydoc AbstractMultiVector::create_with_type_of(ptr_param<const
-     *          ConcreteType>, std::shared_ptr<const Executor>)
+     *          AbstractMultiVector>, std::shared_ptr<const Executor>)
      *
      * @note Returns an object with ConcreteType
      */
@@ -199,8 +200,8 @@ public:
 
     /**
      * @copydoc AbstractMultiVector::create_with_type_of(ptr_param<const
-     *          ConcreteType>, std::shared_ptr<const Executor>, const dim<2>&,
-     *          const dim<2>&)
+     *          AbstractMultiVector>, std::shared_ptr<const Executor>,
+     *          const dim<2>&, const dim<2>&)
      *
      * @note Returns an object with ConcreteType
      */
@@ -211,8 +212,8 @@ public:
 
     /**
      * @copydoc AbstractMultiVector::create_with_type_of(ptr_param<const
-     *          ConcreteType>, std::shared_ptr<const Executor>, const dim<2>&,
-     *          const dim<2>&, size_type)
+     *          AbstractMultiVector>, std::shared_ptr<const Executor>,
+     *          const dim<2>&, const dim<2>&, size_type)
      *
      * @note Returns an object with ConcreteType
      */
@@ -237,7 +238,8 @@ public:
     [[nodiscard]] std::unique_ptr<ConcreteType> clone() const;
 
     /**
-     * @copydoc AbstractMultiVector::copy_from(ptr_param<const ConcreteType>)
+     * @copydoc AbstractMultiVector::copy_from(ptr_param<const
+     * AbstractMultiVector>)
      *
      * @note Takes an object with ConcreteType as input
      */
@@ -245,7 +247,7 @@ public:
 
 
     /**
-     * @copydoc AbstractMultiVector::move_from(ptr_param<ConcreteType>)
+     * @copydoc AbstractMultiVector::move_from(ptr_param<AbstractMultiVector>)
      *
      * @note Takes an object with ConcreteType as input
      */
@@ -256,15 +258,16 @@ public:
      *
      * @note Returns an object with ConcreteType
      */
-    [[nodiscard]] std::unique_ptr<ConcreteType> create_default();
+    [[nodiscard]] std::unique_ptr<ConcreteType> create_default() const;
 
     /**
-     * @copydoc AbstractMultiVector::create_default(ptr_param<const Executor>)
+     * @copydoc AbstractMultiVector::create_default(std::shared_ptr<const
+     * Executor>)
      *
      * @note Returns an object with ConcreteType
      */
     [[nodiscard]] std::unique_ptr<ConcreteType> create_default(
-        std::shared_ptr<const Executor> exec);
+        std::shared_ptr<const Executor> exec) const;
 
     /**
      * @copydoc AbstractMultiVector::create_subview(local_span, local_span)
@@ -741,13 +744,14 @@ ConcreteType* EnableMultiVector<ConcreteType>::move_from(
 
 template <typename ConcreteType>
 std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::create_default()
+    const
 {
     return as<ConcreteType>(this->create_default_impl());
 }
 
 template <typename ConcreteType>
 std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::create_default(
-    std::shared_ptr<const Executor> exec)
+    std::shared_ptr<const Executor> exec) const
 {
     return as<ConcreteType>(this->create_default_impl(std::move(exec)));
 }
@@ -1116,7 +1120,7 @@ void EnableMultiVector<ConcreteType>::fill_impl(any_scalar value)
     std::visit(
         [this](auto value_v) {
             using snd_value_type = std::decay_t<decltype(value_v)>;
-            if constexpr (std::is_convertible_v<snd_value_type, value_type>) {
+            if constexpr (std::is_constructible_v<value_type, snd_value_type>) {
                 this->fill_impl(static_cast<value_type>(value_v));
             } else {
                 GKO_NOT_IMPLEMENTED;

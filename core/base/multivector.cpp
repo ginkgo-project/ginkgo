@@ -20,17 +20,12 @@ AbstractMultiVector::AbstractMultiVector(std::shared_ptr<const Executor> exec,
 }
 
 
-void AbstractMultiVector::set_size(const dim<2>& value)
+void AbstractMultiVector::set_size(const dim<2>& global_size,
+                                   const dim<2>& local_size)
 {
-    GKO_ASSERT_SUBSET_DIMENSIONS(local_size_, value);
-    size_ = value;
-}
-
-
-void AbstractMultiVector::set_local_size(const dim<2>& value)
-{
-    GKO_ASSERT_SUBSET_DIMENSIONS(value, size_);
-    local_size_ = value;
+    GKO_ASSERT_SUBSET_DIMENSIONS(local_size, global_size);
+    size_ = global_size;
+    local_size_ = local_size;
 }
 
 
