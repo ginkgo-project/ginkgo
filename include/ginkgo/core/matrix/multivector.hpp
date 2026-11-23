@@ -21,8 +21,6 @@
 #include <ginkgo/core/matrix/permutation.hpp>
 #include <ginkgo/core/matrix/scaled_permutation.hpp>
 
-#include "ginkgo/core/base/multivector_mixin.hpp"
-
 
 namespace gko {
 namespace experimental {
@@ -60,12 +58,10 @@ class Dense;
  * appear consecutive in the memory). Optionally, rows can be padded for better
  * memory access.
  *
- * @tparam ValueType  precision of multivector elements
+ * @note A multi-vector can be viewed as a matrix::Dense with no overhead. This
+ *       allows to use matrix exclusive operations on vectors, e.g. apply, etc.
  *
- * @note While this format is not very useful for storing sparse matrices, it
- *       is often suitable to store vectors, and sets of vectors.
- * @ingroup mat_formats
- * @ingroup LinOp
+ * @tparam ValueType  precision of multivector elements
  */
 template <typename ValueType = default_precision>
 class MultiVector
@@ -476,8 +472,8 @@ public:
      *
      * @param gather_indices  pointer to an array containing row indices
      *                        from this multivector. It may contain duplicates.
-     * @param row_collection  pointer to a LinOp that will store the gathered
-     *                        rows:
+     * @param row_collection  pointer to a AbstractMultiVector that will store
+     *                        the gathered rows:
      *                        `row_collection(i,j)
      *                         = input(gather_indices(i), j)`
      *                        It must have the same number of columns as this
@@ -487,7 +483,8 @@ public:
                     ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
-     * @copydoc row_gather(const array<int32>*, LinOp*) const
+     * @copydoc row_gather(const array<int32>*, ptr_param<AbstractMultiVector>)
+     * const
      */
     void row_gather(const array<int64>* gather_indices,
                     ptr_param<AbstractMultiVector> row_collection) const;
@@ -500,8 +497,8 @@ public:
      * @param gather_indices  pointer to an array containing row indices
      *                        from this multivector. It may contain duplicates.
      * @param beta  scaling the input row_collection
-     * @param row_collection  pointer to a LinOp that will store the
-     *             gathered rows:
+     * @param row_collection  pointer to a AbstractMultiVector that will store
+     *             the gathered rows:
      *             `row_collection(i,j) = input(gather_indices(i), j)`
      *             It must have the same number of columns as this
      *             multivector and `gather_indices->get_size()` rows.
@@ -512,8 +509,9 @@ public:
                     ptr_param<AbstractMultiVector> row_collection) const;
 
     /**
-     * @copydoc row_gather(const LinOp*, const array<int32>*, const LinOp*,
-     * LinOp*) const
+     * @copydoc row_gather(ptr_param<const AbstractMultiVector>,
+     * const array<int32>*, ptr_param<const AbstractMultiVector>,
+     * ptr_param<AbstractMultiVector>) const
      */
     void row_gather(ptr_param<const AbstractMultiVector> alpha,
                     const array<int64>* gather_indices,
@@ -537,7 +535,8 @@ public:
                      ptr_param<const AbstractMultiVector> source);
 
     /**
-     * @copydoc scatter_add(const array<int32>*, ptr_param<const LinOp>)
+     * @copydoc scatter_add(const array<int32>*,
+     * ptr_param<const AbstractMultiVector>)
      */
     void scatter_add(const array<int64>* scatter_indices,
                      ptr_param<const AbstractMultiVector> source);
@@ -886,7 +885,7 @@ protected:
     }
 
     /**
-     * @copydoc compute_mean(LinOp*) const
+     * @copydoc compute_mean(ptr_param<AbstractMultiVector>) const
      */
     virtual void compute_mean_impl(AbstractMultiVector* result) const;
 
