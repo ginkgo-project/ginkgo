@@ -325,11 +325,11 @@ public:
     /**
      * Scales this multi-vector element-wise by alpha.
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
+     * @param alpha  A matrix::MultiVector. If its size is 1x1 then the entire
+     *               matrix is scaled by alpha. If its size is 1xc then i-th
+     *               column of the matrix is scaled with the i-th element of
+     *               alpha (the number of columns of alpha has to match the
+     *               number of columns of the matrix).
      *
      * @throws NotSupported  If alpha isn't a matrix::MultiVector
      * @throws DimensionMismatch  If alpha has incompatible dimensions
@@ -339,11 +339,11 @@ public:
     /**
      * Divides this multi-vector element-wise by alpha.
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by 1 / alpha. If it is a Dense row vector of values,
-     *               then i-th column of the matrix is scaled with the inverse
-     *               of the i-th element of alpha (the number of columns of
-     *               alpha has to match the number of columns of the matrix).
+     * @param alpha  A matrix::MultiVector. If its size is 1x1 then the entire
+     *               matrix is scaled by 1 / alpha. If its size is 1xc then i-th
+     *               column of the matrix is scaled with the inverse of the i-th
+     *               element of alpha (the number of columns of alpha has to
+     *               match the number of columns of the matrix).
      *
      * @throws NotSupported  If alpha isn't a matrix::MultiVector
      * @throws DimensionMismatch  If alpha has incompatible dimensions
@@ -353,11 +353,11 @@ public:
     /**
      * Adds `b` scaled by `alpha` to the matrix (aka: BLAS axpy).
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, the entire matrix is scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column of the matrix is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
+     * @param alpha  A matrix::MultiVector. If its size is 1x1 then the entire
+     *               matrix is scaled by alpha. If its size is 1xc then i-th
+     *               column of the matrix is scaled with the i-th element of
+     *               alpha (the number of columns of alpha has to match the
+     *               number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      *
      * @throws NotSupported  If alpha isn't a matrix::MultiVector
@@ -369,11 +369,11 @@ public:
     /**
      * Subtracts `b` scaled by `alpha` from the matrix (aka: BLAS axpy).
      *
-     * @param alpha  If alpha is 1x1 Dense matrix, b is scaled
-     *               by alpha. If it is a Dense row vector of values,
-     *               then i-th column of b is scaled with the i-th
-     *               element of alpha (the number of columns of alpha has to
-     *               match the number of columns of the matrix).
+     * @param alpha  A matrix::MultiVector. If its size is 1x1 then the entire
+     *               matrix is scaled by alpha. If its size is 1xc then i-th
+     *               column of the matrix is scaled with the i-th element of
+     *               alpha (the number of columns of alpha has to match the
+     *               number of columns of the matrix).
      * @param b  a matrix of the same dimension as this
      *
      * @throws NotSupported  If alpha isn't a matrix::MultiVector
@@ -385,8 +385,8 @@ public:
     /**
      * Computes the column-wise dot product of this matrix and `b`.
      *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
+     * @param b  a multi-vector of same dimension as this
+     * @param result  a single row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
      *
@@ -398,8 +398,8 @@ public:
     /**
      * Computes the column-wise dot product of this matrix and `b`.
      *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
+     * @param b  a multi-vector of same dimension as this
+     * @param result  a single row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -415,8 +415,8 @@ public:
     /**
      * Computes the column-wise dot product of `conj(this matrix)` and `b`.
      *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
+     * @param b  a multi-vector of same dimension as this
+     * @param result  a single row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
      *
@@ -428,8 +428,8 @@ public:
     /**
      * Computes the column-wise dot product of `conj(this matrix)` and `b`.
      *
-     * @param b  a Dense matrix of same dimension as this
-     * @param result  a Dense row vector, used to store the dot product
+     * @param b  a multi-vector of same dimension as this
+     * @param result  a single row vector, used to store the dot product
      *                (the number of column in the vector must match the number
      *                of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -445,7 +445,7 @@ public:
     /**
      * Computes the column-wise Euclidean (L^2) norm of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a single row vector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      *
@@ -456,7 +456,7 @@ public:
     /**
      * Computes the column-wise Euclidean (L^2) norm of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a single row vector, used to store the norm
      *                (the number of columns in the vector must match the
      *                number of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -472,7 +472,7 @@ public:
      * Computes the square of the column-wise Euclidean (L^2) norm of this
      * matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a single row vector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      *
@@ -484,7 +484,7 @@ public:
      * Computes the square of the column-wise Euclidean (L^2) norm of this
      * matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a single row vector, used to store the norm
      *                (the number of columns in the vector must match the
      *                number of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -499,7 +499,7 @@ public:
     /**
      * Computes the column-wise (L^1) norm of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a single row vector, used to store the norm
      *                (the number of columns in the vector must match the number
      *                of columns of this)
      *
@@ -510,7 +510,7 @@ public:
     /**
      * Computes the column-wise (L^1) norm of this matrix.
      *
-     * @param result  a Dense row vector, used to store the norm
+     * @param result  a single row vector, used to store the norm
      *                (the number of columns in the vector must match the
      *                number of columns of this)
      * @param tmp  the temporary storage to use for partial sums during the
@@ -594,7 +594,7 @@ public:
      *
      * @see as_precision(precision) for more details
      *
-     * @param p Multi vector with the target precision
+     * @param p multi-vector with the target precision
      * @return A vector with the same precision as p
      */
     [[nodiscard]] temporary_conversion<AbstractMultiVector> as_precision(
@@ -767,9 +767,7 @@ protected:
     [[nodiscard]] virtual temporary_conversion<const AbstractMultiVector>
     as_precision_impl(precision p) const = 0;
 
-    void set_size(const dim<2>& value);
-
-    void set_local_size(const dim<2>& value);
+    void set_size(const dim<2>& global_size, const dim<2>& local_size);
 
 private:
     dim<2> size_;
