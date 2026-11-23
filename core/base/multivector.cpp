@@ -36,35 +36,6 @@ std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_with_config_of(
 }
 
 
-std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_with_type_of(
-    ptr_param<const AbstractMultiVector> other,
-    std::shared_ptr<const Executor> exec)
-{
-    return other->create_generic_with_type_of_impl(std::move(exec), {}, {}, 0);
-}
-
-
-std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_with_type_of(
-    ptr_param<const AbstractMultiVector> other,
-    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-    const dim<2>& local_size)
-{
-    GKO_ASSERT_EQUAL_COLS(global_size, local_size);
-    return other->create_generic_with_type_of_impl(std::move(exec), global_size,
-                                                   local_size, global_size[1]);
-}
-
-
-std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_with_type_of(
-    ptr_param<const AbstractMultiVector> other,
-    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-    const dim<2>& local_size, size_type stride)
-{
-    return other->create_generic_with_type_of_impl(std::move(exec), global_size,
-                                                   local_size, stride);
-}
-
-
 std::unique_ptr<AbstractMultiVector> AbstractMultiVector::clone(
     std::shared_ptr<const Executor> exec) const
 {

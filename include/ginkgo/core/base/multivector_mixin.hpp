@@ -189,40 +189,6 @@ public:
         ptr_param<const ConcreteType> other);
 
     /**
-     * @copydoc AbstractMultiVector::create_with_type_of(ptr_param<const
-     *          ConcreteType>, std::shared_ptr<const Executor>)
-     *
-     * @note Returns an object with ConcreteType
-     */
-    [[nodiscard]] static std::unique_ptr<ConcreteType> create_with_type_of(
-        ptr_param<const ConcreteType> other,
-        std::shared_ptr<const Executor> exec);
-
-    /**
-     * @copydoc AbstractMultiVector::create_with_type_of(ptr_param<const
-     *          ConcreteType>, std::shared_ptr<const Executor>, const dim<2>&,
-     *          const dim<2>&)
-     *
-     * @note Returns an object with ConcreteType
-     */
-    [[nodiscard]] static std::unique_ptr<ConcreteType> create_with_type_of(
-        ptr_param<const ConcreteType> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size);
-
-    /**
-     * @copydoc AbstractMultiVector::create_with_type_of(ptr_param<const
-     *          ConcreteType>, std::shared_ptr<const Executor>, const dim<2>&,
-     *          const dim<2>&, size_type)
-     *
-     * @note Returns an object with ConcreteType
-     */
-    [[nodiscard]] static std::unique_ptr<ConcreteType> create_with_type_of(
-        ptr_param<const ConcreteType> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size, size_type stride);
-
-    /**
      * @copydoc AbstractMultiVector::clone(std::shared_ptr<const Executor>)
      *
      * @note Returns an object with ConcreteType
@@ -442,12 +408,6 @@ protected:
 
     [[nodiscard]] std::unique_ptr<Cloneable> clone_impl() const override;
 
-    [[nodiscard]] std::unique_ptr<Cloneable> create_default_impl()
-        const override;
-
-    [[nodiscard]] std::unique_ptr<Cloneable> create_default_impl(
-        std::shared_ptr<const Executor> exec) const override;
-
     // Concretized virtual function calls
     //
     // These are the functions that classes using this mixin have to implement.
@@ -458,12 +418,6 @@ protected:
 
     [[nodiscard]] virtual std::unique_ptr<ConcreteType>
     create_with_same_config_impl() const = 0;
-
-    [[nodiscard]] virtual std::unique_ptr<ConcreteType>
-    create_with_type_of_impl(std::shared_ptr<const Executor> exec,
-                             const dim<2>& global_size,
-                             const dim<2>& local_size,
-                             size_type stride) const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<ConcreteType> create_subview_impl(
         local_span rows, local_span columns) = 0;
@@ -672,41 +626,6 @@ EnableMultiVector<ConcreteType>::create_with_config_of(
 {
     return static_cast<const EnableMultiVector*>(other.get())
         ->create_with_same_config_impl();
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<ConcreteType>
-EnableMultiVector<ConcreteType>::create_with_type_of(
-    ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec)
-{
-    return static_cast<const EnableMultiVector*>(other.get())
-        ->create_with_type_of_impl(std::move(exec), {}, {}, 0);
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<ConcreteType>
-EnableMultiVector<ConcreteType>::create_with_type_of(
-    ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec,
-    const dim<2>& global_size, const dim<2>& local_size)
-{
-    GKO_ASSERT_EQUAL_COLS(global_size, local_size);
-    return static_cast<const EnableMultiVector*>(other.get())
-        ->create_with_type_of_impl(std::move(exec), global_size, local_size,
-                                   local_size[1]);
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<ConcreteType>
-EnableMultiVector<ConcreteType>::create_with_type_of(
-    ptr_param<const ConcreteType> other, std::shared_ptr<const Executor> exec,
-    const dim<2>& global_size, const dim<2>& local_size, size_type stride)
-{
-    return static_cast<const EnableMultiVector*>(other.get())
-        ->create_with_type_of_impl(std::move(exec), global_size, local_size,
-                                   stride);
 }
 
 
@@ -963,37 +882,10 @@ std::unique_ptr<Cloneable> EnableMultiVector<ConcreteType>::clone_impl() const
 
 
 template <typename ConcreteType>
-std::unique_ptr<Cloneable>
-EnableMultiVector<ConcreteType>::create_default_impl() const
-{
-    return this->create_with_type_of_impl(this->get_executor(), {}, {}, 0);
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<Cloneable> EnableMultiVector<ConcreteType>::create_default_impl(
-    std::shared_ptr<const Executor> exec) const
-{
-    return this->create_with_type_of_impl(exec, {}, {}, 0);
-}
-
-
-template <typename ConcreteType>
 std::unique_ptr<AbstractMultiVector>
 EnableMultiVector<ConcreteType>::create_generic_with_same_config_impl() const
 {
     return this->create_with_same_config_impl();
-}
-
-
-template <typename ConcreteType>
-std::unique_ptr<AbstractMultiVector>
-EnableMultiVector<ConcreteType>::create_generic_with_type_of_impl(
-    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-    const dim<2>& local_size, size_type stride) const
-{
-    return this->create_with_type_of_impl(std::move(exec), global_size,
-                                          local_size, stride);
 }
 
 

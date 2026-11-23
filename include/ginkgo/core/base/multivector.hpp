@@ -95,64 +95,6 @@ public:
     create_with_config_of(ptr_param<const AbstractMultiVector> other);
 
     /**
-     * Creates an empty multi-vector with the same type as other on exec.
-     *
-     * Only the type and precision of other are used, the size and stride of
-     * the new vector are both zero.
-     *
-     * @param other The multi-vector whose type is used.
-     * @param exec The executor of the new multi-vector.
-     *
-     * @return An empty vector with the type of other
-     */
-    [[nodiscard]] static std::unique_ptr<AbstractMultiVector>
-    create_with_type_of(ptr_param<const AbstractMultiVector> other,
-                        std::shared_ptr<const Executor> exec);
-
-    /**
-     * Creates an empty multi-vector with the same type as other and
-     * the given size.
-     *
-     * The stride of the new vector is set to the number of global columns. For
-     * non-distributed types, global_size and local_size have to be equal.
-     *
-     * @param other The multi-vector whose type is used.
-     * @param exec The executor of the new multi-vector.
-     * @param global_size The global size of the new multi-vector.
-     * @param local_size The local size of the new multi-vector.
-     *
-     * @throws DimensionMismatch if global_size and local_size don't have
-     *                           the same number of columns
-     *
-     * @return An empty vector with the type of other
-     */
-    [[nodiscard]] static std::unique_ptr<AbstractMultiVector>
-    create_with_type_of(ptr_param<const AbstractMultiVector> other,
-                        std::shared_ptr<const Executor> exec,
-                        const dim<2>& global_size, const dim<2>& local_size);
-
-    /**
-     * Creates an empty multi-vector with the same type as other and
-     * the given size and stride.
-     *
-     * @see create_with_type_of(ptr_param<const AbstractMultiVector>,
-     *      std::shared_ptr<const Executor>, const dim<2>&, const dim<2>&)
-     *
-     * @param other The multi-vector whose type is used.
-     * @param exec The executor of the new multi-vector.
-     * @param global_size The global size of the new multi-vector.
-     * @param local_size The local size of the new multi-vector.
-     * @param stride The stride of the new multi-vector.
-     *
-     * @return An empty vector with the type of other
-     */
-    [[nodiscard]] static std::unique_ptr<AbstractMultiVector>
-    create_with_type_of(ptr_param<const AbstractMultiVector> other,
-                        std::shared_ptr<const Executor> exec,
-                        const dim<2>& global_size, const dim<2>& local_size,
-                        size_type stride);
-
-    /**
      * Creates a copy of this vector on the given executor.
      *
      * @param exec  The executor of the new vector
@@ -659,12 +601,6 @@ protected:
 
     [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     create_generic_with_same_config_impl() const = 0;
-
-    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
-    create_generic_with_type_of_impl(std::shared_ptr<const Executor> exec,
-                                     const dim<2>& global_size,
-                                     const dim<2>& local_size,
-                                     size_type stride) const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     compute_absolute_generic_impl() const = 0;
