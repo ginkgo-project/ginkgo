@@ -189,12 +189,17 @@ Vector<ValueType>::create_with_same_config_impl() const
 
 
 template <typename ValueType>
-std::unique_ptr<Vector<ValueType>> Vector<ValueType>::create_with_type_of_impl(
-    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-    const dim<2>& local_size, size_type stride) const
+std::unique_ptr<Cloneable> Vector<ValueType>::create_default_impl() const
 {
-    return Vector::create(exec, this->get_communicator(), global_size,
-                          local_size, stride);
+    return Vector::create(this->get_executor(), this->get_communicator());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Cloneable> Vector<ValueType>::create_default_impl(
+    std::shared_ptr<const Executor> exec) const
+{
+    return Vector::create(std::move(exec), this->get_communicator());
 }
 
 

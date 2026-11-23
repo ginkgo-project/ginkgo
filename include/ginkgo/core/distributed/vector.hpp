@@ -419,9 +419,11 @@ protected:
     [[nodiscard]] std::unique_ptr<Vector> create_with_same_config_impl()
         const override;
 
-    [[nodiscard]] std::unique_ptr<Vector> create_with_type_of_impl(
-        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size, size_type stride) const override;
+    [[nodiscard]] std::unique_ptr<Cloneable> create_default_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<Cloneable> create_default_impl(
+        std::shared_ptr<const Executor> exec) const override;
 
     [[nodiscard]] std::unique_ptr<Vector> create_subview_impl(
         local_span rows, local_span columns) override;
