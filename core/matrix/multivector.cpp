@@ -1741,6 +1741,21 @@ MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
 }
 
 
+template <typename ValueType>
+std::unique_ptr<Cloneable> MultiVector<ValueType>::create_default_impl() const
+{
+    return MultiVector::create(this->get_executor());
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Cloneable> MultiVector<ValueType>::create_default_impl(
+    std::shared_ptr<const Executor> exec) const
+{
+    return MultiVector::create(std::move(exec));
+}
+
+
 #define GKO_DECLARE_MULTIVECTOR_MATRIX(ValueType) class MultiVector<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_MULTIVECTOR_MATRIX);
 

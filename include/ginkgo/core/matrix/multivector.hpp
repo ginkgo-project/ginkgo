@@ -884,6 +884,12 @@ protected:
         return MultiVector::create(exec, size, stride);
     }
 
+    [[nodiscard]] std::unique_ptr<Cloneable> create_default_impl()
+        const override;
+
+    [[nodiscard]] std::unique_ptr<Cloneable> create_default_impl(
+        std::shared_ptr<const Executor> exec) const override;
+
     /**
      * @copydoc compute_mean(ptr_param<AbstractMultiVector>) const
      */
