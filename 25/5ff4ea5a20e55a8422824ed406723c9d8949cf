@@ -1,0 +1,41 @@
+core/solver/cg.cpp
+  s_b983a948a268f1::t_d057ec68b5967b 80-86
+include/ginkgo/core/solver/cg.hpp
+  s_b983a948a268f1::t_0e486fc5446219 87
+core/multigrid/fixed_coarsening.cpp
+  s_b983a948a268f1::t_5307e499da28cb 37-53,92-96
+core/multigrid/pgm.cpp
+  s_b983a948a268f1::t_118b07214c40a7 314-331,360-361,451-452
+core/multigrid/pmis.cpp
+  s_b983a948a268f1::t_a22e6813fcde1f 92-93,100-103,276-278,317-319,327-329,348-349,611,615-617
+core/multigrid/rs.cpp
+  s_b983a948a268f1::t_5339dc0bb8d377 114,116-117
+core/multigrid/uniform_coarsening.cpp
+  s_b983a948a268f1::t_9253f3aa3c7b2b 206-222
+include/ginkgo/core/multigrid/fixed_coarsening.hpp
+  s_b983a948a268f1::t_a2d58030f80fbf 83-84,86-89
+include/ginkgo/core/multigrid/pgm.hpp
+  s_b983a948a268f1::t_60b90d375d6a6f 179-180,182-185
+include/ginkgo/core/multigrid/pmis.hpp
+  s_b983a948a268f1::t_6aba442d1c867f 109-110,112-115
+include/ginkgo/core/multigrid/rs.hpp
+  s_b983a948a268f1::t_a1d364873fa48e 90-91,96-99
+include/ginkgo/core/multigrid/uniform_coarsening.hpp
+  s_b983a948a268f1::t_7ce9025ec2b746 147-148,150-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "255ff4ea5a20e55a8422824ed406723c9d8949cf",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}

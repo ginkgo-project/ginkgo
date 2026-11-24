@@ -1,0 +1,21 @@
+core/reorder/scaled_reordered.cpp
+  s_b983a948a268f1::t_ef527ebfc9841d 78-99
+include/ginkgo/core/reorder/scaled_reordered.hpp
+  s_b983a948a268f1::t_b7146883ed6d9d 172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "c22fe5822e0909191270e927bcb757b9de4f7944",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}

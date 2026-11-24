@@ -1,0 +1,25 @@
+core/reorder/amd.cpp
+  s_b983a948a268f1::t_c8fbd5b68bc016 117-118,133-134
+core/reorder/rcm.cpp
+  s_b983a948a268f1::t_ec1fcf582fb18c 174-175
+core/reorder/scaled_reordered.cpp
+  s_b983a948a268f1::t_e02b4311ae7f36 1,9,19-20,22-52,54-62,67-69,71-74
+include/ginkgo/core/reorder/scaled_reordered.hpp
+  s_b983a948a268f1::t_0eddc24663c581 115-116,137-138,152-153,155-158,171-172,184,186,191
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "42604442977af46b87796f303b5ee86ea96fc2e3",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}

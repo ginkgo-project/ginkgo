@@ -1,0 +1,103 @@
+core/log/convergence.cpp
+  s_b983a948a268f1::t_01c0669ade1c7f 25-30,41-45,55-59,74,77,80,83-85,94-102
+core/log/papi.cpp
+  s_b983a948a268f1::t_0230574d585277 151-153,160-162,169-172,179-182,207-211,220-224,246-250,258-261,271-274
+core/log/profiler_hook.cpp
+  s_b983a948a268f1::t_b80a1affd32dda 143-145,157-159,171-174,187-190,223-226,236-240,249-254,263-267,278-281,289-292
+core/log/record.cpp
+  s_b983a948a268f1::t_480d97734edff0 1,8,164-166,174-176,184-188,196-199,228-231,242-247,259-263,271-274,282-286,295-299
+core/log/solver_progress.cpp
+  s_b983a948a268f1::t_25287c4f5935f1 28,43-45,51-55,109-113,124-127,135-136,185-187,198-202,223-227,238-241,249-250,257-271,292-309,312
+core/log/stream.cpp
+  s_b983a948a268f1::t_db13204817aba6 257-259,275-277,293-296,318-321,364-367,396-400,433-437,480-483,492-495
+include/ginkgo/core/log/convergence.hpp
+  s_b983a948a268f1::t_17ead5e6f4cee9 43-45,51-64,186-188
+include/ginkgo/core/log/logger.hpp
+  s_b983a948a268f1::t_061d2be5da667a 357-359,385-386,409-414,451-454,474-477,499-504
+include/ginkgo/core/log/papi.hpp
+  s_b983a948a268f1::t_6717557094a887 1,122-123,125-126,128-131,133-136,148-150,155-161,168-172,179-182
+include/ginkgo/core/log/profiler_hook.hpp
+  s_b983a948a268f1::t_1e49d8d0ce9eda 1,108-109,111-112,114-117,119-122,135-137,143-145,151-156,160-164,170-174,181-184
+include/ginkgo/core/log/record.hpp
+  s_b983a948a268f1::t_27179b739ab90b 47-48,50-52,56-62,133-139,181-183,191-195,340-341,343-344,346-349,351-354,367-369,375-380,384-386,391-399,404-408,415-418
+include/ginkgo/core/log/stream.hpp
+  s_b983a948a268f1::t_e5d87923feb3fd 1,93-94,96-97,99-102,104-107,120-122,128-130,135-141,148-152,159-162
+core/stop/residual_norm.cpp
+  s_b983a948a268f1::t_c1e6a536f3a96c 65,67,72-73,83,115,120-122
+include/ginkgo/core/stop/criterion.hpp
+  s_b983a948a268f1::t_bfcbd533de1170 106-109,111,212-214,218-219
+include/ginkgo/core/stop/residual_norm.hpp
+  s_b983a948a268f1::t_7f882e11d72430 79
+core/matrix/coo.cpp
+  s_b983a948a268f1::t_0ff8314c7d6dbb 20,134-135,144-147,159-160,162-165,172-175,177-178,181-182,189-190,192-195,202-204,206-209,212,214
+core/matrix/dense.cpp
+  s_b983a948a268f1::t_f68e24a05d3da1 11,717,721-723,725-727,732,736-738,740-742,849,851,961-962,964-965,967,974-977,979-980,983-984
+core/matrix/diagonal.cpp
+  s_b983a948a268f1::t_96213497b004c9 10,48-49,51-56,61-62,64-67,72-73,75-78,302-395
+core/matrix/ell.cpp
+  s_b983a948a268f1::t_84ee725b8e1b63 22,205-206,208-211,218-221,223-225,228-229,231
+core/matrix/fbcsr.cpp
+  s_b983a948a268f1::t_b82a50ee3e65cd 25,107-108,110-114,119-122,124-130
+core/matrix/fft.cpp
+  s_b983a948a268f1::t_4ae71c95b4c07c 152-160,165,167-188,254-267,271-274,276-279,361-374,378-381,383-386
+core/matrix/hybrid.cpp
+  s_b983a948a268f1::t_ae5e18ff6468ea 19,193-194,196-199,206-209,211-218,220
+core/matrix/identity.cpp
+  s_b983a948a268f1::t_7e50a437aecc71 8-10,18-19,21,26-29,31-34,36
+core/matrix/multivector.cpp
+  s_b983a948a268f1::t_613a152991b706 964-967,969-970,983-986,988-989
+core/matrix/permutation.cpp
+  s_b983a948a268f1::t_441d9347369abc 293-294,296-303,308-311,313-322
+core/matrix/row_gatherer.cpp
+  s_b983a948a268f1::t_bc4948d2d97987 66-67,69-74,78-81,83-89
+core/matrix/scaled_permutation.cpp
+  s_b983a948a268f1::t_6af75c5b345ab8 10,131-132,134-138,143-145,147-152
+core/matrix/sellp.cpp
+  s_b983a948a268f1::t_a49c0562300674 18,182-183,185-186,188,195-198,200-201,204-205
+core/matrix/sparsity_csr.cpp
+  s_b983a948a268f1::t_cfb1ab40edf22f 17,48-49,51-52,54,61-63,65-67,69-70,72
+include/ginkgo/core/matrix/coo.hpp
+  s_b983a948a268f1::t_7ff970c185b759 243-244,249-251,351-352,354-357,359-360,362-364
+include/ginkgo/core/matrix/dense.hpp
+  s_b983a948a268f1::t_5a0b726ef88195 296,299,361-362,364-367
+include/ginkgo/core/matrix/diagonal.hpp
+  s_b983a948a268f1::t_e887dfc50f4dee 61,149-150,152-156,167-168,170-180,267-268
+include/ginkgo/core/matrix/ell.hpp
+  s_b983a948a268f1::t_178c204ca90e27 394-395,397-400
+include/ginkgo/core/matrix/fbcsr.hpp
+  s_b983a948a268f1::t_a47d8bc476e5cb 474-475,477-480
+include/ginkgo/core/matrix/fft.hpp
+  s_b983a948a268f1::t_8bbd854cfaa9fe 108-109,111-114,227-228,230-233,350-351,353-356
+include/ginkgo/core/matrix/hybrid.hpp
+  s_b983a948a268f1::t_7d40b5809499ad 796-797,799-802
+include/ginkgo/core/matrix/identity.hpp
+  s_b983a948a268f1::t_4e069bc03020f3 73-74,76-79
+include/ginkgo/core/matrix/multivector.hpp
+  s_b983a948a268f1::t_1d04e4e2fdf38e 509,511,518,520
+include/ginkgo/core/matrix/permutation.hpp
+  s_b983a948a268f1::t_6d6e280d639107 273-274,276-278
+include/ginkgo/core/matrix/row_gatherer.hpp
+  s_b983a948a268f1::t_2158c39ea0ee8b 116-117,119-122
+include/ginkgo/core/matrix/scaled_permutation.hpp
+  s_b983a948a268f1::t_c902c160b8913b 167-168,170-172
+include/ginkgo/core/matrix/sellp.hpp
+  s_b983a948a268f1::t_6dd8575b8bf664 386-387,389-392
+include/ginkgo/core/matrix/sparsity_csr.hpp
+  s_b983a948a268f1::t_1eb93f2ee1b8c2 315-316,318-321
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "74ba81a4dde5edb40dbf771746f3ba09e6399382",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
