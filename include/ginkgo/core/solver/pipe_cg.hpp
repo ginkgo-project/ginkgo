@@ -76,6 +76,10 @@ namespace solver {
  * 3. As the CG itself, this method performs very well for symmetric positive
  * definite matrices but it is in general not suitable for general matrices.
  *
+ * @note Allows only matrix::MultiVector<ValueType> or
+ *       experimental::distributed::Vector<ValueType> as input vectors to its
+ *       apply function.
+ *
  * @par References
  * - Sanan, P., Schnepp, S. M., May, D. A.
  *   *Pipelined, Flexible Krylov Subspace Methods.*

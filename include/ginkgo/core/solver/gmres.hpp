@@ -79,6 +79,10 @@ std::ostream& operator<<(std::ostream& stream, ortho_method ortho);
  * use of data locality. The inner operations in one iteration of GMRES are
  * merged into 2 separate steps. Modified Gram-Schmidt is used.
  *
+ * @note Allows only matrix::MultiVector<ValueType> or
+ *       experimental::distributed::Vector<ValueType> as input vectors to its
+ *       apply function.
+ *
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup solvers

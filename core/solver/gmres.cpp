@@ -331,8 +331,19 @@ void Gmres<ValueType>::apply_with_initial_guess_impl(
     }
     prepare_initial_guess(b, x, guess);
 
-    precision_dispatch<ValueType>(
-        [this, guess](auto converted_b, auto converted_x) {
+    auto converted_b = b->as_precision(precision_v<ValueType>);
+    auto converted_x = x->as_precision(precision_v<ValueType>);
+
+    run<
+#if GINKGO_BUILD_MPI
+        experimental::distributed::Vector<ValueType>,
+#endif
+        matrix::MultiVector<ValueType>>(
+        converted_b.get(),
+        [&](auto concrete_b_) {
+            using VectorType = std::decay_t<decltype(*concrete_b_)>;
+            auto concrete_x = as<VectorType>(converted_x.get());
+
             using LocalVector = matrix::MultiVector<ValueType>;
             using NormVector = typename LocalVector::absolute_type;
             using ws = workspace_traits<Gmres>;
@@ -343,29 +354,26 @@ void Gmres<ValueType>::apply_with_initial_guess_impl(
             this->setup_workspace();
             // solve with the consistent right-hand side if a left nullspace is
             // set
-            converted_b = this->get_consistent_rhs(
-                converted_b, workspace_traits<Gmres>::proj_rhs);
+            auto concrete_b = this->get_consistent_rhs(
+                concrete_b_, workspace_traits<Gmres>::proj_rhs);
             const auto is_flexible = this->get_parameters().flexible;
             const auto num_rows = this->get_size()[0];
             const auto local_num_rows =
-                converted_b->template get_const_local_device_view<ValueType>()
+                concrete_b->template get_const_local_device_view<ValueType>()
                     .size[0];
-            const auto num_rhs = converted_b->get_size()[1];
+            const auto num_rhs = concrete_b->get_size()[1];
             const auto krylov_dim = this->get_krylov_dim();
-            GKO_SOLVER_VECTOR(residual, converted_b);
-            GKO_SOLVER_VECTOR(preconditioned_vector, converted_b);
+            GKO_SOLVER_VECTOR(residual, concrete_b);
+            GKO_SOLVER_VECTOR(preconditioned_vector, concrete_b);
             // TODO: check whether it can be empty when it is flexible GMRES
-            auto krylov_bases = this->create_workspace_op_with_type_of(
-                ws::krylov_bases, converted_b,
-                dim<2>{num_rows * (krylov_dim + 1), num_rhs},
-                dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
+            auto krylov_bases = this->create_workspace_op_vertically_stacked(
+                ws::krylov_bases, concrete_b, krylov_dim + 1);
             AbstractMultiVector* preconditioned_krylov_bases = nullptr;
             if (is_flexible) {
                 preconditioned_krylov_bases =
-                    this->create_workspace_op_with_type_of(
-                        ws::preconditioned_krylov_bases, converted_b,
-                        dim<2>{num_rows * (krylov_dim + 1), num_rhs},
-                        dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
+                    this->create_workspace_op_vertically_stacked(
+                        ws::preconditioned_krylov_bases, concrete_b,
+                        krylov_dim + 1);
             }
             // The Hessenberg matrix formed by the Arnoldi process is of shape
             // (krylov_dim + 1) x (krylov_dim) for a single RHS. The (i,j)th
@@ -407,13 +415,13 @@ void Gmres<ValueType>::apply_with_initial_guess_impl(
                     ws::next_krylov_norm_tmp,
                     dim<2>{1, is_complex_s<ValueType>::value ? num_rhs : 0});
 
-            GKO_SOLVER_VECTOR(before_preconditioner, converted_x);
-            GKO_SOLVER_VECTOR(after_preconditioner, converted_x);
+            GKO_SOLVER_VECTOR(before_preconditioner, concrete_x);
+            GKO_SOLVER_VECTOR(after_preconditioner, concrete_x);
 
             GKO_SOLVER_ONE_MINUS_ONE();
 
             bool one_changed{};
-            GKO_SOLVER_STOP_REDUCTION_ARRAYS(converted_b->get_size()[1]);
+            GKO_SOLVER_STOP_REDUCTION_ARRAYS(concrete_b->get_size()[1]);
             auto& final_iter_nums =
                 this->template create_workspace_array<size_type>(
                     ws::final_iter_nums, num_rhs);
@@ -475,17 +483,17 @@ void Gmres<ValueType>::apply_with_initial_guess_impl(
             // givens_sin = givens_cos = 0
             // reset stop status
             exec->run(gmres::make_initialize(
-                converted_b->template get_const_local_device_view<ValueType>(),
+                concrete_b->template get_const_local_device_view<ValueType>(),
                 residual->template get_local_device_view<ValueType>(),
                 givens_sin->get_device_view(), givens_cos->get_device_view(),
                 stop_status.get_data()));
             if (guess != initial_guess_mode::zero) {
                 // residual = residual - Ax
-                this->get_system_matrix()->apply(neg_one_op, converted_x,
-                                                 one_op, residual);
+                this->get_system_matrix()->apply(neg_one_op, concrete_x, one_op,
+                                                 residual);
                 // A annihilates N(A), so removing it from x keeps the residual
                 // unchanged
-                this->project_nullspace(converted_x);
+                this->project_nullspace(concrete_x);
             }
 
             // residual_norm = norm(residual)
@@ -504,8 +512,8 @@ void Gmres<ValueType>::apply_with_initial_guess_impl(
             auto stop_criterion = this->get_stop_criterion_factory()->generate(
                 this->get_system_matrix(),
                 std::shared_ptr<const AbstractMultiVector>(
-                    converted_b, [](const AbstractMultiVector*) {}),
-                converted_x, residual);
+                    concrete_b, [](const AbstractMultiVector*) {}),
+                concrete_x, residual);
 
             int total_iter = -1;
             size_type restart_iter = 0;
@@ -532,11 +540,11 @@ void Gmres<ValueType>::apply_with_initial_guess_impl(
                                        .num_iterations(total_iter)
                                        .residual(residual)
                                        .residual_norm(residual_norm)
-                                       .solution(converted_x)
+                                       .solution(concrete_x)
                                        .check(RelativeStoppingId, false,
                                               &stop_status, &one_changed);
                 this->template log<log::Logger::iteration_complete>(
-                    this, converted_b, converted_x, total_iter, residual,
+                    this, concrete_b, concrete_x, total_iter, residual,
                     residual_norm, nullptr, &stop_status, all_stopped);
                 if (all_stopped) {
                     break;
@@ -565,11 +573,11 @@ void Gmres<ValueType>::apply_with_initial_guess_impl(
                     // x = x + get_preconditioner() * before_preconditioner
                     this->get_preconditioner()->apply(before_preconditioner,
                                                       after_preconditioner);
-                    converted_x->add_scaled(one_op, after_preconditioner);
+                    concrete_x->add_scaled(one_op, after_preconditioner);
                     // residual = dense_b
-                    residual->copy_from(converted_b);
+                    residual->copy_from(concrete_b);
                     // residual = residual - Ax
-                    this->get_system_matrix()->apply(neg_one_op, converted_x,
+                    this->get_system_matrix()->apply(neg_one_op, concrete_x,
                                                      one_op, residual);
                     // residual_norm = norm(residual)
                     residual->compute_norm2(residual_norm, reduction_tmp);
@@ -738,9 +746,10 @@ void Gmres<ValueType>::apply_with_initial_guess_impl(
                                                   after_preconditioner);
             }
             // x = x + after_preconditioner
-            converted_x->add_scaled(one_op, after_preconditioner);
-        },
-        b, x);
+            concrete_x->add_scaled(one_op, after_preconditioner);
+        }
+
+    );
 }
 
 

@@ -57,6 +57,10 @@ constexpr size_type gcr_default_krylov_dim = 100u;
  * use of data locality. The inner operations in one iteration of GCR are
  * merged into one step. Modified Gram-Schmidt is used.
  *
+ * @note Allows only matrix::MultiVector<ValueType> or
+ *       experimental::distributed::Vector<ValueType> as input vectors to its
+ *       apply function.
+ *
  * @tparam ValueType  precision of matrix elements
  *
  * @ingroup solvers

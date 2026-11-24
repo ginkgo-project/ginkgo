@@ -18,6 +18,7 @@
 #include "core/config/solver_config.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/gcr_kernels.hpp"
+#include "core/solver/solver_base.hpp"
 #include "core/solver/solver_boilerplate.hpp"
 
 
@@ -87,222 +88,221 @@ void Gcr<ValueType>::apply_impl(const AbstractMultiVector* b,
     if (!this->get_system_matrix()) {
         return;
     }
-    precision_dispatch<ValueType>(
-        [this](auto converted_b, auto converted_x) {
-            using AbsoluteValueType = remove_complex<ValueType>;
-            using NormVector = matrix::MultiVector<AbsoluteValueType>;
-            using ws = workspace_traits<Gcr>;
 
-            constexpr uint8 RelativeStoppingId{1};
+    auto converted_b = b->as_precision(precision_v<ValueType>);
+    auto converted_x = x->as_precision(precision_v<ValueType>);
 
-            auto exec = this->get_executor();
-            this->setup_workspace();
+    run<
+#if GINKGO_BUILD_MPI
+        experimental::distributed::Vector<ValueType>,
+#endif
+        matrix::MultiVector<ValueType>>(converted_b.get(), [&](auto
+                                                                   concrete_b) {
+        using VectorType = std::decay_t<decltype(*concrete_b)>;
+        auto concrete_x = as<VectorType>(converted_x.get());
 
-            const auto num_rows = this->get_size()[0];
-            const auto num_rhs = converted_b->get_size()[1];
-            const auto local_num_rows =
-                converted_b->template get_const_local_device_view<ValueType>()
-                    .size[0];
-            const auto krylov_dim = this->get_krylov_dim();
-            GKO_SOLVER_VECTOR(residual, converted_b);
-            GKO_SOLVER_VECTOR(precon_residual, converted_b);
-            GKO_SOLVER_VECTOR(A_precon_residual, converted_b);
-            auto krylov_bases_p = this->create_workspace_op_with_type_of(
-                ws::krylov_bases_p, converted_b,
-                dim<2>{num_rows * (krylov_dim + 1), num_rhs},
-                dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
-            auto mapped_krylov_bases_Ap =
-                this->create_workspace_op_with_type_of(
-                    ws::mapped_krylov_bases_Ap, converted_b,
-                    dim<2>{num_rows * (krylov_dim + 1), num_rhs},
-                    dim<2>{local_num_rows * (krylov_dim + 1), num_rhs});
-            auto tmp_rAp = this->template create_workspace_scalar<ValueType>(
-                ws::tmp_rAp, num_rhs);
-            auto tmp_minus_beta =
-                this->template create_workspace_scalar<ValueType>(
-                    ws::tmp_minus_beta, num_rhs);
-            auto residual_norm =
-                this->template create_workspace_scalar<AbsoluteValueType>(
-                    ws::residual_norm, num_rhs);
-            auto Ap_norms = this->template create_workspace_op<NormVector>(
-                ws::Ap_norms, dim<2>{krylov_dim + 1, num_rhs});
-            auto& final_iter_nums =
-                this->template create_workspace_array<size_type>(
-                    ws::final_iter_nums, num_rhs);
+        using AbsoluteValueType = remove_complex<ValueType>;
+        using NormVector = matrix::MultiVector<AbsoluteValueType>;
+        using ws = workspace_traits<Gcr>;
 
-            // indicates if the status of a vector has changed
-            bool one_changed{};
-            GKO_SOLVER_ONE_MINUS_ONE();
-            GKO_SOLVER_STOP_REDUCTION_ARRAYS(converted_b->get_size()[1]);
+        constexpr uint8 RelativeStoppingId{1};
 
-            // Initialization
-            // residual = converted_b
-            // reset stop status
-            exec->run(gcr::make_initialize(
-                converted_b->template get_const_local_device_view<ValueType>(),
+        auto exec = this->get_executor();
+        this->setup_workspace();
+
+        const auto num_rows = this->get_size()[0];
+        const auto num_rhs = concrete_b->get_size()[1];
+        const auto local_num_rows =
+            concrete_b->template get_const_local_device_view<ValueType>()
+                .size[0];
+        const auto krylov_dim = this->get_krylov_dim();
+        GKO_SOLVER_VECTOR(residual, concrete_b);
+        GKO_SOLVER_VECTOR(precon_residual, concrete_b);
+        GKO_SOLVER_VECTOR(A_precon_residual, concrete_b);
+        auto krylov_bases_p = this->create_workspace_op_vertically_stacked(
+            ws::krylov_bases_p, concrete_b, krylov_dim + 1);
+        auto mapped_krylov_bases_Ap =
+            this->create_workspace_op_vertically_stacked(
+                ws::mapped_krylov_bases_Ap, concrete_b, krylov_dim + 1);
+        auto tmp_rAp = this->template create_workspace_scalar<ValueType>(
+            ws::tmp_rAp, num_rhs);
+        auto tmp_minus_beta = this->template create_workspace_scalar<ValueType>(
+            ws::tmp_minus_beta, num_rhs);
+        auto residual_norm =
+            this->template create_workspace_scalar<AbsoluteValueType>(
+                ws::residual_norm, num_rhs);
+        auto Ap_norms = this->template create_workspace_op<NormVector>(
+            ws::Ap_norms, dim<2>{krylov_dim + 1, num_rhs});
+        auto& final_iter_nums =
+            this->template create_workspace_array<size_type>(
+                ws::final_iter_nums, num_rhs);
+
+        // indicates if the status of a vector has changed
+        bool one_changed{};
+        GKO_SOLVER_ONE_MINUS_ONE();
+        GKO_SOLVER_STOP_REDUCTION_ARRAYS(concrete_b->get_size()[1]);
+
+        // Initialization
+        // residual = converted_b
+        // reset stop status
+        exec->run(gcr::make_initialize(
+            concrete_b->template get_const_local_device_view<ValueType>(),
+            residual->template get_local_device_view<ValueType>(),
+            stop_status.get_data()));
+        // residual = residual - Ax
+        // Note: x is passed in with initial guess
+        this->get_system_matrix()->apply(neg_one_op, concrete_x, one_op,
+                                         residual);
+        // apply preconditioner to residual
+        this->get_preconditioner()->apply(residual, precon_residual);
+        // A_precon_residual = A*precon_residual
+        this->get_system_matrix()->apply(precon_residual, A_precon_residual);
+
+        // p(:, 1) = precon_residual(:, 1)
+        // Ap(:, 1) = A_precon_residual(:, 1)
+        // final_iter_nums = {0, ..., 0}
+        exec->run(gcr::make_restart(
+            precon_residual->template get_const_local_device_view<ValueType>(),
+            A_precon_residual
+                ->template get_const_local_device_view<ValueType>(),
+            krylov_bases_p->template get_local_device_view<ValueType>(),
+            mapped_krylov_bases_Ap->template get_local_device_view<ValueType>(),
+            final_iter_nums.get_data()));
+
+        auto stop_criterion = this->get_stop_criterion_factory()->generate(
+            this->get_system_matrix(),
+            std::shared_ptr<const AbstractMultiVector>(
+                concrete_b, [](const AbstractMultiVector*) {}),
+            concrete_x, residual);
+
+        int total_iter = -1;
+        size_type restart_iter = 0;
+
+        /* Memory movement summary for average iteration with krylov_dim d:
+         * (4d+22+4/d)n+(d+1+1/d) * values + matrix/preconditioner storage
+         * 1x SpMV:                       2n * values + storage
+         * 1x Preconditioner:             2n * values + storage
+         * 1x step 1       (scal, axpys)  6n
+         * 1x dot                         2n
+         * MGS:                     (4d+10)n+(d+1)
+         *                        = sum k=0 to d-1 of (8k+8)n+(2k+2) /d + 6n
+         *       1x dots             2(k+1)n in iteration k (0-based)
+         *       2x axpys            6(k+1)n in iteration k (0-based)
+         *       1x scals             2(k+1) in iteration k (0-based)
+         *       1x norm2                  n
+         *       1x sq_norm2               n
+         *       2x copy                  4n
+         * Restart:                   (4/d)n+1/d (every dth iteration)
+         *       (2+1)x copy              4n+1
+         */
+        while (true) {
+            ++total_iter;
+            // compute residual norm
+            residual->compute_norm2(residual_norm, reduction_tmp);
+
+            // Should the iteration stop?
+            auto all_stopped = stop_criterion->update()
+                                   .num_iterations(total_iter)
+                                   .residual(residual)
+                                   .residual_norm(residual_norm)
+                                   .solution(concrete_x)
+                                   .check(RelativeStoppingId, true,
+                                          &stop_status, &one_changed);
+
+            // Log current iteration
+            this->template log<log::Logger::iteration_complete>(
+                this, concrete_b, concrete_x, total_iter, residual,
+                residual_norm, nullptr, &stop_status, all_stopped);
+            // Check stopping criterion
+            if (all_stopped) {
+                break;
+            }
+
+            // If krylov_dim reached, restart with new initial guess
+            if (restart_iter == krylov_dim) {
+                // Restart
+                // p(:, 1) = precon_residual(:)
+                // Ap(:, 1) = A_precon_residual(:)
+                // final_iter_nums = {0, ..., 0}
+                exec->run(gcr::make_restart(
+                    precon_residual
+                        ->template get_const_local_device_view<ValueType>(),
+                    A_precon_residual
+                        ->template get_const_local_device_view<ValueType>(),
+                    krylov_bases_p->template get_local_device_view<ValueType>(),
+                    mapped_krylov_bases_Ap
+                        ->template get_local_device_view<ValueType>(),
+                    final_iter_nums.get_data()));
+                restart_iter = 0;
+            }
+
+            auto Ap = mapped_krylov_bases_Ap->create_subview(
+                local_span{local_num_rows * restart_iter,
+                           local_num_rows * (restart_iter + 1)},
+                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+            auto p = krylov_bases_p->create_subview(
+                local_span{local_num_rows * restart_iter,
+                           local_num_rows * (restart_iter + 1)},
+                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+            // compute r*Ap
+            residual->compute_conj_dot(Ap.get(), tmp_rAp, reduction_tmp);
+            // normalise
+            auto Ap_norm = Ap_norms->create_subview(
+                local_span{restart_iter, restart_iter + 1},
+                local_span{0, num_rhs});
+            Ap->compute_squared_norm2(Ap_norm.get(), reduction_tmp);
+
+            // alpha = r*Ap / Ap_norm
+            // x = x + alpha * p
+            // r = r - alpha * Ap
+            exec->run(gcr::make_step_1(
+                concrete_x->template get_local_device_view<ValueType>(),
                 residual->template get_local_device_view<ValueType>(),
-                stop_status.get_data()));
-            // residual = residual - Ax
-            // Note: x is passed in with initial guess
-            this->get_system_matrix()->apply(neg_one_op, converted_x, one_op,
-                                             residual);
+                p->template get_const_local_device_view<ValueType>(),
+                Ap->template get_const_local_device_view<ValueType>(),
+                Ap_norm->get_const_device_view(),
+                tmp_rAp->get_const_device_view(),
+                stop_status.get_const_data()));
+
             // apply preconditioner to residual
             this->get_preconditioner()->apply(residual, precon_residual);
-            // A_precon_residual = A*precon_residual
+
+            // compute and save A*precon_residual
             this->get_system_matrix()->apply(precon_residual,
                                              A_precon_residual);
 
-            // p(:, 1) = precon_residual(:, 1)
-            // Ap(:, 1) = A_precon_residual(:, 1)
-            // final_iter_nums = {0, ..., 0}
-            exec->run(gcr::make_restart(
-                precon_residual
-                    ->template get_const_local_device_view<ValueType>(),
-                A_precon_residual
-                    ->template get_const_local_device_view<ValueType>(),
-                krylov_bases_p->template get_local_device_view<ValueType>(),
-                mapped_krylov_bases_Ap
-                    ->template get_local_device_view<ValueType>(),
-                final_iter_nums.get_data()));
-
-            auto stop_criterion = this->get_stop_criterion_factory()->generate(
-                this->get_system_matrix(),
-                std::shared_ptr<const AbstractMultiVector>(
-                    converted_b, [](const AbstractMultiVector*) {}),
-                converted_x, residual);
-
-            int total_iter = -1;
-            size_type restart_iter = 0;
-
-            /* Memory movement summary for average iteration with krylov_dim d:
-             * (4d+22+4/d)n+(d+1+1/d) * values + matrix/preconditioner storage
-             * 1x SpMV:                       2n * values + storage
-             * 1x Preconditioner:             2n * values + storage
-             * 1x step 1       (scal, axpys)  6n
-             * 1x dot                         2n
-             * MGS:                     (4d+10)n+(d+1)
-             *                        = sum k=0 to d-1 of (8k+8)n+(2k+2) /d + 6n
-             *       1x dots             2(k+1)n in iteration k (0-based)
-             *       2x axpys            6(k+1)n in iteration k (0-based)
-             *       1x scals             2(k+1) in iteration k (0-based)
-             *       1x norm2                  n
-             *       1x sq_norm2               n
-             *       2x copy                  4n
-             * Restart:                   (4/d)n+1/d (every dth iteration)
-             *       (2+1)x copy              4n+1
-             */
-            while (true) {
-                ++total_iter;
-                // compute residual norm
-                residual->compute_norm2(residual_norm, reduction_tmp);
-
-                // Should the iteration stop?
-                auto all_stopped = stop_criterion->update()
-                                       .num_iterations(total_iter)
-                                       .residual(residual)
-                                       .residual_norm(residual_norm)
-                                       .solution(converted_x)
-                                       .check(RelativeStoppingId, true,
-                                              &stop_status, &one_changed);
-
-                // Log current iteration
-                this->template log<log::Logger::iteration_complete>(
-                    this, converted_b, converted_x, total_iter, residual,
-                    residual_norm, nullptr, &stop_status, all_stopped);
-                // Check stopping criterion
-                if (all_stopped) {
-                    break;
-                }
-
-                // If krylov_dim reached, restart with new initial guess
-                if (restart_iter == krylov_dim) {
-                    // Restart
-                    // p(:, 1) = precon_residual(:)
-                    // Ap(:, 1) = A_precon_residual(:)
-                    // final_iter_nums = {0, ..., 0}
-                    exec->run(gcr::make_restart(
-                        precon_residual
-                            ->template get_const_local_device_view<ValueType>(),
-                        A_precon_residual
-                            ->template get_const_local_device_view<ValueType>(),
-                        krylov_bases_p
-                            ->template get_local_device_view<ValueType>(),
-                        mapped_krylov_bases_Ap
-                            ->template get_local_device_view<ValueType>(),
-                        final_iter_nums.get_data()));
-                    restart_iter = 0;
-                }
-
-                auto Ap = mapped_krylov_bases_Ap->create_subview(
-                    local_span{local_num_rows * restart_iter,
-                               local_num_rows * (restart_iter + 1)},
+            // modified Gram-Schmidt
+            auto next_Ap = mapped_krylov_bases_Ap->create_subview(
+                local_span{local_num_rows * (restart_iter + 1),
+                           local_num_rows * (restart_iter + 2)},
+                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+            auto next_p = krylov_bases_p->create_subview(
+                local_span{local_num_rows * (restart_iter + 1),
+                           local_num_rows * (restart_iter + 2)},
+                local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
+            // Ap = Ar
+            // p = r
+            next_Ap->copy_from(as<VectorType>(A_precon_residual));
+            next_p->copy_from(as<VectorType>(precon_residual));
+            for (size_type i = 0; i <= restart_iter; ++i) {
+                Ap = mapped_krylov_bases_Ap->create_subview(
+                    local_span{local_num_rows * i, local_num_rows * (i + 1)},
                     local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-                auto p = krylov_bases_p->create_subview(
-                    local_span{local_num_rows * restart_iter,
-                               local_num_rows * (restart_iter + 1)},
+                p = krylov_bases_p->create_subview(
+                    local_span{local_num_rows * i, local_num_rows * (i + 1)},
                     local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-                // compute r*Ap
-                residual->compute_conj_dot(Ap.get(), tmp_rAp, reduction_tmp);
-                // normalise
-                auto Ap_norm = Ap_norms->create_subview(
-                    local_span{restart_iter, restart_iter + 1},
-                    local_span{0, num_rhs});
-                Ap->compute_squared_norm2(Ap_norm.get(), reduction_tmp);
-
-                // alpha = r*Ap / Ap_norm
-                // x = x + alpha * p
-                // r = r - alpha * Ap
-                exec->run(gcr::make_step_1(
-                    converted_x->template get_local_device_view<ValueType>(),
-                    residual->template get_local_device_view<ValueType>(),
-                    p->template get_const_local_device_view<ValueType>(),
-                    Ap->template get_const_local_device_view<ValueType>(),
-                    Ap_norm->get_const_device_view(),
-                    tmp_rAp->get_const_device_view(),
-                    stop_status.get_const_data()));
-
-                // apply preconditioner to residual
-                this->get_preconditioner()->apply(residual, precon_residual);
-
-                // compute and save A*precon_residual
-                this->get_system_matrix()->apply(precon_residual,
-                                                 A_precon_residual);
-
-                // modified Gram-Schmidt
-                auto next_Ap = mapped_krylov_bases_Ap->create_subview(
-                    local_span{local_num_rows * (restart_iter + 1),
-                               local_num_rows * (restart_iter + 2)},
-                    local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-                auto next_p = krylov_bases_p->create_subview(
-                    local_span{local_num_rows * (restart_iter + 1),
-                               local_num_rows * (restart_iter + 2)},
-                    local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-                // Ap = Ar
-                // p = r
-                next_Ap->copy_from(A_precon_residual);
-                next_p->copy_from(precon_residual);
-                for (size_type i = 0; i <= restart_iter; ++i) {
-                    Ap = mapped_krylov_bases_Ap->create_subview(
-                        local_span{local_num_rows * i,
-                                   local_num_rows * (i + 1)},
-                        local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-                    p = krylov_bases_p->create_subview(
-                        local_span{local_num_rows * i,
-                                   local_num_rows * (i + 1)},
-                        local_span{0, num_rhs}, dim<2>{num_rows, num_rhs});
-                    Ap_norm = Ap_norms->create_subview(local_span{i, i + 1},
-                                                       local_span{0, num_rhs});
-                    // tmp_minus_beta = -beta = Ar*Ap/Ap*Ap
-                    A_precon_residual->compute_conj_dot(
-                        Ap.get(), tmp_minus_beta, reduction_tmp);
-                    tmp_minus_beta->inv_scale(Ap_norm.get());
-                    next_Ap->sub_scaled(tmp_minus_beta, Ap.get());
-                    next_p->sub_scaled(tmp_minus_beta, p.get());
-                }
-                restart_iter++;
+                Ap_norm = Ap_norms->create_subview(local_span{i, i + 1},
+                                                   local_span{0, num_rhs});
+                // tmp_minus_beta = -beta = Ar*Ap/Ap*Ap
+                A_precon_residual->compute_conj_dot(Ap.get(), tmp_minus_beta,
+                                                    reduction_tmp);
+                tmp_minus_beta->inv_scale(Ap_norm.get());
+                next_Ap->sub_scaled(tmp_minus_beta, Ap.get());
+                next_p->sub_scaled(tmp_minus_beta, p.get());
             }
-        },
-        b, x);
+            restart_iter++;
+        }
+    });
 }
 
 

@@ -30,6 +30,24 @@ GKO_BEGIN_DISABLE_DEPRECATION_WARNINGS
 
 
 namespace gko {
+namespace detail {
+
+
+dim<2> vertically_stacked_size(const AbstractMultiVector* vec,
+                               size_type stacks);
+
+std::function<std::unique_ptr<AbstractMultiVector>()>
+vertically_stacked_creator(const AbstractMultiVector* vec, size_type stacks);
+
+
+dim<2> horizontally_stacked_size(const AbstractMultiVector* vec,
+                                 size_type stacks);
+
+std::function<std::unique_ptr<AbstractMultiVector>()>
+horizontally_stacked_creator(const AbstractMultiVector* vec, size_type stacks);
+
+
+}  // namespace detail
 namespace solver {
 
 
@@ -446,6 +464,32 @@ protected:
             typeid(VectorType), size));
     }
 
+    template <typename VectorType,
+              typename = std::enable_if_t<
+                  std::is_base_of_v<AbstractMultiVector, VectorType>>>
+    VectorType* create_workspace_op_vertically_stacked(int vector_id,
+                                                       const VectorType* vec,
+                                                       size_type stacks) const
+    {
+        auto size = ::gko::detail::vertically_stacked_size(vec, stacks);
+        return as<VectorType>(workspace_.create_or_get_vector(
+            vector_id, ::gko::detail::vertically_stacked_creator(vec, stacks),
+            typeid(VectorType), size));
+    }
+
+    template <typename VectorType,
+              typename = std::enable_if_t<
+                  std::is_base_of_v<AbstractMultiVector, VectorType>>>
+    VectorType* create_workspace_op_horizontally_stacked(int vector_id,
+                                                         const VectorType* vec,
+                                                         size_type stacks) const
+    {
+        auto size = ::gko::detail::horizontally_stacked_size(vec, stacks);
+        return as<VectorType>(workspace_.create_or_get_vector(
+            vector_id, ::gko::detail::horizontally_stacked_creator(vec, stacks),
+            typeid(VectorType), size));
+    }
+
     AbstractMultiVector* create_workspace_op_with_config_of(
         int vector_id, const AbstractMultiVector* vec) const
     {
@@ -453,19 +497,6 @@ protected:
             vector_id,
             [&] { return AbstractMultiVector::create_with_config_of(vec); },
             typeid(*vec), vec->get_size());
-    }
-
-    AbstractMultiVector* create_workspace_op_with_type_of(
-        int vector_id, const AbstractMultiVector* vec, dim<2> global_size,
-        dim<2> local_size) const
-    {
-        return workspace_.create_or_get_vector(
-            vector_id,
-            [&] {
-                return AbstractMultiVector::create_with_type_of(
-                    vec, workspace_.get_executor(), global_size, local_size);
-            },
-            typeid(*vec), global_size);
     }
 
     template <typename ValueType>
