@@ -75,6 +75,28 @@ void ScaledReordered<ValueType, IndexType>::apply_impl(
 }
 
 
+template <typename ValueType, typename IndexType>
+void ScaledReordered<ValueType, IndexType>::set_cache_to(
+    const AbstractMultiVector* b, const AbstractMultiVector* x) const
+
+{
+    if (cache_.inner_b == nullptr ||
+        cache_.inner_b->get_size() != b->get_size()) {
+        const auto size = b->get_size();
+        cache_.inner_b =
+            matrix::MultiVector<value_type>::create(this->get_executor(), size);
+        cache_.inner_x =
+            matrix::MultiVector<value_type>::create(this->get_executor(), size);
+        cache_.intermediate =
+            matrix::MultiVector<value_type>::create(this->get_executor(), size);
+    }
+    cache_.inner_b->copy_from(as<matrix::MultiVector<ValueType>>(b));
+    if (inner_operator_->apply_uses_initial_guess()) {
+        cache_.inner_x->copy_from(as<matrix::MultiVector<ValueType>>(x));
+    }
+}
+
+
 #define GKO_DECLARE_SCALED_REORDERED(ValueType, IndexType) \
     class ScaledReordered<ValueType, IndexType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(GKO_DECLARE_SCALED_REORDERED);
