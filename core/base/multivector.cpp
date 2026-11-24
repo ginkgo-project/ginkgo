@@ -370,6 +370,28 @@ std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_real_view()
 }
 
 
+std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_column_view(
+    span columns)
+{
+    if (columns.begin >= size_[1] || columns.end >= size_[1]) {
+        GKO_INVALID_STATE(
+            "Expected column span to be a subset of the vector's size.");
+    }
+    return this->create_column_view_generic_impl(columns);
+}
+
+
+std::unique_ptr<const AbstractMultiVector>
+AbstractMultiVector::create_column_view(span columns) const
+{
+    if (columns.begin >= size_[1] || columns.end >= size_[1]) {
+        GKO_INVALID_STATE(
+            "Expected column span to be a subset of the vector's size.");
+    }
+    return this->create_column_view_generic_impl(columns);
+}
+
+
 std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_subview(
     local_span rows, local_span columns)
 {

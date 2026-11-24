@@ -234,6 +234,12 @@ public:
     [[nodiscard]] std::unique_ptr<ConcreteType> create_default(
         std::shared_ptr<const Executor> exec) const;
 
+    [[nodiscard]] std::unique_ptr<ConcreteType> create_column_view(
+        span columns);
+
+    [[nodiscard]] std::unique_ptr<const ConcreteType> create_column_view(
+        span columns) const;
+
     /**
      * @copydoc AbstractMultiVector::create_subview(local_span, local_span)
      *
@@ -416,6 +422,12 @@ protected:
 
     [[nodiscard]] virtual std::unique_ptr<ConcreteType>
     create_with_same_config_impl() const = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<ConcreteType> create_column_view_impl(
+        span columns) = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<const ConcreteType>
+    create_column_view_impl(span columns) const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<ConcreteType> create_subview_impl(
         local_span rows, local_span columns) = 0;
@@ -664,6 +676,30 @@ std::unique_ptr<ConcreteType> EnableMultiVector<ConcreteType>::create_default(
     std::shared_ptr<const Executor> exec) const
 {
     return as<ConcreteType>(this->create_default_impl(std::move(exec)));
+}
+
+
+template <typename ConcreteType>
+std::unique_ptr<ConcreteType>
+EnableMultiVector<ConcreteType>::create_column_view(span columns)
+{
+    if (columns <= span{this->get_size()[1]}) {
+        GKO_INVALID_STATE(
+            "Expected column span to be a subset of the vector's size.");
+    }
+    return this->create_column_view_impl(columns);
+}
+
+
+template <typename ConcreteType>
+std::unique_ptr<const ConcreteType>
+EnableMultiVector<ConcreteType>::create_column_view(span columns) const
+{
+    if (columns <= span{this->get_size()[1]}) {
+        GKO_INVALID_STATE(
+            "Expected column span to be a subset of the vector's size.");
+    }
+    return this->create_column_view_impl(columns);
 }
 
 

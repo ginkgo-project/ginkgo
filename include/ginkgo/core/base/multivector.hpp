@@ -70,8 +70,8 @@ struct any_scalar {
  *
  * The public interface functions are not virtual. Instead they call virtual
  * implementation functions and check for matching dimensions appropriately. For
- * example the function add_sub(scale, other), then an exception is thrown if
- * either:
+ * example, when calling the function add_scale(scale, other), an exception is
+ * thrown if either:
  * - scale is not 1x1 or 1xc, where c is the number of columns of this,
  * - other has not the same size as this.
  *
@@ -477,6 +477,12 @@ public:
     /** @copydoc create_real_view() const */
     [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_real_view();
 
+    [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_column_view(
+        span columns);
+
+    [[nodiscard]] std::unique_ptr<const AbstractMultiVector> create_column_view(
+        span columns) const;
+
     /** Creates a view containing the selected local rows and columns. */
     [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_subview(
         local_span rows, local_span columns);
@@ -650,6 +656,12 @@ protected:
 
     [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     create_real_view_generic_impl() = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
+    create_column_view_generic_impl(span columns) = 0;
+
+    [[nodiscard]] virtual std::unique_ptr<const AbstractMultiVector>
+    create_column_view_generic_impl(span columns) const = 0;
 
     [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     create_subview_generic_impl(local_span rows, local_span columns) = 0;
