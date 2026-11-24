@@ -681,8 +681,9 @@ void Vector<ValueType>::compute_mean(ptr_param<AbstractMultiVector> result,
     GKO_ASSERT_EQUAL_COLS(result, this);
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
-    auto dense_res = make_temporary_clone(exec, as<MeanVector>(result));
-    this->get_local_vector()->compute_mean(dense_res.get());
+    auto dense_res =
+        make_temporary_clone(exec, as<MeanVector>(result->as_precision(this)));
+    this->get_local_vector()->compute_mean(dense_res.get(), tmp);
 
     // scale by its weight ie ratio of local to global size
     auto weight = initialize<matrix::MultiVector<remove_complex<ValueType>>>(
