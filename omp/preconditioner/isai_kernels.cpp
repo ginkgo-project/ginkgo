@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <vector>
 
 #include <omp.h>
 
@@ -16,6 +17,7 @@
 
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
+#include "core/preconditioner/isai_spd_row.hpp"
 
 
 namespace gko {
@@ -447,8 +449,19 @@ template <typename ValueType, typename IndexType>
 void generate_spd_inverse(
     std::shared_ptr<const DefaultExecutor> exec,
     matrix::view::csr<const ValueType, const IndexType> input,
-    matrix::view::csr<ValueType, IndexType> inverse,
-    size_type workspace_bytes) GKO_NOT_IMPLEMENTED;
+    matrix::view::csr<ValueType, IndexType> inverse, size_type)
+{
+    const auto num_rows = static_cast<IndexType>(inverse.size[0]);
+#pragma omp parallel
+    {
+        // grows only to the longest row this thread computes
+        std::vector<ValueType> scratch;
+#pragma omp for schedule(dynamic, 64)
+        for (IndexType row = 0; row < num_rows; ++row) {
+            isai_spd::generate_row(row, input, inverse, scratch);
+        }
+    }
+}
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_GENERATE_SPD_INVERSE_KERNEL);

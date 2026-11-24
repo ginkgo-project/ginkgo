@@ -1,0 +1,1 @@
+ginkgo_create_omp_test(isai_kernels)
