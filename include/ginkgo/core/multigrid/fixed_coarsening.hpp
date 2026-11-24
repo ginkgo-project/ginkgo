@@ -8,7 +8,6 @@
 
 #include <vector>
 
-#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -81,35 +80,17 @@ public:
 
 protected:
     void apply_impl(const AbstractMultiVector* b,
-                    AbstractMultiVector* x) const override
-    {
-        this->get_composition()->apply(b, x);
-    }
+                    AbstractMultiVector* x) const override;
 
     void apply_impl(const AbstractMultiVector* alpha,
                     const AbstractMultiVector* b,
                     const AbstractMultiVector* beta,
-                    AbstractMultiVector* x) const override
-    {
-        this->get_composition()->apply(alpha, b, beta, x);
-    }
+                    AbstractMultiVector* x) const override;
 
-    explicit FixedCoarsening(std::shared_ptr<const Executor> exec)
-        : LinOp(std::move(exec))
-    {}
+    explicit FixedCoarsening(std::shared_ptr<const Executor> exec);
 
     explicit FixedCoarsening(const Factory* factory,
-                             std::shared_ptr<const LinOp> system_matrix)
-        : LinOp(factory->get_executor(), system_matrix->get_size()),
-          EnableMultigridLevel<ValueType>(system_matrix),
-          parameters_{factory->get_parameters()},
-          system_matrix_{system_matrix}
-    {
-        if (system_matrix_->get_size()[0] != 0) {
-            // generate on the existing matrix
-            this->generate();
-        }
-    }
+                             std::shared_ptr<const LinOp> system_matrix);
 
     void generate();
 

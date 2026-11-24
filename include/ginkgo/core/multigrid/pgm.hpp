@@ -8,7 +8,6 @@
 
 #include <vector>
 
-#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/types.hpp>
@@ -177,18 +176,12 @@ public:
 
 protected:
     void apply_impl(const AbstractMultiVector* b,
-                    AbstractMultiVector* x) const override
-    {
-        this->get_composition()->apply(b, x);
-    }
+                    AbstractMultiVector* x) const override;
 
     void apply_impl(const AbstractMultiVector* alpha,
                     const AbstractMultiVector* b,
                     const AbstractMultiVector* beta,
-                    AbstractMultiVector* x) const override
-    {
-        this->get_composition()->apply(alpha, b, beta, x);
-    }
+                    AbstractMultiVector* x) const override;
 
     explicit Pgm(std::shared_ptr<const Executor> exec) : LinOp(std::move(exec))
     {}

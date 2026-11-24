@@ -8,6 +8,7 @@
 #include <utility>
 
 #include <ginkgo/core/base/array.hpp>
+#include <ginkgo/core/base/composition.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/mpi.hpp>
@@ -308,6 +309,24 @@ Pgm<ValueType, IndexType>::parse(const config::pnode& config,
     }
 
     return params;
+}
+
+
+template <typename ValueType, typename IndexType>
+void Pgm<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
+                                           AbstractMultiVector* x) const
+{
+    this->get_composition()->apply(b, x);
+}
+
+
+template <typename ValueType, typename IndexType>
+void Pgm<ValueType, IndexType>::apply_impl(const AbstractMultiVector* alpha,
+                                           const AbstractMultiVector* b,
+                                           const AbstractMultiVector* beta,
+                                           AbstractMultiVector* x) const
+{
+    this->get_composition()->apply(alpha, b, beta, x);
 }
 
 
