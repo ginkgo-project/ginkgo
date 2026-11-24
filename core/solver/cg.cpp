@@ -78,6 +78,13 @@ std::unique_ptr<LinOp> Cg<ValueType>::conj_transpose() const
 
 
 template <typename ValueType>
+bool Cg<ValueType>::apply_uses_initial_guess() const
+{
+    return true;
+}
+
+
+template <typename ValueType>
 void Cg<ValueType>::apply_impl(const AbstractMultiVector* b,
                                AbstractMultiVector* x) const
 {
