@@ -1,0 +1,14 @@
+include/ginkgo/core/multigrid/pgm.hpp
+  h_0aeb61ed714320 187-188
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "6625ff3cec9f2712931b795b09fc1047ec1ebe3c",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
