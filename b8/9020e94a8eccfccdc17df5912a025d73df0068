@@ -1,0 +1,29 @@
+core/multigrid/fixed_coarsening.cpp
+  s_b983a948a268f1::t_b31cc68cc39f7f 37-53
+core/multigrid/pgm.cpp
+  s_b983a948a268f1::t_625cef91c0d9d4 314-331
+core/multigrid/uniform_coarsening.cpp
+  s_b983a948a268f1::t_9dbea6ea1587ef 206-222
+include/ginkgo/core/multigrid/fixed_coarsening.hpp
+  s_b983a948a268f1::t_90195275bb5fad 84,89
+include/ginkgo/core/multigrid/pgm.hpp
+  s_b983a948a268f1::t_f2ba10c33d6127 180,185
+include/ginkgo/core/multigrid/uniform_coarsening.hpp
+  s_b983a948a268f1::t_a3c35319629fde 148,153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "b89020e94a8eccfccdc17df5912a025d73df0068",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
