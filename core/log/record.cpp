@@ -14,6 +14,122 @@ namespace gko {
 namespace log {
 
 
+template <typename T>
+std::unique_ptr<T> clone_or_nullptr(T* input)
+{
+    // whether throw exception if input is not cloneable?
+    if (auto tmp = dynamic_cast<const Cloneable*>(input)) {
+        return as<T>(tmp->clone());
+    }
+    return nullptr;
+}
+
+
+iteration_complete_data::iteration_complete_data(
+    const LinOp* solver, const AbstractMultiVector* right_hand_side,
+    const AbstractMultiVector* solution, const size_type num_iterations,
+    const AbstractMultiVector* residual,
+    const AbstractMultiVector* residual_norm,
+    const AbstractMultiVector* implicit_sq_residual_norm,
+    const gko::array<stopping_status>* status, bool all_stopped)
+
+    : num_iterations{num_iterations}, all_stopped(all_stopped)
+{
+    this->solver = clone_or_nullptr(solver);
+    this->solution = clone_or_nullptr(solution);
+    if (right_hand_side != nullptr) {
+        this->right_hand_side = clone_or_nullptr(right_hand_side);
+    }
+    if (residual != nullptr) {
+        this->residual = clone_or_nullptr(residual);
+    }
+    if (residual_norm != nullptr) {
+        this->residual_norm = clone_or_nullptr(residual_norm);
+    }
+    if (implicit_sq_residual_norm != nullptr) {
+        this->implicit_sq_residual_norm =
+            clone_or_nullptr(implicit_sq_residual_norm);
+    }
+    if (status != nullptr) {
+        this->status = *status;
+    }
+}
+
+
+polymorphic_object_data::polymorphic_object_data(
+    const Executor* exec, const PolymorphicObject* input,
+    const PolymorphicObject* output)
+
+    : exec{exec}
+{
+    this->input = clone_or_nullptr(input);
+    if (output != nullptr) {
+        this->output = clone_or_nullptr(output);
+    }
+}
+
+
+linop_data::linop_data(const LinOp* A, const AbstractMultiVector* alpha,
+                       const AbstractMultiVector* b,
+                       const AbstractMultiVector* beta,
+                       const AbstractMultiVector* x)
+
+{
+    this->A = clone_or_nullptr(A);
+    if (alpha != nullptr) {
+        this->alpha = clone_or_nullptr(alpha);
+    }
+    this->b = clone_or_nullptr(b);
+    if (beta != nullptr) {
+        this->beta = clone_or_nullptr(beta);
+    }
+    this->x = clone_or_nullptr(x);
+}
+
+
+linop_factory_data::linop_factory_data(const LinOpFactory* factory,
+                                       const LinOp* input, const LinOp* output)
+
+    : factory{factory}
+{
+    this->input = clone_or_nullptr(input);
+    if (output != nullptr) {
+        this->output = clone_or_nullptr(output);
+    }
+}
+
+
+criterion_data::criterion_data(const stop::Criterion* criterion,
+                               const size_type& num_iterations,
+                               const AbstractMultiVector* residual,
+                               const AbstractMultiVector* residual_norm,
+                               const AbstractMultiVector* solution,
+                               const uint8 stopping_id,
+                               const bool set_finalized,
+                               const array<stopping_status>* status,
+                               const bool oneChanged, const bool converged)
+
+    : criterion{criterion},
+      num_iterations{num_iterations},
+      residual{nullptr},
+      residual_norm{nullptr},
+      solution{nullptr},
+      stopping_id{stopping_id},
+      set_finalized{set_finalized},
+      status{status},
+      oneChanged{oneChanged},
+      converged{converged}
+{
+    if (residual != nullptr) {
+        this->residual = residual->clone();
+    }
+    if (residual_norm != nullptr) {
+        this->residual_norm = residual_norm->clone();
+    }
+    if (solution != nullptr) {
+        this->solution = solution->clone();
+    }
+}
 void Record::on_allocation_started(const Executor* exec,
                                    const size_type& num_bytes) const
 {
@@ -221,6 +337,41 @@ void Record::on_linop_factory_generate_completed(const LinOpFactory* factory,
                  (std::unique_ptr<linop_factory_data>(
                      new linop_factory_data{factory, input, output})));
 }
+
+
+std::unique_ptr<Record> Record::create(std::shared_ptr<const Executor> exec,
+                                       const mask_type& enabled_events,
+                                       size_type max_storage)
+
+{
+    return std::unique_ptr<Record>(new Record(enabled_events, max_storage));
+}
+
+
+std::unique_ptr<Record> Record::create(const mask_type& enabled_events,
+                                       size_type max_storage)
+
+{
+    return std::unique_ptr<Record>(new Record(enabled_events, max_storage));
+}
+
+
+const Record::logged_data& Record::get() const noexcept { return data_; }
+
+
+Record::logged_data& Record::get() noexcept { return data_; }
+
+
+Record::Record(std::shared_ptr<const gko::Executor> exec,
+               const mask_type& enabled_events, size_type max_storage)
+
+    : Record(enabled_events, max_storage)
+{}
+
+
+Record::Record(const mask_type& enabled_events, size_type max_storage)
+    : Logger(enabled_events), max_storage_{max_storage}
+{}
 
 
 void Record::on_criterion_check_started(

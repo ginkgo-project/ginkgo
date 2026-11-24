@@ -7,6 +7,7 @@
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/matrix/dense.hpp>
+#include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/solver_base.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 #include <ginkgo/core/stop/stopping_status.hpp>
@@ -103,6 +104,90 @@ void Convergence<ValueType>::on_iteration_complete(
         }
     }
 }
+
+
+template <typename ValueType>
+std::unique_ptr<Convergence<ValueType>> Convergence<ValueType>::create(
+    std::shared_ptr<const Executor>, const mask_type& enabled_events)
+
+{
+    return std::unique_ptr<Convergence>(new Convergence(enabled_events));
+}
+
+
+template <typename ValueType>
+std::unique_ptr<Convergence<ValueType>> Convergence<ValueType>::create(
+    const mask_type& enabled_events)
+
+{
+    return std::unique_ptr<Convergence>(new Convergence(enabled_events));
+}
+
+
+template <typename ValueType>
+bool Convergence<ValueType>::has_converged() const noexcept
+{
+    return convergence_status_;
+}
+
+
+template <typename ValueType>
+void Convergence<ValueType>::reset_convergence_status()
+{
+    this->convergence_status_ = false;
+}
+
+
+template <typename ValueType>
+const size_type& Convergence<ValueType>::get_num_iterations() const noexcept
+
+{
+    return num_iterations_;
+}
+
+
+template <typename ValueType>
+const AbstractMultiVector* Convergence<ValueType>::get_residual() const noexcept
+{
+    return residual_.get();
+}
+
+
+template <typename ValueType>
+const AbstractMultiVector* Convergence<ValueType>::get_residual_norm()
+    const noexcept
+
+{
+    return residual_norm_.get();
+}
+
+
+template <typename ValueType>
+const AbstractMultiVector* Convergence<ValueType>::get_implicit_sq_resnorm()
+    const noexcept
+
+{
+    return implicit_sq_resnorm_.get();
+}
+
+
+template <typename ValueType>
+Convergence<ValueType>::Convergence(std::shared_ptr<const gko::Executor>,
+                                    const mask_type& enabled_events)
+
+    : Logger(enabled_events)
+{}
+
+
+template <typename ValueType>
+Convergence<ValueType>::Convergence(const mask_type& enabled_events)
+
+    : Logger(enabled_events)
+{}
+
+
+template <typename ValueType>
+Convergence<ValueType>::~Convergence() = default;
 
 
 #define GKO_DECLARE_CONVERGENCE(ValueType) class Convergence<ValueType>

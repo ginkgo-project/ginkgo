@@ -22,21 +22,6 @@ namespace gko {
  * @ingroup log
  */
 namespace log {
-namespace detail {
-
-
-template <typename T>
-std::unique_ptr<T> clone_or_nullptr(T* input)
-{
-    // whether throw exception if input is not cloneable?
-    if (auto tmp = dynamic_cast<const Cloneable*>(input)) {
-        return as<T>(tmp->clone());
-    }
-    return nullptr;
-}
-
-
-}  // namespace detail
 
 
 /**
@@ -60,28 +45,7 @@ struct iteration_complete_data {
         const AbstractMultiVector* residual_norm = nullptr,
         const AbstractMultiVector* implicit_sq_residual_norm = nullptr,
         const gko::array<stopping_status>* status = nullptr,
-        bool all_stopped = false)
-        : num_iterations{num_iterations}, all_stopped(all_stopped)
-    {
-        this->solver = detail::clone_or_nullptr(solver);
-        this->solution = detail::clone_or_nullptr(solution);
-        if (right_hand_side != nullptr) {
-            this->right_hand_side = detail::clone_or_nullptr(right_hand_side);
-        }
-        if (residual != nullptr) {
-            this->residual = detail::clone_or_nullptr(residual);
-        }
-        if (residual_norm != nullptr) {
-            this->residual_norm = detail::clone_or_nullptr(residual_norm);
-        }
-        if (implicit_sq_residual_norm != nullptr) {
-            this->implicit_sq_residual_norm =
-                detail::clone_or_nullptr(implicit_sq_residual_norm);
-        }
-        if (status != nullptr) {
-            this->status = *status;
-        }
-    }
+        bool all_stopped = false);
 };
 
 
@@ -114,14 +78,7 @@ struct polymorphic_object_data {
 
     polymorphic_object_data(const Executor* exec,
                             const PolymorphicObject* input,
-                            const PolymorphicObject* output = nullptr)
-        : exec{exec}
-    {
-        this->input = detail::clone_or_nullptr(input);
-        if (output != nullptr) {
-            this->output = detail::clone_or_nullptr(output);
-        }
-    }
+                            const PolymorphicObject* output = nullptr);
 };
 
 
@@ -137,18 +94,7 @@ struct linop_data {
 
     linop_data(const LinOp* A, const AbstractMultiVector* alpha,
                const AbstractMultiVector* b, const AbstractMultiVector* beta,
-               const AbstractMultiVector* x)
-    {
-        this->A = detail::clone_or_nullptr(A);
-        if (alpha != nullptr) {
-            this->alpha = detail::clone_or_nullptr(alpha);
-        }
-        this->b = detail::clone_or_nullptr(b);
-        if (beta != nullptr) {
-            this->beta = detail::clone_or_nullptr(beta);
-        }
-        this->x = detail::clone_or_nullptr(x);
-    }
+               const AbstractMultiVector* x);
 };
 
 
@@ -161,14 +107,7 @@ struct linop_factory_data {
     std::unique_ptr<const LinOp> output;
 
     linop_factory_data(const LinOpFactory* factory, const LinOp* input,
-                       const LinOp* output)
-        : factory{factory}
-    {
-        this->input = detail::clone_or_nullptr(input);
-        if (output != nullptr) {
-            this->output = detail::clone_or_nullptr(output);
-        }
-    }
+                       const LinOp* output);
 };
 
 
@@ -194,28 +133,7 @@ struct criterion_data {
                    const AbstractMultiVector* solution, const uint8 stopping_id,
                    const bool set_finalized,
                    const array<stopping_status>* status = nullptr,
-                   const bool oneChanged = false, const bool converged = false)
-        : criterion{criterion},
-          num_iterations{num_iterations},
-          residual{nullptr},
-          residual_norm{nullptr},
-          solution{nullptr},
-          stopping_id{stopping_id},
-          set_finalized{set_finalized},
-          status{status},
-          oneChanged{oneChanged},
-          converged{converged}
-    {
-        if (residual != nullptr) {
-            this->residual = residual->clone();
-        }
-        if (residual_norm != nullptr) {
-            this->residual_norm = residual_norm->clone();
-        }
-        if (solution != nullptr) {
-            this->solution = solution->clone();
-        }
-    }
+                   const bool oneChanged = false, const bool converged = false);
 };
 
 
@@ -435,10 +353,7 @@ public:
     static std::unique_ptr<Record> create(
         std::shared_ptr<const Executor> exec,
         const mask_type& enabled_events = Logger::all_events_mask,
-        size_type max_storage = 1)
-    {
-        return std::unique_ptr<Record>(new Record(enabled_events, max_storage));
-    }
+        size_type max_storage = 1);
 
     /**
      * Creates a Record logger. This dynamically allocates the memory,
@@ -456,22 +371,19 @@ public:
      */
     static std::unique_ptr<Record> create(
         const mask_type& enabled_events = Logger::all_events_mask,
-        size_type max_storage = 1)
-    {
-        return std::unique_ptr<Record>(new Record(enabled_events, max_storage));
-    }
+        size_type max_storage = 1);
 
     /**
      * Returns the logged data
      *
      * @return the logged data
      */
-    const logged_data& get() const noexcept { return data_; }
+    const logged_data& get() const noexcept;
 
     /**
      * @copydoc ::get()
      */
-    logged_data& get() noexcept { return data_; }
+    logged_data& get() noexcept;
 
 protected:
     /**
@@ -488,9 +400,7 @@ protected:
     GKO_DEPRECATED("use two-parameter constructor")
     explicit Record(std::shared_ptr<const gko::Executor> exec,
                     const mask_type& enabled_events = Logger::all_events_mask,
-                    size_type max_storage = 0)
-        : Record(enabled_events, max_storage)
-    {}
+                    size_type max_storage = 0);
 
     /**
      * Creates a Record logger.
@@ -503,9 +413,7 @@ protected:
      *                     memory overhead of this logger.
      */
     explicit Record(const mask_type& enabled_events = Logger::all_events_mask,
-                    size_type max_storage = 0)
-        : Logger(enabled_events), max_storage_{max_storage}
-    {}
+                    size_type max_storage = 0);
 
     /**
      * Helper function which appends an object to a deque

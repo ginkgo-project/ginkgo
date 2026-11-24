@@ -9,8 +9,6 @@
 #include <memory>
 
 #include <ginkgo/core/log/logger.hpp>
-#include <ginkgo/core/matrix/multivector.hpp>
-#include <ginkgo/core/stop/criterion.hpp>
 
 
 namespace gko {
@@ -79,10 +77,7 @@ public:
     static std::unique_ptr<Convergence> create(
         std::shared_ptr<const Executor>,
         const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-    {
-        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
-    }
+                                          Logger::iteration_complete_mask);
 
     /**
      * Creates a convergence logger. This dynamically allocates the memory,
@@ -95,62 +90,49 @@ public:
      */
     static std::unique_ptr<Convergence> create(
         const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-    {
-        return std::unique_ptr<Convergence>(new Convergence(enabled_events));
-    }
+                                          Logger::iteration_complete_mask);
 
     /**
      * Returns true if the solver has converged.
      *
      * @return the bool flag for convergence status
      */
-    bool has_converged() const noexcept { return convergence_status_; }
+    bool has_converged() const noexcept;
 
     /**
      * Resets the convergence status to false.
      */
-    void reset_convergence_status() { this->convergence_status_ = false; }
+    void reset_convergence_status();
 
     /**
      * Returns the number of iterations
      *
      * @return the number of iterations
      */
-    const size_type& get_num_iterations() const noexcept
-    {
-        return num_iterations_;
-    }
+    const size_type& get_num_iterations() const noexcept;
 
     /**
      * Returns the residual
      *
      * @return the residual
      */
-    const AbstractMultiVector* get_residual() const noexcept
-    {
-        return residual_.get();
-    }
+    const AbstractMultiVector* get_residual() const noexcept;
 
     /**
      * Returns the residual norm
      *
      * @return the residual norm
      */
-    const AbstractMultiVector* get_residual_norm() const noexcept
-    {
-        return residual_norm_.get();
-    }
+    const AbstractMultiVector* get_residual_norm() const noexcept;
 
     /**
      * Returns the implicit squared residual norm
      *
      * @return the implicit squared residual norm
      */
-    const AbstractMultiVector* get_implicit_sq_resnorm() const noexcept
-    {
-        return implicit_sq_resnorm_.get();
-    }
+    const AbstractMultiVector* get_implicit_sq_resnorm() const noexcept;
+
+    ~Convergence() override;
 
 protected:
     /**
@@ -164,9 +146,7 @@ protected:
     explicit Convergence(
         std::shared_ptr<const gko::Executor>,
         const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-        : Logger(enabled_events)
-    {}
+                                          Logger::iteration_complete_mask);
 
     /**
      * Creates a Convergence logger.
@@ -176,9 +156,7 @@ protected:
      */
     explicit Convergence(
         const mask_type& enabled_events = Logger::criterion_events_mask |
-                                          Logger::iteration_complete_mask)
-        : Logger(enabled_events)
-    {}
+                                          Logger::iteration_complete_mask);
 
 private:
     mutable bool convergence_status_{false};
