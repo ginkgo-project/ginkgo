@@ -51,7 +51,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           dim<2> local_size, size_type stride)
-    : EnableMultiVector<Vector>{exec, global_size, local_size},
+    : EnableMultiVector<Vector>{exec, global_size},
       DistributedBase{comm},
       local_{exec, local_size, stride}
 {
@@ -62,7 +62,7 @@ template <typename ValueType>
 Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           mpi::communicator comm, dim<2> global_size,
                           std::unique_ptr<local_vector_type> local_vector)
-    : EnableMultiVector<Vector>{exec, global_size, local_vector->get_size()},
+    : EnableMultiVector<Vector>{exec, global_size},
       DistributedBase{comm},
       local_{exec}
 {
@@ -76,8 +76,7 @@ Vector<ValueType>::Vector(std::shared_ptr<const Executor> exec,
                           std::unique_ptr<local_vector_type> local_vector)
     : EnableMultiVector<Vector>{exec,
                                 compute_global_size(exec, comm,
-                                                    local_vector->get_size()),
-                                local_vector->get_size()},
+                                                    local_vector->get_size())},
       DistributedBase{comm},
       local_{exec}
 {
@@ -559,7 +558,7 @@ void Vector<ValueType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->set_size(this->get_size(), this->get_local_size());
+    result->set_size(this->get_size());
     this->get_local_vector()->convert_to(&result->local_);
 }
 
@@ -578,7 +577,7 @@ void Vector<ValueType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->set_size(this->get_size(), this->get_local_size());
+    result->set_size(this->get_size());
     this->get_local_vector()->convert_to(&result->local_);
 }
 
@@ -598,7 +597,7 @@ void Vector<ValueType>::convert_to(
 {
     GKO_ASSERT(this->get_communicator().size() ==
                result->get_communicator().size());
-    result->set_size(this->get_size(), this->get_local_size());
+    result->set_size(this->get_size());
     this->get_local_vector()->convert_to(&result->local_);
 }
 
@@ -743,7 +742,7 @@ Vector<ValueType>::get_const_local_values() const
 template <typename ValueType>
 void Vector<ValueType>::resize(dim<2> global_size, dim<2> local_size)
 {
-    this->set_size(global_size, local_size);
+    this->set_size(global_size);
     local_.resize(local_size);
 }
 
