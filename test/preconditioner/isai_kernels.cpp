@@ -843,3 +843,145 @@ TEST_F(Isai, GenerateSpdInverseRowwiseFallsBackToIdentityRow)
         },
         0);
 }
+
+
+TEST_F(Isai, GenerateSpdInverseIsEquivalentToRef)
+{
+    auto a = generate_hpd<value_type>(300, 80);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseComplexIsEquivalentToRef)
+{
+    auto a = generate_hpd<std::complex<value_type>>(300, 80);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseSmallWorkspaceIsEquivalentToRef)
+{
+    auto a = generate_hpd<value_type>(300, 80);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        1);
+}
+
+
+TEST_F(Isai, GenerateSpdInversePower2IsEquivalentToRef)
+{
+    auto a = generate_hpd<value_type>(300, 8);
+    auto a2 = Csr::create(ref, a->get_size());
+    a->apply(a, a2);
+    // entries of the pattern outside the pattern of a
+    auto pattern = lower_pattern(a2.get());
+
+    assert_spd_inverse_matches_ref(
+        a.get(), pattern.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseFallsBackToIdentityRow)
+{
+    auto a = indefinite_2x2();
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseOfEmptyMatrix)
+{
+    auto a = Csr::create(ref, gko::dim<2>{0, 0});
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseOfDiagonalMatrix)
+{
+    auto a = Csr::create(ref);
+    gko::initialize<Dense>({{4., 0., 0.}, {0., 9., 0.}, {0., 0., 16.}}, ref)
+        ->convert_to(a);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseFloatInt64IsEquivalentToRef)
+{
+    // a value type smaller than the index type, rows of 1..41 entries
+    auto a = generate_hpd<float, gko::int64>(100, 20);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseFallsBackToIdentityRowInLongRows)
+{
+    auto a = generate_hpd<value_type>(300, 80);
+    // indefinite diagonals break the rows that contain them, in every tier
+    for (index_type row : {40, 150}) {
+        for (auto nz = a->get_const_row_ptrs()[row];
+             nz < a->get_const_row_ptrs()[row + 1]; ++nz) {
+            if (a->get_const_col_idxs()[nz] == row) {
+                a->get_values()[nz] = -1.0;
+            }
+        }
+    }
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        1);
+}
