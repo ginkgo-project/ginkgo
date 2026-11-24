@@ -1,0 +1,18 @@
+core/base/multivector.cpp
+  h_0aeb61ed714320 23-24,26-28
+include/ginkgo/core/base/multivector.hpp
+  h_0aeb61ed714320 328-332,342-346,356-360,372-376,388-389,401-402,418-419,431-432,448,459,475,487,502,513,597,770
+include/ginkgo/core/base/multivector_mixin.hpp
+  h_0aeb61ed714320 141-142,241-242,250,261,269,746,753,1122
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "39d26788b21ef8f990a33cf4093884739ad6491b",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
