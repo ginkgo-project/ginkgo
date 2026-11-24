@@ -208,6 +208,28 @@ Csr<ValueType, IndexType>::create_const(
 
 
 template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::scale(
+    ptr_param<const AbstractMultiVector> alpha)
+
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    this->scale_impl(make_temporary_clone(exec, alpha).get());
+}
+
+
+template <typename ValueType, typename IndexType>
+void Csr<ValueType, IndexType>::inv_scale(
+    ptr_param<const AbstractMultiVector> alpha)
+
+{
+    auto exec = this->get_executor();
+    GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
+}
+
+
+template <typename ValueType, typename IndexType>
 std::unique_ptr<Csr<ValueType, IndexType>> Csr<ValueType, IndexType>::create(
     std::shared_ptr<const Executor> exec, csr::spmv_strategy strategy)
 {

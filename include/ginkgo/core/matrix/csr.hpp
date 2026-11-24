@@ -956,12 +956,7 @@ public:
      * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
      *               MultiVector.
      */
-    void scale(ptr_param<const AbstractMultiVector> alpha)
-    {
-        auto exec = this->get_executor();
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        this->scale_impl(make_temporary_clone(exec, alpha).get());
-    }
+    void scale(ptr_param<const AbstractMultiVector> alpha);
 
     /**
      * Scales the matrix with the inverse of a scalar.
@@ -969,12 +964,7 @@ public:
      * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
      *               1x1 MultiVector.
      */
-    void inv_scale(ptr_param<const AbstractMultiVector> alpha)
-    {
-        auto exec = this->get_executor();
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        this->inv_scale_impl(make_temporary_clone(exec, alpha).get());
-    }
+    void inv_scale(ptr_param<const AbstractMultiVector> alpha);
 
     void validate_data() const override;
 
