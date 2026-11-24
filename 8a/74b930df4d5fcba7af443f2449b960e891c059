@@ -1,0 +1,21 @@
+core/log/convergence.cpp
+  s_b983a948a268f1::t_7f48e59bb11ebc 108-132
+include/ginkgo/core/log/convergence.hpp
+  s_b983a948a268f1::t_605ea0790117b8 130,137,144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "8a74b930df4d5fcba7af443f2449b960e891c059",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
