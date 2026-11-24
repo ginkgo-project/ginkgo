@@ -1,0 +1,25 @@
+include/ginkgo/core/log/record.hpp
+  s_b983a948a268f1::t_27179b739ab90b 47,80,96,109,135
+core/log/convergence.cpp
+  s_b983a948a268f1::t_34ea132162dea2 108-132
+core/log/record.cpp
+  s_b983a948a268f1::t_5ee627174b437f 17-132
+include/ginkgo/core/log/convergence.hpp
+  s_b983a948a268f1::t_a4349f05ba790f 130,137,144
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "5f1570e0a8dd4fc93616dc9718bc4d254536b217",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
