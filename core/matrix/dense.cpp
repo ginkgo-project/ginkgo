@@ -65,7 +65,7 @@ template <typename ValueType>
 void Dense<ValueType>::convert_to(MultiVector<ValueType>* result) const
 {
     if (result->get_size() != this->get_size()) {
-        result->set_size(this->get_size(), this->get_size());
+        result->set_size(this->get_size());
         result->stride_ = stride_;
         result->values_.resize_and_reset(result->get_size()[0] *
                                          result->stride_);
@@ -80,7 +80,7 @@ void Dense<ValueType>::convert_to(MultiVector<ValueType>* result) const
 template <typename ValueType>
 void Dense<ValueType>::move_to(MultiVector<ValueType>* result)
 {
-    result->set_size(this->get_size(), this->get_size());
+    result->set_size(this->get_size());
     this->set_size(dim<2>{0, 0});
     result->stride_ = std::exchange(stride_, 0);
     result->values_ = std::move(values_);
