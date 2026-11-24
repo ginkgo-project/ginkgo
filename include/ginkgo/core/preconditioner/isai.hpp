@@ -182,6 +182,7 @@ public:
          * as its size supersedes m. This is repeated until the complete excess
          * solution has been computed.
          * Must be at least 0, default value 0.
+         * Has no effect for spd ISAI, which solves every row directly.
          */
         size_type GKO_FACTORY_PARAMETER_SCALAR(excess_limit, 0u);
 
@@ -189,11 +190,17 @@ public:
          * @brief Factory for the Excess System solver.
          *
          * Defaults to using a triangular solver for upper and lower ISAI and
-         * to Block-Jacobi preconditioned GMRES for general and spd ISAI.
+         * to Block-Jacobi preconditioned GMRES for general ISAI.
+         * Has no effect for spd ISAI, which solves every row directly.
          */
         std::shared_ptr<const LinOpFactory> GKO_DEFERRED_FACTORY_PARAMETER(
             excess_solver_factory);
 
+        /**
+         * @brief Residual reduction of the default excess solver.
+         *
+         * Has no effect for spd ISAI, which solves every row directly.
+         */
         remove_complex<value_type> GKO_FACTORY_PARAMETER_SCALAR(
             excess_solver_reduction,
             static_cast<remove_complex<value_type>>(1e-6));

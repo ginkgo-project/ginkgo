@@ -9,15 +9,18 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/device_limits.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
+#include "common/cuda_hip/components/atomic.hpp"
 #include "common/cuda_hip/components/cooperative_groups.hpp"
 #include "common/cuda_hip/components/merging.hpp"
 #include "common/cuda_hip/components/reduction.hpp"
 #include "common/cuda_hip/components/thread_ids.hpp"
 #include "common/cuda_hip/components/uninitialized_array.hpp"
 #include "common/cuda_hip/components/warp_blas.hpp"
+#include "core/base/array_access.hpp"
 #include "core/components/prefix_sum_kernels.hpp"
 #include "core/matrix/csr_builder.hpp"
 
@@ -453,6 +456,342 @@ __global__ __launch_bounds__(default_block_size) void copy_excess_solution(
 }
 
 
+constexpr int spd_t1_block_size = 128;
+constexpr int spd_t2_block_size = 256;
+// longest row handled in shared memory (if the device has enough of it)
+constexpr int spd_max_t1_size = 128;
+
+
+__host__ __device__ __forceinline__ int64 spd_packed(int64 a, int64 b)
+{
+    return a * (a + 1) / 2 + b;
+}
+
+
+/**
+ * @internal
+ *
+ * SPD ISAI rows with at most `subwarp_size` entries, one subwarp per row:
+ * M(a, b) = conj(A(S_a, S_b)) in a column-major shared tile, M = C C^H,
+ * C^H z = e_k. Longer rows are skipped.
+ */
+template <int subwarp_size, int subwarps_per_block, typename ValueType,
+          typename IndexType>
+__global__
+__launch_bounds__(subwarp_size* subwarps_per_block) void spd_inverse_t0(
+    IndexType num_rows, const IndexType* __restrict__ m_row_ptrs,
+    const IndexType* __restrict__ m_col_idxs,
+    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ i_row_ptrs,
+    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values)
+{
+    const auto row = thread::get_subwarp_id_flat<subwarp_size, IndexType>();
+    if (row >= num_rows) {
+        return;
+    }
+    const auto begin = i_row_ptrs[row];
+    const auto size = i_row_ptrs[row + 1] - begin;
+    if (size > subwarp_size) {
+        return;
+    }
+    auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const int lane = subwarp.thread_rank();
+    __shared__ uninitialized_array<ValueType, subwarp_size * subwarp_size *
+                                                  subwarps_per_block>
+        storage;
+    ValueType* tile =
+        storage + (threadIdx.x / subwarp_size) * subwarp_size * subwarp_size;
+    // tile[col * subwarp_size + row] holds M(row, col)
+    for (int i = 0; i < subwarp_size; ++i) {
+        tile[i * subwarp_size + lane] = zero<ValueType>();
+    }
+    subwarp.sync();
+    const auto pattern = i_col_idxs + begin;
+    for (IndexType a = 0; a < size; ++a) {
+        const auto m_begin = m_row_ptrs[pattern[a]];
+        // M(b, a) = A(S_a, S_b) on the lane that matched S_b
+        group_match<subwarp_size>(
+            m_col_idxs + m_begin, m_row_ptrs[pattern[a] + 1] - m_begin, pattern,
+            size, subwarp,
+            [&](IndexType, IndexType m_idx, IndexType b, config::lane_mask_type,
+                bool valid) {
+                if (valid) {
+                    tile[a * subwarp_size + b] = m_values[m_begin + m_idx];
+                }
+            });
+    }
+    subwarp.sync();
+    bool valid = true;
+    for (int j = 0; j < size && valid; ++j) {
+        const auto diag = real(tile[j * subwarp_size + j]);
+        valid = diag > zero<remove_complex<ValueType>>() && is_finite(diag);
+        if (valid) {
+            const auto c = sqrt(diag);
+            subwarp.sync();
+            ValueType l_ij{};
+            if (lane > j && lane < size) {
+                l_ij = tile[j * subwarp_size + lane] / c;
+                tile[j * subwarp_size + lane] = l_ij;
+            }
+            if (lane == j) {
+                tile[j * subwarp_size + j] = c;
+            }
+            subwarp.sync();
+            if (lane > j && lane < size) {
+                for (int l = j + 1; l <= lane; ++l) {
+                    tile[l * subwarp_size + lane] -=
+                        l_ij * conj(tile[j * subwarp_size + l]);
+                }
+            }
+            subwarp.sync();
+        }
+    }
+    // row-oriented backward solve, lane i keeps z_i
+    ValueType z{};
+    if (valid) {
+        for (int i = size - 1; i >= 0; --i) {
+            const auto partial = lane > i && lane < size
+                                     ? conj(tile[i * subwarp_size + lane]) * z
+                                     : zero<ValueType>();
+            const auto sum =
+                reduce(subwarp, partial,
+                       [](ValueType x, ValueType y) { return x + y; });
+            const auto z_i =
+                ((i == size - 1 ? one<ValueType>() : zero<ValueType>()) - sum) /
+                tile[i * subwarp_size + i];
+            if (lane == i) {
+                z = z_i;
+            }
+        }
+        valid = !subwarp.any(lane < size && !is_finite(z));
+    }
+    if (lane < size) {
+        i_values[begin + lane] =
+            valid
+                ? z
+                : (pattern[lane] == row ? one<ValueType>() : zero<ValueType>());
+    }
+}
+
+
+/**
+ * @internal
+ *
+ * One SPD ISAI row by a whole block: packed lower M in `m`, the solution in
+ * `z` (both shared or global memory), `pattern` the row's column indices.
+ */
+template <int block_size, typename ValueType, typename IndexType>
+__device__ __forceinline__ void spd_inverse_block_row(
+    IndexType row, IndexType size, const IndexType* pattern,
+    const IndexType* __restrict__ m_row_ptrs,
+    const IndexType* __restrict__ m_col_idxs,
+    const ValueType* __restrict__ m_values, ValueType* m, ValueType* z,
+    ValueType* __restrict__ out, int* invalid)
+{
+    constexpr int subwarp_size =
+        config::warp_size < 32 ? config::warp_size : 32;
+    constexpr int num_subwarps = block_size / subwarp_size;
+    auto subwarp =
+        group::tiled_partition<subwarp_size>(group::this_thread_block());
+    const int subwarp_id = threadIdx.x / subwarp_size;
+    const int lane = subwarp.thread_rank();
+    const auto packed_size = spd_packed(size, 0);
+    for (int64 t = threadIdx.x; t < packed_size; t += block_size) {
+        m[t] = zero<ValueType>();
+    }
+    for (IndexType t = threadIdx.x; t < size; t += block_size) {
+        z[t] = t == size - 1 ? one<ValueType>() : zero<ValueType>();
+    }
+    if (threadIdx.x == 0) {
+        *invalid = 0;
+    }
+    __syncthreads();
+    // M(a, b) = conj(A(S_a, S_b)) for b <= a, rows a by subwarps
+    for (IndexType a = subwarp_id; a < size; a += num_subwarps) {
+        const auto m_begin = m_row_ptrs[pattern[a]];
+        group_match<subwarp_size>(
+            m_col_idxs + m_begin, m_row_ptrs[pattern[a] + 1] - m_begin, pattern,
+            a + 1, subwarp,
+            [&](IndexType, IndexType m_idx, IndexType b, config::lane_mask_type,
+                bool valid) {
+                if (valid) {
+                    m[spd_packed(a, b)] = conj(m_values[m_begin + m_idx]);
+                }
+            });
+    }
+    __syncthreads();
+    bool valid = true;
+    for (IndexType j = 0; j < size && valid; ++j) {
+        const auto diag = real(m[spd_packed(j, j)]);
+        valid = diag > zero<remove_complex<ValueType>>() && is_finite(diag);
+        if (valid) {
+            const auto c = sqrt(diag);
+            for (IndexType i = j + 1 + threadIdx.x; i < size; i += block_size) {
+                m[spd_packed(i, j)] /= c;
+            }
+            __syncthreads();
+            // rows i by subwarps, columns l in (j, i] by lanes
+            for (IndexType i = j + 1 + subwarp_id; i < size;
+                 i += num_subwarps) {
+                const auto l_ij = m[spd_packed(i, j)];
+                for (IndexType l = j + 1 + lane; l <= i; l += subwarp_size) {
+                    m[spd_packed(i, l)] -= l_ij * conj(m[spd_packed(l, j)]);
+                }
+            }
+            if (threadIdx.x == 0) {
+                m[spd_packed(j, j)] = c;
+            }
+            __syncthreads();
+        }
+    }
+    // column-oriented backward solve of C^H z = e_k
+    if (valid) {
+        for (IndexType i = size - 1; i >= 0; --i) {
+            const auto z_i = z[i] / m[spd_packed(i, i)];
+            for (IndexType l = threadIdx.x; l < i; l += block_size) {
+                z[l] -= conj(m[spd_packed(i, l)]) * z_i;
+            }
+            __syncthreads();
+            if (threadIdx.x == 0) {
+                z[i] = z_i;
+            }
+        }
+        __syncthreads();
+        for (IndexType t = threadIdx.x; t < size; t += block_size) {
+            if (!is_finite(z[t])) {
+                *invalid = 1;
+            }
+        }
+    }
+    __syncthreads();
+    valid = valid && *invalid == 0;
+    for (IndexType t = threadIdx.x; t < size; t += block_size) {
+        out[t] =
+            valid ? z[t]
+                  : (pattern[t] == row ? one<ValueType>() : zero<ValueType>());
+    }
+    // the next row may reuse m and z
+    __syncthreads();
+}
+
+
+// the column indices first, padded so that the values after them are aligned
+template <typename IndexType>
+__host__ __device__ size_type spd_t1_index_bytes(int64 size)
+{
+    return (static_cast<size_type>(size) * sizeof(IndexType) + 15) / 16 * 16;
+}
+
+
+template <typename ValueType, typename IndexType>
+__host__ __device__ size_type spd_t1_shared_bytes(int64 size)
+{
+    return spd_t1_index_bytes<IndexType>(size) +
+           static_cast<size_type>(spd_packed(size, 0) + size) *
+               sizeof(ValueType);
+}
+
+
+// room left for the kernels' static shared memory
+constexpr size_type spd_static_shared_bytes = 64;
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spd_t1_block_size) void spd_inverse_t1(
+    const IndexType* __restrict__ rows,
+    const IndexType* __restrict__ m_row_ptrs,
+    const IndexType* __restrict__ m_col_idxs,
+    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ i_row_ptrs,
+    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values)
+{
+    extern __shared__ __align__(16) char spd_shared[];
+    __shared__ int invalid;
+    const auto row = rows[blockIdx.x];
+    const auto begin = i_row_ptrs[row];
+    const auto size = i_row_ptrs[row + 1] - begin;
+    auto pattern = reinterpret_cast<IndexType*>(spd_shared);
+    auto m = reinterpret_cast<ValueType*>(spd_shared +
+                                          spd_t1_index_bytes<IndexType>(size));
+    auto z = m + spd_packed(size, 0);
+    for (IndexType t = threadIdx.x; t < size; t += spd_t1_block_size) {
+        pattern[t] = i_col_idxs[begin + t];
+    }
+    __syncthreads();
+    spd_inverse_block_row<spd_t1_block_size>(row, size, pattern, m_row_ptrs,
+                                             m_col_idxs, m_values, m, z,
+                                             i_values + begin, &invalid);
+}
+
+
+template <typename ValueType, typename IndexType>
+__global__ __launch_bounds__(spd_t2_block_size) void spd_inverse_t2(
+    const IndexType* __restrict__ rows, IndexType num_t2_rows,
+    const IndexType* __restrict__ m_row_ptrs,
+    const IndexType* __restrict__ m_col_idxs,
+    const ValueType* __restrict__ m_values,
+    const IndexType* __restrict__ i_row_ptrs,
+    const IndexType* __restrict__ i_col_idxs, ValueType* __restrict__ i_values,
+    ValueType* __restrict__ workspace, int64 slot_size)
+{
+    __shared__ int invalid;
+    auto m = workspace + blockIdx.x * slot_size;
+    for (IndexType idx = blockIdx.x; idx < num_t2_rows; idx += gridDim.x) {
+        const auto row = rows[idx];
+        const auto begin = i_row_ptrs[row];
+        const auto size = i_row_ptrs[row + 1] - begin;
+        spd_inverse_block_row<spd_t2_block_size>(
+            row, size, i_col_idxs + begin, m_row_ptrs, m_col_idxs, m_values, m,
+            m + spd_packed(size, 0), i_values + begin, &invalid);
+    }
+}
+
+
+/**
+ * @internal
+ *
+ * 1 in t1_flags[row] / t2_flags[row] for rows longer than 32 / than k1,
+ * the longest such row in max_t2_size; entry num_rows of both is 0.
+ */
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void classify_spd_rows(
+    IndexType num_rows, IndexType k1, const IndexType* __restrict__ row_ptrs,
+    IndexType* __restrict__ t1_flags, IndexType* __restrict__ t2_flags,
+    IndexType* __restrict__ max_t2_size)
+{
+    const auto row = thread::get_thread_id_flat<IndexType>();
+    if (row > num_rows) {
+        return;
+    }
+    const auto size = row < num_rows ? row_ptrs[row + 1] - row_ptrs[row] : 0;
+    t1_flags[row] = size > row_size_limit && size <= k1;
+    t2_flags[row] = size > k1;
+    if (size > k1) {
+        atomic_max(max_t2_size, size);
+    }
+}
+
+
+template <typename IndexType>
+__global__ __launch_bounds__(default_block_size) void fill_spd_row_lists(
+    IndexType num_rows, const IndexType* __restrict__ t1_ptrs,
+    const IndexType* __restrict__ t2_ptrs, IndexType* __restrict__ t1_rows,
+    IndexType* __restrict__ t2_rows)
+{
+    const auto row = thread::get_thread_id_flat<IndexType>();
+    if (row >= num_rows) {
+        return;
+    }
+    if (t1_ptrs[row + 1] > t1_ptrs[row]) {
+        t1_rows[t1_ptrs[row]] = row;
+    }
+    if (t2_ptrs[row + 1] > t2_ptrs[row]) {
+        t2_rows[t2_ptrs[row]] = row;
+    }
+}
+
+
 }  // namespace kernel
 
 
@@ -594,6 +933,96 @@ void scatter_excess_solution(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void generate_spd_inverse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> input,
+    matrix::view::csr<ValueType, IndexType> inverse, size_type workspace_bytes)
+{
+    using device_value = device_type<ValueType>;
+    const auto num_rows = static_cast<IndexType>(inverse.size[0]);
+    if (num_rows == 0) {
+        return;
+    }
+    const auto m_vals = as_device_type(input.values);
+    const auto i_vals = as_device_type(inverse.values);
+    // T0: rows with at most 32 entries, one subwarp each
+    kernel::spd_inverse_t0<subwarp_size, subwarps_per_block>
+        <<<ceildiv(num_rows, subwarps_per_block), default_block_size, 0,
+           exec->get_stream()>>>(num_rows, input.row_ptrs, input.col_idxs,
+                                 m_vals, inverse.row_ptrs, inverse.col_idxs,
+                                 i_vals);
+    // T1 up to the longest row whose system fits the shared memory
+    const auto shared_limit =
+        static_cast<size_type>(max_shared_memory_per_block_optin(exec));
+    IndexType k1 = row_size_limit;
+    for (IndexType k = kernel::spd_max_t1_size; k > row_size_limit; --k) {
+        if (kernel::spd_t1_shared_bytes<device_value, IndexType>(k) +
+                kernel::spd_static_shared_bytes <=
+            shared_limit) {
+            k1 = k;
+            break;
+        }
+    }
+    array<IndexType> t1_ptrs{exec, static_cast<size_type>(num_rows) + 1};
+    array<IndexType> t2_ptrs{exec, static_cast<size_type>(num_rows) + 1};
+    array<IndexType> max_t2_size{exec, {IndexType{}}};
+    kernel::classify_spd_rows<<<ceildiv(num_rows + 1, default_block_size),
+                                default_block_size, 0, exec->get_stream()>>>(
+        num_rows, k1, inverse.row_ptrs, t1_ptrs.get_data(), t2_ptrs.get_data(),
+        max_t2_size.get_data());
+    components::prefix_sum_nonnegative(exec, t1_ptrs.get_data(),
+                                       t1_ptrs.get_size());
+    components::prefix_sum_nonnegative(exec, t2_ptrs.get_data(),
+                                       t2_ptrs.get_size());
+    const auto num_t1 = get_element(t1_ptrs, num_rows);
+    const auto num_t2 = get_element(t2_ptrs, num_rows);
+    if (num_t1 + num_t2 == 0) {
+        return;
+    }
+    array<IndexType> t1_rows{exec, static_cast<size_type>(num_t1)};
+    array<IndexType> t2_rows{exec, static_cast<size_type>(num_t2)};
+    kernel::fill_spd_row_lists<<<ceildiv(num_rows, default_block_size),
+                                 default_block_size, 0, exec->get_stream()>>>(
+        num_rows, t1_ptrs.get_const_data(), t2_ptrs.get_const_data(),
+        t1_rows.get_data(), t2_rows.get_data());
+    if (num_t1 > 0) {
+        const auto shared_bytes =
+            kernel::spd_t1_shared_bytes<device_value, IndexType>(k1);
+        allow_dynamic_shared_memory(
+            kernel::spd_inverse_t1<device_value, IndexType>,
+            static_cast<int>(shared_bytes));
+        kernel::spd_inverse_t1<<<num_t1, kernel::spd_t1_block_size,
+                                 shared_bytes, exec->get_stream()>>>(
+            t1_rows.get_const_data(), input.row_ptrs, input.col_idxs, m_vals,
+            inverse.row_ptrs, inverse.col_idxs, i_vals);
+    }
+    if (num_t2 > 0) {
+        // one global workspace slot per block, each block loops over rows
+        const int64 max_size = get_element(max_t2_size, 0);
+        const auto slot_size = kernel::spd_packed(max_size, 0) + max_size;
+        const auto budget =
+            workspace_bytes != 0
+                ? workspace_bytes
+                : std::min<size_type>(size_type{1} << 30,
+                                      free_device_memory(exec) / 4);
+        const auto num_slots = std::max<int64>(
+            1, std::min<int64>(num_t2, static_cast<int64>(budget) /
+                                           (slot_size * sizeof(ValueType))));
+        array<ValueType> workspace{
+            exec, static_cast<size_type>(num_slots * slot_size)};
+        kernel::spd_inverse_t2<<<num_slots, kernel::spd_t2_block_size, 0,
+                                 exec->get_stream()>>>(
+            t2_rows.get_const_data(), num_t2, input.row_ptrs, input.col_idxs,
+            m_vals, inverse.row_ptrs, inverse.col_idxs, i_vals,
+            as_device_type(workspace.get_data()), slot_size);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_SPD_INVERSE_KERNEL);
 
 
 }  // namespace isai

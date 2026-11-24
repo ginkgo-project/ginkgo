@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <fstream>
 #include <memory>
+#include <random>
 #include <type_traits>
 
 #include <gtest/gtest.h>
@@ -18,7 +19,9 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/base/utils.hpp"
 #include "core/test/utils.hpp"
@@ -259,6 +262,48 @@ protected:
     std::unique_ptr<Csr> transpose(gko::ptr_param<const Csr> mtx)
     {
         return gko::as<Csr>(mtx->transpose());
+    }
+
+    // the lower triangular pattern of mtx, with invalid values
+    std::unique_ptr<Csr> lower_pattern(gko::ptr_param<const Csr> mtx)
+    {
+        gko::matrix_data<value_type, index_type> data;
+        mtx->write(data);
+        gko::matrix_data<value_type, index_type> lower{data.size};
+        for (const auto& entry : data.nonzeros) {
+            if (entry.column <= entry.row) {
+                lower.nonzeros.emplace_back(entry.row, entry.column,
+                                            -gko::one<value_type>());
+            }
+        }
+        auto result = Csr::create(exec);
+        result->read(lower);
+        return result;
+    }
+
+    // ISAI conditions on the pattern of l: (l a)(i, j) = delta_ij / l(i, i)
+    void assert_isai_conditions(gko::ptr_param<const Csr> a,
+                                gko::ptr_param<const Csr> l,
+                                gko::remove_complex<value_type> tol)
+    {
+        auto la = Csr::create(exec, l->get_size());
+        l->apply(a, la);
+        auto la_dense = Dense::create(exec);
+        la->convert_to(la_dense);
+        const auto row_ptrs = l->get_const_row_ptrs();
+        const auto cols = l->get_const_col_idxs();
+        const auto vals = l->get_const_values();
+        for (index_type row = 0;
+             row < static_cast<index_type>(l->get_size()[0]); ++row) {
+            const auto diag = vals[row_ptrs[row + 1] - 1];
+            for (auto nz = row_ptrs[row]; nz < row_ptrs[row + 1]; ++nz) {
+                const auto col = cols[nz];
+                const auto expected = col == row ? gko::one<value_type>() / diag
+                                                 : gko::zero<value_type>();
+                ASSERT_LE(gko::abs(la_dense->at(row, col) - expected), tol)
+                    << "row " << row << ", col " << col;
+            }
+        }
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
@@ -1665,6 +1710,183 @@ TYPED_TEST(Isai, IsExactInverseOnFullSparsitySetLarge)
 
     GKO_ASSERT_MTX_NEAR(inv_mtx, isai->get_approximate_inverse(),
                         5 * r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, GenerateSpdInverseSatisfiesIsaiConditions)
+{
+    using value_type = typename TestFixture::value_type;
+    auto result = this->clone_allocations(this->spd_csr_inv);
+
+    gko::kernels::reference::isai::generate_spd_inverse(
+        this->exec, this->spd_csr->get_const_device_view(),
+        result->get_device_view(), 0);
+
+    this->assert_isai_conditions(this->spd_csr, result,
+                                 100 * r<value_type>::value);
+    SKIP_IF_HALF(value_type);
+    auto longrow = this->clone_allocations(this->spd_csr_longrow_inv);
+    gko::kernels::reference::isai::generate_spd_inverse(
+        this->exec, this->spd_csr_longrow->get_const_device_view(),
+        longrow->get_device_view(), 0);
+    this->assert_isai_conditions(this->spd_csr_longrow, longrow,
+                                 1e3 * r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, GenerateSpdInverseMatchesExpected)
+{
+    using value_type = typename TestFixture::value_type;
+    auto result = this->clone_allocations(this->spd_csr_inv);
+    auto sparse = this->clone_allocations(this->spd_sparse_inv);
+
+    gko::kernels::reference::isai::generate_spd_inverse(
+        this->exec, this->spd_csr->get_const_device_view(),
+        result->get_device_view(), 0);
+    gko::kernels::reference::isai::generate_spd_inverse(
+        this->exec, this->spd_sparse->get_const_device_view(),
+        sparse->get_device_view(), 0);
+
+    GKO_ASSERT_MTX_NEAR(result, this->spd_csr_inv, r<value_type>::value);
+    GKO_ASSERT_MTX_NEAR(sparse, this->spd_sparse_inv, r<value_type>::value);
+    SKIP_IF_HALF(value_type);
+    auto longrow = this->clone_allocations(this->spd_csr_longrow_inv);
+    gko::kernels::reference::isai::generate_spd_inverse(
+        this->exec, this->spd_csr_longrow->get_const_device_view(),
+        longrow->get_device_view(), 0);
+    GKO_ASSERT_MTX_NEAR(longrow, this->spd_csr_longrow_inv,
+                        1e3 * r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, GenerateSpdInverseMatchesGaussJordanForShortRows)
+{
+    using value_type = typename TestFixture::value_type;
+    using index_type = typename TestFixture::index_type;
+    for (auto mtx : {this->spd_csr, this->spd_sparse}) {
+        auto cholesky = this->lower_pattern(mtx);
+        auto gauss_jordan = this->lower_pattern(mtx);
+        const auto num_rows = mtx->get_size()[0];
+        gko::array<index_type> a1(this->exec, num_rows + 1);
+        gko::array<index_type> a2(this->exec, num_rows + 1);
+
+        gko::kernels::reference::isai::generate_spd_inverse(
+            this->exec, mtx->get_const_device_view(),
+            cholesky->get_device_view(), 0);
+        gko::kernels::reference::isai::generate_general_inverse(
+            this->exec, mtx->get_const_device_view(),
+            gauss_jordan->get_device_view(), a1.get_data(), a2.get_data(),
+            true);
+
+        GKO_ASSERT_MTX_NEAR(cholesky, gauss_jordan, 10 * r<value_type>::value);
+    }
+}
+
+
+TYPED_TEST(Isai, GenerateSpdInverseOfHermitianMatrix)
+{
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+    if (!gko::is_complex<value_type>()) {
+        GTEST_SKIP() << "real types are covered by the symmetric tests";
+    }
+    std::default_random_engine engine(42);
+    auto b = gko::test::generate_random_band_matrix<Dense>(
+        40, 6, 6, std::normal_distribution<>(), engine, this->exec);
+    auto a_dense = Dense::create(this->exec, gko::dim<2>{40, 40});
+    b->apply(b->conj_transpose(), a_dense);
+    for (gko::size_type i = 0; i < 40; ++i) {
+        a_dense->at(i, i) += value_type{40};
+    }
+    auto a = Csr::create(this->exec);
+    a_dense->convert_to(a);
+    auto result = this->lower_pattern(a);
+
+    gko::kernels::reference::isai::generate_spd_inverse(
+        this->exec, a->get_const_device_view(), result->get_device_view(), 0);
+
+    this->assert_isai_conditions(a, result, 1e3 * r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, GenerateSpdInverseFallsBackToIdentityRow)
+{
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    // the 2x2 system of the second row is indefinite
+    auto a = Csr::create(this->exec);
+    gko::initialize<Dense>(
+        std::initializer_list<std::initializer_list<value_type>>{{1., 2.},
+                                                                 {2., 1.}},
+        this->exec)
+        ->convert_to(a);
+    auto result = this->lower_pattern(a);
+
+    gko::kernels::reference::isai::generate_spd_inverse(
+        this->exec, a->get_const_device_view(), result->get_device_view(), 0);
+
+    auto result_dense = Dense::create(this->exec);
+    result->convert_to(result_dense);
+    GKO_ASSERT_MTX_NEAR(result_dense, l({{1., 0.}, {0., 1.}}), 0.0);
+}
+
+
+TYPED_TEST(Isai, GenerateSpdInverseOfDiagonalMatrix)
+{
+    using Csr = typename TestFixture::Csr;
+    using Dense = typename TestFixture::Dense;
+    using value_type = typename TestFixture::value_type;
+    auto a = Csr::create(this->exec);
+    gko::initialize<Dense>({{4., 0., 0.}, {0., 9., 0.}, {0., 0., 16.}},
+                           this->exec)
+        ->convert_to(a);
+    auto result = this->lower_pattern(a);
+
+    gko::kernels::reference::isai::generate_spd_inverse(
+        this->exec, a->get_const_device_view(), result->get_device_view(), 0);
+
+    GKO_ASSERT_MTX_NEAR(result,
+                        l({{.5, 0., 0.}, {0., 1. / 3., 0.}, {0., 0., .25}}),
+                        r<value_type>::value);
+}
+
+
+TYPED_TEST(Isai, GenerateSpdInverseOfEmptyMatrix)
+{
+    using Csr = typename TestFixture::Csr;
+    auto a = Csr::create(this->exec, gko::dim<2>{0, 0});
+    auto result = Csr::create(this->exec, gko::dim<2>{0, 0});
+
+    ASSERT_NO_THROW(gko::kernels::reference::isai::generate_spd_inverse(
+        this->exec, a->get_const_device_view(), result->get_device_view(), 0));
+}
+
+
+TYPED_TEST(Isai, SpdIsaiIgnoresExcessSolverForLongRows)
+{
+    using Csr = typename TestFixture::Csr;
+    using SpdIsai = typename TestFixture::SpdIsai;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+    // a zero-iteration excess solve would leave the long rows wrong
+    auto factory =
+        SpdIsai::build()
+            .with_excess_solver_factory(
+                gko::solver::Cg<value_type>::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(0u))
+                    .on(this->exec))
+            .on(this->exec);
+
+    const auto isai = factory->generate(this->spd_csr_longrow);
+
+    const auto lower =
+        gko::as<Csr>(isai->get_approximate_inverse()->get_operators()[1]);
+    GKO_ASSERT_MTX_NEAR(lower, this->spd_csr_longrow_inv,
+                        1e3 * r<value_type>::value);
 }
 
 

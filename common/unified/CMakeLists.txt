@@ -24,6 +24,7 @@ set(UNIFIED_SOURCES
     multigrid/pmis_kernels.cpp
     multigrid/rs_kernels.cpp
     multigrid/uniform_coarsening_kernels.cpp
+    preconditioner/isai_kernels.cpp
     preconditioner/jacobi_kernels.cpp
     solver/bicg_kernels.cpp
     solver/bicgstab_kernels.cpp

@@ -97,6 +97,85 @@ protected:
         }
     }
 
+    // the lower triangular pattern of mtx on ref, with invalid values
+    template <typename Mtx>
+    std::unique_ptr<Mtx> lower_pattern(const Mtx* mtx)
+    {
+        using value = typename Mtx::value_type;
+        using index = typename Mtx::index_type;
+        gko::matrix_data<value, index> data;
+        mtx->write(data);
+        gko::matrix_data<value, index> lower{data.size};
+        for (const auto& entry : data.nonzeros) {
+            if (entry.column <= entry.row) {
+                lower.nonzeros.emplace_back(entry.row, entry.column,
+                                            -gko::one<value>());
+            }
+        }
+        auto result = Mtx::create(ref);
+        result->read(lower);
+        return result;
+    }
+
+    // B B^H + b I with B random of bandwidth b: lower rows of length 1..2b+1
+    template <typename Value, typename Index = index_type>
+    std::unique_ptr<gko::matrix::Csr<Value, Index>> generate_hpd(
+        gko::size_type n, gko::size_type b)
+    {
+        using MtxDense = gko::matrix::Dense<Value>;
+        auto band = gko::test::generate_random_band_matrix<MtxDense>(
+            n, b, b,
+            std::uniform_real_distribution<gko::remove_complex<Value>>(-1., 1.),
+            rand_engine, ref, gko::dim<2>{n, n});
+        auto hpd = MtxDense::create(ref, gko::dim<2>{n, n});
+        band->apply(band->conj_transpose(), hpd);
+        for (gko::size_type i = 0; i < n; ++i) {
+            hpd->at(i, i) += static_cast<gko::remove_complex<Value>>(b);
+        }
+        auto result = gko::matrix::Csr<Value, Index>::create(ref);
+        hpd->convert_to(result);
+        return result;
+    }
+
+    // runs the reference generate_spd_inverse and `device_kernel` on exec
+    template <typename Mtx, typename Kernel>
+    void assert_spd_inverse_matches_ref(const Mtx* a, Kernel device_kernel,
+                                        gko::size_type workspace_bytes)
+    {
+        assert_spd_inverse_matches_ref(a, lower_pattern(a).get(), device_kernel,
+                                       workspace_bytes);
+    }
+
+    template <typename Mtx, typename Kernel>
+    void assert_spd_inverse_matches_ref(const Mtx* a, const Mtx* pattern,
+                                        Kernel device_kernel,
+                                        gko::size_type workspace_bytes)
+    {
+        auto ref_l = gko::clone(ref, pattern);
+        auto d_a = gko::clone(exec, a);
+        auto d_l = gko::clone(exec, ref_l);
+
+        gko::kernels::reference::isai::generate_spd_inverse(
+            ref, a->get_const_device_view(), ref_l->get_device_view(), 0);
+        device_kernel(exec, d_a->get_const_device_view(),
+                      d_l->get_device_view(), workspace_bytes);
+
+        GKO_ASSERT_MTX_EQ_SPARSITY(d_l, ref_l);
+        GKO_ASSERT_MTX_NEAR(d_l, ref_l,
+                            1e3 * r<typename Mtx::value_type>::value);
+    }
+
+    std::unique_ptr<Csr> indefinite_2x2()
+    {
+        auto result = Csr::create(ref);
+        gko::initialize<Dense>(
+            std::initializer_list<std::initializer_list<value_type>>{{1., 2.},
+                                                                     {2., 1.}},
+            ref)
+            ->convert_to(result);
+        return result;
+    }
+
     std::default_random_engine rand_engine;
 
     std::unique_ptr<Csr> mtx;
@@ -707,4 +786,225 @@ TEST_F(Isai, IsaiGenerateGeneralSparsityPowerNIsEquivalentToRef)
     GKO_ASSERT_MTX_NEAR(isai->get_approximate_inverse(),
                         d_isai->get_approximate_inverse(),
                         10 * r<value_type>::value);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseRowwiseIsEquivalentToRef)
+{
+    auto a = generate_hpd<value_type>(300, 80);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::
+                generate_spd_inverse_rowwise(args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseRowwiseComplexIsEquivalentToRef)
+{
+    auto a = generate_hpd<std::complex<value_type>>(300, 80);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::
+                generate_spd_inverse_rowwise(args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseRowwiseSmallWorkspaceIsEquivalentToRef)
+{
+    auto a = generate_hpd<value_type>(300, 80);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::
+                generate_spd_inverse_rowwise(args...);
+        },
+        1);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseRowwiseFallsBackToIdentityRow)
+{
+    auto a = indefinite_2x2();
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::
+                generate_spd_inverse_rowwise(args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseIsEquivalentToRef)
+{
+    auto a = generate_hpd<value_type>(300, 80);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseComplexIsEquivalentToRef)
+{
+    auto a = generate_hpd<std::complex<value_type>>(300, 80);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseSmallWorkspaceIsEquivalentToRef)
+{
+    auto a = generate_hpd<value_type>(300, 80);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        1);
+}
+
+
+TEST_F(Isai, GenerateSpdInversePower2IsEquivalentToRef)
+{
+    auto a = generate_hpd<value_type>(300, 8);
+    auto a2 = Csr::create(ref, a->get_size());
+    a->apply(a, a2);
+    // entries of the pattern outside the pattern of a
+    auto pattern = lower_pattern(a2.get());
+
+    assert_spd_inverse_matches_ref(
+        a.get(), pattern.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseFallsBackToIdentityRow)
+{
+    auto a = indefinite_2x2();
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseOfEmptyMatrix)
+{
+    auto a = Csr::create(ref, gko::dim<2>{0, 0});
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseOfDiagonalMatrix)
+{
+    auto a = Csr::create(ref);
+    gko::initialize<Dense>({{4., 0., 0.}, {0., 9., 0.}, {0., 0., 16.}}, ref)
+        ->convert_to(a);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseFloatInt64IsEquivalentToRef)
+{
+    // a value type smaller than the index type, rows of 1..41 entries
+    auto a = generate_hpd<float, gko::int64>(100, 20);
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        0);
+}
+
+
+TEST_F(Isai, GenerateSpdInverseFallsBackToIdentityRowInLongRows)
+{
+    auto a = generate_hpd<value_type>(300, 80);
+    // indefinite diagonals break the rows that contain them, in every tier
+    for (index_type row : {40, 150}) {
+        for (auto nz = a->get_const_row_ptrs()[row];
+             nz < a->get_const_row_ptrs()[row + 1]; ++nz) {
+            if (a->get_const_col_idxs()[nz] == row) {
+                a->get_values()[nz] = -1.0;
+            }
+        }
+    }
+
+    assert_spd_inverse_matches_ref(
+        a.get(),
+        [](auto... args) {
+            gko::kernels::GKO_DEVICE_NAMESPACE::isai::generate_spd_inverse(
+                args...);
+        },
+        1);
+}
+
+
+TEST_F(Isai, SpdIsaiIsEquivalentToRef)
+{
+    using SpdIsai = gko::preconditioner::SpdIsai<value_type, index_type>;
+    for (int power : {1, 2}) {
+        auto a = gko::share(generate_hpd<value_type>(300, power == 1 ? 80 : 8));
+        auto d_a = gko::share(gko::clone(exec, a));
+
+        auto isai =
+            SpdIsai::build().with_sparsity_power(power).on(ref)->generate(a);
+        auto d_isai =
+            SpdIsai::build().with_sparsity_power(power).on(exec)->generate(d_a);
+
+        const auto ops = isai->get_approximate_inverse()->get_operators();
+        const auto d_ops = d_isai->get_approximate_inverse()->get_operators();
+        ASSERT_EQ(d_ops.size(), 2);
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_ops[1]), gko::as<Csr>(ops[1]),
+                            1e3 * r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_ops[0]), gko::as<Csr>(ops[0]),
+                            1e3 * r<value_type>::value);
+    }
 }

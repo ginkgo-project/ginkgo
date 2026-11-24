@@ -54,6 +54,21 @@ namespace kernels {
         matrix::view::csr<ValueType, IndexType> inverse, size_type e_start,   \
         size_type e_end)
 
+#define GKO_DECLARE_ISAI_GENERATE_SPD_INVERSE_KERNEL(ValueType, IndexType) \
+    void generate_spd_inverse(                                             \
+        std::shared_ptr<const DefaultExecutor> exec,                       \
+        matrix::view::csr<const ValueType, const IndexType> input,         \
+        matrix::view::csr<ValueType, IndexType> inverse,                   \
+        size_type workspace_bytes)
+
+#define GKO_DECLARE_ISAI_GENERATE_SPD_INVERSE_ROWWISE_KERNEL(ValueType, \
+                                                             IndexType) \
+    void generate_spd_inverse_rowwise(                                  \
+        std::shared_ptr<const DefaultExecutor> exec,                    \
+        matrix::view::csr<const ValueType, const IndexType> input,      \
+        matrix::view::csr<ValueType, IndexType> inverse,                \
+        size_type workspace_bytes)
+
 #define GKO_DECLARE_ALL_AS_TEMPLATES                                        \
     constexpr int row_size_limit = 32;                                      \
     template <typename ValueType, typename IndexType>                       \
@@ -65,7 +80,11 @@ namespace kernels {
     template <typename ValueType, typename IndexType>                       \
     GKO_DECLARE_ISAI_SCALE_EXCESS_SOLUTION_KERNEL(ValueType, IndexType);    \
     template <typename ValueType, typename IndexType>                       \
-    GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType)
+    GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL(ValueType, IndexType);  \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_ISAI_GENERATE_SPD_INVERSE_KERNEL(ValueType, IndexType);     \
+    template <typename ValueType, typename IndexType>                       \
+    GKO_DECLARE_ISAI_GENERATE_SPD_INVERSE_ROWWISE_KERNEL(ValueType, IndexType)
 
 
 GKO_DECLARE_FOR_ALL_EXECUTOR_NAMESPACES(isai, GKO_DECLARE_ALL_AS_TEMPLATES);

@@ -741,6 +741,20 @@ GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
 
 
+template <typename ValueType, typename IndexType>
+void generate_spd_inverse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> input,
+    matrix::view::csr<ValueType, IndexType> inverse, size_type workspace_bytes)
+{
+    // the portable one-row-per-work-item kernel, untuned
+    generate_spd_inverse_rowwise(exec, input, inverse, workspace_bytes);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_SPD_INVERSE_KERNEL);
+
+
 }  // namespace isai
 }  // namespace dpcpp
 }  // namespace kernels
