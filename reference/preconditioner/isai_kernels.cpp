@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <memory>
+#include <vector>
 
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/exception_helpers.hpp>
@@ -13,6 +14,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "core/matrix/csr_builder.hpp"
+#include "core/preconditioner/isai_spd_row.hpp"
 
 
 namespace gko {
@@ -430,6 +432,36 @@ void scatter_excess_solution(
 
 GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
     GKO_DECLARE_ISAI_SCATTER_EXCESS_SOLUTION_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void generate_spd_inverse(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> input,
+    matrix::view::csr<ValueType, IndexType> inverse, size_type)
+{
+    std::vector<ValueType> scratch;
+    for (IndexType row = 0; row < static_cast<IndexType>(inverse.size[0]);
+         ++row) {
+        isai_spd::generate_row(row, input, inverse, scratch);
+    }
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_SPD_INVERSE_KERNEL);
+
+
+template <typename ValueType, typename IndexType>
+void generate_spd_inverse_rowwise(
+    std::shared_ptr<const DefaultExecutor> exec,
+    matrix::view::csr<const ValueType, const IndexType> input,
+    matrix::view::csr<ValueType, IndexType> inverse, size_type workspace_bytes)
+{
+    generate_spd_inverse(exec, input, inverse, workspace_bytes);
+}
+
+GKO_INSTANTIATE_FOR_EACH_VALUE_AND_INDEX_TYPE(
+    GKO_DECLARE_ISAI_GENERATE_SPD_INVERSE_ROWWISE_KERNEL);
 
 
 }  // namespace isai
