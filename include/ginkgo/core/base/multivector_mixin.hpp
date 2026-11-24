@@ -392,11 +392,9 @@ protected:
      *
      * @param exec  The executor of this vector
      * @param size  The size of this vector
-     * @param local_size  The local size of this vector
      */
-    EnableMultiVector(std::shared_ptr<const Executor> exec, dim<2> size,
-                      dim<2> local_size)
-        : AbstractMultiVector(exec, size, local_size, precision_v<value_type>)
+    EnableMultiVector(std::shared_ptr<const Executor> exec, dim<2> size)
+        : AbstractMultiVector(exec, size, precision_v<value_type>)
     {}
 
     Cloneable* copy_from_impl(const Cloneable* other) override;
@@ -540,12 +538,6 @@ protected:
 
     [[nodiscard]] std::unique_ptr<AbstractMultiVector>
     create_generic_with_same_config_impl() const final;
-
-    [[nodiscard]] std::unique_ptr<AbstractMultiVector>
-    create_generic_with_type_of_impl(std::shared_ptr<const Executor> exec,
-                                     const dim<2>& global_size,
-                                     const dim<2>& local_size,
-                                     size_type stride) const final;
 
     [[nodiscard]] std::unique_ptr<AbstractMultiVector>
     create_subview_generic_impl(local_span rows, local_span columns) final;

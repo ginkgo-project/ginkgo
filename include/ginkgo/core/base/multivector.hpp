@@ -498,8 +498,6 @@ public:
     /**
      * Gets a local device view of this vector for the specified value type.
      *
-     * The size of the view is equal to the local size of the vector.
-     *
      * @throws InvalidStateError if the vector isn't stored in the requested
      *                           value type
      *
@@ -569,13 +567,6 @@ public:
      */
     [[nodiscard]] dim<2> get_size() const noexcept;
 
-    /**
-     * Gets the size (number of rows and columns) locally owned by this vector.
-     *
-     * @return The size as a dim<2> object
-     */
-    [[nodiscard]] dim<2> get_local_size() const noexcept;
-
     AbstractMultiVector(const AbstractMultiVector& other);
 
     AbstractMultiVector(AbstractMultiVector&& other) noexcept;
@@ -596,8 +587,7 @@ public:
 
 protected:
     explicit AbstractMultiVector(std::shared_ptr<const Executor> exec,
-                                 const dim<2>& size, const dim<2>& local_size,
-                                 precision p);
+                                 const dim<2>& size, precision p);
 
     [[nodiscard]] virtual std::unique_ptr<AbstractMultiVector>
     create_generic_with_same_config_impl() const = 0;
@@ -703,11 +693,10 @@ protected:
     [[nodiscard]] virtual temporary_conversion<const AbstractMultiVector>
     as_precision_impl(precision p) const = 0;
 
-    void set_size(const dim<2>& global_size, const dim<2>& local_size);
+    void set_size(const dim<2>& value);
 
 private:
     dim<2> size_;
-    dim<2> local_size_;
     precision precision_;
 };
 

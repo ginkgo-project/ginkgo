@@ -9,24 +9,12 @@ namespace gko {
 
 
 AbstractMultiVector::AbstractMultiVector(std::shared_ptr<const Executor> exec,
-                                         const dim<2>& size,
-                                         const dim<2>& local_size, precision p)
-    : PolymorphicObject(std::move(exec)),
-      size_(size),
-      local_size_(local_size),
-      precision_(p)
-{
-    GKO_ASSERT_SUBSET_DIMENSIONS(local_size_, size_);
-}
+                                         const dim<2>& size, precision p)
+    : PolymorphicObject(std::move(exec)), size_(size), precision_(p)
+{}
 
 
-void AbstractMultiVector::set_size(const dim<2>& global_size,
-                                   const dim<2>& local_size)
-{
-    GKO_ASSERT_SUBSET_DIMENSIONS(local_size, global_size);
-    size_ = global_size;
-    local_size_ = local_size;
-}
+void AbstractMultiVector::set_size(const dim<2>& value) { size_ = value; }
 
 
 std::unique_ptr<AbstractMultiVector> AbstractMultiVector::create_with_config_of(
@@ -447,12 +435,6 @@ precision AbstractMultiVector::get_precision() const noexcept
 dim<2> AbstractMultiVector::get_size() const noexcept { return size_; }
 
 
-dim<2> AbstractMultiVector::get_local_size() const noexcept
-{
-    return local_size_;
-}
-
-
 AbstractMultiVector::AbstractMultiVector(const AbstractMultiVector& other)
     : PolymorphicObject(other.get_executor()), precision_(other.precision_)
 {
@@ -473,7 +455,6 @@ AbstractMultiVector& AbstractMultiVector::operator=(
     if (this != &other) {
         PolymorphicObject::operator=(other);
         size_ = other.size_;
-        local_size_ = other.local_size_;
     }
     return *this;
 }
@@ -485,7 +466,6 @@ AbstractMultiVector& AbstractMultiVector::operator=(
     if (this != &other) {
         PolymorphicObject::operator=(other);  // PolymorphicObject has no move
         size_ = std::exchange(other.size_, {});
-        local_size_ = std::exchange(other.local_size_, {});
     }
     return *this;
 }
