@@ -1,0 +1,21 @@
+core/matrix/csr.cpp
+  s_b983a948a268f1::t_a4d7b9224f1f4e 210-231
+include/ginkgo/core/matrix/csr.hpp
+  s_b983a948a268f1::t_81aa563c78b541 959,967
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "c78f257f3810d40270577441b097053344b0602e",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
