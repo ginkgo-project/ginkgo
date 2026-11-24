@@ -19,7 +19,9 @@
 #include <ginkgo/core/preconditioner/ilu.hpp>
 #include <ginkgo/core/preconditioner/isai.hpp>
 #include <ginkgo/core/preconditioner/jacobi.hpp>
+#include <ginkgo/core/solver/cg.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
+#include <ginkgo/core/stop/iteration.hpp>
 
 #include "core/base/utils.hpp"
 #include "core/test/utils.hpp"
@@ -1860,6 +1862,31 @@ TYPED_TEST(Isai, GenerateSpdInverseOfEmptyMatrix)
 
     ASSERT_NO_THROW(gko::kernels::reference::isai::generate_spd_inverse(
         this->exec, a->get_const_device_view(), result->get_device_view(), 0));
+}
+
+
+TYPED_TEST(Isai, SpdIsaiIgnoresExcessSolverForLongRows)
+{
+    using Csr = typename TestFixture::Csr;
+    using SpdIsai = typename TestFixture::SpdIsai;
+    using value_type = typename TestFixture::value_type;
+    SKIP_IF_HALF(value_type);
+    // a zero-iteration excess solve would leave the long rows wrong
+    auto factory =
+        SpdIsai::build()
+            .with_excess_solver_factory(
+                gko::solver::Cg<value_type>::build()
+                    .with_criteria(
+                        gko::stop::Iteration::build().with_max_iters(0u))
+                    .on(this->exec))
+            .on(this->exec);
+
+    const auto isai = factory->generate(this->spd_csr_longrow);
+
+    const auto lower =
+        gko::as<Csr>(isai->get_approximate_inverse()->get_operators()[1]);
+    GKO_ASSERT_MTX_NEAR(lower, this->spd_csr_longrow_inv,
+                        1e3 * r<value_type>::value);
 }
 
 

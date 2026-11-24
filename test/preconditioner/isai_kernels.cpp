@@ -985,3 +985,26 @@ TEST_F(Isai, GenerateSpdInverseFallsBackToIdentityRowInLongRows)
         },
         1);
 }
+
+
+TEST_F(Isai, SpdIsaiIsEquivalentToRef)
+{
+    using SpdIsai = gko::preconditioner::SpdIsai<value_type, index_type>;
+    for (int power : {1, 2}) {
+        auto a = gko::share(generate_hpd<value_type>(300, power == 1 ? 80 : 8));
+        auto d_a = gko::share(gko::clone(exec, a));
+
+        auto isai =
+            SpdIsai::build().with_sparsity_power(power).on(ref)->generate(a);
+        auto d_isai =
+            SpdIsai::build().with_sparsity_power(power).on(exec)->generate(d_a);
+
+        const auto ops = isai->get_approximate_inverse()->get_operators();
+        const auto d_ops = d_isai->get_approximate_inverse()->get_operators();
+        ASSERT_EQ(d_ops.size(), 2);
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_ops[1]), gko::as<Csr>(ops[1]),
+                            1e3 * r<value_type>::value);
+        GKO_ASSERT_MTX_NEAR(gko::as<Csr>(d_ops[0]), gko::as<Csr>(ops[0]),
+                            1e3 * r<value_type>::value);
+    }
+}

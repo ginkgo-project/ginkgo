@@ -40,6 +40,7 @@ GKO_REGISTER_OPERATION(generate_general_inverse,
 GKO_REGISTER_OPERATION(generate_excess_system, isai::generate_excess_system);
 GKO_REGISTER_OPERATION(scale_excess_solution, isai::scale_excess_solution);
 GKO_REGISTER_OPERATION(scatter_excess_solution, isai::scatter_excess_solution);
+GKO_REGISTER_OPERATION(generate_spd_inverse, isai::generate_spd_inverse);
 GKO_REGISTER_OPERATION(initialize_row_ptrs_l,
                        factorization::initialize_row_ptrs_l);
 GKO_REGISTER_OPERATION(initialize_l, factorization::initialize_l);
@@ -167,103 +168,110 @@ void Isai<IsaiType, ValueType, IndexType>::generate_inverse(
                        : extend_sparsity<Csr>(exec, inverted_base, power);
     }
 
-    // This stores the beginning of the RHS for the sparse block associated with
-    // each row of inverted_l
-    array<IndexType> excess_block_ptrs{exec, num_rows + 1};
-    // This stores the beginning of the non-zeros belonging to each row in the
-    // system of excess blocks
-    array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
-
-    if (is_general || is_spd) {
-        exec->run(isai::make_generate_general_inverse(
+    if (is_spd) {
+        exec->run(isai::make_generate_spd_inverse(
             to_invert->get_const_device_view(), inverted->get_device_view(),
-            excess_block_ptrs.get_data(), excess_row_ptrs_full.get_data(),
-            is_spd));
+            size_type{}));
     } else {
-        exec->run(isai::make_generate_tri_inverse(
-            to_invert->get_const_device_view(), inverted->get_device_view(),
-            excess_block_ptrs.get_data(), excess_row_ptrs_full.get_data(),
-            is_lower));
-    }
+        // This stores the beginning of the RHS for the sparse block associated
+        // with each row of inverted_l
+        array<IndexType> excess_block_ptrs{exec, num_rows + 1};
+        // This stores the beginning of the non-zeros belonging to each row in
+        // the system of excess blocks
+        array<IndexType> excess_row_ptrs_full{exec, num_rows + 1};
 
-    auto host_excess_block_ptrs_array =
-        array<IndexType>(exec->get_master(), excess_block_ptrs);
-    auto host_excess_block_ptrs = host_excess_block_ptrs_array.get_const_data();
-    auto host_excess_row_ptrs_full_array =
-        array<IndexType>(exec->get_master(), excess_row_ptrs_full);
-    auto host_excess_row_ptrs_full =
-        host_excess_row_ptrs_full_array.get_const_data();
-    auto total_excess_dim = host_excess_block_ptrs[num_rows];
-    auto excess_lim = excess_limit == 0 ? total_excess_dim : excess_limit;
-    // if we had long rows:
-    if (total_excess_dim > 0) {
-        size_type block = 0;
-        while (block < num_rows) {
-            // build the excess sparse triangular system
-            size_type excess_dim;
-            size_type excess_start = block;
-            const auto block_offset = host_excess_block_ptrs[block];
-            const auto nnz_offset = host_excess_row_ptrs_full[block];
-            for (excess_dim = 0; excess_dim < excess_lim && block < num_rows;
-                 excess_dim = host_excess_block_ptrs[block] - block_offset) {
-                block++;
-            }
-            if (excess_dim == 0) {
-                break;
-            }
-            auto excess_nnz = host_excess_row_ptrs_full[block] - nnz_offset;
-            auto excess_system =
-                Csr::create(exec, dim<2>(excess_dim, excess_dim), excess_nnz);
-            excess_system->set_strategy(
-                gko::matrix::csr::spmv_strategy::classical);
-            auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
-            auto excess_solution = Dense::create(exec, dim<2>(excess_dim, 1));
-            exec->run(isai::make_generate_excess_system(
-                to_invert->get_const_device_view(),
-                inverted->get_const_device_view(),
-                excess_block_ptrs.get_const_data(),
-                excess_row_ptrs_full.get_const_data(),
-                excess_system->get_device_view(), excess_rhs->get_device_view(),
-                excess_start, block));
-            // solve it after transposing
-            auto system_copy = gko::clone(exec->get_master(), excess_system);
-            auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
-            std::shared_ptr<const LinOpFactory> excess_solver_factory;
-            if (parameters_.excess_solver_factory) {
-                excess_solver_factory = parameters_.excess_solver_factory;
-                excess_solution->copy_from(excess_rhs);
-            } else if (is_general || is_spd) {
-                excess_solver_factory =
-                    Gmres::build()
-                        .with_preconditioner(
-                            Bj::build().with_max_block_size(32u))
-                        .with_criteria(
-                            gko::stop::Iteration::build().with_max_iters(
-                                excess_dim),
-                            gko::stop::ResidualNorm<ValueType>::build()
-                                .with_baseline(gko::stop::mode::rhs_norm)
-                                .with_reduction_factor(
-                                    remove_complex<ValueType>{
-                                        excess_solver_reduction}))
-                        .on(exec);
-                excess_solution->copy_from(excess_rhs);
-            } else if (is_lower) {
-                excess_solver_factory = UpperTrs::build().on(exec);
-            } else {
-                excess_solver_factory = LowerTrs::build().on(exec);
-            }
-            excess_solver_factory->generate(share(excess_system->transpose()))
-                ->apply(excess_rhs, excess_solution);
-            if (is_spd) {
-                exec->run(isai::make_scale_excess_solution(
+        if (is_general) {
+            exec->run(isai::make_generate_general_inverse(
+                to_invert->get_const_device_view(), inverted->get_device_view(),
+                excess_block_ptrs.get_data(), excess_row_ptrs_full.get_data(),
+                false));
+        } else {
+            exec->run(isai::make_generate_tri_inverse(
+                to_invert->get_const_device_view(), inverted->get_device_view(),
+                excess_block_ptrs.get_data(), excess_row_ptrs_full.get_data(),
+                is_lower));
+        }
+
+        auto host_excess_block_ptrs_array =
+            array<IndexType>(exec->get_master(), excess_block_ptrs);
+        auto host_excess_block_ptrs =
+            host_excess_block_ptrs_array.get_const_data();
+        auto host_excess_row_ptrs_full_array =
+            array<IndexType>(exec->get_master(), excess_row_ptrs_full);
+        auto host_excess_row_ptrs_full =
+            host_excess_row_ptrs_full_array.get_const_data();
+        auto total_excess_dim = host_excess_block_ptrs[num_rows];
+        auto excess_lim = excess_limit == 0 ? total_excess_dim : excess_limit;
+        // if we had long rows:
+        if (total_excess_dim > 0) {
+            size_type block = 0;
+            while (block < num_rows) {
+                // build the excess sparse triangular system
+                size_type excess_dim;
+                size_type excess_start = block;
+                const auto block_offset = host_excess_block_ptrs[block];
+                const auto nnz_offset = host_excess_row_ptrs_full[block];
+                for (excess_dim = 0;
+                     excess_dim < excess_lim && block < num_rows;
+                     excess_dim =
+                         host_excess_block_ptrs[block] - block_offset) {
+                    block++;
+                }
+                if (excess_dim == 0) {
+                    break;
+                }
+                auto excess_nnz = host_excess_row_ptrs_full[block] - nnz_offset;
+                auto excess_system = Csr::create(
+                    exec, dim<2>(excess_dim, excess_dim), excess_nnz);
+                excess_system->set_strategy(
+                    gko::matrix::csr::spmv_strategy::classical);
+                auto excess_rhs = Dense::create(exec, dim<2>(excess_dim, 1));
+                auto excess_solution =
+                    Dense::create(exec, dim<2>(excess_dim, 1));
+                exec->run(isai::make_generate_excess_system(
+                    to_invert->get_const_device_view(),
+                    inverted->get_const_device_view(),
                     excess_block_ptrs.get_const_data(),
-                    excess_solution->get_device_view(), excess_start, block));
+                    excess_row_ptrs_full.get_const_data(),
+                    excess_system->get_device_view(),
+                    excess_rhs->get_device_view(), excess_start, block));
+                // solve it after transposing
+                auto system_copy =
+                    gko::clone(exec->get_master(), excess_system);
+                auto rhs_copy = gko::clone(exec->get_master(), excess_rhs);
+                std::shared_ptr<const LinOpFactory> excess_solver_factory;
+                if (parameters_.excess_solver_factory) {
+                    excess_solver_factory = parameters_.excess_solver_factory;
+                    excess_solution->copy_from(excess_rhs);
+                } else if (is_general) {
+                    excess_solver_factory =
+                        Gmres::build()
+                            .with_preconditioner(
+                                Bj::build().with_max_block_size(32u))
+                            .with_criteria(
+                                gko::stop::Iteration::build().with_max_iters(
+                                    excess_dim),
+                                gko::stop::ResidualNorm<ValueType>::build()
+                                    .with_baseline(gko::stop::mode::rhs_norm)
+                                    .with_reduction_factor(
+                                        remove_complex<ValueType>{
+                                            excess_solver_reduction}))
+                            .on(exec);
+                    excess_solution->copy_from(excess_rhs);
+                } else if (is_lower) {
+                    excess_solver_factory = UpperTrs::build().on(exec);
+                } else {
+                    excess_solver_factory = LowerTrs::build().on(exec);
+                }
+                excess_solver_factory
+                    ->generate(share(excess_system->transpose()))
+                    ->apply(excess_rhs, excess_solution);
+                // and copy the results back to the original ISAI
+                exec->run(isai::make_scatter_excess_solution(
+                    excess_block_ptrs.get_const_data(),
+                    excess_solution->get_const_device_view(),
+                    inverted->get_device_view(), excess_start, block));
             }
-            // and copy the results back to the original ISAI
-            exec->run(isai::make_scatter_excess_solution(
-                excess_block_ptrs.get_const_data(),
-                excess_solution->get_const_device_view(),
-                inverted->get_device_view(), excess_start, block));
         }
     }
 
