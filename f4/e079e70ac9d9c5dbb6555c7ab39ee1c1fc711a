@@ -1,0 +1,14 @@
+core/test/log/profiler_hook.cpp
+  h_0aeb61ed714320 175,230-231
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "f4e079e70ac9d9c5dbb6555c7ab39ee1c1fc711a",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
