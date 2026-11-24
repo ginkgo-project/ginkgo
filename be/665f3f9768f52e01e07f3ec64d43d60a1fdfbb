@@ -1,0 +1,14 @@
+core/distributed/vector.cpp
+  h_0aeb61ed714320 557,576,596,741-742
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "be665f3f9768f52e01e07f3ec64d43d60a1fdfbb",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
