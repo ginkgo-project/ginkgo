@@ -1,0 +1,21 @@
+core/solver/cg.cpp
+  s_b983a948a268f1::t_d057ec68b5967b 80-86
+include/ginkgo/core/solver/cg.hpp
+  s_b983a948a268f1::t_0e486fc5446219 87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "47ba6dffe26765db9c28b0f3fec7b99c5fc410e0",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
