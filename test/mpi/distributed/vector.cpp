@@ -827,6 +827,7 @@ TYPED_TEST(VectorLocalOps, ConvertsToPrecision)
     this->local_x->convert_to(local_tmp);
     this->x->convert_to(tmp);
 
+    GKO_ASSERT_EQUAL_DIMENSIONS(tmp, this->x);
     GKO_ASSERT_MTX_NEAR(tmp->get_local_vector(), local_tmp, 0.0);
 }
 
@@ -843,6 +844,7 @@ TYPED_TEST(VectorLocalOps, MovesToPrecision)
     this->local_x->move_to(local_tmp);
     this->x->move_to(tmp);
 
+    GKO_ASSERT_EQUAL_DIMENSIONS(tmp, this->x);
     GKO_ASSERT_MTX_NEAR(tmp->get_local_vector(), local_tmp, 0.0);
 }
 

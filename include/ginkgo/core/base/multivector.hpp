@@ -533,11 +533,21 @@ public:
     /** @copydoc create_real_view() const */
     [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_real_view();
 
-    /** Creates a view containing the selected local rows and columns. */
+    /**
+     * Creates a view containing the selected local rows and columns.
+     *
+     * @note May incur a communication overhead. Use the overload
+     *       create_subview(local_span, local_span, dim<2>) to prevent this
+     */
     [[nodiscard]] std::unique_ptr<AbstractMultiVector> create_subview(
         local_span rows, local_span columns);
 
-    /** Creates a const view containing the selected local rows and columns. */
+    /**
+     * Creates a const view containing the selected local rows and columns.
+     *
+     * @note May incur a communication overhead. Use the overload
+     *       create_subview(local_span, local_span, dim<2>) to prevent this
+     */
     [[nodiscard]] std::unique_ptr<const AbstractMultiVector> create_subview(
         local_span rows, local_span columns) const;
 

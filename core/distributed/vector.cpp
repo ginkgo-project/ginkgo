@@ -235,9 +235,8 @@ template <typename ValueType>
 std::unique_ptr<const Vector<ValueType>> Vector<ValueType>::create_subview_impl(
     local_span rows, local_span columns, dim<2> global_size) const
 {
-    return create(
-        this->get_executor(), this->get_communicator(), global_size,
-        const_cast<local_vector_type&>(local_).create_subview(rows, columns));
+    return create_const(this->get_executor(), this->get_communicator(),
+                        global_size, local_.create_subview(rows, columns));
 }
 
 
@@ -407,10 +406,8 @@ void Vector<ValueType>::compute_dot_impl(
 {
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
-    auto dense_res = as<matrix::MultiVector<value_type>>(result);
-    this->get_local_vector()->compute_dot(b->get_local_vector(), dense_res,
-                                          tmp);
-    detail::all_reduce_sum(comm, dense_res, host_reduction_buffer_);
+    this->get_local_vector()->compute_dot(b->get_local_vector(), result, tmp);
+    detail::all_reduce_sum(comm, result, host_reduction_buffer_);
 }
 
 
@@ -421,10 +418,9 @@ void Vector<ValueType>::compute_conj_dot_impl(
 {
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
-    auto dense_res = as<matrix::MultiVector<value_type>>(result);
-    this->get_local_vector()->compute_conj_dot(b->get_local_vector(), dense_res,
+    this->get_local_vector()->compute_conj_dot(b->get_local_vector(), result,
                                                tmp);
-    detail::all_reduce_sum(comm, dense_res, host_reduction_buffer_);
+    detail::all_reduce_sum(comm, result, host_reduction_buffer_);
 }
 
 
@@ -432,12 +428,10 @@ template <typename ValueType>
 void Vector<ValueType>::compute_norm2_impl(norm_type* result,
                                            array<char>& tmp) const
 {
-    using NormVector = typename local_vector_type::absolute_type;
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
-    auto dense_res = as<NormVector>(result);
-    this->compute_squared_norm2_impl(dense_res, tmp);
-    exec->run(vector::make_compute_sqrt(dense_res->get_device_view()));
+    this->compute_squared_norm2_impl(result, tmp);
+    exec->run(vector::make_compute_sqrt(result->get_device_view()));
 }
 
 
@@ -445,14 +439,12 @@ template <typename ValueType>
 void Vector<ValueType>::compute_squared_norm2_impl(norm_type* result,
                                                    array<char>& tmp) const
 {
-    using NormVector = typename local_vector_type::absolute_type;
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
-    auto dense_res = as<NormVector>(result);
     exec->run(vector::make_compute_squared_norm2(
         this->get_local_vector()->get_const_device_view(),
-        dense_res->get_device_view(), tmp));
-    detail::all_reduce_sum(comm, dense_res, host_norm_buffer_);
+        result->get_device_view(), tmp));
+    detail::all_reduce_sum(comm, result, host_norm_buffer_);
 }
 
 
@@ -460,12 +452,10 @@ template <typename ValueType>
 void Vector<ValueType>::compute_norm1_impl(norm_type* result,
                                            array<char>& tmp) const
 {
-    using NormVector = typename local_vector_type::absolute_type;
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
-    auto dense_res = as<NormVector>(result);
-    this->get_local_vector()->compute_norm1(dense_res);
-    detail::all_reduce_sum(comm, dense_res, host_norm_buffer_);
+    this->get_local_vector()->compute_norm1(result, tmp);
+    detail::all_reduce_sum(comm, result, host_norm_buffer_);
 }
 
 
@@ -677,8 +667,9 @@ void Vector<ValueType>::compute_mean(ptr_param<AbstractMultiVector> result,
     GKO_ASSERT_EQUAL_COLS(result, this);
     auto exec = this->get_executor();
     const auto comm = this->get_communicator();
-    auto dense_res = make_temporary_clone(exec, as<MeanVector>(result));
-    this->get_local_vector()->compute_mean(dense_res.get());
+    auto converted_result = as<MeanVector>(result->as_precision(this));
+    auto dense_res = make_temporary_clone(exec, converted_result.get());
+    this->get_local_vector()->compute_mean(dense_res.get(), tmp);
 
     // scale by its weight ie ratio of local to global size
     auto weight = initialize<matrix::MultiVector<remove_complex<ValueType>>>(

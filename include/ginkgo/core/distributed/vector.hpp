@@ -13,7 +13,6 @@
 
 
 #include <ginkgo/core/base/dense_cache.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/mpi.hpp>
 #include <ginkgo/core/base/temporary_conversion.hpp>
 #include <ginkgo/core/distributed/base.hpp>
@@ -60,8 +59,6 @@ class Partition;
  * @tparam ValueType  The precision of vector elements.
  *
  * @ingroup distributed
- * @ingroup mat_formats
- * @ingroup LinOp
  */
 template <typename ValueType = double>
 class Vector : public EnableMultiVector<Vector<ValueType>>,
