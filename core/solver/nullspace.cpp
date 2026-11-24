@@ -19,6 +19,7 @@
 #include "core/base/dispatch_helper.hpp"
 #include "core/distributed/helpers.hpp"
 #include "core/solver/nullspace_kernels.hpp"
+#include "solver_base.hpp"
 
 
 namespace gko {
@@ -156,74 +157,93 @@ void Nullspace<ValueType>::setup_basis(
         num_cols += vec->get_size()[1];
     }
 
-    // gather all columns into a single block on this executor
-    auto block = AbstractMultiVector::create_with_type_of(
-        first, exec, {first->get_size()[0], num_cols},
-        {first->get_local_size()[0], num_cols});
-    const auto global_rows = block->get_size()[0];
-    const auto local_rows = block->get_local_size()[0];
-    size_type col = 0;
-    for (const auto& vec : basis) {
-        const auto vec_cols = vec->get_size()[1];
-        GKO_ASSERT_EQUAL_ROWS(vec->get_size(), block->get_size());
-        GKO_ASSERT_EQUAL_ROWS(vec->get_local_size(), block->get_local_size());
-        auto target = block->create_subview(local_span{0, local_rows},
-                                            local_span{col, col + vec_cols},
-                                            {global_rows, vec_cols});
-        target->copy_from(vec);
-        col += vec_cols;
-    }
+    auto converted_first = first->as_precision(precision_v<ValueType>);
 
-    // Twice-iterated classical Gram-Schmidt against the constant and the
-    // accepted columns, which are kept at the front of the block. A column is
-    // dropped as linearly dependent if orthogonalization shrinks it below
-    // sqrt(eps) of its original norm, which makes the decision independent of
-    // its scale.
-    auto orig_norms =
-        matrix::MultiVector<absolute_type>::create(exec, dim<2>{1, num_cols});
-    block->compute_norm2(orig_norms);
-    auto host_orig_norms = gko::clone(exec->get_master(), orig_norms);
-    const auto drop_tolerance =
-        sqrt(std::numeric_limits<absolute_type>::epsilon());
-    auto norm = matrix::MultiVector<absolute_type>::create(exec, dim<2>{1, 1});
-    size_type num_kept = 0;
-    for (size_type j = 0; j < num_cols; ++j) {
-        auto col_j = block->create_subview(
-            local_span{0, local_rows}, local_span{j, j + 1}, {global_rows, 1});
-        auto kept = block->create_subview(local_span{0, local_rows},
-                                          local_span{0, num_kept},
-                                          {global_rows, num_kept});
-        const auto kept_basis = num_kept > 0 ? kept.get() : nullptr;
-        for (int pass = 0; pass < 2; ++pass) {
-            this->remove_components(col_j.get(), kept_basis,
-                                    contains_constant_);
-        }
-        col_j->compute_norm2(norm);
-        const auto host_norm = exec->copy_val_to_host(norm->get_const_values());
-        const auto orig_norm = host_orig_norms->at(0, j);
-        if (orig_norm > zero<absolute_type>() &&
-            host_norm > drop_tolerance * orig_norm) {
-            col_j->inv_scale(norm);
-            if (j != num_kept) {
+    run<
+#if GINKGO_BUILD_MPI
+        experimental::distributed::Vector<ValueType>,
+#endif
+        matrix::MultiVector<ValueType>>(
+        converted_first.get(), [&](auto concrete_first) {
+            using VectorType = std::decay_t<decltype(*concrete_first)>;
+
+            // gather all columns into a single block on this executor
+            auto block = as<VectorType>(stacked_creator(
+                [num_cols](auto vec, auto) {
+                    auto size = vec->get_size();
+                    return dim<2>{size[0], num_cols};
+                },
+                concrete_first, num_cols)());
+            const auto global_rows = block->get_size()[0];
+            size_type col = 0;
+            for (const auto& vec : basis) {
+                const auto vec_cols = vec->get_size()[1];
+                GKO_ASSERT_EQUAL_ROWS(vec->get_size(), block->get_size());
                 auto target = block->create_subview(
-                    local_span{0, local_rows},
-                    local_span{num_kept, num_kept + 1}, {global_rows, 1});
-                target->copy_from(col_j.get());
+                    local_span{0, local_rows}, local_span{col, col + vec_cols},
+                    {global_rows, vec_cols});
+                target->copy_from(vec);
+                col += vec_cols;
             }
-            ++num_kept;
-        }
-    }
-    if (num_kept == 0) {
-        return;
-    }
-    auto result = AbstractMultiVector::create_with_type_of(
-        first, exec, {first->get_size()[0], num_kept},
-        {first->get_local_size()[0], num_kept});
-    auto kept =
-        block->create_subview(local_span{0, local_rows},
-                              local_span{0, num_kept}, {global_rows, num_kept});
-    result->copy_from(kept.get());
-    basis_ = std::move(result);
+
+            // Twice-iterated classical Gram-Schmidt against the constant and
+            // the accepted columns, which are kept at the front of the block. A
+            // column is dropped as linearly dependent if orthogonalization
+            // shrinks it below sqrt(eps) of its original norm, which makes the
+            // decision independent of its scale.
+            auto orig_norms = matrix::MultiVector<absolute_type>::create(
+                exec, dim<2>{1, num_cols});
+            block->compute_norm2(orig_norms);
+            auto host_orig_norms = gko::clone(exec->get_master(), orig_norms);
+            const auto drop_tolerance =
+                sqrt(std::numeric_limits<absolute_type>::epsilon());
+            auto norm =
+                matrix::MultiVector<absolute_type>::create(exec, dim<2>{1, 1});
+            size_type num_kept = 0;
+            for (size_type j = 0; j < num_cols; ++j) {
+                auto col_j = block->create_subview(local_span{0, local_rows},
+                                                   local_span{j, j + 1},
+                                                   {global_rows, 1});
+                auto kept = block->create_subview(local_span{0, local_rows},
+                                                  local_span{0, num_kept},
+                                                  {global_rows, num_kept});
+                const auto kept_basis = num_kept > 0 ? kept.get() : nullptr;
+                for (int pass = 0; pass < 2; ++pass) {
+                    this->remove_components(col_j.get(), kept_basis,
+                                            contains_constant_);
+                }
+                col_j->compute_norm2(norm);
+                const auto host_norm =
+                    exec->copy_val_to_host(norm->get_const_values());
+                const auto orig_norm = host_orig_norms->at(0, j);
+                if (orig_norm > zero<absolute_type>() &&
+                    host_norm > drop_tolerance * orig_norm) {
+                    col_j->inv_scale(norm);
+                    if (j != num_kept) {
+                        auto target = block->create_subview(
+                            local_span{0, local_rows},
+                            local_span{num_kept, num_kept + 1},
+                            {global_rows, 1});
+                        target->copy_from(col_j.get());
+                    }
+                    ++num_kept;
+                }
+            }
+            if (num_kept == 0) {
+                return;
+            }
+            auto result = stacked_creator(
+                [num_kept](auto vec, auto) {
+                    auto size = vec->get_size();
+                    return dim<2>{size[0], num_kept};
+                },
+                concrete_first, num_kept)();
+            auto kept = block->create_subview(local_span{0, local_rows},
+                                              local_span{0, num_kept},
+                                              {global_rows, num_kept});
+            result->copy_from(kept.get());
+            basis_ = std::move(result);
+        });
 }
 
 
