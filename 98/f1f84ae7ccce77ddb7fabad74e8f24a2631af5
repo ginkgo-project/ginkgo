@@ -1,0 +1,73 @@
+core/matrix/coo.cpp
+  s_b983a948a268f1::t_0ff8314c7d6dbb 20,134-135,144-147,159-160,162-165,172-175,177-178,181-182,189-190,192-195,202-204,206-209,212,214
+core/matrix/dense.cpp
+  s_b983a948a268f1::t_f68e24a05d3da1 11,717,721-723,725-727,732,736-738,740-742,849,851,961-962,964-965,967,974-977,979-980,983-984
+core/matrix/diagonal.cpp
+  s_b983a948a268f1::t_96213497b004c9 10,48-49,51-56,61-62,64-67,72-73,75-78,302-395
+core/matrix/ell.cpp
+  s_b983a948a268f1::t_84ee725b8e1b63 22,205-206,208-211,218-221,223-225,228-229,231
+core/matrix/fbcsr.cpp
+  s_b983a948a268f1::t_b82a50ee3e65cd 25,107-108,110-114,119-122,124-130
+core/matrix/fft.cpp
+  s_b983a948a268f1::t_4ae71c95b4c07c 152-160,165,167-188,254-267,271-274,276-279,361-374,378-381,383-386
+core/matrix/hybrid.cpp
+  s_b983a948a268f1::t_ae5e18ff6468ea 19,193-194,196-199,206-209,211-218,220
+core/matrix/identity.cpp
+  s_b983a948a268f1::t_7e50a437aecc71 8-10,18-19,21,26-29,31-34,36
+core/matrix/multivector.cpp
+  s_b983a948a268f1::t_613a152991b706 964-967,969-970,983-986,988-989
+core/matrix/permutation.cpp
+  s_b983a948a268f1::t_441d9347369abc 293-294,296-303,308-311,313-322
+core/matrix/row_gatherer.cpp
+  s_b983a948a268f1::t_bc4948d2d97987 66-67,69-74,78-81,83-89
+core/matrix/scaled_permutation.cpp
+  s_b983a948a268f1::t_6af75c5b345ab8 10,131-132,134-138,143-145,147-152
+core/matrix/sellp.cpp
+  s_b983a948a268f1::t_a49c0562300674 18,182-183,185-186,188,195-198,200-201,204-205
+core/matrix/sparsity_csr.cpp
+  s_b983a948a268f1::t_cfb1ab40edf22f 17,48-49,51-52,54,61-63,65-67,69-70,72
+include/ginkgo/core/matrix/coo.hpp
+  s_b983a948a268f1::t_7ff970c185b759 243-244,249-251,351-352,354-357,359-360,362-364
+include/ginkgo/core/matrix/dense.hpp
+  s_b983a948a268f1::t_5a0b726ef88195 296,299,361-362,364-367
+include/ginkgo/core/matrix/diagonal.hpp
+  s_b983a948a268f1::t_e887dfc50f4dee 61,149-150,152-156,167-168,170-180,267-268
+include/ginkgo/core/matrix/ell.hpp
+  s_b983a948a268f1::t_178c204ca90e27 394-395,397-400
+include/ginkgo/core/matrix/fbcsr.hpp
+  s_b983a948a268f1::t_a47d8bc476e5cb 474-475,477-480
+include/ginkgo/core/matrix/fft.hpp
+  s_b983a948a268f1::t_8bbd854cfaa9fe 108-109,111-114,227-228,230-233,350-351,353-356
+include/ginkgo/core/matrix/hybrid.hpp
+  s_b983a948a268f1::t_7d40b5809499ad 796-797,799-802
+include/ginkgo/core/matrix/identity.hpp
+  s_b983a948a268f1::t_4e069bc03020f3 73-74,76-79
+include/ginkgo/core/matrix/multivector.hpp
+  s_b983a948a268f1::t_1d04e4e2fdf38e 509,511,518,520
+include/ginkgo/core/matrix/permutation.hpp
+  s_b983a948a268f1::t_6d6e280d639107 273-274,276-278
+include/ginkgo/core/matrix/row_gatherer.hpp
+  s_b983a948a268f1::t_2158c39ea0ee8b 116-117,119-122
+include/ginkgo/core/matrix/scaled_permutation.hpp
+  s_b983a948a268f1::t_c902c160b8913b 167-168,170-172
+include/ginkgo/core/matrix/sellp.hpp
+  s_b983a948a268f1::t_6dd8575b8bf664 386-387,389-392
+include/ginkgo/core/matrix/sparsity_csr.hpp
+  s_b983a948a268f1::t_1eb93f2ee1b8c2 315-316,318-321
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "98f1f84ae7ccce77ddb7fabad74e8f24a2631af5",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
