@@ -58,9 +58,7 @@ protected:
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
-    explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec)
-        : Criterion(exec), device_storage_{exec, 2}
-    {}
+    explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec);
 
     explicit ResidualNormBase(std::shared_ptr<const gko::Executor> exec,
                               const CriterionArgs& args,
@@ -151,17 +149,9 @@ public:
     GKO_ENABLE_BUILD_METHOD(Factory);
 
 protected:
-    explicit ResidualNorm(std::shared_ptr<const gko::Executor> exec)
-        : ResidualNormBase<ValueType>(exec)
-    {}
+    explicit ResidualNorm(std::shared_ptr<const gko::Executor> exec);
 
-    explicit ResidualNorm(const Factory* factory, const CriterionArgs& args)
-        : ResidualNormBase<ValueType>(
-              factory->get_executor(), args,
-              factory->get_parameters().reduction_factor,
-              factory->get_parameters().baseline),
-          parameters_{factory->get_parameters()}
-    {}
+    explicit ResidualNorm(const Factory* factory, const CriterionArgs& args);
 };
 
 
@@ -239,18 +229,10 @@ protected:
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
 
-    explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec)
-        : ResidualNormBase<ValueType>(exec)
-    {}
+    explicit ImplicitResidualNorm(std::shared_ptr<const gko::Executor> exec);
 
     explicit ImplicitResidualNorm(const Factory* factory,
-                                  const CriterionArgs& args)
-        : ResidualNormBase<ValueType>(
-              factory->get_executor(), args,
-              factory->get_parameters().reduction_factor,
-              factory->get_parameters().baseline),
-          parameters_{factory->get_parameters()}
-    {}
+                                  const CriterionArgs& args);
 };
 
 

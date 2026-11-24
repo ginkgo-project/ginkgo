@@ -137,6 +137,29 @@ bool ResidualNormBase<ValueType>::check_impl(
 
 
 template <typename ValueType>
+ResidualNormBase<ValueType>::ResidualNormBase(
+    std::shared_ptr<const gko::Executor> exec)
+    : Criterion(exec), device_storage_{exec, 2}
+{}
+
+
+template <typename ValueType>
+ResidualNorm<ValueType>::ResidualNorm(std::shared_ptr<const gko::Executor> exec)
+    : ResidualNormBase<ValueType>(exec)
+{}
+
+
+template <typename ValueType>
+ResidualNorm<ValueType>::ResidualNorm(const Factory* factory,
+                                      const CriterionArgs& args)
+    : ResidualNormBase<ValueType>(factory->get_executor(), args,
+                                  factory->get_parameters().reduction_factor,
+                                  factory->get_parameters().baseline),
+      parameters_{factory->get_parameters()}
+{}
+
+
+template <typename ValueType>
 bool ImplicitResidualNorm<ValueType>::check_impl(
     uint8 stopping_id, bool set_finalized, array<stopping_status>* stop_status,
     bool* one_changed, const Criterion::Updater& updater)
@@ -160,7 +183,24 @@ bool ImplicitResidualNorm<ValueType>::check_impl(
 }
 
 
-#define GKO_DECLARE_RESIDUAL_NORM(ValueType) class ResidualNormBase<ValueType>
+template <typename ValueType>
+ImplicitResidualNorm<ValueType>::ImplicitResidualNorm(
+    std::shared_ptr<const gko::Executor> exec)
+    : ResidualNormBase<ValueType>(exec)
+{}
+
+
+template <typename ValueType>
+ImplicitResidualNorm<ValueType>::ImplicitResidualNorm(const Factory* factory,
+                                                      const CriterionArgs& args)
+    : ResidualNormBase<ValueType>(factory->get_executor(), args,
+                                  factory->get_parameters().reduction_factor,
+                                  factory->get_parameters().baseline),
+      parameters_{factory->get_parameters()}
+{}
+
+
+#define GKO_DECLARE_RESIDUAL_NORM(ValueType) class ResidualNorm<ValueType>
 GKO_INSTANTIATE_FOR_EACH_VALUE_TYPE(GKO_DECLARE_RESIDUAL_NORM);
 
 

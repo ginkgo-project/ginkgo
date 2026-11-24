@@ -9,7 +9,6 @@
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/array.hpp>
 #include <ginkgo/core/base/executor.hpp>
-#include <ginkgo/core/base/lin_op.hpp>
 #include <ginkgo/core/base/polymorphic_object.hpp>
 #include <ginkgo/core/base/utils.hpp>
 #include <ginkgo/core/log/logger.hpp>
@@ -17,6 +16,12 @@
 
 
 namespace gko {
+
+
+class AbstractMultiVector;
+class LinOp;
+
+
 /**
  * @brief The Stopping criterion namespace.
  *
@@ -217,12 +222,7 @@ struct CriterionArgs {
     CriterionArgs(std::shared_ptr<const LinOp> system_matrix,
                   std::shared_ptr<const AbstractMultiVector> b,
                   const AbstractMultiVector* x,
-                  const AbstractMultiVector* initial_residual = nullptr)
-        : system_matrix{system_matrix},
-          b{b},
-          x{x},
-          initial_residual{initial_residual}
-    {}
+                  const AbstractMultiVector* initial_residual = nullptr);
 };
 
 
