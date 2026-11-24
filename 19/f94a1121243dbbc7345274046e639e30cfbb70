@@ -1,0 +1,16 @@
+include/ginkgo/core/multigrid/pgm.hpp
+  h_0aeb61ed714320 187-188
+include/ginkgo/core/base/perturbation.hpp
+  h_0aeb61ed714320 168-180
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "19f94a1121243dbbc7345274046e639e30cfbb70",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}

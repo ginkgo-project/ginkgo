@@ -1,0 +1,151 @@
+core/log/papi.cpp
+  s_b983a948a268f1::t_67569dddff238f 151-153,160-162,169-172,179-182,207-211,220-224,246-250,258-261,271-274
+core/log/profiler_hook.cpp
+  s_b983a948a268f1::t_7aa1674d72d78f 143-145,157-159,171-174,187-190,223-226,236-240,249-254,263-267,278-281,289-292
+core/log/solver_progress.cpp
+  s_b983a948a268f1::t_e646a1f302856f 28,43-45,51-55,109-113,124-127,135-136,185-187,198-202,223-227,238-241,249-250,257-271,292-309,312
+core/log/stream.cpp
+  s_b983a948a268f1::t_dd6c20791af8f7 257-259,275-277,293-296,318-321,364-367,396-400,433-437,480-483,492-495
+include/ginkgo/core/log/logger.hpp
+  s_b983a948a268f1::t_c715b985777d00 357-359,385-386,409-414,451-454,474-477,499-504
+include/ginkgo/core/log/papi.hpp
+  s_b983a948a268f1::t_e2658a1245f8f8 1,122-123,125-126,128-131,133-136,148-150,155-161,168-172,179-182
+include/ginkgo/core/log/profiler_hook.hpp
+  s_b983a948a268f1::t_3e1d124148974d 1,108-109,111-112,114-117,119-122,135-137,143-145,151-156,160-164,170-174,181-184
+include/ginkgo/core/log/stream.hpp
+  s_b983a948a268f1::t_e2246100eb5bdf 1,93-94,96-97,99-102,104-107,120-122,128-130,135-141,148-152,159-162
+core/log/convergence.cpp
+  s_b983a948a268f1::t_b76c79f46274eb 25-30,41-45,55-59,74,77,80,83-85,94-102,108-132
+core/log/record.cpp
+  s_b983a948a268f1::t_5ee287be36161f 1,8,17-132,280-282,290-292,300-304,312-315,344-347,358-363,375-379,387-390,398-402,411-415
+include/ginkgo/core/log/convergence.hpp
+  s_b983a948a268f1::t_212dce41a76711 43-45,51-64,130,137,144,177-179
+include/ginkgo/core/log/record.hpp
+  s_b983a948a268f1::t_cff46f3513e82f 31-32,34-36,40-47,80,89-96,109,119-121,129-133,135,257-258,260-261,263-266,268-271,284-286,292-297,301-303,308-316,321-325,332-335
+core/stop/criterion.cpp
+  s_b983a948a268f1::t_d92e368fa10ba0 31-41
+core/stop/residual_norm.cpp
+  s_b983a948a268f1::t_884e371cb781c1 65,67,72-73,83,115,120-122
+include/ginkgo/core/stop/criterion.hpp
+  s_b983a948a268f1::t_36af685c64d52f 106-109,111,212-214,218-220
+include/ginkgo/core/stop/residual_norm.hpp
+  s_b983a948a268f1::t_34c01010de36bd 79
+core/factorization/factorization.cpp
+  s_b983a948a268f1::t_ff769a60948712 337-338,357-359
+core/factorization/symbolic.cpp
+  s_b983a948a268f1::t_abd50d40cc6b6f 74,123,162-163
+core/solver/bicg.cpp
+  s_b983a948a268f1::t_33457d71a9e146 15,97-98,103-251,258-261,266
+core/solver/bicgstab.cpp
+  s_b983a948a268f1::t_cb3b8875750fc5 16,86-87,92-260,267-270,275
+core/solver/cb_gmres.cpp
+  s_b983a948a268f1::t_8e0d78c5021213 20,199-200,205-299,301-312,314-405,407-418,423-463,466-522,524,529,539,541-545,550-553,558
+core/solver/cg.cpp
+  s_b983a948a268f1::t_d7a8b545fb0f92 14,81-82,87-191,198-201,206
+core/solver/cgs.cpp
+  s_b983a948a268f1::t_4d243edcc00a8f 16,22-23,80-81,86-209,216-219,224
+core/solver/chebyshev.cpp
+  s_b983a948a268f1::t_5c73482df0e8d5 12,179-180,187-189,197-199,208,211-212,214-216,220-222,227-236,253-256,270-272,278-299,307-308,314-322
+core/solver/direct.cpp
+  s_b983a948a268f1::t_42124453af296e 181-182,188-195,200-203,209-222
+core/solver/fcg.cpp
+  s_b983a948a268f1::t_361a5b9cc485c9 14,81-82,87-195,202-205,210
+core/solver/gcr.cpp
+  s_b983a948a268f1::t_3ae3c65fb1da5e 16,22-23,84-85,90-156,159-165,167-305,310-313,318
+core/solver/gmres.cpp
+  s_b983a948a268f1::t_420631530a0837 10,15,25,147-148,158,169,171-172,197-198,201-207,214-218,220,223,225-228,237-238,254,256-257,270-271,288-289,313,325-327,329-330,332-368,370-389,391-473,475-490,497,500,504-694,696-743,748-751,760-761,767,772
+core/solver/idr.cpp
+  s_b983a948a268f1::t_b65f159a3d0fa0 18,23-31,128-135,137,140,142,145,147,163,173,183-185,201-202,242-244,250-252,257-260,282-286,306-309,319-320,325-340,345-348,353
+core/solver/ir.cpp
+  s_b983a948a268f1::t_51c421fa506400 13,174-175,183-185,205,210-212,256-275,283-284,290-298
+core/solver/lower_trs.cpp
+  s_b983a948a268f1::t_4a1fc5db8eecf0 18,144-145,150-151,168,170,180,187-189,194
+core/solver/minres.cpp
+  s_b983a948a268f1::t_aeeb54320607c1 15,75-90,92-93,98-285,305-308,313
+core/solver/multigrid.cpp
+  s_b983a948a268f1::t_5eaf1cae65cc90 124,293-294,305-307,310,312-313,315-317,358-359,375-379,381-385,488-489,506-507,528-529,803-804,1027-1028,1035-1036,1046-1049,1066-1069,1076-1079,1090-1096,1098,1113-1114,1122,1129,1134-1136,1148,1152,1163
+core/solver/pipe_cg.cpp
+  s_b983a948a268f1::t_82c1abd7a72d14 15,77-78,83-300,307-310,315
+core/solver/solver_base.hpp
+  s_b983a948a268f1::t_3fbb5a050519eb 1,23-25,28
+core/solver/solver_boilerplate.hpp
+  s_b983a948a268f1::t_ecfbcfde726e7a 1,28,31
+core/solver/update_residual.hpp
+  s_b983a948a268f1::t_640ef5baad90d3 20-25
+core/solver/upper_trs.cpp
+  s_b983a948a268f1::t_fb6868fc7b1750 18,145-146,151-152,169,171,181,188-190,195
+include/ginkgo/core/factorization/factorization.hpp
+  s_b983a948a268f1::t_6ce43f49c8eb2a 187-188,190-193
+include/ginkgo/core/solver/bicg.hpp
+  s_b983a948a268f1::t_cb6fedb5b838f8 116-117,119-122
+include/ginkgo/core/solver/bicgstab.hpp
+  s_b983a948a268f1::t_6016ef81bbb939 111-112,114-117
+include/ginkgo/core/solver/cb_gmres.hpp
+  s_b983a948a268f1::t_039de23c9b6a7a 186-187,189-192
+include/ginkgo/core/solver/cg.hpp
+  s_b983a948a268f1::t_e1e4d92cec2e0c 117-118,120-123
+include/ginkgo/core/solver/cgs.hpp
+  s_b983a948a268f1::t_cdd5baee1582b5 131-132,134-137
+include/ginkgo/core/solver/chebyshev.hpp
+  s_b983a948a268f1::t_e65473e87f2a50 179-195,198-201
+include/ginkgo/core/solver/direct.hpp
+  s_b983a948a268f1::t_ea105aa8341aab 103-104,106-109
+include/ginkgo/core/solver/fcg.hpp
+  s_b983a948a268f1::t_7aa735c650d890 119-120,122-125
+include/ginkgo/core/solver/gcr.hpp
+  s_b983a948a268f1::t_8dceb63bc3522c 131-132,137-140
+include/ginkgo/core/solver/gmres.hpp
+  s_b983a948a268f1::t_7de56e74a76f3e 230-231,233-236,238-239,242-245
+include/ginkgo/core/solver/idr.hpp
+  s_b983a948a268f1::t_395b14b0ebeca2 242-243,245-248
+include/ginkgo/core/solver/ir.hpp
+  s_b983a948a268f1::t_9afdff23728e46 228-244,247-250
+include/ginkgo/core/solver/minres.hpp
+  s_b983a948a268f1::t_e43f4fcc772a63 125-126,128-131
+include/ginkgo/core/solver/multigrid.hpp
+  s_b983a948a268f1::t_3e06ee33d0c934 469-470,472-475,477-478,481-484,487
+include/ginkgo/core/solver/pipe_cg.hpp
+  s_b983a948a268f1::t_db4a33abb019bf 140-141,143-146
+include/ginkgo/core/solver/solver_base.hpp
+  s_b983a948a268f1::t_8b7aaa12f3b9f8 91-92,95-96,114-117,121-124,184-186,188-189,204-206,208-211,237-238,245-246,400,402,435-438,440,443-444,446,449-450,452,454-455,458-460,462,465-466,468,475-476,482,489-490,498,996,1014-1015
+include/ginkgo/core/solver/triangular.hpp
+  s_b983a948a268f1::t_5ab42524b906bf 159-160,162-165,329-330,332-335
+include/ginkgo/core/solver/workspace.hpp
+  s_b983a948a268f1::t_1e1f2aab5c6bde 96-99,101,104-105,109,113,115-116,118,121,123-124,156,162,172
+core/multigrid/fixed_coarsening.cpp
+  s_b983a948a268f1::t_5307e499da28cb 37-53,92-96
+core/multigrid/pgm.cpp
+  s_b983a948a268f1::t_118b07214c40a7 314-331,360-361,451-452
+core/multigrid/pmis.cpp
+  s_b983a948a268f1::t_a22e6813fcde1f 92-93,100-103,276-278,317-319,327-329,348-349,611,615-617
+core/multigrid/rs.cpp
+  s_b983a948a268f1::t_5339dc0bb8d377 114,116-117
+core/multigrid/uniform_coarsening.cpp
+  s_b983a948a268f1::t_9253f3aa3c7b2b 206-222
+include/ginkgo/core/multigrid/fixed_coarsening.hpp
+  s_b983a948a268f1::t_a2d58030f80fbf 83-84,86-89
+include/ginkgo/core/multigrid/pgm.hpp
+  s_b983a948a268f1::t_60b90d375d6a6f 179-180,182-185
+include/ginkgo/core/multigrid/pmis.hpp
+  s_b983a948a268f1::t_6aba442d1c867f 109-110,112-115
+include/ginkgo/core/multigrid/rs.hpp
+  s_b983a948a268f1::t_a1d364873fa48e 90-91,96-99
+include/ginkgo/core/multigrid/uniform_coarsening.hpp
+  s_b983a948a268f1::t_7ce9025ec2b746 147-148,150-153
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "174207177c23b7d345367025cc3f9a56164b6de8",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
