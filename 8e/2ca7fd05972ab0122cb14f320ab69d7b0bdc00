@@ -1,0 +1,21 @@
+core/stop/residual_norm.cpp
+  s_b983a948a268f1::t_d60e7b16d90202 139-161,186-203
+include/ginkgo/core/stop/residual_norm.hpp
+  s_b983a948a268f1::t_eb2a0250fbf3d8 62,154-156,235,238
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "8e2ca7fd05972ab0122cb14f320ab69d7b0bdc00",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
