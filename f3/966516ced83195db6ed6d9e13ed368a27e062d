@@ -1,0 +1,25 @@
+core/stop/criterion.cpp
+  s_b983a948a268f1::t_d92e368fa10ba0 31-41
+core/stop/residual_norm.cpp
+  s_b983a948a268f1::t_884e371cb781c1 65,67,72-73,83,115,120-122
+include/ginkgo/core/stop/criterion.hpp
+  s_b983a948a268f1::t_36af685c64d52f 106-109,111,212-214,218-220
+include/ginkgo/core/stop/residual_norm.hpp
+  s_b983a948a268f1::t_34c01010de36bd 79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "f3966516ced83195db6ed6d9e13ed368a27e062d",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
