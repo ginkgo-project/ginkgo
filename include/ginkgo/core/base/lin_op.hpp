@@ -13,7 +13,6 @@
 #include <ginkgo/core/base/abstract_factory.hpp>
 #include <ginkgo/core/base/device_matrix_data.hpp>
 #include <ginkgo/core/base/dim.hpp>
-#include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/math.hpp>
 #include <ginkgo/core/base/matrix_assembly_data.hpp>
 #include <ginkgo/core/base/matrix_data.hpp>
@@ -174,17 +173,7 @@ public:
      *                           with this operator
      */
     void apply(ptr_param<const AbstractMultiVector> b,
-               ptr_param<AbstractMultiVector> x) const
-    {
-        this->template log<log::Logger::linop_apply_started>(this, b.get(),
-                                                             x.get());
-        this->validate_application_parameters(b.get(), x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_apply_completed>(this, b.get(),
-                                                               x.get());
-    }
+               ptr_param<AbstractMultiVector> x) const;
 
     /**
      * Performs the operation x = alpha * op(b) + beta * x.
@@ -206,20 +195,7 @@ public:
     void apply(ptr_param<const AbstractMultiVector> alpha,
                ptr_param<const AbstractMultiVector> b,
                ptr_param<const AbstractMultiVector> beta,
-               ptr_param<AbstractMultiVector> x) const
-    {
-        this->template log<log::Logger::linop_advanced_apply_started>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-        this->validate_application_parameters(alpha.get(), b.get(), beta.get(),
-                                              x.get());
-        auto exec = this->get_executor();
-        this->apply_impl(make_temporary_clone(exec, alpha).get(),
-                         make_temporary_clone(exec, b).get(),
-                         make_temporary_clone(exec, beta).get(),
-                         make_temporary_clone(exec, x).get());
-        this->template log<log::Logger::linop_advanced_apply_completed>(
-            this, alpha.get(), b.get(), beta.get(), x.get());
-    }
+               ptr_param<AbstractMultiVector> x) const;
 
     template <typename DenseIn, typename DenseOut,
               typename = std::enable_if_t<is_dense_ptr<DenseIn> &&
@@ -275,15 +251,7 @@ public:
      * The moved-from object has size 0x0 afterwards, but its executor is
      * unchanged.
      */
-    LinOp& operator=(LinOp&& other)
-    {
-        if (this != &other) {
-            PolymorphicObject::operator=(std::move(other));
-            this->set_size(other.get_size());
-            other.set_size({});
-        }
-        return *this;
-    }
+    LinOp& operator=(LinOp&& other);
 
     /** Copy-constructs a LinOp. Inherits executor and size from the input. */
     LinOp(const LinOp&) = default;
@@ -292,10 +260,7 @@ public:
      * Move-constructs a LinOp. Inherits executor and size from the input,
      * which will have size 0x0 and unchanged executor afterwards.
      */
-    LinOp(LinOp&& other)
-        : PolymorphicObject(std::move(other)),
-          size_{std::exchange(other.size_, dim<2>{})}
-    {}
+    LinOp(LinOp&& other);
 
 protected:
     /**
@@ -305,16 +270,14 @@ protected:
      * @param size  the size of the operator
      */
     explicit LinOp(std::shared_ptr<const Executor> exec,
-                   const dim<2>& size = dim<2>{})
-        : PolymorphicObject(exec), size_{size}
-    {}
+                   const dim<2>& size = dim<2>{});
 
     /**
      * Sets the size of the operator.
      *
      * @param value  the new size of the operator
      */
-    void set_size(const dim<2>& value) noexcept { size_ = value; }
+    void set_size(const dim<2>& value) noexcept;
 
     /**
      * Implementers of LinOp should override this function instead
@@ -359,12 +322,7 @@ protected:
     /**
      * @copydoc validate_application_parameters
      */
-    void validate_application_parameters(const LinOp* b, const LinOp* x) const
-    {
-        GKO_ASSERT_CONFORMANT(this, b);
-        GKO_ASSERT_EQUAL_ROWS(this, x);
-        GKO_ASSERT_EQUAL_COLS(b, x);
-    }
+    void validate_application_parameters(const LinOp* b, const LinOp* x) const;
 
     /**
      * Throws a DimensionMismatch exception if the parameters to `apply` are of
@@ -378,12 +336,7 @@ protected:
     void validate_application_parameters(const AbstractMultiVector* alpha,
                                          const AbstractMultiVector* b,
                                          const AbstractMultiVector* beta,
-                                         const AbstractMultiVector* x) const
-    {
-        this->validate_application_parameters(b, x);
-        GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
-        GKO_ASSERT_EQUAL_DIMENSIONS(beta, dim<2>(1, 1));
-    }
+                                         const AbstractMultiVector* x) const;
 
 private:
     dim<2> size_{};
