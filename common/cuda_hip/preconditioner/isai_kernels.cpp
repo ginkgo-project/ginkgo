@@ -9,6 +9,7 @@
 #include <ginkgo/core/matrix/csr.hpp>
 
 #include "common/cuda_hip/base/config.hpp"
+#include "common/cuda_hip/base/device_limits.hpp"
 #include "common/cuda_hip/base/math.hpp"
 #include "common/cuda_hip/base/runtime.hpp"
 #include "common/cuda_hip/base/types.hpp"
