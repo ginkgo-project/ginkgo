@@ -216,21 +216,11 @@ MultiVector<ValueType>::MultiVector(MultiVector<ValueType>&& other)
 
 
 template <typename ValueType>
-std::unique_ptr<MultiVector<ValueType>>
-MultiVector<ValueType>::create_with_type_of(
-    ptr_param<const MultiVector> other, std::shared_ptr<const Executor> exec,
-    const dim<2>& size, size_type stride)
-{
-    return other->create_with_type_of_impl(exec, size, stride);
-}
-
-
-template <typename ValueType>
 void MultiVector<ValueType>::convert_to(
     MultiVector<next_precision<ValueType>>* result) const
 {
     if (result->get_size() != this->get_size()) {
-        result->set_size(this->get_size(), this->get_size());
+        result->set_size(this->get_size());
         result->stride_ = stride_;
         result->values_.resize_and_reset(result->get_size()[0] *
                                          result->stride_);
@@ -256,7 +246,7 @@ void MultiVector<ValueType>::convert_to(
     MultiVector<next_precision<ValueType, 2>>* result) const
 {
     if (result->get_size() != this->get_size()) {
-        result->set_size(this->get_size(), this->get_size());
+        result->set_size(this->get_size());
         result->stride_ = stride_;
         result->values_.resize_and_reset(result->get_size()[0] *
                                          result->stride_);
@@ -283,7 +273,7 @@ void MultiVector<ValueType>::convert_to(
     MultiVector<next_precision<ValueType, 3>>* result) const
 {
     if (result->get_size() != this->get_size()) {
-        result->set_size(this->get_size(), this->get_size());
+        result->set_size(this->get_size());
         result->stride_ = stride_;
         result->values_.resize_and_reset(result->get_size()[0] *
                                          result->stride_);
@@ -324,7 +314,7 @@ template <typename ValueType>
 void MultiVector<ValueType>::move_to(Dense<ValueType>* result)
 {
     result->set_size(this->get_size());
-    this->set_size(dim<2>{0, 0}, dim<2>{0, 0});
+    this->set_size(dim<2>{0, 0});
     result->stride_ = std::exchange(stride_, 0);
     result->values_ = std::move(values_);
 }
@@ -334,7 +324,7 @@ template <typename ValueType>
 void MultiVector<ValueType>::resize(gko::dim<2> new_size)
 {
     if (this->get_size() != new_size) {
-        this->set_size(this->get_size(), this->get_size());
+        this->set_size(this->get_size());
         this->stride_ = new_size[1];
         this->values_.resize_and_reset(new_size[0] * this->get_stride());
     }
@@ -1330,17 +1320,6 @@ MultiVector<ValueType>::create_with_same_config_impl() const
 
 template <typename ValueType>
 std::unique_ptr<MultiVector<ValueType>>
-MultiVector<ValueType>::create_with_type_of_impl(
-    std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-    const dim<2>& local_size, size_type stride) const
-{
-    GKO_ASSERT_EQUAL_DIMENSIONS(global_size, local_size);
-    return create_with_type_of_impl(std::move(exec), global_size, stride);
-}
-
-
-template <typename ValueType>
-std::unique_ptr<MultiVector<ValueType>>
 MultiVector<ValueType>::create_subview_impl(local_span rows, local_span columns)
 {
     return create_subview_impl(rows, columns,
@@ -1720,7 +1699,7 @@ std::unique_ptr<Dense<ValueType>> MultiVector<ValueType>::as_dense_view()
 template <typename ValueType>
 MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size, size_type stride)
-    : EnableMultiVector<MultiVector>(exec, size, size),
+    : EnableMultiVector<MultiVector>(exec, size),
       stride_(stride == 0 ? size[1] : stride),
       values_(exec, size[0] * stride_)
 {}
@@ -1730,7 +1709,7 @@ template <typename ValueType>
 MultiVector<ValueType>::MultiVector(std::shared_ptr<const Executor> exec,
                                     const dim<2>& size,
                                     array<value_type> values, size_type stride)
-    : EnableMultiVector<MultiVector>(exec, size, size),
+    : EnableMultiVector<MultiVector>(exec, size),
       stride_{stride},
       values_{exec, std::move(values)}
 {

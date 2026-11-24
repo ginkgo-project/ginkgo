@@ -113,11 +113,6 @@ public:
 
     using row_major_range = gko::range<gko::accessor::row_major<ValueType, 2>>;
 
-    [[nodiscard]] static std::unique_ptr<MultiVector> create_with_type_of(
-        ptr_param<const MultiVector> other,
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type stride);
-
     friend class MultiVector<previous_precision<ValueType>>;
 
     void convert_to(
@@ -870,20 +865,6 @@ protected:
     MultiVector(std::shared_ptr<const Executor> exec, const dim<2>& size,
                 array<value_type> values, size_type stride);
 
-    /**
-     * Creates a MultiVector with the same type as the callers multivector.
-     *
-     * @param size  size of the multivector
-     *
-     * @returns a MultiVector with the same type as the caller.
-     */
-    virtual std::unique_ptr<MultiVector> create_with_type_of_impl(
-        std::shared_ptr<const Executor> exec, const dim<2>& size,
-        size_type stride) const
-    {
-        return MultiVector::create(exec, size, stride);
-    }
-
     [[nodiscard]] std::unique_ptr<Cloneable> create_default_impl()
         const override;
 
@@ -954,10 +935,6 @@ protected:
 
     [[nodiscard]] std::unique_ptr<MultiVector> create_with_same_config_impl()
         const override;
-
-    [[nodiscard]] std::unique_ptr<MultiVector> create_with_type_of_impl(
-        std::shared_ptr<const Executor> exec, const dim<2>& global_size,
-        const dim<2>& local_size, size_type stride) const override;
 
     [[nodiscard]] std::unique_ptr<MultiVector> create_subview_impl(
         local_span rows, local_span columns) override;
