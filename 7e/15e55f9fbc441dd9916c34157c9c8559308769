@@ -1,0 +1,21 @@
+core/base/lin_op.cpp
+  s_b983a948a268f1::t_0a05d29906639e 16-73,96-116
+include/ginkgo/core/base/lin_op.hpp
+  s_b983a948a268f1::t_5780f935fca99f 181,203,259,268,278,285,330,344
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "7e15e55f9fbc441dd9916c34157c9c8559308769",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}

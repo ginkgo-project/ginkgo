@@ -1,0 +1,31 @@
+core/base/lin_op.cpp
+  s_b983a948a268f1::t_692a478f8e3bb6 16-17
+  s_b983a948a268f1::t_2d1e76d73a53ff 19-25
+  s_b983a948a268f1::t_7648cb3bfe3cb0 18
+include/ginkgo/core/base/lin_op.hpp
+  s_b983a948a268f1::t_cdfcce1a0d81d4 131-133,135-136,151-155,160-163,165-168,250,257-258,262-265,287
+  s_b983a948a268f1::t_cdac2c91bedf8c 266
+  s_b983a948a268f1::t_0067c94980919c 285-286
+  s_b983a948a268f1::t_e079e382740f14 288-290
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "c2ffa280ccc58c004ddcbdd888a8c30308afb8f1",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  },
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "unknown"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
