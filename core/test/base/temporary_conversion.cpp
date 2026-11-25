@@ -366,7 +366,7 @@ TEST_F(TemporaryConversion, CreateNonConstFromSameTypeCopiesBack)
         tmp->at(0, 1) = -2.0;
 
         EXPECT_EQ(vec->at(0, 0), 2.0);
-        EXPECT_EQ(vec->at(1, 0), 3.0);
+        EXPECT_EQ(vec->at(0, 1), 3.0);
     }
 
     EXPECT_EQ(vec->at(0, 0), -1.0);
@@ -382,7 +382,7 @@ TEST_F(TemporaryConversion, CreateNonConstFromConvertibleTypeCopiesBackOnDelete)
         tmp->at(1, 0) = -2.0;
 
         EXPECT_EQ(vec->at(0, 0), 2.0);
-        EXPECT_EQ(vec->at(1, 0), 3.0);
+        EXPECT_EQ(vec->at(0, 1), 3.0);
     }
 
     EXPECT_EQ(vec->at(0, 0), -1.0);
@@ -518,7 +518,7 @@ TEST_F(TemporaryConversion, CreateChainFromBaseType)
         gko::temporary_conversion<LinOpB>::create_from_base(std::move(tmp));
 
     EXPECT_EQ(typeid(tmp_linop.get()), typeid(LinOpB*));
-    EXPECT_EQ(lB->get_value(), lB->get_value());
+    EXPECT_EQ(tmp_linop->get_value(), lB->get_value());
     EXPECT_EQ(log->count, 0);
 }
 

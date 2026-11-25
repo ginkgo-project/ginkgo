@@ -408,7 +408,6 @@ public:
      * @tparam Base A base type of T
      *
      * @param base Object to convert from
-     * @throws NotSupported if the dynamic type of base is not T
      *
      * @throws NotSupported if the dynamic type of base is not T
      *
