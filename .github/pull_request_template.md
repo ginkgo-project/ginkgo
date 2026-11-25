@@ -14,7 +14,7 @@ branch changes compared to origin/develop are formatted through pre-commit.
 
 Also, check `CONTRIBUTING.md` and
 <https://gko-project.org/user-guide/how-to/contributing/index.html>
-regarding Ginkgo's `naming-scheme`, `Whitespace`, and `Other Code Formatting`
+regarding Ginkgo's naming scheme, whitespace, and other code formatting
 not handled by ClangFormat.
 
 Please delete the irrelevant entries in the following.
