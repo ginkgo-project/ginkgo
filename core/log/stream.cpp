@@ -96,6 +96,7 @@ GKO_ENABLE_DEMANGLE_NAME(LinOpFactory);
 GKO_ENABLE_DEMANGLE_NAME(stop::Criterion);
 GKO_ENABLE_DEMANGLE_NAME(Executor);
 GKO_ENABLE_DEMANGLE_NAME(Operation);
+GKO_ENABLE_DEMANGLE_NAME(AbstractMultiVector);
 
 
 }  // namespace

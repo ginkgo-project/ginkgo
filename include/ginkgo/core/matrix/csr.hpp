@@ -138,11 +138,11 @@ enum class spmv_strategy {
  * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
  *
  * // Applying to Csr matrices computes a SpGEMM product of two sparse matrices
- * A->apply(B, C)              // C = A*B
- * A->apply(alpha, B, beta, C) // C = alpha*A*B + beta*C
+ * C = A->multiply(B)                     // C = A*B
+ * C = A->multiply_add(alpha, B, beta, C) // C = alpha*A*B + beta*C
  *
  * // Applying to an Identity matrix computes a SpGEAM sparse matrix addition
- * A->apply(alpha, I, beta, B) // B = alpha*A + beta*B
+ * B = A->scale_add(alpha, beta, B) // B = alpha*A + beta*B
  * ```
  * Both the SpGEMM and SpGEAM operation require the input matrices to be sorted
  * by column index, otherwise the algorithms will produce incorrect results.
@@ -954,7 +954,7 @@ public:
      * Scales the matrix with a scalar.
      *
      * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
-     *               MultiVector matrix.
+     *               MultiVector.
      */
     void scale(ptr_param<const AbstractMultiVector> alpha)
     {
@@ -967,7 +967,7 @@ public:
      * Scales the matrix with the inverse of a scalar.
      *
      * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
-     *               1x1 MultiVector matrix.
+     *               1x1 MultiVector.
      */
     void inv_scale(ptr_param<const AbstractMultiVector> alpha)
     {
@@ -1195,18 +1195,18 @@ protected:
     void make_srow(index_type max_nnz_per_row);
 
     /**
-     * @copydoc scale(const LinOp *)
+     * @copydoc scale(ptr_param<const AbstractMultiVector>)
      *
      * @note  Other implementations of Csr should override this function
-     *        instead of scale(const LinOp *alpha).
+     *        instead of scale(ptr_param<const AbstractMultiVector> alpha).
      */
     virtual void scale_impl(const AbstractMultiVector* alpha);
 
     /**
-     * @copydoc inv_scale(const LinOp *)
+     * @copydoc inv_scale(ptr_param<const AbstractMultiVector>)
      *
      * @note  Other implementations of Csr should override this function
-     *        instead of inv_scale(const LinOp *alpha).
+     *        instead of inv_scale(ptr_param<const AbstractMultiVector> alpha).
      */
     virtual void inv_scale_impl(const AbstractMultiVector* alpha);
 

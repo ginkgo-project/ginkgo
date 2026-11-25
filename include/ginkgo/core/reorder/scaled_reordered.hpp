@@ -34,8 +34,11 @@ namespace reorder {
  * inner operator is applied to the system matrix P*R*A*C*P^T instead of A.
  * Instead of A*x = b, the inner operator attempts to solve the equivalent
  * linear system P*R*A*C*P^T*y = P*R*b and retrieves the solution x = C*P^T*y.
- * Note: The inner system matrix is computed from a clone of A, so the original
- * system matrix is not changed.
+ *
+ * @note The inner system matrix is computed from a clone of A, so the original
+ *       system matrix is not changed.
+ * @note The inner system matrix has to be convertible to the
+ *       matrix::Csr<ValueType, IndexType> format.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
@@ -105,6 +108,8 @@ protected:
                              std::shared_ptr<const LinOp> system_matrix)
         : LinOp(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()},
+          system_matrix_(matrix::Csr<ValueType, IndexType>::create(
+              factory->get_executor())),
           permutation_array_{factory->get_executor()}
     {
         // For now only support square matrices.
@@ -112,8 +117,8 @@ protected:
 
         auto exec = this->get_executor();
 
-        system_matrix_ = as<matrix::Csr<ValueType, IndexType>>(
-            gko::clone(exec, system_matrix));
+        as<ConvertibleTo<matrix::Csr<ValueType, IndexType>>>(system_matrix)
+            ->convert_to(system_matrix_);
 
         // Scale the system matrix if scaling coefficients are provided
         if (parameters_.row_scaling) {

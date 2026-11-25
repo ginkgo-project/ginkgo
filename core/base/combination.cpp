@@ -121,8 +121,7 @@ std::unique_ptr<LinOp> Combination<ValueType>::conj_transpose() const
     transposed->set_size(gko::transpose(this->get_size()));
     // conjugate coefficients!
     for (auto& coef : get_coefficients()) {
-        transposed->coefficients_.push_back(
-            share(as<matrix::MultiVector<ValueType>>(coef)->conj_transpose()));
+        transposed->coefficients_.push_back(share(coef->conj_transpose()));
     }
     // conjugate-transpose operators
     for (auto& op : get_operators()) {

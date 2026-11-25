@@ -244,7 +244,8 @@ public:
                 ptr_param<AbstractMultiVector> x) const;
 
     /**
-     * @copydoc apply2(const LinOp *, const LinOp *, LinOp *)
+     * @copydoc apply2(const AbstractMultiVector *, const AbstractMultiVector *,
+     * AbstractMultiVector *)
      */
     void apply2(ptr_param<const AbstractMultiVector> alpha,
                 ptr_param<const AbstractMultiVector> b,

@@ -719,6 +719,7 @@ void Dense<ValueType>::add_scaled(ptr_param<const AbstractMultiVector> alpha,
 {
     auto exec = this->get_executor();
     GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, diag);
     auto alpha_clone = make_temporary_clone(exec, alpha);
     auto converted_alpha = alpha_clone->as_precision(precision_v<ValueType>);
     exec->run(dense::make_add_scaled_diag(
@@ -734,6 +735,7 @@ void Dense<ValueType>::sub_scaled(ptr_param<const AbstractMultiVector> alpha,
 {
     auto exec = this->get_executor();
     GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
+    GKO_ASSERT_EQUAL_DIMENSIONS(this, diag);
     auto alpha_clone = make_temporary_clone(exec, alpha);
     auto converted_alpha = alpha_clone->as_precision(precision_v<ValueType>);
     exec->run(dense::make_sub_scaled_diag(

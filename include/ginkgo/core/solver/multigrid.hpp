@@ -484,8 +484,9 @@ protected:
                                        AbstractMultiVector* x,
                                        initial_guess_mode guess) const override;
 
-    void apply_dense_impl(const AbstractMultiVector* b, AbstractMultiVector* x,
-                          initial_guess_mode guess) const;
+    void apply_with_initial_guess_prepared_impl(const AbstractMultiVector* b,
+                                                AbstractMultiVector* x,
+                                                initial_guess_mode guess) const;
 
     /**
      * Generates the hierarchy, its smoothers and the coarsest solver. With

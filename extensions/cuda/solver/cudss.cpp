@@ -268,11 +268,9 @@ template <typename ValueType, typename IndexType>
 void Cudss<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
                                              AbstractMultiVector* x) const
 {
-    auto converted_b = as<matrix::MultiVector<ValueType>>(
-        b->as_precision(precision_v<ValueType>));
-    auto converted_x = as<matrix::MultiVector<ValueType>>(
-        x->as_precision(precision_v<ValueType>));
     using MultiVector = matrix::MultiVector<ValueType>;
+    auto converted_b = as<MultiVector>(b->as_precision(precision_v<ValueType>));
+    auto converted_x = as<MultiVector>(x->as_precision(precision_v<ValueType>));
     const auto exec = this->get_executor();
     const auto nrhs = converted_b->get_size()[1];
     if (nrhs <= 1) {
@@ -324,8 +322,7 @@ void Cudss<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
         GKO_ASSERT_NO_CUDSS_ERRORS(cudssMatrixDestroy(cudss_x));
 
         if (x_strided) {
-            converted_x->create_submatrix(span{0, nrows}, span{0, 1})
-                ->copy_from(x_buf);
+            converted_x->create_subview({0, nrows}, {0, 1})->copy_from(x_buf);
         }
     } else {
         const auto nrows = converted_b->get_size()[0];
@@ -335,11 +332,10 @@ void Cudss<ValueType, IndexType>::apply_impl(const AbstractMultiVector* b,
             tmp_b->copy_from(
                 converted_b->create_subview({0, nrows}, {j, j + 1}));
             this->apply_impl(tmp_b.get(), tmp_x.get());
-            converted_x->create_submatrix(span{0, nrows}, span{j, j + 1})
+            converted_x->create_subview({0, nrows}, {j, j + 1})
                 ->copy_from(tmp_x);
         }
     }
-}
 }
 
 

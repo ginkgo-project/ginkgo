@@ -149,7 +149,7 @@ void Nullspace<ValueType>::setup_basis(
     const std::vector<std::shared_ptr<const AbstractMultiVector>>& basis)
 {
     auto exec = this->get_executor();
-    const auto first = basis[0].get();
+    const auto first = basis[0].get()->as_precision(precision_v<ValueType>);
     size_type num_cols = 0;
     for (const auto& vec : basis) {
         GKO_ASSERT_EQUAL_ROWS(vec, this);
@@ -158,7 +158,7 @@ void Nullspace<ValueType>::setup_basis(
 
     // gather all columns into a single block on this executor
     auto block = AbstractMultiVector::create_with_type_of(
-        first, exec, {first->get_size()[0], num_cols},
+        first.get(), exec, {first->get_size()[0], num_cols},
         {first->get_local_size()[0], num_cols});
     const auto global_rows = block->get_size()[0];
     const auto local_rows = block->get_local_size()[0];
@@ -217,7 +217,7 @@ void Nullspace<ValueType>::setup_basis(
         return;
     }
     auto result = AbstractMultiVector::create_with_type_of(
-        first, exec, {first->get_size()[0], num_kept},
+        first.get(), exec, {first->get_size()[0], num_kept},
         {first->get_local_size()[0], num_kept});
     auto kept =
         block->create_subview(local_span{0, local_rows},

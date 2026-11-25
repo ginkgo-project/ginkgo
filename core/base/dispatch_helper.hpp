@@ -250,8 +250,8 @@ auto run(std::shared_ptr<T> obj, Func&& f, Args&&... args)
  * Helper to dispatch vectors to the expected precision.
  *
  * @tparam ValueType Value type to convert the inputs to
- * @tparam Fn Function type, has signature void(const AbstractMultiVector*,
- *                                              AbstractMultiVector*)
+ * @tparam Fn Function type, has signature void([const] AbstractMultiVector*,
+ *                                              ...)
  * @tparam Vectors Vector types, have to be derived from AbstractMultiVector
  *
  * @param fn Function to apply to the converted inputs
@@ -270,15 +270,22 @@ void precision_dispatch(Fn&& fn, Vectors&&... vectors)
  *
  * Note: the function needs to have the following signature:
  *       fn(device_view_type<ValueType>, device_view_type<ValueType>)
+ *
+ * @param fn Function to apply to the converted inputs
+ * @param b Input vector with dynamic type matrix::MultiVector<...>, will be
+ *          converted to matrix::MultiVector<ValueType>
+ * @param x Output vector with dynamic type matrix::MultiVector<...>, will be
+ *          converted to matrix::MultiVector<ValueType>
  */
 template <typename ValueType, typename Fn>
 void apply_precision_dispatch(Fn&& fn, const AbstractMultiVector* b,
                               AbstractMultiVector* x)
 {
+    using MultiVector = matrix::MultiVector<ValueType>;
     precision_dispatch<ValueType>(
         [&fn](auto b_, auto x_) {
-            fn(b_->template get_const_local_device_view<ValueType>(),
-               x_->template get_local_device_view<ValueType>());
+            fn(as<MultiVector>(b_)->get_const_device_view(),
+               as<MultiVector>(x_)->get_device_view());
         },
         b, x);
 }
@@ -298,16 +305,14 @@ void apply_precision_dispatch(Fn&& fn, const AbstractMultiVector* alpha,
                               const AbstractMultiVector* beta,
                               AbstractMultiVector* x)
 {
+    using MultiVector = matrix::MultiVector<ValueType>;
     auto p = precision_v<ValueType>;
-    auto dense_alpha =
-        as<matrix::MultiVector<ValueType>>(alpha->as_precision(p));
-    auto dense_beta = as<matrix::MultiVector<ValueType>>(beta->as_precision(p));
+    auto dense_alpha = as<MultiVector>(alpha->as_precision(p));
+    auto dense_beta = as<MultiVector>(beta->as_precision(p));
     precision_dispatch<ValueType>(
         [&fn, &dense_alpha, &dense_beta](auto b_, auto x_) {
-            fn(dense_alpha.get(),
-               b_->template get_const_local_device_view<ValueType>(),
-               dense_beta.get(),
-               x_->template get_local_device_view<ValueType>());
+            fn(dense_alpha.get(), as<MultiVector>(b_)->get_const_device_view(),
+               dense_beta.get(), as<MultiVector>(x_)->get_device_view());
         },
         b, x);
 }
@@ -317,7 +322,7 @@ void apply_precision_dispatch(Fn&& fn, const AbstractMultiVector* alpha,
  * Helper function for mixed precision dispatch.
  * Falls back to apply_dispatch if GINKGO_MIXED_PRECISION is not defined.
  *
- * The input vectors will be _not_ be converted to the precision of the
+ * The input vectors will _not_ be converted to the precision of the
  * operator. Instead, the underlying precision of each vector will be used.
  *
  * @note Mixing complex and real precisions is not supported.
@@ -370,6 +375,12 @@ void mixed_precision_dispatch(Fn&& fn, const AbstractMultiVector* b,
  * Note: the function needs to have the following signature:
  *       fn(device_view_type<ValueTypeIn>, device_view_type<ValueTypeOut>,
  *          ValueTypeIn, ValueTypeOut)
+ *
+ * @param fn Function to apply to the converted inputs
+ * @param b Input vector with dynamic type matrix::MultiVector<...>, will keep
+ *          its original precision
+ * @param x Output vector with dynamic type matrix::MultiVector<...>, will  keep
+ *          its original precision
  */
 template <typename ValueType, typename Fn>
 void apply_mixed_precision_dispatch(Fn&& fn, const AbstractMultiVector* b,
@@ -377,10 +388,12 @@ void apply_mixed_precision_dispatch(Fn&& fn, const AbstractMultiVector* b,
 {
     mixed_precision_dispatch<ValueType>(
         [&fn](auto b_, auto x_, auto p_b, auto p_x) {
-            using fst_value_type = std::decay_t<decltype(p_b)>;
-            using snd_value_type = std::decay_t<decltype(p_x)>;
-            fn(b_->template get_const_local_device_view<fst_value_type>(),
-               x_->template get_local_device_view<snd_value_type>(), p_b, p_x);
+            using FstMultiVector =
+                matrix::MultiVector<std::decay_t<decltype(p_b)>>;
+            using SndMultiVector =
+                matrix::MultiVector<std::decay_t<decltype(p_x)>>;
+            fn(as<FstMultiVector>(b_)->get_const_device_view(),
+               as<SndMultiVector>(x_)->get_device_view(), p_b, p_x);
         },
         b, x);
 }
@@ -409,14 +422,15 @@ void apply_mixed_precision_dispatch(Fn&& fn, const AbstractMultiVector* alpha,
 
     mixed_precision_dispatch<ValueType>(
         [&fn, &dense_alpha, beta](auto b_, auto x_, auto p_b, auto p_x) {
-            using fst_value_type = std::decay_t<decltype(p_b)>;
-            using snd_value_type = std::decay_t<decltype(p_x)>;
-            auto dense_beta = as<matrix::MultiVector<snd_value_type>>(
-                beta->as_precision(precision_v<snd_value_type>));
+            using FstMultiVector =
+                matrix::MultiVector<std::decay_t<decltype(p_b)>>;
+            using SndMultiVector =
+                matrix::MultiVector<std::decay_t<decltype(p_x)>>;
+            auto dense_beta = as<SndMultiVector>(beta->as_precision(x_));
             fn(dense_alpha.get(),
-               b_->template get_const_local_device_view<fst_value_type>(),
-               dense_beta.get(),
-               x_->template get_local_device_view<snd_value_type>(), p_b, p_x);
+               as<FstMultiVector>(b_)->get_const_device_view(),
+               dense_beta.get(), as<SndMultiVector>(x_)->get_device_view(), p_b,
+               p_x);
         },
         b, x);
 }

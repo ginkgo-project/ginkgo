@@ -344,9 +344,7 @@ void Idr<ValueType>::apply_impl(const AbstractMultiVector* b,
             x->as_precision(precision_v<ValueType>));
         auto complex_b = converted_b->make_complex();
         auto complex_x = converted_x->make_complex();
-        this->iterate(
-            as<matrix::MultiVector<to_complex<ValueType>>>(complex_b.get()),
-            as<matrix::MultiVector<to_complex<ValueType>>>(complex_x.get()));
+        this->iterate(complex_b.get(), complex_x.get());
         complex_x->get_real(converted_x.get());
     } else {
         auto converted_x = as<matrix::MultiVector<ValueType>>(

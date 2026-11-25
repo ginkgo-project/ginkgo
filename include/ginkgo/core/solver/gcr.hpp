@@ -131,9 +131,6 @@ protected:
     void apply_impl(const AbstractMultiVector* b,
                     AbstractMultiVector* x) const override;
 
-    template <typename VectorType>
-    void apply_dense_impl(const VectorType* b, VectorType* x) const;
-
     void apply_impl(const AbstractMultiVector* alpha,
                     const AbstractMultiVector* b,
                     const AbstractMultiVector* beta,

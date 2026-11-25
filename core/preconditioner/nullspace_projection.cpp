@@ -28,7 +28,8 @@ VectorType* get_like(std::unique_ptr<AbstractMultiVector>& cache,
     auto vec = dynamic_cast<VectorType*>(cache.get());
     if (!vec || vec->get_executor() != like->get_executor() ||
         vec->get_size() != like->get_size() ||
-        vec->get_local_size() != like->get_local_size()) {
+        vec->get_local_size() != like->get_local_size() ||
+        vec->get_precision() != like->get_precision()) {
         auto new_vec = AbstractMultiVector::create_with_config_of(like);
         vec = new_vec.get();
         cache = std::move(new_vec);

@@ -1046,7 +1046,8 @@ void Multigrid::apply_with_initial_guess_impl(const AbstractMultiVector* b,
         precision_dispatch<value_type>(
             [this, guess](auto converted_b, auto converted_x) {
                 prepare_initial_guess(converted_b, converted_x, guess);
-                this->apply_dense_impl(converted_b, converted_x, guess);
+                this->apply_with_initial_guess_prepared_impl(
+                    converted_b, converted_x, guess);
             },
             b, x);
     };
@@ -1091,7 +1092,8 @@ void Multigrid::apply_with_initial_guess_impl(const AbstractMultiVector* alpha,
             [this, guess, alpha, beta](auto converted_b, auto converted_x) {
                 prepare_initial_guess(converted_b, converted_x, guess);
                 auto x_clone = converted_x->clone();
-                this->apply_dense_impl(converted_b, x_clone.get(), guess);
+                this->apply_with_initial_guess_prepared_impl(
+                    converted_b, x_clone.get(), guess);
                 converted_x->scale(beta);
                 converted_x->add_scaled(alpha, x_clone);
             },
@@ -1110,9 +1112,9 @@ void Multigrid::apply_with_initial_guess_impl(const AbstractMultiVector* alpha,
 }
 
 
-void Multigrid::apply_dense_impl(const AbstractMultiVector* b,
-                                 AbstractMultiVector* x,
-                                 initial_guess_mode guess) const
+void Multigrid::apply_with_initial_guess_prepared_impl(
+    const AbstractMultiVector* b, AbstractMultiVector* x,
+    initial_guess_mode guess) const
 {
     using ws = workspace_traits<Multigrid>;
     if (cache_.state->nrhs != b->get_size()[1]) {

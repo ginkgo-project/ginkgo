@@ -296,9 +296,21 @@ public:
      */
     void conj_transpose(ptr_param<Dense> output) const;
 
+    /**
+     * Adds a scaled diagonal to this A = A + alpha * D.
+     *
+     * @param alpha A 1x1 scalar MultiVector
+     * @param diag The diagonal to add to this
+     */
     void add_scaled(ptr_param<const AbstractMultiVector> alpha,
                     ptr_param<const Diagonal<value_type>> diag);
 
+    /**
+     * Subtracts a scaled diagonal from this A = A - alpha * D.
+     *
+     * @param alpha A 1x1 scalar MultiVector
+     * @param diag The diagonal to add to this
+     */
     void sub_scaled(ptr_param<const AbstractMultiVector> alpha,
                     ptr_param<const Diagonal<value_type>> diag);
 

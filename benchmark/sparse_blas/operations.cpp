@@ -251,9 +251,8 @@ public:
     std::pair<bool, double> validate() const override
     {
         auto ref = gko::ReferenceExecutor::create();
-        auto correct = gko::make_temporary_clone(ref, mtx2_);
-        gko::make_temporary_clone(ref, mtx_)->scale_add(scalar_, scalar_,
-                                                        correct.get());
+        auto correct = gko::make_temporary_clone(ref, mtx_)->scale_add(
+            scalar_, scalar_, mtx2_);
         return validate_result(correct.get(), mtx_out_);
     }
 
@@ -655,14 +654,11 @@ public:
                 validate_symbolic_factorization(mtx_, result_.get()), 0.0);
         } else {
             const auto exec = mtx_->get_executor();
-            const auto symm_result = result_->clone();
-            const auto lt_factor = gko::as<Mtx>(symm_result->transpose());
             const auto scalar =
                 gko::initialize<gko::matrix::MultiVector<etype>>(
                     {gko::one<etype>()}, exec);
-            const auto id =
-                gko::matrix::Identity<etype>::create(exec, mtx_->get_size()[0]);
-            lt_factor->scale_add(scalar, scalar, symm_result);
+            const auto symm_result = gko::as<Mtx>(result_->transpose())
+                                         ->scale_add(scalar, scalar, result_);
             return std::make_pair(
                 validate_symbolic_factorization(mtx_, symm_result.get()), 0.0);
         }
