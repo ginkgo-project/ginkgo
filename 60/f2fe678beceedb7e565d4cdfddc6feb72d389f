@@ -1,0 +1,21 @@
+core/stop/criterion.cpp
+  s_b983a948a268f1::t_c3075dd3c63d1a 31-41
+include/ginkgo/core/stop/criterion.hpp
+  s_b983a948a268f1::t_2da95bfd8fa245 19-24,225
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "60f2fe678beceedb7e565d4cdfddc6feb72d389f",
+  "prompts": {},
+  "sessions": {
+    "s_b983a948a268f1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "577c3336-5ec4-4a75-8cd7-2a6b62997297",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
