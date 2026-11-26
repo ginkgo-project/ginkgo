@@ -297,6 +297,23 @@ inline size_type get_num_batch_items(const T& obj)
 
 
 /**
+ * Asserts that the dimensions of `_op1` are a subset of `_op2`.
+ *
+ * @throw DimensionMismatch  if `_op1` rows or columns are larger than `_op2`
+ */
+#define GKO_ASSERT_SUBSET_DIMENSIONS(_op1, _op2)                               \
+    if (::gko::detail::get_size(_op1)[0] > ::gko::detail::get_size(_op2)[0] || \
+        ::gko::detail::get_size(_op1)[1] > ::gko::detail::get_size(_op2)[1]) { \
+        throw ::gko::DimensionMismatch(                                        \
+            __FILE__, __LINE__, __func__, #_op1,                               \
+            ::gko::detail::get_size(_op1)[0],                                  \
+            ::gko::detail::get_size(_op1)[1], #_op2,                           \
+            ::gko::detail::get_size(_op2)[0],                                  \
+            ::gko::detail::get_size(_op2)[1], "expected subset dimensions");   \
+    }
+
+
+/**
  * Asserts that _op has the expected precision _expected.
  *
  * @throw PrecisionError  if _op has a precision other than _expected.

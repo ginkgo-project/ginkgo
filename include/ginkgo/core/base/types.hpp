@@ -20,6 +20,7 @@
 #include <ginkgo/config.hpp>
 #include <ginkgo/core/base/bfloat16.hpp>
 #include <ginkgo/core/base/half.hpp>
+#include <ginkgo/core/synthesizer/containers.hpp>
 
 
 #ifdef __HIPCC__
@@ -391,6 +392,22 @@ GKO_ATTRIBUTES constexpr bool operator!=(precision_reduction x,
     using st = precision_reduction::storage_type;
     return static_cast<st>(x) != static_cast<st>(y);
 }
+
+
+/**
+ * A list containing all supported value types in Ginkgo
+ */
+using supported_value_types =
+    syn::type_list<double, float, std::complex<double>, std::complex<float>
+#if GINKGO_ENABLE_HALF
+                   ,
+                   half, std::complex<half>
+#endif
+#if GINKGO_ENABLE_BFLOAT16
+                   ,
+                   bfloat16, std::complex<bfloat16>
+#endif
+                   >;
 
 
 /**
