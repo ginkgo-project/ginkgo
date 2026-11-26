@@ -1,0 +1,14 @@
+core/matrix/multivector.cpp
+  h_0aeb61ed714320 128-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "001adcb4c560e8ac2b4fbe9b5752e30b135aa024",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
