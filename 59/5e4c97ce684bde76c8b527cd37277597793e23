@@ -1,0 +1,18 @@
+core/matrix/dense.cpp
+  h_0aeb61ed714320 918
+core/test/base/CMakeLists.txt
+  h_0aeb61ed714320 35
+core/matrix/multivector.cpp
+  h_0aeb61ed714320 372
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "595e4c97ce684bde76c8b527cd37277597793e23",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
