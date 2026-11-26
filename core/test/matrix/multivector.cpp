@@ -321,7 +321,8 @@ TYPED_TEST(MultiVector, CanCreateConstDeviceView)
 TYPED_TEST(MultiVector, CanCreateSubmatrix)
 {
     using value_type = typename TestFixture::value_type;
-    auto submtx = this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 3});
+    auto submtx =
+        this->mtx->create_subview(gko::local_span{0, 1}, gko::local_span{1, 3});
 
     EXPECT_EQ(submtx->get_size(), gko::dim<2>(1, 2));
     EXPECT_EQ(submtx->at(0, 0), value_type{2.0});
@@ -337,8 +338,8 @@ TYPED_TEST(MultiVector, CanCreateSubmatrixWithGlobalSize)
 {
     using value_type = typename TestFixture::value_type;
     auto submtx_orig =
-        this->mtx->create_submatrix(gko::span{0, 1}, gko::span{1, 3});
-    auto submtx = this->mtx->create_submatrix(
+        this->mtx->create_subview(gko::local_span{0, 1}, gko::local_span{1, 3});
+    auto submtx = this->mtx->create_subview(
         gko::local_span{0, 1}, gko::local_span{1, 3}, gko::dim<2>{1, 2});
 
     GKO_ASSERT_MTX_NEAR(submtx_orig, submtx, 0.0);
@@ -349,8 +350,8 @@ TYPED_TEST(MultiVector, CanCreateSubmatrixWithGlobalSize)
 TYPED_TEST(MultiVector, CreateSubmatrixWithGlobalSizeThrowsOnIncorrectSize)
 {
     EXPECT_THROW(
-        this->mtx->create_submatrix(gko::local_span{0, 1},
-                                    gko::local_span{1, 3}, gko::dim<2>{1, 20}),
+        this->mtx->create_subview(gko::local_span{0, 1}, gko::local_span{1, 3},
+                                  gko::dim<2>{1, 20}),
         gko::DimensionMismatch);
 }
 
@@ -358,7 +359,8 @@ TYPED_TEST(MultiVector, CreateSubmatrixWithGlobalSizeThrowsOnIncorrectSize)
 TYPED_TEST(MultiVector, CanCreateEmptySubmatrix)
 {
     using value_type = typename TestFixture::value_type;
-    auto submtx = this->mtx->create_submatrix(gko::span{0, 0}, gko::span{1, 1});
+    auto submtx =
+        this->mtx->create_subview(gko::local_span{0, 0}, gko::local_span{1, 1});
 
     EXPECT_EQ(submtx->get_size(), gko::dim<2>{});
 }
@@ -367,8 +369,8 @@ TYPED_TEST(MultiVector, CanCreateEmptySubmatrix)
 TYPED_TEST(MultiVector, CanCreateSubmatrixWithStride)
 {
     using value_type = typename TestFixture::value_type;
-    auto submtx =
-        this->mtx->create_submatrix(gko::span{0, 2}, gko::span{0, 2}, 3);
+    auto submtx = this->mtx->create_subview(gko::local_span{0, 2},
+                                            gko::local_span{0, 2}, 3);
 
     EXPECT_EQ(submtx->get_size(), gko::dim<2>(2, 2));
     EXPECT_EQ(submtx->get_stride(), 3);

@@ -392,10 +392,10 @@ TYPED_TEST(DistSpgemm, NonSquareMismatchedPartitions)
     auto a_row_part_host = gko::clone(this->ref, a_row_part);
     auto local_m_begin = a_row_part_host->get_range_bounds()[rank];
     auto local_m_end = a_row_part_host->get_range_bounds()[rank + 1];
-    auto y_ref_slice = y_ref->create_submatrix(
-        gko::span{static_cast<gko::size_type>(local_m_begin),
-                  static_cast<gko::size_type>(local_m_end)},
-        gko::span{0, 1});
+    auto y_ref_slice = y_ref->create_subview(
+        gko::local_span{static_cast<gko::size_type>(local_m_begin),
+                        static_cast<gko::size_type>(local_m_end)},
+        gko::local_span{0, 1});
     GKO_ASSERT_MTX_NEAR(y_dist->get_local_vector(), y_ref_slice,
                         r<value_type>::value * 100);
 }
