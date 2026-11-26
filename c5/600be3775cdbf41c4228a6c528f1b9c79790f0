@@ -1,0 +1,20 @@
+core/matrix/dense.cpp
+  h_0aeb61ed714320 915
+core/test/base/CMakeLists.txt
+  h_0aeb61ed714320 36
+include/ginkgo/core/base/multivector.hpp
+  h_0aeb61ed714320 376
+core/matrix/multivector.cpp
+  h_0aeb61ed714320 128-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "c5600be3775cdbf41c4228a6c528f1b9c79790f0",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
