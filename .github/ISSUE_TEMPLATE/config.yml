@@ -1,1 +1,5 @@
 blank_issues_enabled: false
+contact_links:
+    - name: Question or usage help
+      url: https://github.com/ginkgo-project/ginkgo/discussions
+      about: Ask how to use Ginkgo or discuss ideas that are not yet a concrete request

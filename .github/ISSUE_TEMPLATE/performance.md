@@ -1,11 +1,18 @@
+---
+name: Performance issue
+about: Report unexpectedly slow or poorly scaling behavior
+title: ''
+labels: 'is:affects-performance'
+---
+
 <!--- Only use this issue template for reporting performance issues! -->
 
 <!--- Provide a general summary of the issue in the title above -->
 
 ## Performance Details
-<!--- Tell us the about the performance issue in detail. -->
-<!--- If relevant, include under what condition, on which systems,
-      on what data, etc issue happens. --->
+<!--- Tell us about the performance issue in detail: what you measured,
+      what you expected (e.g. compared to another executor, library, or
+      Ginkgo version), and on which matrix/problem size. -->
 
 ## Possible Solution
 <!--- (optional) suggest a fix/reason -->
@@ -19,13 +26,20 @@
 4.
 
 ## Hardware and Software Environment
-<!--- Provide the hardware and software stack you are using including
-      the respective versions. -->
+
+- [ ] Ginkgo version or commit:
+- [ ] Executor(s) affected (reference / omp / cuda / hip / dpcpp):
+- [ ] OS and compiler (with version):
+- [ ] CUDA / ROCm / oneAPI / MPI version, if relevant:
+- [ ] CPU / GPU model:
+- [ ] CMake configuration (flags or preset):
+
+## Additional Information
+<!--- (optional) Does it also happen with another executor (e.g. reference),
+      on another machine, or with a different matrix/problem? -->
 
 ## Checklist
 
-- [ ] Ran the same code on a different machine to compare
-- [ ] Ran different code on the same machine to compare
-- [ ] Provided performance explanation
-- [ ] Provided steps to reproduce
-- [ ] Provided hardware and software information
+- [ ] performance explanation
+- [ ] steps to reproduce
+- [ ] hardware and software information

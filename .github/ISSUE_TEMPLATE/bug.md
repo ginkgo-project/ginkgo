@@ -1,3 +1,10 @@
+---
+name: Bug report
+about: Report wrong results, crashes, or build failures in Ginkgo
+title: ''
+labels: 'is:bug'
+---
+
 <!--- Only use this issue template for reporting bugs! -->
 
 <!--- Provide a general summary of the issue in the title above -->
@@ -8,9 +15,6 @@
 ## Current Behavior
 <!--- Tell us what happens instead of the expected behavior. -->
 
-## Possible Solution
-<!--- (optional) suggest a fix/reason for the bug -->
-
 ## Steps to Reproduce
 <!--- Provide a clear set of steps to reproduce this bug. -->
 <!--- Include code to reproduce, if relevant. -->
@@ -20,14 +24,24 @@
 4.
 
 ## Hardware and Software Environment
-<!--- Provide the hardware and software stack you are using including
-      the respective versions. -->
+
+- [ ] Ginkgo version or commit:
+- [ ] Executor(s) affected (reference / omp / cuda / hip / dpcpp):
+- [ ] OS and compiler (with version):
+- [ ] CUDA / ROCm / oneAPI / MPI version, if relevant:
+- [ ] CPU / GPU model:
+- [ ] CMake configuration (flags or preset):
+
+## Additional Information
+<!--- (optional) Does it also happen with another executor (e.g. reference),
+      on another machine, or with a different matrix/problem? -->
+
+## Possible Solution
+<!--- (optional) suggest a fix/reason for the bug -->
 
 ## Checklist
 
-- [ ] Ran the same code on a different machine to compare
-- [ ] Ran different code on the same machine to compare
-- [ ] Provided expected behavior
-- [ ] Provided current behavior
-- [ ] Provided steps to reproduce
-- [ ] Provided hardware and software information
+- [ ] expected behavior
+- [ ] current behavior
+- [ ] steps to reproduce
+- [ ] hardware and software information
