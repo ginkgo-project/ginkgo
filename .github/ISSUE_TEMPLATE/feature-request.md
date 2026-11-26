@@ -2,7 +2,7 @@
 name: Feature request
 about: Propose new functionality or an extension of existing functionality
 title: ''
-labels: 'is:new-feature'
+labels: 'is:feature-request'
 ---
 
 <!--- Only use this issue template for proposing features! -->
