@@ -20,9 +20,11 @@ not handled by ClangFormat.
 Please delete the irrelevant entries in the following.
 -->
 ## Creating/Modifying classes
-- [ ] have entries in test
-- [ ] If it is a LinOpFactory, add the corresponding key in
-      `core/config/registry.cpp:generate_config_map`
+- [ ] have tests and entries in `test/test_install/test_install.cpp`
+- [ ] If it is a `LinOpFactory`:
+  - add the corresponding key in `core/config/registry.cpp:generate_config_map`
+  - add `LinOpFactoryType` entry in `core/config/config_helper.hpp`
+  - add test in `core/test/config`
 - [ ] If any changes are introduced in LinOpFactory parameters, add the changes
       into the corresponding parse function
 ## Creating/Modifying functions
