@@ -45,40 +45,19 @@ class VectorCache;
 namespace matrix {
 
 
-template <typename ValueType, typename IndexType>
-class Coo;
-
-template <typename ValueType, typename IndexType>
-class Csr;
-
 template <typename ValueType>
-class Diagonal;
-
-template <typename ValueType, typename IndexType>
-class Ell;
-
-template <typename ValueType, typename IndexType>
-class Fbcsr;
-
-template <typename ValueType, typename IndexType>
-class Hybrid;
-
-template <typename ValueType, typename IndexType>
-class Sellp;
-
-template <typename ValueType, typename IndexType>
-class SparsityCsr;
+class Dense;
 
 
 /**
- * MultiVector is a matrix format which explicitly stores all values of the
- * matrix.
+ * MultiVector is a multivector format which explicitly stores all values of the
+ * vector.
  *
  * The values are stored in row-major format (values belonging to the same row
  * appear consecutive in the memory). Optionally, rows can be padded for better
  * memory access.
  *
- * @tparam ValueType  precision of matrix elements
+ * @tparam ValueType  precision of multivector elements
  *
  * @note While this format is not very useful for storing sparse matrices, it
  *       is often suitable to store vectors, and sets of vectors.
@@ -96,21 +75,7 @@ class MultiVector
 #if GINKGO_ENABLE_HALF && GINKGO_ENABLE_BFLOAT16
       public ConvertibleTo<MultiVector<next_precision<ValueType, 3>>>,
 #endif
-      public ConvertibleTo<Coo<ValueType, int32>>,
-      public ConvertibleTo<Coo<ValueType, int64>>,
-      public ConvertibleTo<Csr<ValueType, int32>>,
-      public ConvertibleTo<Csr<ValueType, int64>>,
-      public ConvertibleTo<Ell<ValueType, int32>>,
-      public ConvertibleTo<Ell<ValueType, int64>>,
-      public ConvertibleTo<Fbcsr<ValueType, int32>>,
-      public ConvertibleTo<Fbcsr<ValueType, int64>>,
-      public ConvertibleTo<Hybrid<ValueType, int32>>,
-      public ConvertibleTo<Hybrid<ValueType, int64>>,
-      public ConvertibleTo<Sellp<ValueType, int32>>,
-      public ConvertibleTo<Sellp<ValueType, int64>>,
-      public ConvertibleTo<SparsityCsr<ValueType, int32>>,
-      public ConvertibleTo<SparsityCsr<ValueType, int64>>,
-      public DiagonalExtractable<ValueType>,
+      public ConvertibleTo<Dense<ValueType>>,
       public ReadableFromMatrixData<ValueType, int32>,
       public ReadableFromMatrixData<ValueType, int64>,
       public WritableToMatrixData<ValueType, int32>,
@@ -118,24 +83,8 @@ class MultiVector
       public Transposable,
       public Permutable<int32>,
       public Permutable<int64>,
-      public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>>,
-      public ScaledIdentityAddable {
-    friend class EnableCloneable<MultiVector>;
-    friend class Coo<ValueType, int32>;
-    friend class Coo<ValueType, int64>;
-    friend class Csr<ValueType, int32>;
-    friend class Csr<ValueType, int64>;
-    friend class Diagonal<ValueType>;
-    friend class Ell<ValueType, int32>;
-    friend class Ell<ValueType, int64>;
-    friend class Fbcsr<ValueType, int32>;
-    friend class Fbcsr<ValueType, int64>;
-    friend class Hybrid<ValueType, int32>;
-    friend class Hybrid<ValueType, int64>;
-    friend class Sellp<ValueType, int32>;
-    friend class Sellp<ValueType, int64>;
-    friend class SparsityCsr<ValueType, int32>;
-    friend class SparsityCsr<ValueType, int64>;
+      public EnableAbsoluteComputation<remove_complex<MultiVector<ValueType>>> {
+    friend class Dense<ValueType>;
     friend class MultiVector<to_complex<ValueType>>;
     friend class EnableCloneable<MultiVector>;
     friend class experimental::distributed::Vector<ValueType>;
@@ -147,34 +96,8 @@ public:
     using EnableCloneable<MultiVector>::move_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::convert_to;
     using ConvertibleTo<MultiVector<next_precision<ValueType>>>::move_to;
-    using ConvertibleTo<Coo<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Coo<ValueType, int32>>::move_to;
-    using ConvertibleTo<Coo<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Coo<ValueType, int64>>::move_to;
-    using ConvertibleTo<Csr<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Csr<ValueType, int32>>::move_to;
-    using ConvertibleTo<Csr<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Csr<ValueType, int64>>::move_to;
-    using ConvertibleTo<Ell<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Ell<ValueType, int32>>::move_to;
-    using ConvertibleTo<Ell<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Ell<ValueType, int64>>::move_to;
-    using ConvertibleTo<Fbcsr<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Fbcsr<ValueType, int32>>::move_to;
-    using ConvertibleTo<Fbcsr<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Fbcsr<ValueType, int64>>::move_to;
-    using ConvertibleTo<Hybrid<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Hybrid<ValueType, int32>>::move_to;
-    using ConvertibleTo<Hybrid<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Hybrid<ValueType, int64>>::move_to;
-    using ConvertibleTo<Sellp<ValueType, int32>>::convert_to;
-    using ConvertibleTo<Sellp<ValueType, int32>>::move_to;
-    using ConvertibleTo<Sellp<ValueType, int64>>::convert_to;
-    using ConvertibleTo<Sellp<ValueType, int64>>::move_to;
-    using ConvertibleTo<SparsityCsr<ValueType, int32>>::convert_to;
-    using ConvertibleTo<SparsityCsr<ValueType, int32>>::move_to;
-    using ConvertibleTo<SparsityCsr<ValueType, int64>>::convert_to;
-    using ConvertibleTo<SparsityCsr<ValueType, int64>>::move_to;
+    using ConvertibleTo<Dense<ValueType>>::convert_to;
+    using ConvertibleTo<Dense<ValueType>>::move_to;
     using ReadableFromMatrixData<ValueType, int32>::read;
     using ReadableFromMatrixData<ValueType, int64>::read;
 
@@ -320,61 +243,9 @@ public:
     void move_to(MultiVector<next_precision<ValueType, 3>>* result) override;
 #endif
 
-    void convert_to(Coo<ValueType, int32>* result) const override;
+    void convert_to(Dense<ValueType>* result) const override;
 
-    void move_to(Coo<ValueType, int32>* result) override;
-
-    void convert_to(Coo<ValueType, int64>* result) const override;
-
-    void move_to(Coo<ValueType, int64>* result) override;
-
-    void convert_to(Csr<ValueType, int32>* result) const override;
-
-    void move_to(Csr<ValueType, int32>* result) override;
-
-    void convert_to(Csr<ValueType, int64>* result) const override;
-
-    void move_to(Csr<ValueType, int64>* result) override;
-
-    void convert_to(Ell<ValueType, int32>* result) const override;
-
-    void move_to(Ell<ValueType, int32>* result) override;
-
-    void convert_to(Ell<ValueType, int64>* result) const override;
-
-    void move_to(Ell<ValueType, int64>* result) override;
-
-    void convert_to(Fbcsr<ValueType, int32>* result) const override;
-
-    void move_to(Fbcsr<ValueType, int32>* result) override;
-
-    void convert_to(Fbcsr<ValueType, int64>* result) const override;
-
-    void move_to(Fbcsr<ValueType, int64>* result) override;
-
-    void convert_to(Hybrid<ValueType, int32>* result) const override;
-
-    void move_to(Hybrid<ValueType, int32>* result) override;
-
-    void convert_to(Hybrid<ValueType, int64>* result) const override;
-
-    void move_to(Hybrid<ValueType, int64>* result) override;
-
-    void convert_to(Sellp<ValueType, int32>* result) const override;
-
-    void move_to(Sellp<ValueType, int32>* result) override;
-
-    void convert_to(Sellp<ValueType, int64>* result) const override;
-
-    void move_to(Sellp<ValueType, int64>* result) override;
-
-    void convert_to(SparsityCsr<ValueType, int32>* result) const override;
-
-    void move_to(SparsityCsr<ValueType, int32>* result) override;
-
-    void convert_to(SparsityCsr<ValueType, int64>* result) const override;
-
-    void move_to(SparsityCsr<ValueType, int64>* result) override;
+    void move_to(Dense<ValueType>* result) override;
 
     void read(const mat_data64& data) override;
 
@@ -400,17 +271,18 @@ public:
     std::unique_ptr<LinOp> conj_transpose() const override;
 
     /**
-     * Writes the transposed matrix into the given output matrix.
+     * Writes the transposed multivector into the given output multivector.
      *
-     * @param output  The output matrix. It must have the dimensions
+     * @param output  The output multivector. It must have the dimensions
      *                `gko::transpose(this->get_size())`
      */
     void transpose(ptr_param<MultiVector> output) const;
 
     /**
-     * Writes the conjugate-transposed matrix into the given output matrix.
+     * Writes the conjugate-transposed multivector into the given output
+     * multivector.
      *
-     * @param output  The output matrix. It must have the dimensions
+     * @param output  The output multivector. It must have the dimensions
      *                `gko::transpose(this->get_size())`
      */
     void conj_transpose(ptr_param<MultiVector> output) const;
@@ -423,14 +295,14 @@ public:
     void fill(const ValueType value);
 
     /**
-     * Creates a permuted copy \f$A'\f$ of this matrix \f$A\f$ with the given
-     * permutation \f$P\f$. By default, this computes a symmetric permutation
-     * (permute_mode::symmetric). For the effect of the different permutation
-     * modes, see @ref permute_mode.
+     * Creates a permuted copy \f$A'\f$ of this multivector \f$A\f$ with the
+     * given permutation \f$P\f$. By default, this computes a symmetric
+     * permutation (permute_mode::symmetric). For the effect of the different
+     * permutation modes, see @ref permute_mode.
      *
      * @param permutation  The input permutation.
      * @param mode  The permutation mode, see @ref permute_mode.
-     * @return  The permuted matrix.
+     * @return  The permuted multivector.
      */
     std::unique_ptr<MultiVector> permute(
         ptr_param<const Permutation<int32>> permutation,
@@ -447,7 +319,7 @@ public:
      * Overload of permute(ptr_param<const Permutation<int32>>, permute_mode)
      * that writes the permuted copy into an existing MultiVector.
      * @param permutation  the input permutation.
-     * @param output  the output matrix.
+     * @param output  the output multivector.
      * @param mode  the permutation mode, see @ref permute_mode.
      */
     void permute(ptr_param<const Permutation<int32>> permutation,
@@ -461,9 +333,9 @@ public:
                  ptr_param<MultiVector> output, permute_mode mode) const;
 
     /**
-     * Creates a non-symmetrically permuted copy \f$A'\f$ of this matrix \f$A\f$
-     * with the given row and column permutations \f$P\f$ and \f$Q\f$. The
-     * operation will compute \f$A'(i, j) = A(p[i], q[j])\f$, or \f$A' = P A
+     * Creates a non-symmetrically permuted copy \f$A'\f$ of this multivector
+     * \f$A\f$ with the given row and column permutations \f$P\f$ and \f$Q\f$.
+     * The operation will compute \f$A'(i, j) = A(p[i], q[j])\f$, or \f$A' = P A
      * Q^T\f$ if `invert` is `false`, and \f$A'(p[i], q[j]) = A(i,j)\f$, or
      * \f$A' = P^{-1} A Q^{-T}\f$ if `invert` is `true`.
      *
@@ -472,7 +344,7 @@ public:
      * columns
      * @param invert  If set to `false`, uses the input permutations, otherwise
      *                uses their inverses \f$P^{-1}, Q^{-1}\f$
-     * @return  The permuted matrix.
+     * @return  The permuted multivector.
      */
     std::unique_ptr<MultiVector> permute(
         ptr_param<const Permutation<int32>> row_permutation,
@@ -494,7 +366,7 @@ public:
      * existing MultiVector.
      * @param row_permutation  the row permutation.
      * @param column_permutation  the column permutation.
-     * @param output  the output matrix.
+     * @param output  the output multivector.
      * @param invert  if true, the inverse permutations are used.
      */
     void permute(ptr_param<const Permutation<int32>> row_permutation,
@@ -510,13 +382,13 @@ public:
                  ptr_param<MultiVector> output, bool invert = false) const;
 
     /**
-     * Creates a scaled and permuted copy of this matrix.
+     * Creates a scaled and permuted copy of this multivector.
      * For an explanation of the permutation modes, see
      * @ref permute(ptr_param<const Permutation<index_type>>, permute_mode)
      *
      * @param permutation  The scaled permutation.
      * @param mode  The permutation mode.
-     * @return The permuted matrix.
+     * @return The permuted multivector.
      */
     std::unique_ptr<MultiVector> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> permutation,
@@ -535,7 +407,7 @@ public:
      * int32>>, permute_mode) that writes the permuted copy into an
      * existing MultiVector.
      * @param permutation  the input scaled permutation.
-     * @param output  the output matrix.
+     * @param output  the output multivector.
      * @param mode  the permutation mode, see @ref permute_mode.
      */
     void scale_permute(
@@ -551,7 +423,7 @@ public:
         ptr_param<MultiVector> output, permute_mode mode) const;
 
     /**
-     * Creates a scaled and permuted copy of this matrix.
+     * Creates a scaled and permuted copy of this multivector.
      * For an explanation of the parameters, see
      * @ref permute(ptr_param<const Permutation<index_type>>, ptr_param<const
      * Permutation<index_type>>, permute_mode)
@@ -560,7 +432,7 @@ public:
      * @param column_permutation  The scaled column permutation.
      * @param invert  If set to `false`, uses the input permutations, otherwise
      *                uses their inverses \f$P^{-1}, Q^{-1}\f$
-     * @return The permuted matrix.
+     * @return The permuted multivector.
      */
     std::unique_ptr<MultiVector> scale_permute(
         ptr_param<const ScaledPermutation<value_type, int32>> row_permutation,
@@ -584,7 +456,7 @@ public:
      * that writes the permuted copy into an existing MultiVector.
      * @param row_permutation  the row scaled permutation.
      * @param column_permutation  the column scaled permutation.
-     * @param output  the output matrix.
+     * @param output  the output multivector.
      * @param invert  if true, the inverse permutations are used.
      */
     void scale_permute(
@@ -611,11 +483,12 @@ public:
         const array<int64>* permutation_indices) const override;
 
     /**
-     * Writes the symmetrically permuted matrix into the given output matrix.
+     * Writes the symmetrically permuted multivector into the given output
+     * multivector.
      *
      * @param permutation_indices  The array containing permutation indices.
      *                             It must have `this->get_size()[0]` elements.
-     * @param output  The output matrix. It must have the dimensions
+     * @param output  The output multivector. It must have the dimensions
      *                `this->get_size()`
      * @see MultiVector::permute(const array<int32>*)
      */
@@ -635,12 +508,12 @@ public:
         const array<int64>* permutation_indices) const override;
 
     /**
-     * Writes the inverse symmetrically permuted matrix into the given output
-     * matrix.
+     * Writes the inverse symmetrically permuted multivector into the given
+     * output multivector.
      *
      * @param permutation_indices  The array containing permutation indices.
      *                             It must have `this->get_size()[0]` elements.
-     * @param output  The output matrix. It must have the dimensions
+     * @param output  The output multivector. It must have the dimensions
      *                `this->get_size()`
      * @see MultiVector::inverse_permute(const array<int32>*)
      */
@@ -660,11 +533,11 @@ public:
         const array<int64>* permutation_indices) const override;
 
     /**
-     * Writes the row-permuted matrix into the given output matrix.
+     * Writes the row-permuted multivector into the given output multivector.
      *
      * @param permutation_indices  The array containing permutation indices.
      *                             It must have `this->get_size()[0]` elements.
-     * @param output  The output matrix. It must have the dimensions
+     * @param output  The output multivector. It must have the dimensions
      *                `this->get_size()`
      * @see MultiVector::row_permute(const array<int32>*)
      */
@@ -679,13 +552,13 @@ public:
 
     /**
      * Create a MultiVector consisting of the given rows from this
-     * matrix.
+     * multivector.
      *
      * @param gather_indices  pointer to an array containing row indices
-     *                        from this matrix. It may contain duplicates.
+     *                        from this multivector. It may contain duplicates.
      * @return  MultiVector on the same executor with the same number of
      *          columns and `gather_indices->get_size()` rows containing
-     *          the gathered rows from this matrix:
+     *          the gathered rows from this multivector:
      *          `output(i,j) = input(gather_indices(i), j)`
      */
     std::unique_ptr<MultiVector> row_gather(
@@ -698,16 +571,16 @@ public:
         const array<int64>* gather_indices) const;
 
     /**
-     * Copies the given rows from this matrix into `row_collection`
+     * Copies the given rows from this multivector into `row_collection`
      *
      * @param gather_indices  pointer to an array containing row indices
-     *                        from this matrix. It may contain duplicates.
+     *                        from this multivector. It may contain duplicates.
      * @param row_collection  pointer to a LinOp that will store the gathered
      *                        rows:
      *                        `row_collection(i,j)
      *                         = input(gather_indices(i), j)`
      *                        It must have the same number of columns as this
-     *                        matrix and `gather_indices->get_size()` rows.
+     *                        multivector and `gather_indices->get_size()` rows.
      */
     void row_gather(const array<int32>* gather_indices,
                     ptr_param<LinOp> row_collection) const;
@@ -719,17 +592,18 @@ public:
                     ptr_param<LinOp> row_collection) const;
 
     /**
-     * Copies the given rows from this matrix into `row_collection` with scaling
+     * Copies the given rows from this multivector into `row_collection` with
+     * scaling
      *
      * @param alpha  scaling the result of row gathering
      * @param gather_indices  pointer to an array containing row indices
-     *                        from this matrix. It may contain duplicates.
+     *                        from this multivector. It may contain duplicates.
      * @param beta  scaling the input row_collection
      * @param row_collection  pointer to a LinOp that will store the
      *             gathered rows:
      *             `row_collection(i,j) = input(gather_indices(i), j)`
      *             It must have the same number of columns as this
-     *             matrix and `gather_indices->get_size()` rows.
+     *             multivector and `gather_indices->get_size()` rows.
      */
     void row_gather(ptr_param<const LinOp> alpha,
                     const array<int32>* gather_indices,
@@ -746,16 +620,17 @@ public:
                     ptr_param<LinOp> row_collection) const;
 
     /**
-     * Accumulates rows from `source` into this matrix at scattered positions:
+     * Accumulates rows from `source` into this multivector at scattered
+     * positions:
      *     `this(scatter_indices(i), j) += source(i, j)`
      *
      * @param scatter_indices  pointer to an array containing target row
-     *                         indices in this matrix. May contain duplicates
-     *                         (contributions are summed).
-     * @param source  the source matrix whose rows are scattered into this.
-     *                Must have the same number of columns as this matrix
+     *                         indices in this multivector. May contain
+     *                         duplicates (contributions are summed).
+     * @param source  the source multivector whose rows are scattered into this.
+     *                Must have the same number of columns as this multivector
      *                and `scatter_indices->get_size()` rows. If its value
-     *                type differs from this matrix, it is converted first.
+     *                type differs from this multivector, it is converted first.
      */
     void scatter_add(const array<int32>* scatter_indices,
                      ptr_param<const LinOp> source);
@@ -773,11 +648,11 @@ public:
         const array<int64>* permutation_indices) const override;
 
     /**
-     * Writes the column-permuted matrix into the given output matrix.
+     * Writes the column-permuted multivector into the given output multivector.
      *
      * @param permutation_indices  The array containing permutation indices.
      *                             It must have `this->get_size()[1]` elements.
-     * @param output  The output matrix. It must have the dimensions
+     * @param output  The output multivector. It must have the dimensions
      *                `this->get_size()`
      * @see MultiVector::column_permute(const array<int32>*)
      */
@@ -797,11 +672,12 @@ public:
         const array<int64>* permutation_indices) const override;
 
     /**
-     * Writes the inverse row-permuted matrix into the given output matrix.
+     * Writes the inverse row-permuted multivector into the given output
+     * multivector.
      *
      * @param permutation_indices  The array containing permutation indices.
      *                             It must have `this->get_size()[0]` elements.
-     * @param output  The output matrix. It must have the dimensions
+     * @param output  The output multivector. It must have the dimensions
      *                `this->get_size()`
      * @see MultiVector::inverse_row_permute(const array<int32>*)
      */
@@ -822,11 +698,12 @@ public:
         const array<int64>* permutation_indices) const override;
 
     /**
-     * Writes the inverse column-permuted matrix into the given output matrix.
+     * Writes the inverse column-permuted multivector into the given output
+     * multivector.
      *
      * @param permutation_indices  The array containing permutation indices.
      *                             It must have `this->get_size()[1]` elements.
-     * @param output  The output matrix. It must have the dimensions
+     * @param output  The output multivector. It must have the dimensions
      *                `this->get_size()`
      * @see MultiVector::inverse_column_permute(const array<int32>*)
      */
@@ -839,17 +716,6 @@ public:
      */
     void inverse_column_permute(const array<int64>* permutation_indices,
                                 ptr_param<MultiVector> output) const;
-
-    std::unique_ptr<Diagonal<ValueType>> extract_diagonal() const override;
-
-    /**
-     * Writes the diagonal of this matrix into an existing diagonal matrix.
-     *
-     * @param output  The output matrix. Its size must match the size of this
-     *                matrix's diagonal.
-     * @see MultiVector::extract_diagonal()
-     */
-    void extract_diagonal(ptr_param<Diagonal<ValueType>> output) const;
 
     std::unique_ptr<absolute_type> compute_absolute() const override;
 
@@ -901,7 +767,7 @@ public:
     void get_imag(ptr_param<real_type> result) const;
 
     /**
-     * Returns a pointer to the array of values of the matrix.
+     * Returns a pointer to the array of values of the multivector.
      *
      * @return the pointer to the array of values
      */
@@ -920,16 +786,16 @@ public:
     }
 
     /**
-     * Returns the stride of the matrix.
+     * Returns the stride of the multivector.
      *
-     * @return the stride of the matrix.
+     * @return the stride of the multivector.
      */
     size_type get_stride() const noexcept { return stride_; }
 
     /**
-     * Returns the number of elements explicitly stored in the matrix.
+     * Returns the number of elements explicitly stored in the multivector.
      *
-     * @return the number of elements explicitly stored in the matrix
+     * @return the number of elements explicitly stored in the multivector
      */
     size_type get_num_stored_elements() const noexcept
     {
@@ -941,14 +807,14 @@ public:
     const_device_view get_const_device_view() const;
 
     /**
-     * Returns a single element of the matrix.
+     * Returns a single element of the multivector.
      *
      * @param row  the row of the requested element
      * @param col  the column of the requested element
      *
-     * @note  the method has to be called on the same Executor the matrix is
-     *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the OMP results in a runtime error)
+     * @note  the method has to be called on the same Executor the
+     *        multivector is stored at (e.g. trying to call this method on a
+     *        GPU multivector from the OMP results in a runtime error)
      */
     value_type& at(size_type row, size_type col) noexcept
     {
@@ -964,18 +830,18 @@ public:
     }
 
     /**
-     * Returns a single element of the matrix.
+     * Returns a single element of the multivector.
      *
-     * Useful for iterating across all elements of the matrix.
+     * Useful for iterating across all elements of the multivector.
      * However, it is less efficient than the two-parameter variant of this
      * method.
      *
      * @param idx  a linear index of the requested element
      *             (ignoring the stride)
      *
-     * @note  the method has to be called on the same Executor the matrix is
-     *        stored at (e.g. trying to call this method on a GPU matrix from
-     *        the OMP results in a runtime error)
+     * @note  the method has to be called on the same Executor the
+     *        multivector is stored at (e.g. trying to call this method on a
+     *        GPU multivector from the OMP results in a runtime error)
      */
     ValueType& at(size_type idx) noexcept
     {
@@ -1153,7 +1019,7 @@ public:
     void compute_squared_norm2(ptr_param<LinOp> result, array<char>& tmp) const;
 
     /**
-     * Computes the column-wise arithmetic mean of this matrix.
+     * Computes the column-wise arithmetic mean of this multivector.
      *
      * @param result  a MultiVector row vector, used to store the mean
      *                (the number of columns in the vector must match the number
@@ -1162,7 +1028,7 @@ public:
     void compute_mean(ptr_param<LinOp> result) const;
 
     /**
-     * Computes the column-wise arithmetic mean of this matrix.
+     * Computes the column-wise arithmetic mean of this multivector.
      *
      * @param result  a MultiVector row vector, used to store the mean
      *                (the number of columns in the vector must match the
@@ -1237,14 +1103,14 @@ public:
     /**
      * Creates an uninitialized MultiVector of the specified size.
      *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
+     * @param exec  Executor associated to the multivector
+     * @param size  size of the multivector
      * @param stride  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements).
+     *                  number of multivector elements).
      *                  If it is set to 0, size[1] will be used instead.
      *
-     * @return A smart pointer to the newly created matrix.
+     * @return A smart pointer to the newly created multivector.
      */
     static std::unique_ptr<MultiVector> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size = {},
@@ -1254,18 +1120,18 @@ public:
      * Creates a MultiVector from an already allocated (and initialized)
      * array.
      *
-     * @param exec  Executor associated to the matrix
-     * @param size  size of the matrix
-     * @param values  array of matrix values
+     * @param exec  Executor associated to the multivector
+     * @param size  size of the multivector
+     * @param values  array of multivector values
      * @param stride  stride of the rows (i.e. offset between the first
      *                  elements of two consecutive rows, expressed as the
-     *                  number of matrix elements)
+     *                  number of multivector elements)
      *
      * @note If `values` is not an rvalue, not an array of ValueType, or is on
      *       the wrong executor, an internal copy will be created, and the
-     *       original array data will not be used in the matrix.
+     *       original array data will not be used in the multivector.
      *
-     * @return A smart pointer to the newly created matrix.
+     * @return A smart pointer to the newly created multivector.
      */
     static std::unique_ptr<MultiVector> create(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
@@ -1290,22 +1156,27 @@ public:
     /**
      * Creates a constant (immutable) MultiVector from a constant array.
      *
-     * @param exec  the executor to create the matrix on
-     * @param size  the dimensions of the matrix
-     * @param values  the value array of the matrix
-     * @param stride  the row-stride of the matrix
-     * @returns A smart pointer to the constant matrix wrapping the input array
-     *          (if it resides on the same executor as the matrix) or a copy of
-     *          the array on the correct executor.
+     * @param exec  the executor to create the multivector on
+     * @param size  the dimensions of the multivector
+     * @param values  the value array of the multivector
+     * @param stride  the row-stride of the multivector
+     * @returns A smart pointer to the constant multivector wrapping the
+     *          input array (if it resides on the same executor as the
+     *          multivector) or a copy of the array on the correct executor.
      */
     static std::unique_ptr<const MultiVector> create_const(
         std::shared_ptr<const Executor> exec, const dim<2>& size,
         gko::detail::const_array_view<ValueType>&& values, size_type stride);
 
+    [[nodiscard]] std::unique_ptr<const Dense<ValueType>> as_const_dense_view()
+        const;
+
+    [[nodiscard]] std::unique_ptr<Dense<ValueType>> as_dense_view();
+
     /**
      * Copy-assigns a MultiVector. Preserves the executor, reallocates
-     * the matrix with minimal stride if the dimensions don't match, then copies
-     * the data over, ignoring padding.
+     * the multivector with minimal stride if the dimensions don't match, then
+     * copies the data over, ignoring padding.
      */
     MultiVector& operator=(const MultiVector&);
 
@@ -1349,9 +1220,9 @@ protected:
     }
 
     /**
-     * Creates a MultiVector with the same type as the callers matrix.
+     * Creates a MultiVector with the same type as the callers multivector.
      *
-     * @param size  size of the matrix
+     * @param size  size of the multivector
      *
      * @returns a MultiVector with the same type as the caller.
      */
@@ -1393,27 +1264,6 @@ protected:
                                        this->get_const_values()),
             this->get_stride());
     }
-
-    template <typename IndexType>
-    void convert_impl(Coo<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Csr<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Ell<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Fbcsr<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Hybrid<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(Sellp<ValueType, IndexType>* result) const;
-
-    template <typename IndexType>
-    void convert_impl(SparsityCsr<ValueType, IndexType>* result) const;
 
     /**
      * @copydoc scale(const LinOp *)
@@ -1493,12 +1343,12 @@ protected:
     virtual void compute_mean_impl(LinOp* result) const;
 
     /**
-     * Resizes the matrix to the given size.
+     * Resizes the multivector to the given size.
      *
      * If the new size matches the current size, the stride will be left
      * unchanged, otherwise it will be set to the number of columns.
      *
-     * @param new_size  the new matrix dimensions
+     * @param new_size  the new multivector dimensions
      */
     void resize(gko::dim<2> new_size);
 
@@ -1565,8 +1415,6 @@ protected:
 private:
     size_type stride_;
     array<value_type> values_;
-
-    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
 };
 
 
@@ -1626,159 +1474,6 @@ make_const_dense_view(VecPtr&& vector)
 {
     using value_type = typename detail::pointee<VecPtr>::value_type;
     return matrix::MultiVector<value_type>::create_const_view_of(vector);
-}
-
-
-/**
- * Creates and initializes a column-vector.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the matrix to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                 interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param stride  row stride for the temporary MultiVector
- * @param vals  values used to initialize the vector
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    size_type stride, std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    using multi_vector = matrix::MultiVector<typename Matrix::value_type>;
-    size_type num_rows = vals.size();
-    auto tmp =
-        multi_vector::create(exec->get_master(), dim<2>{num_rows, 1}, stride);
-    size_type idx = 0;
-    for (const auto& elem : vals) {
-        tmp->at(idx) = elem;
-        ++idx;
-    }
-    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx);
-    return mtx;
-}
-
-/**
- * Creates and initializes a column-vector.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the matrix to the requested type. The
- * stride of the intermediate MultiVector is set to 1.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                 interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param vals  values used to initialize the vector
- * @param exec  Executor associated to the vector
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    std::initializer_list<typename Matrix::value_type> vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    return initialize<Matrix>(1, vals, std::move(exec),
-                              std::forward<TArgs>(create_args)...);
-}
-
-
-/**
- * Creates and initializes a matrix.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the matrix to the requested type.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                 interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param stride  row stride for the temporary MultiVector
- * @param vals  values used to initialize the matrix
- * @param exec  Executor associated to the matrix
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    size_type stride,
-    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    using multi_vector = matrix::MultiVector<typename Matrix::value_type>;
-    size_type num_rows = vals.size();
-    size_type num_cols = num_rows > 0 ? begin(vals)->size() : 1;
-    auto tmp = multi_vector::create(exec->get_master(),
-                                    dim<2>{num_rows, num_cols}, stride);
-    size_type ridx = 0;
-    for (const auto& row : vals) {
-        size_type cidx = 0;
-        for (const auto& elem : row) {
-            tmp->at(ridx, cidx) = elem;
-            ++cidx;
-        }
-        ++ridx;
-    }
-    auto mtx = Matrix::create(exec, std::forward<TArgs>(create_args)...);
-    tmp->move_to(mtx);
-    return mtx;
-}
-
-
-/**
- * Creates and initializes a matrix.
- *
- * This function first creates a temporary MultiVector, fills it with
- * passed in values, and then converts the matrix to the requested type. The
- * stride of the intermediate MultiVector is set to the number of columns
- * of the initializer list.
- *
- * @tparam Matrix  matrix type to initialize
- *                 (MultiVector has to implement the ConvertibleTo<Matrix>
- *                  interface)
- * @tparam TArgs  argument types for Matrix::create method
- *                (not including the implied Executor as the first argument)
- *
- * @param vals  values used to initialize the matrix
- * @param exec  Executor associated to the matrix
- * @param create_args  additional arguments passed to Matrix::create, not
- *                     including the Executor, which is passed as the first
- *                     argument
- *
- * @ingroup LinOp
- */
-template <typename Matrix, typename... TArgs>
-std::unique_ptr<Matrix> initialize(
-    std::initializer_list<std::initializer_list<typename Matrix::value_type>>
-        vals,
-    std::shared_ptr<const Executor> exec, TArgs&&... create_args)
-{
-    return initialize<Matrix>(vals.size() > 0 ? begin(vals)->size() : 0, vals,
-                              std::move(exec),
-                              std::forward<TArgs>(create_args)...);
 }
 
 

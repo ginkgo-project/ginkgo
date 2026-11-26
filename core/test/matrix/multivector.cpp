@@ -6,12 +6,10 @@
 
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/base/range.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
-
-
-namespace {
 
 
 template <typename T>
@@ -566,5 +564,3 @@ TYPED_TEST(MultiVector, AllowsInfinitePaddingValue)
 
     ASSERT_NO_THROW(m->validate_data());
 }
-
-}  // namespace

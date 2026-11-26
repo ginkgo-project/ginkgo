@@ -8,6 +8,7 @@
 
 #include <ginkgo/core/base/exception.hpp>
 #include <ginkgo/core/base/executor.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 #include <ginkgo/core/solver/gmres.hpp>
 #include <ginkgo/core/solver/ir.hpp>
@@ -26,10 +27,11 @@ class Ir : public ::testing::Test {
 protected:
     using value_type = T;
     using Mtx = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Solver = gko::solver::Ir<value_type>;
     Ir()
         : exec(gko::ReferenceExecutor::create()),
-          mtx(gko::initialize<Mtx>(
+          mtx(gko::initialize<Dense>(
               {{0.9, -1.0, 3.0}, {0.0, 1.0, 3.0}, {0.0, 0.0, 1.1}}, exec)),
           // Eigenvalues of mtx are 0.9, 1.0 and 1.1
           // Richardson iteration, converges since
@@ -59,7 +61,7 @@ protected:
     }
 
     std::shared_ptr<const gko::ReferenceExecutor> exec;
-    std::shared_ptr<Mtx> mtx;
+    std::shared_ptr<Dense> mtx;
     std::unique_ptr<typename Solver::Factory> ir_factory;
 };
 
@@ -186,12 +188,13 @@ TYPED_TEST(Ir, SolvesTriangularSystemWithIterativeInnerSolver)
 TYPED_TEST(Ir, SolvesScaledSystemWithInexactInnerSolver)
 {
     using Mtx = typename TestFixture::Mtx;
+    using Dense = typename TestFixture::Dense;
     using value_type = typename TestFixture::value_type;
     // 16 * tridiag(-1, 4, -1). The inner GMRES runs a single iteration, so
     // each correction depends on the inner initial guess. A zero guess gives
     // the same iterates as for the unscaled matrix, while starting from the
     // residual (which scales with A, not with A^{-1}) makes IR diverge.
-    auto mtx = gko::share(gko::initialize<Mtx>(
+    auto mtx = gko::share(gko::initialize<Dense>(
         {{64.0, -16.0, 0.0}, {-16.0, 64.0, -16.0}, {0.0, -16.0, 64.0}},
         this->exec));
     auto inner_solver_factory = gko::share(

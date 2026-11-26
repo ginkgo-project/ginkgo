@@ -14,6 +14,7 @@
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/matrix/coo.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
 
 #include "core/test/utils.hpp"
@@ -58,6 +59,7 @@ protected:
     using index_type =
         typename std::tuple_element<1, decltype(ValueIndexType())>::type;
     using MultiVector = gko::matrix::MultiVector<value_type>;
+    using Dense = gko::matrix::Dense<value_type>;
     using Coo = gko::matrix::Coo<value_type, index_type>;
     using Csr = gko::matrix::Csr<value_type, index_type>;
     using ilu_type = gko::factorization::Ilu<value_type, index_type>;
@@ -65,59 +67,59 @@ protected:
         : ref(gko::ReferenceExecutor::create()),
           exec(std::static_pointer_cast<const gko::Executor>(ref)),
           // clang-format off
-          identity(gko::initialize<MultiVector>(
+          identity(gko::initialize<Dense>(
               {{1., 0., 0.},
                {0., 1., 0.},
                {0., 0., 1.}}, exec)),
-          lower_triangular(gko::initialize<MultiVector>(
+          lower_triangular(gko::initialize<Dense>(
               {{1., 0., 0.},
                {1., 1., 0.},
                {1., 1., 1.}}, exec)),
-          upper_triangular(gko::initialize<MultiVector>(
+          upper_triangular(gko::initialize<Dense>(
               {{1., 1., 1.},
                {0., 1., 1.},
                {0., 0., 1.}}, exec)),
-          mtx_small(gko::initialize<MultiVector>(
+          mtx_small(gko::initialize<Dense>(
               {{4., 6., 8.},
                {2., 2., 5.},
                {1., 1., 1.}}, exec)),
           mtx_csr_small(nullptr),
-          small_l_expected(gko::initialize<MultiVector>(
+          small_l_expected(gko::initialize<Dense>(
               {{1., 0., 0.},
                {0.5, 1., 0.},
                {0.25, 0.5, 1.}}, exec)),
-          small_u_expected(gko::initialize<MultiVector>(
+          small_u_expected(gko::initialize<Dense>(
               {{4., 6., 8.},
                {0., -1., 1.},
                {0., 0., -1.5}}, exec)),
-          mtx_small2(gko::initialize<MultiVector>(
+          mtx_small2(gko::initialize<Dense>(
               {{8., 8., 0},
               {2., 0., 5.},
               {1., 1., 1}}, exec)),
           mtx_csr_small2(nullptr),
-          small2_l_expected(gko::initialize<MultiVector>(
+          small2_l_expected(gko::initialize<Dense>(
               {{1., 0., 0},
               {.25, 1., 0.},
               {.125, 0., 1}}, exec)),
-          small2_u_expected(gko::initialize<MultiVector>(
+          small2_u_expected(gko::initialize<Dense>(
               {{8., 8., 0},
               {0., -2., 5.},
               {0., 0., 1}}, exec)),
-          mtx_big(gko::initialize<MultiVector>({{1., 1., 1., 0., 1., 3.},
+          mtx_big(gko::initialize<Dense>({{1., 1., 1., 0., 1., 3.},
                                           {1., 2., 2., 0., 2., 0.},
                                           {0., 2., 3., 3., 3., 5.},
                                           {1., 0., 3., 4., 4., 4.},
                                           {1., 2., 0., 4., 5., 6.},
                                           {0., 2., 3., 4., 5., 8.}},
                                          exec)),
-          big_l_expected(gko::initialize<MultiVector>({{1., 0., 0., 0., 0., 0.},
+          big_l_expected(gko::initialize<Dense>({{1., 0., 0., 0., 0., 0.},
                                                  {1., 1., 0., 0., 0., 0.},
                                                  {0., 2., 1., 0., 0., 0.},
                                                  {1., 0., 2., 1., 0., 0.},
                                                  {1., 1., 0., -2., 1., 0.},
                                                  {0., 2., 1., -0.5, 0.5, 1.}},
                                                 exec)),
-          big_u_expected(gko::initialize<MultiVector>({{1., 1., 1., 0., 1., 3.},
+          big_u_expected(gko::initialize<Dense>({{1., 1., 1., 0., 1., 3.},
                                                  {0., 1., 1., 0., 1., 0.},
                                                  {0., 0., 1., 3., 1., 5.},
                                                  {0., 0., 0., -2., 1., -9.},
@@ -131,7 +133,7 @@ protected:
                                                {1., 2., 0., 4., 1., 6.},
                                                {0., 2., 3., 4., 5., 8.}},
                                          exec)),
-          big_nodiag_l_expected(gko::initialize<MultiVector>(
+          big_nodiag_l_expected(gko::initialize<Dense>(
             {{1., 0., 0., 0., 0., 0.},
              {1., 1., 0., 0., 0., 0.},
              {0., 2., 1., 0., 0., 0.},
@@ -139,7 +141,7 @@ protected:
              {1., 1., 0., 0.571428571428571, 1., 0.},
              {0., 2., -0.5, 0.785714285714286, -0.108695652173913, 1.}},
             exec)),
-          big_nodiag_u_expected(gko::initialize<MultiVector>(
+          big_nodiag_u_expected(gko::initialize<Dense>(
             {{1., 1., 1., 0., 1., 3.},
              {0., 1., 1., 0., 1., 0.},
              {0., 0., -2., 3., 1., 5.},
@@ -161,23 +163,23 @@ protected:
 
     std::shared_ptr<gko::ReferenceExecutor> ref;
     std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<const MultiVector> identity;
-    std::shared_ptr<const MultiVector> lower_triangular;
-    std::shared_ptr<const MultiVector> upper_triangular;
-    std::shared_ptr<const MultiVector> mtx_small;
+    std::shared_ptr<const Dense> identity;
+    std::shared_ptr<const Dense> lower_triangular;
+    std::shared_ptr<const Dense> upper_triangular;
+    std::shared_ptr<const Dense> mtx_small;
     std::shared_ptr<const Csr> mtx_csr_small;
-    std::shared_ptr<const MultiVector> small_l_expected;
-    std::shared_ptr<const MultiVector> small_u_expected;
-    std::shared_ptr<const MultiVector> mtx_small2;
+    std::shared_ptr<const Dense> small_l_expected;
+    std::shared_ptr<const Dense> small_u_expected;
+    std::shared_ptr<const Dense> mtx_small2;
     std::shared_ptr<const Csr> mtx_csr_small2;
-    std::shared_ptr<const MultiVector> small2_l_expected;
-    std::shared_ptr<const MultiVector> small2_u_expected;
-    std::shared_ptr<const MultiVector> mtx_big;
-    std::shared_ptr<const MultiVector> big_l_expected;
-    std::shared_ptr<const MultiVector> big_u_expected;
+    std::shared_ptr<const Dense> small2_l_expected;
+    std::shared_ptr<const Dense> small2_u_expected;
+    std::shared_ptr<const Dense> mtx_big;
+    std::shared_ptr<const Dense> big_l_expected;
+    std::shared_ptr<const Dense> big_u_expected;
     std::shared_ptr<const Csr> mtx_big_nodiag;
-    std::shared_ptr<const MultiVector> big_nodiag_l_expected;
-    std::shared_ptr<const MultiVector> big_nodiag_u_expected;
+    std::shared_ptr<const Dense> big_nodiag_l_expected;
+    std::shared_ptr<const Dense> big_nodiag_u_expected;
     std::unique_ptr<typename ilu_type::Factory> ilu_factory_skip;
     std::unique_ptr<typename ilu_type::Factory> ilu_factory_sort;
 };
@@ -319,7 +321,7 @@ TYPED_TEST(Ilu, GenerateForCsrIdentity)
 }
 
 
-TYPED_TEST(Ilu, GenerateForMultiVectorIdentity)
+TYPED_TEST(Ilu, GenerateForDenseIdentity)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->identity);
@@ -331,7 +333,7 @@ TYPED_TEST(Ilu, GenerateForMultiVectorIdentity)
 }
 
 
-TYPED_TEST(Ilu, GenerateForMultiVectorLowerTriangular)
+TYPED_TEST(Ilu, GenerateForDenseLowerTriangular)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->lower_triangular);
@@ -343,7 +345,7 @@ TYPED_TEST(Ilu, GenerateForMultiVectorLowerTriangular)
 }
 
 
-TYPED_TEST(Ilu, GenerateForMultiVectorUpperTriangular)
+TYPED_TEST(Ilu, GenerateForDenseUpperTriangular)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->upper_triangular);
@@ -371,7 +373,7 @@ TYPED_TEST(Ilu, ApplyMethodMultiVectorSmall)
 }
 
 
-TYPED_TEST(Ilu, GenerateForMultiVectorSmall)
+TYPED_TEST(Ilu, GenerateForDenseSmall)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->mtx_small);
@@ -531,7 +533,7 @@ TYPED_TEST(Ilu, GenerateForCsrBigWithDiagonalZeros)
 }
 
 
-TYPED_TEST(Ilu, GenerateForMultiVectorBig)
+TYPED_TEST(Ilu, GenerateForDenseBig)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_skip->generate(this->mtx_big);
@@ -543,7 +545,7 @@ TYPED_TEST(Ilu, GenerateForMultiVectorBig)
 }
 
 
-TYPED_TEST(Ilu, GenerateForMultiVectorBigSort)
+TYPED_TEST(Ilu, GenerateForDenseBigSort)
 {
     using value_type = typename TestFixture::value_type;
     auto factors = this->ilu_factory_sort->generate(this->mtx_big);

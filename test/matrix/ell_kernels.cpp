@@ -12,6 +12,7 @@
 #include <ginkgo/core/base/exception_helpers.hpp>
 #include <ginkgo/core/base/executor.hpp>
 #include <ginkgo/core/matrix/csr.hpp>
+#include <ginkgo/core/matrix/dense.hpp>
 #include <ginkgo/core/matrix/diagonal.hpp>
 #include <ginkgo/core/matrix/ell.hpp>
 #include <ginkgo/core/matrix/multivector.hpp>
@@ -45,13 +46,13 @@ protected:
     {
         mtx = Mtx::create(ref, gko::dim<2>{}, num_stored_elements_per_row,
                           stride);
-        mtx->move_from(gen_mtx(num_rows, num_cols));
+        mtx->move_from(gen_mtx<Mtx>(num_rows, num_cols));
         expected = gen_mtx(num_rows, num_vectors);
         expected2 = Vec2::create(ref);
-        expected2->copy_from(expected);
+        expected->convert_to(expected2.get());
         y = gen_mtx(num_cols, num_vectors);
         y2 = Vec2::create(ref);
-        y2->copy_from(y);
+        y->convert_to(y2);
         alpha = gko::initialize<Vec>({2.0}, ref);
         alpha2 = gko::initialize<Vec2>({2.0}, ref);
         beta = gko::initialize<Vec>({-1.0}, ref);
@@ -493,12 +494,12 @@ TEST_F(Ell, AdvancedApplyToComplexIsEquivalentToRef)
 }
 
 
-TEST_F(Ell, ConvertToMultiVectorIsEquivalentToRef)
+TEST_F(Ell, ConvertToDenseIsEquivalentToRef)
 {
     set_up_apply_data();
 
-    auto dense_mtx = gko::matrix::MultiVector<value_type>::create(ref);
-    auto ddense_mtx = gko::matrix::MultiVector<value_type>::create(exec);
+    auto dense_mtx = gko::matrix::Dense<value_type>::create(ref);
+    auto ddense_mtx = gko::matrix::Dense<value_type>::create(exec);
 
     mtx->convert_to(dense_mtx);
     dmtx->convert_to(ddense_mtx);
