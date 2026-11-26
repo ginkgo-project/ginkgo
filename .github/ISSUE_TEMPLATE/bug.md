@@ -15,6 +15,11 @@ labels: 'is:bug'
 ## Current Behavior
 <!--- Tell us what happens instead of the expected behavior. -->
 
+## For Build Failures: Build Log
+<!--- For build failures, paste the full Cmake/compiler error output here
+      either directly or as a file, if it is too long. -->
+
+
 ## Steps to Reproduce
 <!--- Provide a clear set of steps to reproduce this bug. -->
 <!--- Include code to reproduce, if relevant. -->
