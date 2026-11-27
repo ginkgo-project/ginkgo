@@ -1,0 +1,14 @@
+extensions/cuda/solver/cudss.cpp
+  h_0aeb61ed714320 297-298,332-333
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.6",
+  "base_commit_sha": "597c3dcb30cbda33c74ccf6948bb8d15d4b60c03",
+  "prompts": {},
+  "humans": {
+    "h_0aeb61ed714320": {
+      "author": "Marcel Koch <marcel.koch@kit.edu>"
+    }
+  }
+}
