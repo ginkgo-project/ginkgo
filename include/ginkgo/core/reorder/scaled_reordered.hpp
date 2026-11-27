@@ -34,8 +34,11 @@ namespace reorder {
  * inner operator is applied to the system matrix P*R*A*C*P^T instead of A.
  * Instead of A*x = b, the inner operator attempts to solve the equivalent
  * linear system P*R*A*C*P^T*y = P*R*b and retrieves the solution x = C*P^T*y.
- * Note: The inner system matrix is computed from a clone of A, so the original
- * system matrix is not changed.
+ *
+ * @note The inner system matrix is computed from a clone of A, so the original
+ *       system matrix is not changed.
+ * @note The inner system matrix has to be convertible to the
+ *       matrix::Csr<ValueType, IndexType> format.
  *
  * @tparam ValueType  Type of the values of all matrices used in this class
  * @tparam IndexType  Type of the indices of all matrices used in this class
@@ -105,6 +108,8 @@ protected:
                              std::shared_ptr<const LinOp> system_matrix)
         : LinOp(factory->get_executor(), system_matrix->get_size()),
           parameters_{factory->get_parameters()},
+          system_matrix_(matrix::Csr<ValueType, IndexType>::create(
+              factory->get_executor())),
           permutation_array_{factory->get_executor()}
     {
         // For now only support square matrices.
@@ -112,7 +117,8 @@ protected:
 
         auto exec = this->get_executor();
 
-        system_matrix_ = gko::clone(exec, system_matrix);
+        as<ConvertibleTo<matrix::Csr<ValueType, IndexType>>>(system_matrix)
+            ->convert_to(system_matrix_);
 
         // Scale the system matrix if scaling coefficients are provided
         if (parameters_.row_scaling) {
@@ -133,8 +139,8 @@ protected:
         if (parameters_.reordering) {
             auto reordering = parameters_.reordering->generate(system_matrix_);
             permutation_array_ = reordering->get_permutation_array();
-            system_matrix_ = as<Permutable<index_type>>(system_matrix_)
-                                 ->permute(&permutation_array_);
+            system_matrix_ = as<matrix::Csr<ValueType, IndexType>>(
+                system_matrix_->permute(&permutation_array_));
         }
 
         // Generate the inner operator with the scaled and reordered system
@@ -148,10 +154,13 @@ protected:
         }
     }
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     /**
      * Prepares the intermediate right hand side, solution and intermediate
@@ -164,7 +173,8 @@ protected:
      * case the inner operator uses an initial guess, will be scaled and
      * permuted accordingly.
      */
-    void set_cache_to(const LinOp* b, const LinOp* x) const
+    void set_cache_to(const AbstractMultiVector* b,
+                      const AbstractMultiVector* x) const
     {
         if (cache_.inner_b == nullptr ||
             cache_.inner_b->get_size() != b->get_size()) {
@@ -176,14 +186,14 @@ protected:
             cache_.intermediate = matrix::MultiVector<value_type>::create(
                 this->get_executor(), size);
         }
-        cache_.inner_b->copy_from(as<Cloneable>(b));
+        cache_.inner_b->copy_from(as<matrix::MultiVector<ValueType>>(b));
         if (inner_operator_->apply_uses_initial_guess()) {
-            cache_.inner_x->copy_from(as<Cloneable>(x));
+            cache_.inner_x->copy_from(as<matrix::MultiVector<ValueType>>(x));
         }
     }
 
 private:
-    std::shared_ptr<LinOp> system_matrix_{};
+    std::shared_ptr<matrix::Csr<ValueType, IndexType>> system_matrix_{};
     std::shared_ptr<const LinOp> inner_operator_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> row_scaling_{};
     std::shared_ptr<const matrix::Diagonal<value_type>> col_scaling_{};

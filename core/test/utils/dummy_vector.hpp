@@ -24,12 +24,6 @@ public:
         return std::make_unique<Concrete>(exec, size, local_size, prec);
     }
 
-    static std::unique_ptr<Concrete> create(
-        std::shared_ptr<const gko::Executor> exec)
-    {
-        return std::make_unique<Concrete>(exec);
-    }
-
 protected:
     Cloneable* copy_from_impl(const Cloneable* other) override
         GKO_NOT_IMPLEMENTED;

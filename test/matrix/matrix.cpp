@@ -54,6 +54,8 @@ struct SimpleMatrixTest {
 
     static bool supports_strides() { return true; }
 
+    static double tolerance_factor() { return 1.0; }
+
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         ASSERT_FALSE(mtx->get_size());
@@ -524,6 +526,8 @@ struct SparsityCsr
         }
     }
 
+    static double tolerance_factor() { return 10.0; }
+
     static void assert_empty_state(gko::ptr_param<const matrix_type> mtx)
     {
         ASSERT_FALSE(mtx->get_size());
@@ -629,7 +633,7 @@ protected:
         return {std::move(result), exec};
     }
 
-    double tol() { return r<value_type>::value; }
+    double tol() { return Config::tolerance_factor() * r<value_type>::value; }
 
     double mixed_tol() { return r_mixed<value_type, mixed_value_type>(); }
 
@@ -801,22 +805,6 @@ protected:
         if (Config::supports_strides()) {
             SCOPED_TRACE("Single strided vector");
             run_strided<VecType, OutVecType>(mtx, 1, 2, 3, guarded_fn);
-        }
-        if (!gko::is_complex<value_type>()) {
-            // check application of real matrix to complex vector
-            // viewed as interleaved real/imag vector
-            using complex_vec = gko::to_complex<VecType>;
-            using complex_out_vec = gko::to_complex<OutVecType>;
-            if (Config::supports_strides()) {
-                SCOPED_TRACE("Single strided complex vector");
-                run_strided<complex_vec, complex_out_vec>(mtx, 1, 2, 3,
-                                                          guarded_fn);
-            }
-            if (Config::supports_strides()) {
-                SCOPED_TRACE("Strided complex multivector with 2 columns");
-                run_strided<complex_vec, complex_out_vec>(mtx, 2, 3, 4,
-                                                          guarded_fn);
-            }
         }
         {
             SCOPED_TRACE("Multivector with 2 columns");

@@ -130,7 +130,8 @@ protected:
         b_dense->read(b_data);
         auto c_dense =
             Dense::create(ref, gko::dim<2>{a_data.size[0], b_data.size[1]});
-        a_dense->apply(b_dense, c_dense);
+        a_dense->apply(b_dense->as_const_multivector_view(),
+                       c_dense->as_multivector_view());
         return c_dense;
     }
 };

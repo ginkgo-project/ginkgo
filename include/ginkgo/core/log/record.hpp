@@ -9,6 +9,7 @@
 #include <deque>
 #include <memory>
 
+#include <ginkgo/core/base/multivector.hpp>
 #include <ginkgo/core/log/logger.hpp>
 #include <ginkgo/core/stop/criterion.hpp>
 
@@ -43,23 +44,23 @@ std::unique_ptr<T> clone_or_nullptr(T* input)
  */
 struct iteration_complete_data {
     std::unique_ptr<const LinOp> solver;
-    std::unique_ptr<const LinOp> right_hand_side;
-    std::unique_ptr<const LinOp> solution;
+    std::unique_ptr<const AbstractMultiVector> right_hand_side;
+    std::unique_ptr<const AbstractMultiVector> solution;
     const size_type num_iterations;
-    std::unique_ptr<const LinOp> residual;
-    std::unique_ptr<const LinOp> residual_norm;
-    std::unique_ptr<const LinOp> implicit_sq_residual_norm;
+    std::unique_ptr<const AbstractMultiVector> residual;
+    std::unique_ptr<const AbstractMultiVector> residual_norm;
+    std::unique_ptr<const AbstractMultiVector> implicit_sq_residual_norm;
     array<stopping_status> status;
     bool all_stopped;
 
-    iteration_complete_data(const LinOp* solver, const LinOp* right_hand_side,
-                            const LinOp* solution,
-                            const size_type num_iterations,
-                            const LinOp* residual = nullptr,
-                            const LinOp* residual_norm = nullptr,
-                            const LinOp* implicit_sq_residual_norm = nullptr,
-                            const gko::array<stopping_status>* status = nullptr,
-                            bool all_stopped = false)
+    iteration_complete_data(
+        const LinOp* solver, const AbstractMultiVector* right_hand_side,
+        const AbstractMultiVector* solution, const size_type num_iterations,
+        const AbstractMultiVector* residual = nullptr,
+        const AbstractMultiVector* residual_norm = nullptr,
+        const AbstractMultiVector* implicit_sq_residual_norm = nullptr,
+        const gko::array<stopping_status>* status = nullptr,
+        bool all_stopped = false)
         : num_iterations{num_iterations}, all_stopped(all_stopped)
     {
         this->solver = detail::clone_or_nullptr(solver);
@@ -129,13 +130,14 @@ struct polymorphic_object_data {
  */
 struct linop_data {
     std::unique_ptr<const LinOp> A;
-    std::unique_ptr<const LinOp> alpha;
-    std::unique_ptr<const LinOp> b;
-    std::unique_ptr<const LinOp> beta;
-    std::unique_ptr<const LinOp> x;
+    std::unique_ptr<const AbstractMultiVector> alpha;
+    std::unique_ptr<const AbstractMultiVector> b;
+    std::unique_ptr<const AbstractMultiVector> beta;
+    std::unique_ptr<const AbstractMultiVector> x;
 
-    linop_data(const LinOp* A, const LinOp* alpha, const LinOp* b,
-               const LinOp* beta, const LinOp* x)
+    linop_data(const LinOp* A, const AbstractMultiVector* alpha,
+               const AbstractMultiVector* b, const AbstractMultiVector* beta,
+               const AbstractMultiVector* x)
     {
         this->A = detail::clone_or_nullptr(A);
         if (alpha != nullptr) {
@@ -176,9 +178,9 @@ struct linop_factory_data {
 struct criterion_data {
     const stop::Criterion* criterion;
     const size_type num_iterations;
-    std::unique_ptr<const LinOp> residual;
-    std::unique_ptr<const LinOp> residual_norm;
-    std::unique_ptr<const LinOp> solution;
+    std::unique_ptr<const AbstractMultiVector> residual;
+    std::unique_ptr<const AbstractMultiVector> residual_norm;
+    std::unique_ptr<const AbstractMultiVector> solution;
     const uint8 stopping_id;
     const bool set_finalized;
     const array<stopping_status>* status;
@@ -186,9 +188,11 @@ struct criterion_data {
     const bool converged;
 
     criterion_data(const stop::Criterion* criterion,
-                   const size_type& num_iterations, const LinOp* residual,
-                   const LinOp* residual_norm, const LinOp* solution,
-                   const uint8 stopping_id, const bool set_finalized,
+                   const size_type& num_iterations,
+                   const AbstractMultiVector* residual,
+                   const AbstractMultiVector* residual_norm,
+                   const AbstractMultiVector* solution, const uint8 stopping_id,
+                   const bool set_finalized,
                    const array<stopping_status>* status = nullptr,
                    const bool oneChanged = false, const bool converged = false)
         : criterion{criterion},
@@ -203,13 +207,13 @@ struct criterion_data {
           converged{converged}
     {
         if (residual != nullptr) {
-            this->residual = detail::clone_or_nullptr(residual);
+            this->residual = residual->clone();
         }
         if (residual_norm != nullptr) {
-            this->residual_norm = detail::clone_or_nullptr(residual_norm);
+            this->residual_norm = residual_norm->clone();
         }
         if (solution != nullptr) {
-            this->solution = detail::clone_or_nullptr(solution);
+            this->solution = solution->clone();
         }
     }
 };
@@ -333,19 +337,21 @@ public:
         const Executor* exec, const PolymorphicObject* po) const override;
 
     /* LinOp events */
-    void on_linop_apply_started(const LinOp* A, const LinOp* b,
-                                const LinOp* x) const override;
+    void on_linop_apply_started(const LinOp* A, const AbstractMultiVector* b,
+                                const AbstractMultiVector* x) const override;
 
-    void on_linop_apply_completed(const LinOp* A, const LinOp* b,
-                                  const LinOp* x) const override;
+    void on_linop_apply_completed(const LinOp* A, const AbstractMultiVector* b,
+                                  const AbstractMultiVector* x) const override;
 
-    void on_linop_advanced_apply_started(const LinOp* A, const LinOp* alpha,
-                                         const LinOp* b, const LinOp* beta,
-                                         const LinOp* x) const override;
+    void on_linop_advanced_apply_started(
+        const LinOp* A, const AbstractMultiVector* alpha,
+        const AbstractMultiVector* b, const AbstractMultiVector* beta,
+        const AbstractMultiVector* x) const override;
 
-    void on_linop_advanced_apply_completed(const LinOp* A, const LinOp* alpha,
-                                           const LinOp* b, const LinOp* beta,
-                                           const LinOp* x) const override;
+    void on_linop_advanced_apply_completed(
+        const LinOp* A, const AbstractMultiVector* alpha,
+        const AbstractMultiVector* b, const AbstractMultiVector* beta,
+        const AbstractMultiVector* x) const override;
 
     /* LinOpFactory events */
     void on_linop_factory_generate_started(const LinOpFactory* factory,
@@ -358,50 +364,58 @@ public:
     /* Criterion events */
     void on_criterion_check_started(const stop::Criterion* criterion,
                                     const size_type& num_iterations,
-                                    const LinOp* residual,
-                                    const LinOp* residual_norm,
-                                    const LinOp* solution,
+                                    const AbstractMultiVector* residual,
+                                    const AbstractMultiVector* residual_norm,
+                                    const AbstractMultiVector* solution,
                                     const uint8& stopping_id,
                                     const bool& set_finalized) const override;
 
     void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* residual_norm,
-        const LinOp* implicit_residual_norm_sq, const LinOp* solution,
-        const uint8& stopping_id, const bool& set_finalized,
-        const array<stopping_status>* status, const bool& one_changed,
-        const bool& all_converged) const override;
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* implicit_residual_norm_sq,
+        const AbstractMultiVector* solution, const uint8& stopping_id,
+        const bool& set_finalized, const array<stopping_status>* status,
+        const bool& one_changed, const bool& all_converged) const override;
 
     void on_criterion_check_completed(
         const stop::Criterion* criterion, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* residual_norm,
-        const LinOp* solution, const uint8& stopping_id,
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* solution, const uint8& stopping_id,
         const bool& set_finalized, const array<stopping_status>* status,
         const bool& one_changed, const bool& all_converged) const override;
 
     /* Internal solver events */
-    void on_iteration_complete(
-        const LinOp* solver, const LinOp* right_hand_side, const LinOp* x,
-        const size_type& num_iterations, const LinOp* residual,
-        const LinOp* residual_norm, const LinOp* implicit_resnorm_sq,
-        const array<stopping_status>* status, bool stopped) const override;
-
-    GKO_DEPRECATED(
-        "Please use the version with the additional stopping "
-        "information.")
     void on_iteration_complete(const LinOp* solver,
+                               const AbstractMultiVector* right_hand_side,
+                               const AbstractMultiVector* x,
                                const size_type& num_iterations,
-                               const LinOp* residual, const LinOp* solution,
-                               const LinOp* residual_norm) const override;
+                               const AbstractMultiVector* residual,
+                               const AbstractMultiVector* residual_norm,
+                               const AbstractMultiVector* implicit_resnorm_sq,
+                               const array<stopping_status>* status,
+                               bool stopped) const override;
 
     GKO_DEPRECATED(
         "Please use the version with the additional stopping "
         "information.")
     void on_iteration_complete(
         const LinOp* solver, const size_type& num_iterations,
-        const LinOp* residual, const LinOp* solution,
-        const LinOp* residual_norm,
-        const LinOp* implicit_sq_residual_norm) const override;
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* solution,
+        const AbstractMultiVector* residual_norm) const override;
+
+    GKO_DEPRECATED(
+        "Please use the version with the additional stopping "
+        "information.")
+    void on_iteration_complete(
+        const LinOp* solver, const size_type& num_iterations,
+        const AbstractMultiVector* residual,
+        const AbstractMultiVector* solution,
+        const AbstractMultiVector* residual_norm,
+        const AbstractMultiVector* implicit_sq_residual_norm) const override;
 
     /**
      * Creates a Record logger. This dynamically allocates the memory,

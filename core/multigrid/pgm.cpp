@@ -337,11 +337,10 @@ Pgm<ValueType, IndexType>::generate_local(
     // compute weight_mtx = (abs(mtx) + abs(mtx'))/2;
     auto abs_mtx = local_matrix->compute_absolute();
     // abs_mtx is already real valuetype, so transpose is enough
-    auto weight_mtx = gko::as<weight_csr_type>(abs_mtx->transpose());
     auto half_scalar = initialize<matrix::MultiVector<real_type>>({0.5}, exec);
-    auto identity = matrix::Identity<real_type>::create(exec, num_rows);
     // W = (abs_mtx + transpose(abs_mtx))/2
-    abs_mtx->apply(half_scalar, identity, half_scalar, weight_mtx);
+    auto weight_mtx = abs_mtx->scale_add(
+        half_scalar, half_scalar, as<weight_csr_type>(abs_mtx->transpose()));
     // Extract the diagonal value of matrix
     auto diag = weight_mtx->extract_diagonal();
     for (int i = 0; i < parameters_.max_iterations; i++) {
@@ -431,8 +430,8 @@ array<GlobalIndexType> Pgm<ValueType, IndexType>::communicate_off_diag_agg(
         device_segmented_array<const GlobalIndexType>{}, comm.rank(), send_agg,
         experimental::distributed::index_space::local, send_global_agg));
 
-    return gko::detail::exchange_with_neighbors(exec, comm, coll_comm.get(),
-                                                send_global_agg);
+    return experimental::distributed::detail::exchange_with_neighbors(
+        exec, comm, coll_comm.get(), send_global_agg);
 }
 
 

@@ -53,12 +53,6 @@ public:
     virtual void run() = 0;
 };
 
-template <typename Generator, typename T>
-auto as_vector(const std::unique_ptr<T>& p)
-{
-    return gko::as<typename Generator::Vec>(p.get());
-}
-
 
 template <typename Generator>
 class CopyOperation : public BenchmarkOperation {
@@ -73,7 +67,7 @@ public:
             exec, size, generator.create_default_local_size(size), stride_in);
         out_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride_out);
-        as_vector<Generator>(in_)->fill(1);
+        in_->fill(1);
     }
 
     gko::size_type get_flops() const override
@@ -86,14 +80,11 @@ public:
         return in_->get_size()[0] * in_->get_size()[1] * sizeof(etype) * 2;
     }
 
-    void run() override
-    {
-        as_vector<Generator>(in_)->convert_to(as_vector<Generator>(out_));
-    }
+    void run() override { out_->copy_from(in_); }
 
 private:
-    std::unique_ptr<gko::LinOp> in_;
-    std::unique_ptr<gko::LinOp> out_;
+    std::unique_ptr<gko::AbstractMultiVector> in_;
+    std::unique_ptr<gko::AbstractMultiVector> out_;
 };
 
 
@@ -113,7 +104,7 @@ public:
         y_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride_out);
         alpha_->fill(1);
-        as_vector<Generator>(x_)->fill(1);
+        x_->fill(1);
     }
 
     gko::size_type get_flops() const override
@@ -126,14 +117,14 @@ public:
         return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype) * 3;
     }
 
-    void prepare() override { as_vector<Generator>(y_)->fill(1); }
+    void prepare() override { y_->fill(1); }
 
-    void run() override { as_vector<Generator>(y_)->add_scaled(alpha_, x_); }
+    void run() override { y_->add_scaled(alpha_, x_); }
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> x_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> x_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -153,7 +144,7 @@ public:
         y_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride_out);
         alpha_->fill(1);
-        as_vector<Generator>(x_)->fill(1);
+        x_->fill(1);
     }
 
     gko::size_type get_flops() const override
@@ -166,14 +157,14 @@ public:
         return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype) * 3;
     }
 
-    void prepare() override { as_vector<Generator>(y_)->fill(1); }
+    void prepare() override { y_->fill(1); }
 
-    void run() override { as_vector<Generator>(y_)->sub_scaled(alpha_, x_); }
+    void run() override { y_->sub_scaled(alpha_, x_); }
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> x_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> x_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -202,13 +193,13 @@ public:
         return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype) * 2;
     }
 
-    void prepare() override { as_vector<Generator>(y_)->fill(1); }
+    void prepare() override { y_->fill(1); }
 
-    void run() override { as_vector<Generator>(y_)->scale(alpha_); }
+    void run() override { y_->scale(alpha_); }
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -227,8 +218,8 @@ public:
             exec, size, generator.create_default_local_size(size), stride_x);
         y_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride_y);
-        as_vector<Generator>(x_)->fill(1);
-        as_vector<Generator>(y_)->fill(1);
+        x_->fill(1);
+        y_->fill(1);
     }
 
     gko::size_type get_flops() const override
@@ -241,12 +232,12 @@ public:
         return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype) * 2;
     }
 
-    void run() override { as_vector<Generator>(x_)->compute_dot(y_, alpha_); }
+    void run() override { x_->compute_dot(y_, alpha_); }
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> x_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> x_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -262,7 +253,7 @@ public:
             gko::matrix::MultiVector<etype>::create(exec, gko::dim<2>{1, cols});
         y_ = generator.create_multi_vector_strided(
             exec, size, generator.create_default_local_size(size), stride);
-        as_vector<Generator>(y_)->fill(1);
+        y_->fill(1);
     }
 
     gko::size_type get_flops() const override
@@ -275,11 +266,11 @@ public:
         return y_->get_size()[0] * y_->get_size()[1] * sizeof(etype);
     }
 
-    void run() override { as_vector<Generator>(y_)->compute_norm2(alpha_); }
+    void run() override { y_->compute_norm2(alpha_); }
 
 private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
-    std::unique_ptr<gko::LinOp> y_;
+    std::unique_ptr<gko::AbstractMultiVector> y_;
 };
 
 
@@ -293,14 +284,15 @@ public:
     {
         // Since dense distributed matrices are not supported we can use
         // local_size == global_size
-        A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, k},
-                                                   gko::dim<2>{n, k}, stride_A);
+        auto A = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{n, k},
+                                                   stride_A);
         B_ = generator.create_multi_vector_strided(exec, gko::dim<2>{k, m},
                                                    gko::dim<2>{k, m}, stride_B);
         C_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, m},
                                                    gko::dim<2>{n, m}, stride_C);
-        as_vector<Generator>(A_)->fill(1);
-        as_vector<Generator>(B_)->fill(1);
+        A->fill(1);
+        A_ = std::move(A);
+        B_->fill(1);
     }
 
     gko::size_type get_flops() const override
@@ -320,8 +312,8 @@ public:
 
 private:
     std::unique_ptr<gko::LinOp> A_;
-    std::unique_ptr<gko::LinOp> B_;
-    std::unique_ptr<gko::LinOp> C_;
+    std::unique_ptr<gko::AbstractMultiVector> B_;
+    std::unique_ptr<gko::AbstractMultiVector> C_;
 };
 
 
@@ -336,8 +328,8 @@ public:
     {
         // Since dense distributed matrices are not supported we can use
         // local_size == global_size
-        A_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, k},
-                                                   gko::dim<2>{n, k}, stride_A);
+        auto A = gko::matrix::Dense<etype>::create(exec, gko::dim<2>{n, k},
+                                                   stride_A);
         B_ = generator.create_multi_vector_strided(exec, gko::dim<2>{k, m},
                                                    gko::dim<2>{k, m}, stride_B);
         C_ = generator.create_multi_vector_strided(exec, gko::dim<2>{n, m},
@@ -346,8 +338,9 @@ public:
             gko::matrix::MultiVector<etype>::create(exec, gko::dim<2>{1, 1});
         beta_ =
             gko::matrix::MultiVector<etype>::create(exec, gko::dim<2>{1, 1});
-        as_vector<Generator>(A_)->fill(1);
-        as_vector<Generator>(B_)->fill(1);
+        A->fill(1);
+        A_ = std::move(A);
+        B_->fill(1);
         alpha_->fill(1);
         beta_->fill(1);
     }
@@ -372,8 +365,8 @@ private:
     std::unique_ptr<gko::matrix::MultiVector<etype>> alpha_;
     std::unique_ptr<gko::matrix::MultiVector<etype>> beta_;
     std::unique_ptr<gko::LinOp> A_;
-    std::unique_ptr<gko::LinOp> B_;
-    std::unique_ptr<gko::LinOp> C_;
+    std::unique_ptr<gko::AbstractMultiVector> B_;
+    std::unique_ptr<gko::AbstractMultiVector> C_;
 };
 
 

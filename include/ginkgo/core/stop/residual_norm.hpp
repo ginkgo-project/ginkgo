@@ -52,9 +52,8 @@ class ResidualNormBase : public Criterion {
 
 protected:
     using absolute_type = remove_complex<ValueType>;
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
-    using NormVector = matrix::MultiVector<absolute_type>;
     using Vector = matrix::MultiVector<ValueType>;
+    using NormVector = typename Vector::norm_type;
     bool check_impl(uint8 stoppingId, bool setFinalized,
                     array<stopping_status>* stop_status, bool* one_changed,
                     const Criterion::Updater& updater) override;
@@ -76,7 +75,7 @@ protected:
 private:
     mode baseline_{mode::rhs_norm};
     std::shared_ptr<const LinOp> system_matrix_{};
-    std::shared_ptr<const LinOp> b_{};
+    std::shared_ptr<const AbstractMultiVector> b_{};
     /* one/neg_one for residual computation */
     std::shared_ptr<const Vector> one_{};
     std::shared_ptr<const Vector> neg_one_{};
@@ -125,9 +124,8 @@ private:
 template <typename ValueType = default_precision>
 class ResidualNorm : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
-    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
+    using NormVector = typename Vector::norm_type;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -207,9 +205,8 @@ protected:
 template <typename ValueType = default_precision>
 class ImplicitResidualNorm : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
-    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
+    using NormVector = typename Vector::norm_type;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -344,9 +341,8 @@ class GKO_DEPRECATED(
     "mode::initial_resnorm") ResidualNormReduction
     : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
-    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
+    using NormVector = typename Vector::norm_type;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -406,9 +402,8 @@ class GKO_DEPRECATED(
     "mode::rhs_norm") RelativeResidualNorm
     : public ResidualNormBase<ValueType> {
 public:
-    using ComplexVector = matrix::MultiVector<to_complex<ValueType>>;
-    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
+    using NormVector = typename Vector::norm_type;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {
@@ -467,8 +462,8 @@ class GKO_DEPRECATED(
     "mode::absolute") AbsoluteResidualNorm
     : public ResidualNormBase<ValueType> {
 public:
-    using NormVector = matrix::MultiVector<remove_complex<ValueType>>;
     using Vector = matrix::MultiVector<ValueType>;
+    using NormVector = typename Vector::norm_type;
 
     GKO_CREATE_FACTORY_PARAMETERS(parameters, Factory)
     {

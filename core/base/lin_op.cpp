@@ -7,8 +7,46 @@
 #include <memory>
 #include <utility>
 
+#include <ginkgo/core/base/multivector.hpp>
+
 
 namespace gko {
+
+
+void LinOp::apply_impl(const AbstractMultiVector* alpha,
+                       const AbstractMultiVector* b,
+                       const AbstractMultiVector* beta,
+                       AbstractMultiVector* x) const
+{
+    auto x_clone = x->clone();
+    this->apply_impl(b, x_clone.get());
+    x->scale(beta);
+    x->add_scaled(alpha, x_clone);
+}
+
+
+void LinOp::validate_application_parameters(const AbstractMultiVector* b,
+                                            const AbstractMultiVector* x) const
+
+{
+    GKO_ASSERT_CONFORMANT(this, b);
+    GKO_ASSERT_EQUAL_ROWS(this, x);
+    GKO_ASSERT_EQUAL_COLS(b, x);
+}
+
+
+void ScaledIdentityAddable::add_scaled_identity(
+    ptr_param<const AbstractMultiVector> a,
+    ptr_param<const AbstractMultiVector> b)
+{
+    GKO_ASSERT_IS_SCALAR(a);
+    GKO_ASSERT_IS_SCALAR(b);
+    auto ae =
+        make_temporary_clone(as<PolymorphicObject>(this)->get_executor(), a);
+    auto be =
+        make_temporary_clone(as<PolymorphicObject>(this)->get_executor(), b);
+    add_scaled_identity_impl(ae.get(), be.get());
+}
 
 
 LinOpFactory::ReuseData::ReuseData() = default;

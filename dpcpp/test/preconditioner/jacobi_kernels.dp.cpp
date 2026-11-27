@@ -399,6 +399,7 @@ TEST_F(Jacobi, DpcppApplyEquivalentToRef)
 
 TEST_F(Jacobi, DpcppScalarApplyEquivalentToRef)
 {
+    using Dense = gko::matrix::Dense<value_type>;
     gko::size_type dim = 313;
     std::default_random_engine engine(42);
     auto dense_data =
@@ -406,7 +407,7 @@ TEST_F(Jacobi, DpcppScalarApplyEquivalentToRef)
             dim, dim, std::uniform_int_distribution<>(1, dim),
             std::normal_distribution<>(1.0, 2.0), engine);
     gko::utils::make_diag_dominant(dense_data);
-    auto dense_smtx = gko::share(Vec::create(ref));
+    auto dense_smtx = gko::share(Dense::create(ref));
     dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx);
@@ -451,6 +452,7 @@ TEST_F(Jacobi, DpcppLinearCombinationApplyEquivalentToRef)
 
 TEST_F(Jacobi, DpcppScalarLinearCombinationApplyEquivalentToRef)
 {
+    using Dense = gko::matrix::Dense<value_type>;
     gko::size_type dim = 313;
     std::default_random_engine engine(42);
     auto dense_data =
@@ -458,7 +460,7 @@ TEST_F(Jacobi, DpcppScalarLinearCombinationApplyEquivalentToRef)
             dim, dim, std::uniform_int_distribution<>(1, dim),
             std::normal_distribution<value_type>(1.0, 2.0), engine);
     gko::utils::make_diag_dominant(dense_data);
-    auto dense_smtx = gko::share(Vec::create(ref));
+    auto dense_smtx = gko::share(Dense::create(ref));
     dense_smtx->read(dense_data);
     auto smtx = gko::share(Mtx::create(ref));
     smtx->copy_from(dense_smtx);

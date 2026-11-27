@@ -138,11 +138,11 @@ enum class spmv_strategy {
  * A->apply(alpha, b, beta, x) // x = alpha*A*b + beta*x
  *
  * // Applying to Csr matrices computes a SpGEMM product of two sparse matrices
- * A->apply(B, C)              // C = A*B
- * A->apply(alpha, B, beta, C) // C = alpha*A*B + beta*C
+ * C = A->multiply(B)                     // C = A*B
+ * C = A->multiply_add(alpha, B, beta, C) // C = alpha*A*B + beta*C
  *
  * // Applying to an Identity matrix computes a SpGEAM sparse matrix addition
- * A->apply(alpha, I, beta, B) // B = alpha*A + beta*B
+ * B = A->scale_add(alpha, beta, B) // B = alpha*A + beta*B
  * ```
  * Both the SpGEMM and SpGEAM operation require the input matrices to be sorted
  * by column index, otherwise the algorithms will produce incorrect results.
@@ -954,9 +954,9 @@ public:
      * Scales the matrix with a scalar.
      *
      * @param alpha  The entire matrix is scaled by alpha. alpha has to be a 1x1
-     * MultiVector.
+     *               MultiVector.
      */
-    void scale(ptr_param<const LinOp> alpha)
+    void scale(ptr_param<const AbstractMultiVector> alpha)
     {
         auto exec = this->get_executor();
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -967,9 +967,9 @@ public:
      * Scales the matrix with the inverse of a scalar.
      *
      * @param alpha  The entire matrix is scaled by 1 / alpha. alpha has to be a
-     * 1x1 MultiVector.
+     *               1x1 MultiVector.
      */
-    void inv_scale(ptr_param<const LinOp> alpha)
+    void inv_scale(ptr_param<const AbstractMultiVector> alpha)
     {
         auto exec = this->get_executor();
         GKO_ASSERT_EQUAL_DIMENSIONS(alpha, dim<2>(1, 1));
@@ -1173,10 +1173,13 @@ protected:
         array<index_type> row_ptrs,
         csr::spmv_strategy strategy = csr::spmv_strategy::automatic);
 
-    void apply_impl(const LinOp* b, LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* b,
+                    AbstractMultiVector* x) const override;
 
-    void apply_impl(const LinOp* alpha, const LinOp* b, const LinOp* beta,
-                    LinOp* x) const override;
+    void apply_impl(const AbstractMultiVector* alpha,
+                    const AbstractMultiVector* b,
+                    const AbstractMultiVector* beta,
+                    AbstractMultiVector* x) const override;
 
     /**
      * Computes srow. It should be run after changing any row_ptrs_ value.
@@ -1192,20 +1195,20 @@ protected:
     void make_srow(index_type max_nnz_per_row);
 
     /**
-     * @copydoc scale(const LinOp *)
+     * @copydoc scale(ptr_param<const AbstractMultiVector>)
      *
      * @note  Other implementations of Csr should override this function
-     *        instead of scale(const LinOp *alpha).
+     *        instead of scale(ptr_param<const AbstractMultiVector> alpha).
      */
-    virtual void scale_impl(const LinOp* alpha);
+    virtual void scale_impl(const AbstractMultiVector* alpha);
 
     /**
-     * @copydoc inv_scale(const LinOp *)
+     * @copydoc inv_scale(ptr_param<const AbstractMultiVector>)
      *
      * @note  Other implementations of Csr should override this function
-     *        instead of inv_scale(const LinOp *alpha).
+     *        instead of inv_scale(ptr_param<const AbstractMultiVector> alpha).
      */
-    virtual void inv_scale_impl(const LinOp* alpha);
+    virtual void inv_scale_impl(const AbstractMultiVector* alpha);
 
 private:
     csr::spmv_strategy strategy_;
@@ -1215,7 +1218,8 @@ private:
     array<index_type> srow_;
     index_type max_nnz_per_row_;
 
-    void add_scaled_identity_impl(const LinOp* a, const LinOp* b) override;
+    void add_scaled_identity_impl(const AbstractMultiVector* a,
+                                  const AbstractMultiVector* b) override;
 };
 
 
